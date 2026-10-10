@@ -53,7 +53,7 @@ gap review (`research-gaps.md`) and the issues can be cross-checked quickly:
 |---|---|---|---|
 | `o1-memory-io-map.md` | Memory banks, I/O decode, bank switching, interrupts, connector pinouts, free I/O windows | #40, #62, #64, #72 | Solved (port map confirmed by the ROM source; decode *granularity* is schematic-level) |
 | `o1-mainboard-schematic.md` | Sheet-by-sheet index of the Rev E schematic set, device list, pinouts, the machine-level oracle | #62, #64 | Solved |
-| `o1-rom-variants.md` | Every ROM image, CRC32s, the three MAME machines' ROM requirements, third-party ROM survey | #70, #44 | Solved |
+| `o1-rom-variants.md` | Every ROM image, CRC32s, the three MAME machines' ROM requirements, third-party ROM survey, and the personality-relevant ROM properties (IEEE-488 driver, video window) the firmware gate is built on | #70, #44, #86 | Solved |
 | `o1-rom-source.md` | Index of the ROM 1.44 / CBIOS source, and the port map and interfaces it confirms | #72, #40 | Solved |
 | `mame-emulation.md` | Running the three machines, ROM requirements, boot-disk compatibility, headless testing | #79, #24, #29 | Solved |
 | `drive-c-protocol.md` | Drive C (IEEE-488 RAM disk) command set and handshake | #6, #22 | Partially solved — command set from `DCL`/`DFD.SPR` still to finish |
