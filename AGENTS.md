@@ -46,6 +46,29 @@ agent working in `o1nextgen`. Follow it over generic defaults.
    after merge.
 7. Never commit directly to `main`; never force-push `main`.
 
+## When a tool is missing, ask — do not engineer around it
+
+Host tooling is cheap and usually much better than a workaround. If the shape of
+the work is being set by the *absence* of a program, stop and ask about installing
+it (`brew install …`, `pip3 install …`, `gem install …`). The answer is usually
+yes, and asking costs one message.
+
+Examples from this repo, including the ones that should have been asked earlier:
+
+- `z80dasm` — asked for, approved, and it unblocked the Drive C disassembly (#6).
+- `fonttools` + `brotli` — asked for, approved, and it turned the character ROM
+  into a real web font in about thirty lines rather than a hand-written TTF
+  writer (#44).
+- **ImageMagick** — never asked for, so an hour went into hand-writing a BMP
+  reader, a PNG writer and a colour sampler because macOS ships no PIL and no
+  ImageMagick. A JPEG decoder that `sips` could have handled was also in scope.
+- **A newer Ruby / Jekyll** — never asked for, so the site cannot be built
+  locally and every layout change is hand-checked instead of rendered.
+
+The stdlib-only rule for `tools/` is about *shipped* tooling. A host-only or
+build-time tool is a different question — and it is a question worth asking
+rather than engineering around.
+
 ## Repo layout and house rules
 
 - `research/` is an **intentional in-repo archive** of large binaries (PDF
