@@ -69,6 +69,43 @@ The socket itself (UA15, on mainboard sheet 4 of 9 — see
 so either drops straight in with no strapping change, and whichever is fitted
 is what a socket tap reads.
 
+### How the font is stored
+
+The layout is **not** glyph-contiguous, and it is not obvious from the dump — it
+took MAME's driver to settle it (`src/mame/osborne/osborne1.cpp`):
+
+```
+u8 const gfx = m_p_chargen[(ra << 7) | (chr & 0x7f)];
+```
+
+so the byte for scanline `ra` of character `chr` is at `rom[ra * 128 + chr]`:
+all 128 characters' row 0 are contiguous, then all of row 1, and so on. Ten rows
+× 128 characters = **1280 bytes**, and the remaining 768 bytes of the 2 KiB are
+`0xFF`. Each row is one byte, **bit 7 = leftmost pixel**, and the cell is 8×10.
+
+(Guessing this cost an hour: reading it as 128 glyphs of 16 bytes, or as 8 bytes
+per glyph, produces plausible-looking noise and no recognisable letters. The
+driver had it in one line.)
+
+That layout matters to the video personality (#24): a socket tap reads the font
+as `rom[ra * 128 + chr]`, and the Nuevo ROM adds an underline by forcing row 9
+to `0xFF` when bit 7 of the character code is set.
+
+### The two fonts really are different — 93 glyphs of 128
+
+Comparing the two images glyph by glyph (`tools/romfont.py` decodes both):
+
+| | Differing characters |
+|---|---|
+| 0x00–0x1F graphics set | **0 of 32** — byte-identical |
+| 0x20–0x7E printable ASCII | **90 of 95** |
+| 0x7F and the rest | 3 |
+
+Only three printable characters are shared: space, the apostrophe and the
+backtick. So this is not a tweak — the late font is a different typeface, and the
+graphics set was carried over unchanged. That settles the open question below,
+and it means "which font is fitted" is a visible difference, not a subtle one.
+
 ### Finding: one late image, five names
 
 The bytes `6c1eab0d` appear under five different names across three sources:
@@ -142,10 +179,11 @@ table is also the map from video mode to ROM set.
 
 ## Open questions
 
-1. **Do the two character generators actually differ in the font?** MAME pairs
-   `5297c109` with BIOS ≤ 1.4 and `6c1eab0d` with 1.43+, which is strong
-   evidence of a font revision, but nobody has rendered the two side by side.
-   Cheap to settle: dump both to a bitmap grid and compare glyphs.
+1. ~~**Do the two character generators actually differ in the font?**~~ **Answered
+   — yes, substantially.** 93 of 128 glyphs differ, and the 32 graphics characters
+   are byte-identical (see "The two fonts really are different" above). Only
+   space, apostrophe and backtick are shared. `tools/romfont.py` decodes either
+   image to a font, so the comparison can be repeated.
 2. **What is BrettHallen's "Screen Pac BIOS Rev. A"?** It is byte-identical to
    the stock late character generator, so the label may be wrong — or the
    ScreenPac genuinely ships an unmodified char-gen and does its 80-column work

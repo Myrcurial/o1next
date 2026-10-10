@@ -21,6 +21,40 @@ Run everything: `tools/extract_all.sh [path-to-samdisk]`
   40x10x256B FM, boottrk 3, 2K blocks), `kp2x`/`kpiv` (Kaypro DSDD:
   80 logical trk side-per-track x 10 x 512B, boottrk 1, 2K blocks).
 
+## The machine's own typeface (`romfont.py`)
+
+Decodes the character generator ROM (UA15, 2716) into a real font — the blog is
+set in the letters the Osborne 1 drew on its own screen.
+
+```
+tools/romfont.py                      # write site/assets/fonts/*.{ttf,woff2}
+tools/romfont.py --check              # fail if they are stale
+tools/romfont.py --specimen /tmp/f.png   # render a sheet to look at
+```
+
+Two things make this worth a tool rather than a one-off:
+
+- **The layout is not glyph-contiguous.** The byte for scanline `ra` of character
+  `chr` is `rom[ra * 128 + chr]` — all 128 characters' row 0, then row 1, and so
+  on. 10 rows × 128 characters = 1280 bytes; the rest of the 2 KiB is `0xFF`.
+  This comes from MAME's `osborne1` driver, not from guessing (see
+  `docs/o1-rom-variants.md` §"How the font is stored" for the trail of failed
+  guesses).
+- **It verifies itself.** It reloads the font it just built, rasterises every
+  glyph back to 8×10 bits and compares them against the ROM; if that fails it
+  writes nothing. `--check` regenerates and compares bytes for CI, the same shape
+  as `gen_rom_table.py` and `check_schematics.py`.
+
+Glyphs are one rectangle per run of set pixels, so the outlines are exact.
+ASCII 0x20–0x7E only: the 0x00–0x1F graphics set is Osborne's own encoding rather
+than Unicode, and mapping it would be a guess. Typographic punctuation (curly
+quotes, en/em dashes) is mapped onto the machine's ASCII glyphs, because the
+posts contain them and the alternative is the browser substituting a different
+face mid-sentence.
+
+Requires **fonttools** and **brotli** (`pip3 install fonttools brotli`) —
+build-time only; the font files are committed.
+
 ## Reading scanned schematics (`schematic_render.sh`, `schematic_atlas.sh`)
 
 Renders sheets — or a zoomed region of one sheet — from a scanned schematic
