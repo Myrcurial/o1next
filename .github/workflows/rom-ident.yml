@@ -1,0 +1,46 @@
+name: rom-ident check
+
+# The firmware's ROM-identity table is generated from docs/o1-rom-variants.md, so
+# the two can drift -- and every CRC in it is supposed to match a file in the
+# archive.  This job regenerates the table and fails if the committed files
+# differ, then recomputes every CRC from the ROM bytes and fails if the document
+# disagrees with them.
+#
+# Same shape as the schematic check, but seconds rather than minutes: standard
+# library Python and a host C compiler, no kicad-cli and no board.
+
+on:
+  push:
+    paths:
+      - 'docs/o1-rom-variants.md'
+      - 'firmware/rom-ident/**'
+      - 'research/roms/**'
+      - 'tools/emulator-setup/roms/**'
+      - 'tools/gen_rom_table.py'
+      - '.github/workflows/rom-ident.yml'
+  pull_request:
+    paths:
+      - 'docs/o1-rom-variants.md'
+      - 'firmware/rom-ident/**'
+      - 'research/roms/**'
+      - 'tools/emulator-setup/roms/**'
+      - 'tools/gen_rom_table.py'
+      - '.github/workflows/rom-ident.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  table:
+    name: ROM table + gate tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Table matches the document and the archive
+        run: python3 tools/gen_rom_table.py --check -v
+
+      - name: Host tests (identity chain + gate)
+        run: firmware/rom-ident/run_tests.sh -v
