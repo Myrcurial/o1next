@@ -38,7 +38,21 @@ Tracks: #56 (extension of #21). Physical interface documented by #57.
 ## Power
 
 +12V available on DE-9 pin 7 (via R21) — same power trick as the
-keyboard adapter; on-board regulator to 3.3 V for the ESP32.
+keyboard adapter; on-board regulator to 3.3 V for the ESP32. **The port
+carrying power is what makes the severable module possible at all**: it
+hangs on the front of the machine and feeds itself, with no case opened
+and no separate supply.
+
+- **The current budget is deliberately deferred** (decision 2026-10-10,
+  #56): don't derive it until a board is close enough to need the answer.
+  The expected resolution is cheap — a bulk capacitor local to the module
+  absorbs the WiFi transmit transients and R21 only has to supply the
+  *average*. A series resistor is a sustained-current limit, so it and a
+  transient reservoir do not actually fight each other.
+- **R21 is shared:** the same 22 Ω resistor feeds P4 pin 19 through
+  jumper J6, so if a USB keyboard adapter (#47) is also fitted, both
+  loads draw through one resistor. Revisit that with the budget above,
+  not separately.
 
 ## Enclosure
 

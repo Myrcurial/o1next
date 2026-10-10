@@ -85,8 +85,12 @@ Read/write it via the CP/M `IOBYTE` function, same as the serial port.
   hardware** — see the open item below.
 - **+12 V on pin 7 is current-limited by 22 Ω** (schematic sheet 7: R21 — the
   same R21 that feeds keyboard P4 pin 19 through jumper J6). Fine to sense,
-  marginal as a module power source; plan to power the module from the
-  interposer's dedicated 5 V rail (research-gaps #5), not from P1.
+  and marginal as a *sustained* source; the **interposer-onboard** module is
+  therefore powered from the interposer's dedicated 5 V rail (research-gaps
+  #5) rather than from P1. The **severable external** module is the reverse
+  case — it exists because the port carries power at all. Its current budget
+  is deliberately deferred until a board exists: see
+  `hardware/wifi-modem-module/README.md` §Power.
 - **MSB (pin 4) is open-collector** and **MCB (pin 8) low suppresses output** —
   together these are the modem's "hook"/enable handshake. RI (pin 9) falling
   edge sets the ring flag; the ESP32 can drive it to signal an incoming
