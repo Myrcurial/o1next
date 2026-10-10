@@ -56,7 +56,7 @@ gap review (`research-gaps.md`) and the issues can be cross-checked quickly:
 | `o1-rom-variants.md` | Every ROM image, CRC32s, the three MAME machines' ROM requirements, third-party ROM survey | #70, #44 | Solved |
 | `o1-rom-source.md` | Index of the ROM 1.44 / CBIOS source, and the port map and interfaces it confirms | #72, #40 | Solved |
 | `mame-emulation.md` | Running the three machines, ROM requirements, boot-disk compatibility, headless testing | #79, #24, #29 | Solved |
-| `drive-c-protocol.md` | Drive C (IEEE-488 RAM disk) command set and handshake | #6, #22 | Partially solved — command set from `DCL`/`DFD.SPR` still to finish |
+| `drive-c-protocol.md` | Drive C (IEEE-488 RAM disk) command set and handshake — the byte transport is documented from `DCL.COM`; the command layer is not yet | #6, #22 | Partially solved — how `DFD.SPR` reaches the transport, and the command byte semantics, still to finish |
 | `occ1-harddisk-analysis.md` | The Osborne 1 hard-disk products: interface, files, command set | #8 | Partially solved — two distinct products now identified; controller command sets open |
 | `copower88-protocol.md` | CoPower-88 host protocol from the Kaypro + Zorba drivers | #3, #4, #5, #23 | Partially solved — residual doorbell/IRQ semantics |
 | `copower88-schematics.md` | Walkthrough of SWP drawing 611-0003 (4 sheets) | #5 | Solved |

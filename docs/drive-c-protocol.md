@@ -24,51 +24,121 @@ print buffer"). Osborne-1 only: "cannot be used with the Executive".
 
 ## Hardware interface (from DCL.COM disassembly)
 
-The Drive C box hangs off the Osborne 1 **IEEE-488 option port**, driven
-by bit-banging the motherboard's memory-mapped 6821 PIA:
+The Drive C box hangs off the Osborne 1 **IEEE-488 option port**, driven by
+bit-banging the motherboard's memory-mapped 6821 PIA. Everything below is read
+from `research/drive_c/disasm/dcl.asm` (z80dasm, org 0x100) and cross-checked
+against the raw bytes — see "Disassembling" at the end for how to regenerate it.
 
-- **PIA registers: 0x2900-0x2903** in bank 2 (the ROM/IO bank):
-  - 0x2900/0x2901 = port A data / control
-  - 0x2902/0x2903 = port B data / control
-- **Bank switching: OUT (0x00) = select bank 2 (IO), OUT (0x01) = back
-  to bank 1 (RAM)**, DI/EI bracketed. (Same convention as the ACT hard
-  disk BIOS — see docs/occ1-harddisk-analysis.md.)
-- Transfer loop is per-byte handshaked: write CA2/CB2 control sequences
-  0x32/0x36/0x3E (pulse/strobe modes of 6821 CRA/CRB), set DDRs to
-  0xFF (output) or 0x00 (input), then `LDI` loops moving 128-byte
-  sectors one byte at a time with a strobe toggle between bytes.
-- PIA init sequence: CRA=0x32, DDRA=0xFF, CRA=0x36, CRB=0x32,
-  DDRB=0xFF, CRB=0x36, then command/address byte into DDRB (0x08...).
-  A final phase sets CRA=0x32/0x36, CRB=0x00, DDRB=0xBF, CRB=0x04,
-  DDRB=0x02 — i.e. port B partially an input for status handshake.
-- No IN/OUT port I/O to the device at all except bank switching
-  (single OUT (0xF1) in DFD.SPR under investigation — may be the
-  double-density board or a status port).
-- DCL contains a Z80 CPU-behavior test snippet (rla/rra/daa/cpl/scf/
-  ccf/halt region near 0x0748) and accesses ports 0xD6 (OUT) / 0xDE (IN)
-  — likely CPU/speed detection or NMI-related; TBD.
+**PIA registers: `0x2900-0x2903`** in bank 2:
+
+| Address | Register |
+|---|---|
+| `0x2900` | port A data |
+| `0x2901` | port A control (CRA) |
+| `0x2902` | port B data |
+| `0x2903` | port B control (CRB) |
+
+Bank switching is the O1's own: `OUT (0),A` selects bank 2 (I/O) and `OUT (1),A`
+returns to bank 1, `DI`/`EI` bracketed — the same convention as the ACT hard-disk
+BIOS (`occ1-harddisk-analysis.md`). Note this is the *host* selecting its own
+bank; the Drive C box never sees it.
+
+### The transport, in order (DCL.COM `0x16d5`-`0x1794`)
+
+1. **Init.** `xor a` / `out (0),a` (bank 2), then CRA=`32h`, DDRA=`FFh`,
+   CRA=`36h`, CRB=`32h`, DDRB=`FFh`, CRB=`36h` — ports A and B both outputs,
+   CA2/CB2 in handshake-pulse mode.
+2. **Address/command byte.** Port B (`0x2902`) ← `08h`, then a settle call
+   (`sub_07b5h`).
+3. **Sector/head byte.** Built from two variables and written to port B: bit 7
+   from `l051ah` bit 7, and the low bits from `l0519h` encoded as
+   `n >= 3 ? ((n-3) << 2) | 3 : n | 0Ch`. `00h` is written *first*, the settle call
+   runs, then the computed byte — so the byte is staged with a gap between halves.
+4. **Operation byte.** `88h` normally; `81h` when the transfer count wraps
+   (`c+1 == 0`), and in that case port A is cleared to `00h` first. So `88h` and
+   `81h` are the two operations, and they differ in whether a port A byte precedes
+   them.
+5. **Data.** 128 bytes, one at a time, between port A (`0x2900`) and a buffer via
+   `LDI`, with a **strobe pulse per byte**: CRA ← `3Eh` then `36h` (set, then
+   reset the CA2 pulse), `dec hl`, `LDI`.
+6. **Teardown.** Port B ← `09h`, then the DDRs are re-arranged: CRA=`32h`,
+   port A ← `FFh`, CRA=`36h`, port B ← `00h`, CRB=`BFh`, CRB=`04h`, port B ← `02h`,
+   `out (1),a` (bank 1), `ei`.
+
+The line that matters most for an emulated device is **`DDRB=BFh`**: bit 6 of
+port B becomes an *input*, so the host is reading a status/ready line back from
+the box. Everything else in the sequence is host→device.
+
+### The transport lives in DCL.COM, not DFD.SPR
+
+This doc previously implied DFD.SPR held the protocol. It does not:
+`grep -E '290[0-3]h' dfd.asm` returns **nothing** — DFD.SPR never touches the PIA.
+DCL.COM holds all 22 PIA references. DFD.SPR's only port access is a single
+`OUT (0F1h),A` at `0x0803`, still unexplained (`F1h` is not a PIA address; likely
+the double-density board or a status port).
+
+So the split is **DCL.COM = transport + installer**, **DFD.SPR = the command layer
+that drives it** (its own command table is DIR/ERA/HELP/REN/SAVE/TYPE/USER). How
+DFD.SPR reaches the transport is the next thing to establish, because it makes no
+direct PIA references — so it must be a patched vector or a relocation DCL
+performs at install time.
+
+### The manual says it is *not* real GPIB
+
+Worth recording because it settles the direction of travel for an emulator:
+
+> **IEEE-488 COMMUNICATIONS PROTOCOL IS NOT SUPPORTED ON THE Drive C
+> PRINTER/HARD DISK/8088 EDGE CONNECTOR** — `Drive_C_Users_Manual.ocr.txt`
+
+Drive C duplicates the *parallel port function* of the O1's IEEE-488 connector for
+a printer, but does not speak GPIB protocol. With the bit-banged CA2/CB2 strobes
+above, the working assumption is a simplified handshake over the same connector
+rather than SRQ/EOI/ATN semantics — which is good news for emulation: the device
+has to match a byte sequence, not a bus protocol.
 
 ## Open questions (next steps)
 
-1. Command set above the byte transport: device addressing (GPIB
-   talk/listen addresses used by the Drive C box), command bytes for
-   read/write sector, status query, capacity reporting. Needs a full
-   annotated disassembly of DFD.SPR (the resident BIOS-side driver).
-2. How DCL patches the O1 BIOS drive table to add C: (BIOS jump table
-   hook points; DPB used for the RAM disk).
-3. Meaning of OUT (0xF1) in DFD.SPR.
-4. PRN.TST / print-buffer feature protocol (print spooling to the
-   Drive C box? or spooling to the IEEE-488 printer?).
-5. Whether the box speaks real GPIB (SRQ/EOI/ATN semantics) or a
-   simplified Centronics-like handshake over the same connector —
-   the bit-banged CA2/CB2 strobes suggest the latter is enough to
-   emulate a compatible device.
+1. **How DFD.SPR reaches the transport.** It makes no PIA references at all, so
+   either DCL patches a vector into it at install time or it calls a fixed
+   relocated entry. This is the next step, because it unlocks the command layer.
+2. **What the command bytes mean.** `08h` (address/command), the sector/head byte,
+   `88h`/`81h` (the two operations), `09h` (teardown): which is read, which is
+   write, and what the box replies on port B bit 6 and on port A. The ROM's own
+   IEEE-488 implementation (`o1-rom-source.md`) is the *host* side of this same bus
+   and should be cross-checked against it — two independent descriptions of one
+   protocol, and a disagreement would be a finding.
+3. **Capacity reporting, and the sector/head encoding**
+   (`n >= 3 ? ((n-3) << 2) | 3 : n | 0Ch`). The `-3` and the `| 0Ch` need
+   explaining against the disk's geometry.
+4. **How DCL patches the O1 BIOS drive table to add C:** — BIOS jump-table hook
+   points, and the DPB used for the RAM disk.
+5. **Meaning of `OUT (0F1h),A`** at `0x0803` in DFD.SPR.
+6. **PRN.TST / the print-buffer feature** — spooling to the Drive C box, or
+   pass-through to the printer on its duplicated connector?
+7. **DCL's CPU-detection snippet** (ports `0xD6` OUT / `0xDE` IN, and the
+   `rla`/`rra`/`daa`/`cpl`/`scf`/`ccf` region near `0x0748`) — still unexplained,
+   and not obviously related to Drive C.
 
-## Tool evaluation
+The previous revision's question 5 — real GPIB, or a simplified handshake over the
+same connector — is answered by the manual in the negative: *"IEEE-488
+COMMUNICATIONS PROTOCOL IS NOT SUPPORTED"*.
 
-- cpmtools `cpmls`/`cpmcp` with `osb1sssd` diskdef: worked perfectly
-  after converting IMD->raw with disk-analyse. One and done.
-- z80dasm 1.2.0 (brew): serviceable linear-sweep disassembly but
-  misaligns around data tables; fine for spelunking, not for
-  publication-quality listing. Consider a scriptable disassembler
-  (or manual block hints) for the DFD.SPR deep-dive.
+## Disassembling
+
+```
+z80dasm -a -l -g 0x100 -o research/drive_c/disasm/dcl.asm research/drive_c/extracted/dcl.com
+z80dasm -a -l -g 0x100 -o research/drive_c/disasm/dfd.asm research/drive_c/extracted/dfd.spr
+```
+
+**z80dasm 1.2.0** (`brew install z80dasm`) — the same version and flags as the
+committed CoPower listings, so the two sets are directly comparable. It is a
+linear sweep, so it misaligns around data tables: DCL.COM has a data and
+jump-table region from roughly `0x0840`, and absolute `JP`/`CALL` targets that
+land there are table bytes or loader-patched relocation points, not code. (The
+`jp pe,00757h` / `jp pe,0763h` inside the data-transfer loop are the clearest
+example: `0x0757 + 0x1000` is the loop's own body, so the loader is adding a page
+offset when it installs the resident copy.) Read the listing with that in mind
+rather than trusting it end to end.
+
+cpmtools `cpmls`/`cpmcp` with the `osb1sssd` diskdef worked perfectly, once the
+IMD was converted to raw with disk-analyse.
