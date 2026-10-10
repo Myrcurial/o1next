@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% seo %}
+  <link rel="stylesheet" href="{{ '/assets/main.css' | relative_url }}">
+  <link rel="alternate" type="application/atom+xml"
+        title="{{ site.title | escape }}" href="{{ '/feed.xml' | relative_url }}">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="{{ '/' | relative_url }}">{% include logo.svg %}</a>
+    <nav class="site-nav" aria-label="Site">
+      <a href="{{ '/' | relative_url }}">Posts</a>
+      <a href="{{ site.repository }}">Code &amp; research</a>
+      <a href="{{ '/feed.xml' | relative_url }}">RSS</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-content" id="content">
+  <div class="wrap">
+    {{ content }}
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>o1nextgen &mdash; keeping an Osborne 1 alive, in the open.</p>
+    <p class="colophon">
+      <a href="{{ site.repository }}">GitHub</a> &middot;
+      <a href="{{ '/feed.xml' | relative_url }}">RSS</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
