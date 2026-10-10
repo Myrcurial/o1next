@@ -98,6 +98,33 @@ implementation is a different design from the OCC one.
 | **SWP co-processor** | 4 KiB | `948556db` | `research/roms/swp-p88.rom` | The SWP co-processor board's own ROM. **This is 8088 code, not Z80** (`8C C8 8E D8` = `MOV AX,CS` / `MOV DS,AX`), and it carries the WD179x disk-BIOS error table (`Clock Error`, `Late DMA`, `ID CRC Error`, … `Type C to CANCEL`, `R to RETRY`, `I to IGNORE error`). Maslin's index describes it as "SWP Plus-88 card for Kaypro 2/4/10". The board and interposer card are common to every host machine and only the driver varies, so this is the 8088-side firmware of the CoPower-88 family — #3/#4/#5. |
 | OCC 1.44 + OZROM combined | 8 KiB | `edc31846` | *not copied* | BrettHallen's 2764 image for the 2732→2764 daughterboard, holding OCC 1.44 and OZROM 1E with A12 selecting between them. Recorded here for completeness. |
 
+## Personality-relevant properties
+
+Some interposer personalities are only compatible with some of these ROMs, so the
+firmware needs to know more than the CRC. The facts below are what the
+personality gate is built on (#86). Each is recorded with its evidence, because
+two of them were inference until the bytes were read.
+
+| ROM | IEEE-488 driver | Video window | Evidence |
+|---|---|---|---|
+| OCC 1.4, 1.43 | **present** | 4 KiB (`F000-FFFF`) | `013F-0156` holds eight `JP` vectors (`c3 36 09 …`), and the printer entry points `0187-0190` are `JP`s. Byte-identical between 1.4 and 1.43 |
+| OCC 1.44 | **present** | 4 KiB | Same structure with shifted targets (`c3 49 09 …`), and the implementation is in source we hold: `rom144.asm` `;IEEE-488 INTERFACE.` line 2606 (`o1-rom-source.md`) |
+| OZROM 1E | **removed** | **3 KiB** (`F000-FBFF`) | Manual (`OZROM_1E_Manual.ocr.txt`), verbatim: *"The OZROM 1E does not support the IEEE-488 functions"*; *"013F-0156 WERE IEEE-488 ROUTINES / CALLING THESE FORMER JUMPS RESULTS IN A CONTROLLED SYSTEM CRASH (NO DAMAGE TO DISK DATA)"*; *"IEEE-488 AS IOBYTE DEVICE 3 NOW NULL DEVICE"*. Confirmed in the bytes: `013F-0156` is `ef f3 00 f7 …` — not jumps — and `0187-0190` is `f6 ff c9 f6 ff c9 af c9 c9 c9` = `OR 0FFH; RET` ×2 then `XOR A; RET; RET`, exactly the documented printer stubs. Video: *"only 3K of RAM is used for the video (F000-FBFF hex) since the last 1K is used for the redefinable keyboard and extra function keys"* |
+| Nuevo 1.51 | **present, routines unverified** | unknown | The vector block is intact (`013F-0156` = eight `JP`s, `0187-0190` = `JP`s), so Nuevo kept the entry points — but nothing shows the routines behind them are unpatched. Not usable for Drive C until read (#86) |
+| OCC 1.44 + OZROM (8 KiB) | depends on A12 | — | Daughterboard image; which half is live is a hardware strap, so a probe cannot tell from the CRC alone |
+
+Three consequences, all of which the gate encodes:
+
+1. **Drive C (#6, #22, #84) and the virtual printer (#19) both need the IEEE-488
+   driver**, so both are refused under OZROM 1E. The printer is the less obvious
+   of the two: the ROM's printer entry points `0187-0190` are precisely what
+   OZROM stubs out.
+2. **The video personality (#24) must cope with a 3 KiB window** under OZROM 1E,
+   where `FC00-FFFF` belongs to OZROM's keyboard features.
+3. **An unknown ROM must not be assumed good.** BIOS A/1.2/1.2.1/1.3 have never
+   been dumped, so a machine fitted with one is unidentifiable — the gate refuses
+   rather than guesses.
+
 ## MAME cross-reference
 
 MAME carries three Osborne 1 machines; the relationship between them is itself
