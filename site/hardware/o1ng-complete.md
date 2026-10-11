@@ -35,7 +35,8 @@ The two boards share the **USB-C PD power architecture**, with the optional 4S
 ## The machine
 
 About **8 cm thick**, in the Osborne 1A's own blue-and-grey industrial design: an
-**8" 4:3 LCD**, a keyboard that forms the front cover, and modern power.
+**8" 1024×768 HDMI panel**, a keyboard that forms the front cover, and modern
+power.
 
 ## The design constraints
 
@@ -44,10 +45,11 @@ About **8 cm thick**, in the Osborne 1A's own blue-and-grey industrial design: a
 - **Under 250 mm wide**, so the major parts fit the most common 3D-printer bed.
 - **USB-C PD, with an optional 18650 battery path.** The same power board serves
   both boards.
-- **The display is the interesting choice.** Composite keeps it period-correct
-  and reuses the [video personality]({{ '/hardware/interposer/' | relative_url }});
-  HDMI is cheaper and sharper. It depends on #24/#44, and the answer changes what
-  the case has to carry.
+- **The display is settled: HDMI.** An **8" 1024×768 panel** inside and an
+  **external HDMI port** — the RP2350 drives it directly, and those panels are
+  readily available. **The SFF board carries no composite driver circuitry at
+  all**, so the discrete analogue chain the LFF board reproduces is simply not
+  here.
 
 ## The reference designs
 
@@ -120,7 +122,8 @@ licensing and the 16-line display.)*
 ## Depends on
 
 - **#49** — the reproduction this encloses.
-- **#24 / #44** — the LCD input choice (composite vs HDMI).
+- **#24 / #44** — the video personality and the character ROM. The *output* is
+  settled (HDMI); the personality itself is still #24's work.
 - **#47** — the O1NG's keyboard is a Cherry-MX implementation of the same matrix,
   so the [USB keyboard interface]({{ '/hardware/keyboard-interface/' |
   relative_url }}) and the built-in keyboard share their work.
