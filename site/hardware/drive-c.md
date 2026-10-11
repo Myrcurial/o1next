@@ -1,19 +1,23 @@
 ---
 layout: page
-title: Drive C adapter
+title: Drive C reproduction
 subtitle: The machine's own IEEE-488 RAM disk, rebuilt on modern parts
 ---
 
 **Status:** concept; blocked on the **#6** protocol.
 Tracks **#84** (device) and **#6** (the protocol). Source:
-`hardware/drive-c-adapter/`.
+`hardware/drive-c/`.
 
 ## What it is
 
-A standalone, buildable replacement for the **Drive C** — no interposer, no Z80
-socket, and no reverse-engineering of an undocumented controller. It attaches to
-interfaces the machine already exposes and does the one thing the IEEE-488 port
-was designed for.
+A **Drive C**, rebuilt on modern parts — no interposer, no Z80 socket, and no
+reverse-engineering of an undocumented controller. It attaches to interfaces the
+machine already exposes and does the one thing the IEEE-488 port was designed
+for.
+
+It is a *reproduction* rather than an adapter: the machine sees the same device on
+the same bus speaking the same protocol, so period software drives it unchanged.
+Look closely and you find an RP2040 where the original had a handful of TTL.
 
 ## Why this one and not the hard disks
 
