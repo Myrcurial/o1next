@@ -14,6 +14,7 @@ Formats (raw sector images):
   kp2x      Kaypro DSDD: 80 logical trk (side-per-track) x 10 sec x 512B,
             boottrk 1, 1K blocks
   kpiv      alias for kp2x
+  drivec    Drive C RAM disk blob: 1536 trk x 2 sec x 128B, boottrk 0, 2K blocks
 
 CP/M semantics implemented: extents (EXM), record counts, 8/16-bit
 block numbers (chosen by DSM>255), deleted entries skipped, duplicate
@@ -25,6 +26,9 @@ import sys
 FORMATS = {
     'osb1sssd': dict(seclen=256, sectrk=10, boottrk=3, blocksize=2048, maxdir=64),
     'kp2x':     dict(seclen=512, sectrk=10, boottrk=1, blocksize=2048, maxdir=64),
+    # The Drive C RAM disk as a raw blob (384 KiB).  The geometry derives the
+    # DPB that DCL.COM installs, field for field -- docs/drive-c-design.md 4.2.
+    'drivec':   dict(seclen=128, sectrk=2, boottrk=0, blocksize=2048, maxdir=128),
 }
 FORMATS['kpiv'] = FORMATS['kp2x']
 FORMATS['zorba'] = dict(FORMATS['kp2x'], boottrk=2)

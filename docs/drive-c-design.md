@@ -215,6 +215,14 @@ sees (`0xE5` written across two regions and read back, `drive-c-protocol.md` §8
 is CP/M formatting *its own* disk through the box — **once, at install, not at
 every boot** (§4.1).
 
+**One thing to leave open in the firmware.** `f(n)` is identical for `n = 0, 1, 2`
+(`drive-c-protocol.md` §5), so the header alone cannot tell tracks 0, 256 and 512
+apart. A reproduction that treats `f` exactly as the driver does is unaffected —
+it aliases exactly as much as the original does, if it aliases at all — but the
+firmware should key storage on the **raw `(h1, h2)` pair** rather than
+pre-decoding to an address, so that whichever answer turns out to be right can be
+implemented without touching the frame decoder.
+
 ### 4.1 Persistence: the format happens once, and the loader knows it
 
 It is easy to read `drive-c-protocol.md` §8.5 as *"the unit is re-formatted on
@@ -247,13 +255,64 @@ unit. That is strictly better, costs nothing to implement, and means a working s
 loaded once stays loaded. A bare unit's power-off amnesia is deliberately **not**
 reproduced.
 
-**One thing to leave open in the firmware.** `f(n)` is identical for `n = 0, 1, 2`
-(`drive-c-protocol.md` §5), so the header alone cannot tell tracks 0, 256 and 512
-apart. A reproduction that treats `f` exactly as the driver does is unaffected —
-it aliases exactly as much as the original does, if it aliases at all — but the
-firmware should key storage on the **raw `(h1, h2)` pair** rather than
-pre-decoding to an address, so that whichever answer turns out to be right can be
-implemented without touching the frame decoder.
+### 4.2 The blob: a raw CP/M image, so the tooling already exists
+
+If the reproduction carries FAT32 storage (microSD or USB) and the image library
+(#20, #27) keeps a unit's contents as a file on it, **the blob format is the one
+thing that has to be chosen — and it does not need a new format.** The Drive C's
+memory *is* a CP/M 2.2 filesystem, so a plain raw image of it is already readable
+and writable by tooling this project uses.
+
+The geometry is the DPB `DCL.COM` installs (`drive-c-protocol.md` §8.1), and it
+maps onto a `cpmtools` diskdef exactly:
+
+```
+diskdef drivec
+  seclen 128
+  tracks 1536
+  sectrk 2
+  blocksize 2048
+  maxdir 128
+  skew 0
+  boottrk 0
+  os 2.2
+end
+```
+
+**Checked, not asserted.** Every DPB field falls out of that geometry and matches
+the bytes read out of `DCL.COM` — this is how `tools/cpmfs.py`'s new `drivec`
+format was verified:
+
+| DPB field | From the geometry | In `DCL.COM` |
+|---|---|---|
+| `SPT` | `sectrk` = 2 | 2 |
+| `BSH` / `BLM` | `blocksize` 2048 → 4 / 15 | 4 / 15 |
+| `EXM` | 2048 B blocks, `DSM ≤ 255` → 1 | 1 |
+| `DSM` | 393 216 / 2048 − 1 = 191 | 191 |
+| `DRM` | `maxdir` 128 → 127 | 127 |
+| `AL0` | 4096 B directory = 2 blocks → `C0h` | `C0h` |
+| `OFF` / `CKS` | 0 / 0 | 0 / 0 |
+
+**Why not `.IMD` or `.HFE`.** Both encode *floppy* geometry — FM/MFM encoding,
+per-track sector IDs, the WD179x's world. The Drive C has no floppy controller:
+its "tracks" are 256-byte units of two 128-byte records addressed by `DE`. An IMD
+of it would mean inventing sector headers the hardware does not have. They are the
+right formats for drives `A:`/`B:` — which is exactly what #20 says — and the
+wrong one here.
+
+**Three consequences worth fixing now:**
+
+- **The file size *is* the geometry.** 393 216 bytes is the 384K unit; 196 608 is
+  the 192K unit. A blob is self-describing by length, which is what a FAT32
+  library wants — no sidecar metadata, and a wrong-sized file is obviously wrong.
+- **It has to be byte-exact, not file-level.** `DFD.SPR` lives in user area 15 and
+  `DCLOADED.SYS` / `DRIVEC.SYS` are hidden system files, so an archive of the
+  *files* (`.LBR`, `.ARK`, `.ZIP`) will not do — the image must round-trip whole.
+- **The mount is #20/#27's business, not the box's.** The transfer is Pico-side,
+  FAT32 → record store, triggered over the **mailbox port**; `MOUNT.COM` only
+  selects which blob. The box never parses FAT32, and nothing in §7's contract
+  changes. This is also what makes "persistent Drive C" (#20) fall out for free:
+  flash holds the records, and §4.1 says the loader will not re-format them.
 
 ## 5. Coexistence: the pass-through printer, and address 0
 
