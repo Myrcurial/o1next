@@ -21,6 +21,33 @@ Run everything: `tools/extract_all.sh [path-to-samdisk]`
   40x10x256B FM, boottrk 3, 2K blocks), `kp2x`/`kpiv` (Kaypro DSDD:
   80 logical trk side-per-track x 10 x 512B, boottrk 1, 2K blocks).
 
+## cpmtools against a raw image: always pass `-T raw`
+
+`cpmls`, `cpmcp`, `cpmrm` and friends ask **libdsk** to autodetect the container
+unless they are told otherwise — and libdsk **1.4.2**, the release Homebrew
+ships, misreports a raw CP/M image as a *system* error out of its IMD driver:
+
+```
+$ cpmls -f drivec d.img
+cpmls: cannot open d.img (No such file or directory)
+```
+
+on a file that is plainly there. `mkfs.cpm` is unaffected: it opens the file
+directly and never consults libdsk. Name the driver and everything works:
+
+```
+mkfs.cpm -f drivec d.img                      # no -T: mkfs never asks libdsk
+cpmcp -T raw -f drivec d.img hello.txt 0:HELLO.TXT
+cpmls  -T raw -f drivec d.img                 # -> 0: hello.txt
+cpmcp -T raw -f drivec d.img 0:HELLO.TXT hello.out
+```
+
+`raw` is `dc_posix`, the "Raw file driver" — the driver libdsk's own probe was
+*supposed* to select — so this is the correct invocation, not a workaround.
+`-T logical` works equally well. Fixed in libdsk 1.5.x, which upstream labels the
+*development* line; the diagnosis, the measurement and the backport request are
+in `docs/drive-c-design.md` §4.2 and **#157**.
+
 ## The machine's own typeface (`romfont.py`)
 
 Decodes the character generator ROM (UA15, 2716) into a real font — the blog is
@@ -197,7 +224,9 @@ set `KICAD_CLI` if it is not on PATH. Standard library only.
   image (stock `kpiv` def has blocksize 2048 vs actual directory
   structure; even corrected defs produced garbage, cause not fully
   diagnosed — possibly sides/boottrk handling). cpmfs.py replaces it
-  for extraction; cpmtools remains handy for quick probes.
+  for extraction; cpmtools remains handy for quick probes. On libdsk
+  1.4.2 every call needs `-T raw` — see "cpmtools against a raw image"
+  above, and #157 for why.
 - **z80dasm 1.2.0** (brew) — OK for spelunking; linear sweep misaligns
   around data tables.
 
