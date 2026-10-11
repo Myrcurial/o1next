@@ -49,10 +49,13 @@ and no separate supply.
   absorbs the WiFi transmit transients and R21 only has to supply the
   *average*. A series resistor is a sustained-current limit, so it and a
   transient reservoir do not actually fight each other.
-- **R21 is shared:** the same 22 Ω resistor feeds P4 pin 19 through
-  jumper J6, so if a USB keyboard adapter (#47) is also fitted, both
-  loads draw through one resistor. Revisit that with the budget above,
-  not separately.
+- **R21 is shared, and that is an opportunity rather than a tension.** The same
+  22 Ω resistor feeds **P4 pin 19** through jumper J6 *and* **P1 pin 7**. Because
+  **P1 is externally accessible while P4's path needs J6 bridged**, a USB
+  keyboard adapter (#47) fitted alongside this module can take its +12 V from the
+  **modem port** through a 9-pin passthrough — **no case opening at all**. Both
+  loads share R21 either way; what changes is which connector feeds them. Revisit
+  the budget with the numbers above, not separately.
 
 ## Enclosure
 

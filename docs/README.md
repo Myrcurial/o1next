@@ -57,14 +57,14 @@ gap review (`research-gaps.md`) and the issues can be cross-checked quickly:
 | `o1-rom-source.md` | Index of the ROM 1.44 / CBIOS source, and the port map and interfaces it confirms | #72, #40 | Solved |
 | `mame-emulation.md` | Running the three machines, ROM requirements, boot-disk compatibility, headless testing | #79, #24, #29 | Solved |
 | `drive-c-protocol.md` | Drive C (IEEE-488 RAM disk) command set and handshake — the byte transport is documented from `DCL.COM`; the command layer is not yet | #6, #22 | Partially solved — how `DFD.SPR` reaches the transport, and the command byte semantics, still to finish |
-| `occ1-harddisk-analysis.md` | The Osborne 1 hard-disk products: interface, files, command set | #8 | Partially solved — two distinct products now identified; controller command sets open |
+| `occ1-harddisk-analysis.md` | The Osborne 1 hard-disk products: interface, files, command set | #8 | Partially solved — **more than two** products identified (the ACT unit, the Media Distributing **MD-10**, and the wider seven-route survey in `research-gaps.md` §B1). Controller command sets open, and #8 is now a *decision*: which one to emulate |
 | `copower88-protocol.md` | CoPower-88 host protocol from the Kaypro + Zorba drivers | #3, #4, #5, #23 | Partially solved — residual doorbell/IRQ semantics |
 | `copower88-schematics.md` | Walkthrough of SWP drawing 611-0003 (4 sheets) | #5 | Solved |
-| `rt60a-analysis.md` | RT-60A register map, reconstructed from the manual | #7, #18 | Partially solved — needs a read against real hardware |
+| `rt60a-analysis.md` | RT-60A register map, reconstructed from the manual | #7, #18 | Partially solved — **no real hardware is expected to appear**, so this is not a placeholder waiting on a unit: it is the contract. #7 decides it and `firmware/rt60a-rtc/README.md` implements the ABI |
 | `o1-modem-serial.md` | MODEM (P1) and RS-232 (P2) interfaces, 6850 ACIA | #21, #56 | Solved |
 | `o1-ieee488-port.md` | The IEEE-488 (GPIB) port: device-level behaviour, the eight ROM drivers, and a worked joystick interface on the data lines | #22, #84, #19 | Solved |
 | `floppy-adapter-design.md` | Switchable Gotek / physical-drive daughter card | #20, #62 | Design |
-| `interposer-survey.md` | Prior art: open-source Z80 bus interposers, sniffers, ICEs | #11, #17 | Survey |
+| `interposer-survey.md` | Prior art: open-source Z80 bus interposers, sniffers, ICEs | #11, #17 | Solved — the survey is as complete as it will get; the materials are all in hand |
 | `virtual-peripherals-block-diagram.md` | Bus and address-space allocation for the virtual peripherals | #12, #16 | Design |
 | `photo-survey.md` | Index of the project's own machine photographs | #9, #39 | Reference |
 | `research-gaps.md` | **The status review**: every gap, where it stands, what is left | #1 | Living document |

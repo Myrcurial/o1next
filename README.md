@@ -29,12 +29,35 @@ Electrical/mechanical constraints and the settled design decisions live in
 `hardware/README.md` and `firmware/README.md`; the bus and address-space
 allocation is in `docs/virtual-peripherals-block-diagram.md`.
 
-## Beyond the interposer
+## Beyond the interposer — new peripherals for your Osborne 1
 
-- **USB keyboard adapter (#47)** — standalone RP2040 board on the P4 keyboard
-  connector: plug in any USB HID keyboard, no other mods. Doubles as the
-  matrix-injection firmware for the interposer's web-KVM personality (#45).
-  `hardware/usb-keyboard-adapter/`
+The interposer is the centre of the project, but it is not the only way to add
+modern capability to the machine. **At least three standalone peripherals** do it
+with no interposer, no BIOS change, and nothing cut:
+
+- **USB keyboard adapter (#47)** — RP2040 board on the P4 keyboard connector:
+  plug in any USB HID keyboard, no other mods. `hardware/usb-keyboard-adapter/`
+- **Severable WiFi modem (#56, #21)** — ESP32 Zimodem fork (telnet + SSH) that
+  hangs off the MODEM (P1) port, powers itself from the port, and needs no case
+  opened. `hardware/wifi-modem-module/`
+- **Standalone Drive C adapter (#84)** — RP2040 + flash on the IEEE-488 port
+  (P3), powered from the P5 video connector, reproducing the machine's own RAM
+  disk. `hardware/drive-c-adapter/`
+
+Each attaches to a port the machine already exposes, and each is reversible. The
+USB keyboard adapter doubles as the matrix-injection firmware for the
+interposer's web-KVM personality (#45).
+
+**One power detail removes the only case-opening step in that list.** The
+keyboard adapter's internal variant wants +12 V on P4 pin 19, which means
+bridging J6 inside the machine. But the **MODEM port (P1, DE-9 pin 7) carries the
+same +12 V through the same R21, and it is reachable without opening anything** —
+so a **9-pin passthrough from the keyboard adapter to the modem port** can take
+power from there instead. Nobody has to crack the case. Both loads share R21; the
+current budget is deferred to `hardware/wifi-modem-module/README.md`.
+
+Downstream of all of it:
+
 - **O1 Next Generation (#49, #52)** — modern-parts Osborne 1 reproduction running
   original ROMs and software, in two form factors: a 1:1 mainboard replacement
   for a stock chassis, and a ~8 cm thick "lunchbox" portable (O1A blue/grey
