@@ -55,10 +55,23 @@ in the font.
 ## Why 64 columns (see also §2a)
 
 The recovered AUTOCPM art is 64 columns wide and the O1's screen shows 52. That
-is not a contradiction: video memory is **32 rows of 128 characters** and the
-screen is a 52×24 **window** onto it, so a 64-column drawing simply extends past
-the right edge of the window and is reached by scrolling. The full statement,
-with the manual quotation, is in `docs/o1-memory-io-map.md` §2a.
+is not a contradiction, and the SCREEN-PAC guide supplies the missing piece: the
+machine separates **logical** width from **physical** width.
+
+> Logical screen size refers to the number of characters you can enter on a line
+> without automatically inserting a carriage return. Logical screen size can
+> range from 1 up to a **maximum of 128 characters**. … Physical screen size
+> refers to the number of columns actually displayed on your screen. With
+> SCREEN-PAC, this will be 52, 80, or 104.
+> — *Osborne 1 SCREEN-PAC User Guide*, p. 13
+
+A 64-column drawing is a **logical line of 64 characters**: it fits the
+128-character video memory row, and the physical window slides over it. On stock
+hardware you see 52 of the 64 columns at once and scroll for the rest; with the
+SCREEN-PAC at 80 you see all of it.
+
+The full statement, with the technical manual's geometry and the attribute bits,
+is in `docs/o1-memory-io-map.md` §2a.
 
 ## Sources
 

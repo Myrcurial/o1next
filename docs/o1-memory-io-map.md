@@ -139,6 +139,29 @@ and the 32-column blocks are why the slide lands on round numbers. Without the
 SCREEN-PAC only 52 is available, because the wider windows need the board's
 dual-port video RAM — the ROM contains the routine either way.
 
+**Logical width is not physical width — this is what "64 vs 52" turns on.** The
+SCREEN-PAC guide (p. 13) separates the two, and it is the piece the technical
+manual's geometry leaves implicit:
+
+> **Logical screen size** refers to the number of characters you can enter on a
+> line without automatically inserting a carriage return. Logical screen size can
+> range from 1 up to a **maximum of 128 characters**.
+>
+> **Physical screen size** refers to the number of columns actually displayed on
+> your screen. With SCREEN-PAC, this will be 52, 80, or 104.
+> — *Osborne 1 SCREEN-PAC User Guide*, p. 13
+
+So a program's line width is a **software** choice up to 128 — the width of the
+video memory row — while the window is 52, 80 or 104. A drawing 64 columns wide
+is a *logical* line of 64 characters: it fits the row, and the window slides over
+it. The guide also warns against the obvious mistake, which is worth knowing
+before writing anything that sets a width: "logical screen size should NOT be
+less than physical screen size", or the display scrambles.
+
+The width is set from the configuration screen (Item C, "Screen Size", in the
+Osborne 1 Configuration Program) or from software by poking `E1A5H` and calling
+`E4E5H` as above. Both do the same thing.
+
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
 
 All onboard peripherals are **memory-mapped**, reached through the bank-2
