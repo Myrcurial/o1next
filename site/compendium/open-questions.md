@@ -5,7 +5,10 @@ subtitle: "The project · living document"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Last reviewed:** 2026-10-11 (later pass), after #95 was answered from the OCC
+**Last reviewed:** 2026-10-11 (third pass), after #6 was finished — the Drive C
+transport and device contract are now measured and validated, and
+[`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) (#84) is the build spec. Previous review 2026-10-11
+(later pass), after #95 was answered from the OCC
 CBIOS source, #7's clock ABI was written as a contract, #81's OZROM index was
 built, and #6's `DFD.SPR` blocker was re-characterised. Previous review
 2026-10-11, after the *Portable Companion* extract batches
@@ -42,10 +45,13 @@ status.
 
 1. **#39** — the identity of the three target machines (user action; blocks gap 12).
 2. **Drive C's command set** — blocks #6/#22, and therefore the standalone Drive C
-   reproduction (#84, [`hardware/drive-c/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/)). *Refined 2026-10-11:* the blocker is
-   now a **code-aware disassembly of `DFD.SPR`** — the committed listing is a
-   linear sweep through the file's zero blocks and its call targets are spurious
-   (`drive-c-protocol.md`).
+   reproduction (#84, [`hardware/drive-c/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/)). *Updated 2026-10-11 (later):* **the
+   transport and the device contract are solved** — `drive-c-protocol.md` is
+   measured from the disassembly *and* a trace of the real software, and a model
+   of the box makes the 1983 loader complete and PIP write to `C:`. What is left
+   is (a) the **DPB** `DCL.COM` patches for drive `C:` (its size), and (b) the
+   **`DFD.SPR` command layer**, whose committed listing is a linear sweep through
+   zero blocks. The build spec is [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) (#84).
 3. **The hard-disk controller decision (#8)** — two products are characterised;
    pick the one worth emulating before any personality code is written.
 4. ~~**The RT-60A ABI (#7)** — decide the contract, then implement it in #18.~~
@@ -220,7 +226,7 @@ research-labelled and has been removed from this table.
 | Issue | Title | State | What closes it |
 |---|---|---|---|
 | #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 15 of 23 closed |
-| #6 | Drive C → GPIB protocol spec | Partially | The Drive C command set; plus the GPIB **device-address** question (can Drive C, the printer at device 3 and the RT-60A coexist on the one bus?) |
+| #6 | Drive C → GPIB protocol spec | **Largely** | The **command layer** (`DFD.SPR`, a code-aware disassembly) and how the box resolves banks 0–2; plus the GPIB **device-address** question (can Drive C, the printer at device 3 and the RT-60A coexist on the one bus?) |
 | #7 | RT-60A → a time **ABI**, not the hardware | Partially | The contract written down, then implemented in #18 |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
 | #73 | Nuevo + Osmosis prior art | Partially | The DD halves of both products, and the board-detection method |
@@ -268,8 +274,12 @@ Ordered by what blocks what:
 
 1. **#39** — machine identities, board revisions and ROM markings (user action;
    unblocks gap 12 — the issue lists the three things actually worth reading).
-2. **Finish Drive C's command set** from `DCL`/`DFD.SPR` (unblocks #6, #22, #84)
-   — now scoped to a **code-aware `DFD.SPR` disassembly** plus DCL's patch loop.
+2. ~~**Finish Drive C's command set** from `DCL`/`DFD.SPR`.~~ **Largely done
+   2026-10-11** — the protocol, the DPB and the capacity ceiling are in
+   `drive-c-protocol.md`, and the **P3 pinout** came out of the Technical Manual
+   already in the archive (`o1-ieee488-port.md` §6). What remains is a
+   **code-aware `DFD.SPR` disassembly** to name the command layer, and the open
+   question of how the box resolves banks 0–2 (`drive-c-protocol.md` §10).
 3. **Decide the hard-disk controller** (#8): characterise both, pick one to
    emulate, and correct `occ1-harddisk-analysis.md`'s port claim.
 4. ~~**Write the RT-60A ABI contract** (#7), then implement it in #18.~~ **Written

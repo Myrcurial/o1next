@@ -1,0 +1,4611 @@
+
+===== PAGE 1 =====
+
+Drive C;
+
+(415)652-3222
+
+Drive C USER'S MANUAL
+
+for Osborne Executive Computers
+
+1690 65th Street Emeryville, CA 94608
+
+Telex: 756329(DRIVEC UD)
+
+Easylink: 62533500
+
+===== PAGE 2 =====
+
+FIRST EDITION, July 1984
+Second printing 9/84
+
+This User's Manual and the software programs it describes are:
+
+Copyright (C) 1984
+Drive C:,°a joint venture
+All Rights Reserved.
+
+The following trade names used in this manual are property
+of these companies:
+
+Drive C
+TurboPac
+QuickPac
+BackPac
+Trantor
+Osborne 1
+Executive
+WordStar
+SuperCalc
+dBASE
+
+Drive C
+Drive C
+Drive C
+Drive C
+Trantor Systems Limited
+Osborne Computer Corp.
+Osborne Computer Corp.
+MicroPro International Corp.
+Sorcim, Inc.
+
+Ashton-Tate, Inc.
+
+Personal Pearl PearlSoft, Inc.
+
+===== PAGE 3 =====
+
+eek = THANK YOU! ##e%
+
+We thank you for buying your Drive C.
+We've made every effort to make your Drive C simple to learn and easy to use.
+
+This manual is designed to help you learn how to use the many features of Drive C as
+well as how to derive the maximum benefits from your Osborne Executive.
+
+Most new computer owners have difficulty working with the apparent complexity of
+their computer. It's simple if you take it one step at a time.
+
+The Drive C User's Manual provides step-by-step instructions for installing and
+using Drive C. Each step includes an actual practice exercise with your Drive C.
+
+While it may appear that there are a lot of exercises, they take just a few minutes
+to do. Just follow the step-by-step instructions and you'll have your Drive C up
+and running very quickly.
+
+You'll soon agree the easiest way to learn to use Drive C is simply by using it.
+
+**** SPECIAL THANKS ****
+
+This manual and the new Drive C software package were based largely on advice given
+us by Drive C owners. We're very proud of all our Drive C products and we hope you
+will continue to support us by giving us more advice and feedback on Drive C
+software and this manual. Thanks to all of you who helped.
+
+iii
+
+===== PAGE 4 =====
+
+TABLE OF CONTENTS, EXECUTIVE Drive C USER'S MANUAL
+
+SECTION 1 HOW TO USE THIS MANUAL
+1-1 What's inside and where to find it ........... Terre Cir OTE a a3
+1-2 Symbols and conventions used in this manual .......... sige gelto) situa fevetos
+1=3 Drive C features ......... Sema ewie lai a we wre arm 6 aie we ww ae a Se Wi Site Me een
+SECTION 2 GETTING STARTED
+2-1 Mechanical installation of Drive © awssccmsevsscecewisesss tives s
+2-2 Removing the Drive C unit iscccrsssscccsccsssecerctessscccseccesie
+2=3 Using display screens with Drive C  ..sscccccccccccccccscvccscsece
+2-4 Making your copy of the Drive C software ..ccccccescccccccccccece
+2-5 Testing your Drive C installation ....cccccccceccsccees rrr ere
+2-6 Trouble-shooting your Drive C installation 9... cceecccccececece
+2-7 Testing Drive C with your printer ..... os [0 {0} 0: 9) #110 10 (0) #] ema ie: 8] 0186 ae sees
+2-8 Trouble-shooting Centronics printer cableS ..cccceccseccceccesces
+2-9 Copying your CP/M onto the EC USER Disk ....ceccccccceccccccccecs
+2-10 Testing your priinter operation ..ccccccerccccccccccrccccsscsvcrses
+2-11 Troubleshooting your printer, Part 2 cscccccccccccccccncssccsces
+2-12 Quick checklist of Drive C installation ..... 6 taikey oy la (e761 6's! @ inxet en « «66 :
+SECTION 3 FITTING Drive C TO YOUR
+3-1 The Automatic Approach ........ oe: 0: 00 We ieia eee 6) 6 8) © (6) HO, kW We, 5 EW lel BI we
+3-2 The Manual Approach .......seeeeeee fe 0 SS) Te Ku. 0164'S Cee s.8 Geese Biss
+3-3 Using it both ways) .....esseeee eicterebelelerstotelcreteteteteretetere eiatolsbajotelarecatetetete
+SECTION 4 LEARNING Drive C SKILLS
+USING THE RAM DISK
+4-1 Getting ready .ccccccccccccccce 08; 6: 8; £10 19:0; 4; 919 je 1s: Gi ww 8 10 0} | a} @ ie Yate) 61 #ise so 90 a
+4-2 TMSCALLANS CHE: RAMI SM, ose ie: 0:0: 0::6 00) 0:0: #0 wiaie) 0:00 jeie) 6161 W116 16) 010 WW fe 6, 61 0 Wee] O86
+4-3 Copying files onto the RAM=disk 3 cesccciccinsesesesces oss vewnces Sarr
+4-4 Saving files from the RAM—disk to floppy ..eccceccccrcccscccccces
+4-5 Installing the RAM-disk as drive Az: ...cccccccecceeee 0} 0} 9 10 fe (9: 6) #0 10 10
+4-6 Installing Drive C with different drive names .......ceccvceccves
+4-7 Drive C and the RESET button ..... ofe]selojele! s/o oielevelei oleic terete clsleia ve! e/slelelele
+4-8 Renaming the RAM-disk after installation ...c.ccececceccccccccceecs
+4-9 Running WS on Drive C — Doing it manually) ....ccecccccccccccccens
+USING THE PRINT BUFFER
+4-10 Print Buffer operation ..... or 0] #, 6:6 iw) 9) 9 80 1 Wl 8 wes cise wie TTT eT i
+4-11 Installing the Print Buffer .ceccccvecccccvcccvecccccsccvcssecene
+4-12 The Fixed Print| Buffer ..cccccccccccccccecs eR SHORE CHES em ew ee
+4-13 The Dynamic Print Buffer ....... CRT TG. HAS ee. Ha ww ae aj 6) We ib inj W) wife toe Si
+4-14 Using the Dynamic Print Buffer ....ccccrcccccccccccecs ao iS. Si ats ws, BI
+
+iv
+
+10
+13
+14
+15
+17
+19
+20
+22
+24
+25
+26
+27
+
+28
+29
+30
+
+32
+33
+34
+35
+37
+38
+39
+40
+41
+
+42
+44
+45
+47
+
+===== PAGE 5 =====
+
+USING THE Drive C UTILITY PROGRAM
+
+4-15 ECU - The Drive C Utility Program ..........
+4-16 Using ECU S - The Space option ...........0.. phercsiicus Oteteiictece
+4-17 Using ECU I - The Install/Un-Install option
+4-18 Using ECU to control the Drive C Print Buffer
+4-19 Using ECU D - The File Delete option
+4-20 Using ECU without the menu ....... én ie 10) ©1'6 w wies ©
+4-21 ECU E - Erasing) the RAM-disk ...cccccccccccccccccce sus Kya) Sie
+SECTION 5 USING YOUR NEW Drive C SKILLS
+USING QUICKPAC
+5-1 Making Drive C automatic ..scsecececccccccccscccccccccces
+5=2 ECQINS - installing the QuickPac options
+5-3 Using ‘QUICKPAC | wrisnccwwr sees Kees s e686 wTTTSS RUSTE DTET SS HS
+SAVING Drive C FILES
+5-4 Getting ready [esisscvciies CSG TSE TTS SO. aes
+5-5 BRCHIVE: oa 5 5:6: & 6) 66 & & © 6 0:6 9: &: © 0 10 0 0; 0: 0:9 10 0] 01 6) © 10") ©] 6 19 ie (0) 8) 01's [0 10) #1 6) ¥11¢ wie
+5-6 ARCHIVE - Choosing which files to store
+5-7 ARCHIVE - Storing files on floppy disk ....... ORC BO COR ECLOIOIC
+5-8 The ARCHIVE diskette ...cccccccccccccccccees
+5-9 Using an ARCHIVE diskette set
+5-10 ARCHIVE - Saving all of Drive C ....ceeeoes
+5-11 RETRIEVE - Recovering files to Drive CC ..ccwccrecccceccce
+MAKING IT EVEN MORE AUTOMATIC
+5-12 Using your function keys ........eeeee 0 [0 #5 «© 0 10 10: 9 w10 0 191 0 8 40 ‘0K
+5-13. The Remote Retrieve command .....ccccccecscccccccscccscece
+5-14 Remote Retrieve with QuickPac ......seeeeeees
+SECTION 6 APPENDICES
+6-1 Using Drive C with Executive System Utilities
+6-2 Executive Drive C Hardware Specifications
+6-3 Executive Drive C Software Specifications .....
+6-4 Disk space usage with Drive C sessecsccccsccseccresscocess
+6-4 Centronics Parallel Printer Cable Specifications .........
+6-5 Patching WordStar for improved printing
+6-6 Modifying QuickPac Data Files
+INDEX TRELLIS LEE re OD rOr Orr i eee
+
+Drive C COMMAND SUMMARY
+
+@eoevece
+
+eecoceceoeee
+
+aL
+53
+55
+56
+58
+59
+60
+
+61
+62
+65
+
+69
+70
+71
+73
+75
+76
+77
+79
+
+82
+83
+
+84
+
+85
+87
+88
+89
+90
+91
+93
+
+95
+
+===== PAGE 6 =====
+
+
+===== PAGE 7 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+1-1 WHAT'S INSIDE AND WHERE TO FIND IT
+
+This manual is divided into several sections to make learning to use your Drive C
+efficient and easy.
+
+Definitely read Section 1-2 next. There we explain all the symbols and abreviations
+used throughout this manual.
+
+Section 1-3 gives you an overview of all Drive C features.
+
+Please read all of Section 2 regardless of your level of skill with your Osborne.
+
+If you follow our simple step-by-step installation procedure, you'll find
+installation straight forward and pleasantly painless. At the end of this section we
+have included a quick installation checklist for your reference.
+
+In Section 3 we explain how to make Drive C fit the way you use your computer. This
+section was largely compiled from advice given us by Drive C users. You'll probably
+want to re-read this section after you've learned how to use Drive C to “lock in"
+what you've learned.
+
+Each section is organized as a learn-as-you-go guide. Please don't try to start in
+the middle of a section unless you're completely confident you already understand
+all about Drive C.
+
+In Section 4 we explain how to use each of the basic features of Drive C, the
+RAM-disk, the Print Buffer and its Utility program.
+
+Section 5 goes into more depth with QuickPac and our Archive/Retrieve program for
+backing up and fast-loading of Drive C.
+
+Section 6 contains several useful appendices. Everyone should read the first
+appendix on using COPY, COPYSYS and SETUP with Drive C. Some of the other appendices
+are more technical.
+
+===== PAGE 8 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+1-2 SYMBOLS AND CONVENTIONS USED IN THIS MANUAL
+
+Below are examples and explanations of the different symbols and conventions used in
+the manual. Please acquaint yourself with them since they are used throughout this
+Manual.
+
+When we refer to your unit we will use the term: Drive C
+When we mean a logical drive name we will use: drive C:
+THE RETURN KEY
+<CR> or <RETURN> means: Press the RETURN key.
+CONTROL C
+“C means: Hold down the 'CTRL' key and press the 'C' key.
+LOGICAL DRIVE INDICATOR
+
+A> means: The drive prompt that appears on your screen. The letter
+indicates which logical drive is being used.
+
+SINGLE LINE COMMANDS ~~
+ADECL<CR> Install Drive C as C:
+YOUR INPUT is always shown in REGULAR print (usually upper case.)
+The SCREEN DISPLAY for individual command lines is always shown in BOLD print.
+
+In the above example, the A> is initially on the screen. You would then type ECL
+followed by pressing the RETURN key.
+
+Your input is always shown literally.
+If a space is shown in the command, it must be included when you type the command.
+To the right of each input is a brief explanation of the command.
+
+For example, the command ECL<CR> installs the Drive C unit as the third logical
+drive, drive C:.
+
+===== PAGE 9 =====
+
+
+===== PAGE 10 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+FULL SCREEN INPUTS
+Is your unit 384K (Large), or 192K (Small) (L/S)? L
+
+Which disks do you want copied to Drive C?
+Disk A: or B: or both (A/B/2)? 2
+
+Are the above choices correct (Y/N)? Y
+
+When a series of inputs are required as part of a program, the entire sequence of
+inputs is shown.
+
+YOUR INPUT is always shown in REGULAR print (usually upper case.)
+
+The SCREEN DISPLAY for individual command lines is always shown in BOLD print.
+
+===== PAGE 11 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+1-3 Drive C FEATURES
+
+Drive C is an integrated hardware and software enhancement designed specifically for
+your Executive. Drive C not only dramatically improves performance and adds new
+capabilities...it actually improves the way you use your Executive.
+
+RAM-disk
+
+Your Executive has two floppy disk drives. The Drive C RAM-disk acts as a third
+logical drive, drive C:. It is called a logical drive because, to your Osborne,
+Drive C looks just like your floppy disk drives. Therefore, you can use Drive C
+EXACTLY as you use floppy drives A: and B:.
+
+While floppy disk drives are slow, noisy and prone to mechanical failure, Drive C is
+fully electronic, silent and has no moving parts.
+
+It can find information stored on it up to 20 times faster than a floppy disk drive.
+As a result, you will experience a dramatic improvement in program performance.
+
+ILLUSTRATION - THIRD DRIVE (3")
+
+This increase in disk speed dramatically affects the way many programs respond.
+WordStar frequently stops and starts as the floppy disk drives slowly access files.
+With Drive C, WordStar works smoothly without lengthy disk interruptions and a
+writer can, for the first time, write in a very natural way.
+
+Drive C also adds additional on-line storage capacity. More programs and data can
+be stored on your Osborne. This feature eliminates constantly changing diskettes.
+
+For example, you can easily have WordStar, SuperCalc, text and data files on Drive C
+and still have additional programs on your floppy diskettes. Large, complex
+programs like dBase II requiring many different files that work together, can now be
+resident on your Osborne at the same time.
+
+===== PAGE 12 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+ILLUSTRATION - MULTIPLE FILES (3")
+
+The Drive C RAM-disk acts as one big logical disk drive. As a result, its full
+capacity can be used for one large file.
+
+Programs, documents and databases can be built on the 384K Drive C that are twice as
+big as can be created on double-density floppy disks and four times the size of
+those on single-density disks.
+
+ILLUSTRATION ~- FILE LENGTH (3”)
+
+While Drive C acts like a floppy disk drive, it does not use actual diskettes.
+Files must be moved to and from Drive C using file copying programs like PIP, Sweep
+
+or WordStar. Once files are copied onto Drive C, they will remain there even if you
+press the Reset button.
+
+The names of your floppy disk drives can be changed even though 'A' and 'B' are
+embossed on the Osborne front panel. Drive C software allows you to rename both
+
+Drive C and the floppy disk drives. The Drive C RAM-disk, for instance, is usually
+renamed to drive A: in order to run WordStar.
+
+===== PAGE 13 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+The red drive indicator light on the front of Drive C works just like the red LEDs
+on your floppy disk drives to let you know when the Drive C unit is active.
+
+ILLUSTRATION - COPY AND RENAME DRIVES (3")
+
+ARCHIVE AND RETRIEVE
+
+When your Osborne is turned off, Drive C will no longer be powered and files in
+Drive C will be lost. Files on Drive C should be saved (backed up) on floppy disk
+before turning your Osborne off. You can use PIP or file copying options in
+programs like WordStar, or you can use our special Drive C program, ARCHIVE
+(ECA.COM) .-
+
+ARCHIVE automatically stores any or all of the files from Drive C onto floppy
+diskettes. Files on Drive C that are larger than a single floppy diskette can be
+stored on a set of diskettes. ARCHIVE also labels and organizes each backup set.
+
+RETRIEVE automatically reloads and reconstructs the original Drive C files from your
+Archival backup set of floppy disks.
+
+BackPac, the Drive C power supply/battery backup system, fits in your keyboard and
+maintains the contents of Drive C even if your Osborne is turned off. Adding
+BackPac gives Drive C permanent storage capability, in essence letting Drive C act
+as an ultra-fast hard disk.
+
+No electrical or mechanical modifications of your Osborne are necessary with
+BackPac.
+
+===== PAGE 14 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+ILLUSTRATION - ARCHIVE, RETRIEVE AND BACKPAC (3.5")
+
+— PRINT BUFFER
+
+The Drive C Print Buffer lets you use your Osborne while simultaneously printing
+files. Once installed, Print Buffer operation is automatic.
+
+The Print Buffer works with RS-232 Serial or Centronics Parallel printers.
+Your printer normally ties up your Osborne until it has completed printing a file.
+The Print Buffer temporarily stores the print output from your Osborne at high speed
+
+and quickly returns control of your Executive to you. You continue to run programs
+while the Print Buffer automatically sends the print output to the printer.
+
+ILLUSTRATION - PRINT BUFFER OPERATION (3")
+
+===== PAGE 15 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+The Drive C unit is partitioned by its software into a RAM-disk space and a Print
+
+Buffer space. You can partition the Drive C for Print Buffer use in two different
+ways:
+
+The FIXED BUFFER is a space on Drive C that is reserved solely for Print Buffer use.
+Eight Fixed Buffer sizes are available, from 16K to 128K.
+
+The DYNAMIC BUFFER uses any space on the Drive C which is not being used as RAM-disk
+space. As you add or delete files from the RAM-disk, the Dynamic Buffer automatic-
+ally decreases or increases in size. Up to the full capacity of the Drive C can be
+used as Print Buffer using the Dynamic Buffer option.
+
+ILLUSTRATION - RAM-disk/PRINT BUFFER (6")
+
+You can queue any number of files to be printed from both floppy disks and the RAM-
+disk. Files to be printed are stacked in the Print Buffer and will be printed in
+first-come, first-served order.
+
+===== PAGE 16 =====
+
+1. HOW TO USE THIS MANUAL (final draft)
+
+The Drive C Utility program (ECU.COM) gives you a number of helpful features to use
+with the Print Buffer. With ECU you can pause, restart and clear the Print Buffer.
+
+You can also determine the amount of Print Buffer Space available and delete files
+to make more space.
+
+QUICKPAC
+QuickPac makes using Drive C even easier. A single keystroke starts QuickPac.
+QuickPac installs Drive C, renames Drive C and installs your choice of Print
+Buffers. It can also copy the contents of one or both of your floppy disks to Drive
+C and automatically run a program.
+The QuickPac Installation program is an easy-to-use, menu-selection program that
+lets you choose from the various QuickPac options.
+
+TURBOPAC
+
+TurboPac is the powerful Drive C/Trantor hard disk system. TurboPac software turns
+your Drive C into a hi-speed Cache Buffer for the Trantor hard disk.
+
+TurboPac automatically keeps your most frequently used programs and data in the
+Drive C Cache Buffer, multiplying the hard disk throughput by as much as five times.
+
+The 192K TurboPac system uses all of Drive C as a Cache Buffer. The 384K TurboPac
+system partitions Drive C into a 256K Cache Buffer and a 128K Fixed Print Buffer.
+
+The hard disk attaches to the Drive C PRINTER/HARD DISK/8088 port and no mechanical
+modifications are necessary.
+
+Drive C can still be used for portable operation by detaching the hard disk and
+using the normal Drive C RAM-disk/Print Buffer software.
+
+ILLUSTRATION - TURBOPAC OPERATION (3.3")
+
+===== PAGE 17 =====
+
+2. GETTING STARTED (final draft)
+
+2-1 Mechanical installation of Drive C
+
+2-2 Removing the Drive C unit
+
+2~3 Using display screens with Drive C
+
+2-4 Making your copy of the Drive C software
+2-5 Testing your Drive C installation
+
+2-6  Trouble-shooting your Drive C installation
+2=7 Testing Drive C with Centronics printers
+2-8 Trouble-shooting Centronics printer cables
+2-9 Copying your CP/M+ onto the EC USER Disk
+2-10 Testing your printer operation
+
+2-11 Trouble-shooting your printer, Part 2
+
+2-12 Quick Checklist of Drive C installation
+
+2-1 MECHANICAL INSTALLATION OF Drive C
+** DO NOT INSTALL YOUR Drive C UNIT YET **
+
+Housed in a stainless steel case, Drive C is a rugged, solid state device which fits
+snugly into the floppy diskette storage pocket of the Executive.
+
+Drive C has been designed specifically for your Executive. As a result, it
+generates very little heat and needs no maintenance. Installation does not require
+any electrical or mechanical modifications to your Osborne nor are any special tools
+required.
+
+Two cables attach Drive C to the Osborne. One cable plugs into the Ext. Video edge
+connector. The other cable plugs into the I[EEE-488 connector. You can think of
+these cables as “extension cords”.
+
+The Drive C edge connectors located at the end of the “extension cord" cables
+duplicate the functions of the Osborne Ext. Video and IEEE-488 connectors. You
+don't lose the use of your Osborne ports by adding Drive C.
+
+For instance, if your parallel printer was normally connected to the Osborne IEEE-
+488 connector, you would instead connect it to the new edge connector at the end of
+the “extension cord” cable on the Drive C (labeled PRINTER/HARD DISK/8088). Since
+the Drive C edge connector is different from your computer's IEEE-488 connector, we
+provide you with a short Printer Adapter cable.
+
+10
+
+===== PAGE 18 =====
+
+2- GETTING STARTED (final draft)
+
+Drive C UNIT INSTALLATION:
+Be sure to turn the power to your Executive OFF before installing Drive C.
+
+Slide the Drive C unit into the floppy disk storage pocket until the Drive C front
+panel is seated flush with the Executive front panel.
+
+Connect the long 20-conductor VIDEO "Extension Cord” cable from the Drive C to the
+Executive EXT. VIDEO edge connector.
+
+Please refer to the installation drawing on the next page.
+
+Attached to the rear of the 20-conductor cable are two lengths of double-sided tape.
+Remove the protective paper backing from these pieces of tape. When you have routed
+the cable neatly, press against the outside of the cable so the tape will hold the
+cable in place.
+
+Insert the metal IEEE-488 connector clip (supplied with your Drive C in the small
+plastic bag) into the space just below your Executive's IEEE-488 connector. VERY
+GENTLY press upward on the black Executive IEEE-488 connector ONLY as far as neces-
+sary to insert the right angle bend of the metal clip. Please see the drawing below
+for details:
+
+Plug the Drive C IEEE-488 extension cord cable into the Executive's IEEE-438
+connector. This IEEE-488 cable goes over the 20-cond VIDEO extension cord cable.
+
+Sometimes the gray Drive C IEEE-488 plug will run into the Executive front panel as
+you are plugging it in. You may have the VERY GENTLY push downward on the gray
+Drive C IEEE-488 plug while you are pushing it inward in order to clear the
+Executive front panel.
+
+ILLLUSTRATION - INSTALLING THE IEEE-488 CONNECTOR CLIP (3")
+
+11
+
+===== PAGE 19 =====
+
+2- GETTING STARTED (final draft)
+
+ILLUSTRATION - INSTALLATION OF EXEC DRIVE C UNIT & CABLES (4")
+
+You may find that the Drive C cables might become jammed as you push the unit into
+the diskette storage pocket. This problem is reduced if you manually crease the
+folds at the Drive C end of the cables at the point where the cables bend around the
+wire strain reliefs.
+
+ALSO, when you are inserting the Drive C unit into the pocket, gently push up on the
+bottom of the cables with your fingers to prevent them from jamming.
+
+12
+
+===== PAGE 20 =====
+
+2. GETTING STARTED (final draft)
+
+2-2 REMOVING THE Drive C UNIT
+To remove your Drive C unit, please follow these steps:
+FIRST, open both disk drive doors and TURN OFF POWER to your computer.
+
+DETACH the short cable from the Osborne IEEE-488 edge connector by gently lowering
+the metal clip and pulling out the Drive C connector.
+
+DETACH the long cable from the Osborne Ext. Video edge connector by pulling on the
+black plastic pull ring.
+
+Gently pull the long cable away from the Executive front panel, pulling from right
+to left, as if you were removing a band-aid from your arm.
+
+GENTLY, so you won't mar either Drive C or your Osborne, pry the front panel of the
+Drive C unit out from the floppy diskette storage pocket. Use a medium size, flat
+blade screwdriver as a lever until the Drive C unit is about 1/4 inch out of the
+pocket. Continue pulling out the Drive C unit by hand, grasping the front panel
+between the two “extension cord” cables.
+
+13
+
+===== PAGE 21 =====
+
+2. GETTING STARTED (final draft)
+
+2-3 USING DISPLAY SCREENS WITH Drive C
+
+EXT. VIDEO/BATTERY PORT:
+
+The Drive C EXT. VIDEO/BATTERY edge connector is an exact duplicate of the Osborne
+Ext. Video edge connector.
+
+TO USE YOUR OSBORNE INTERNAL DISPLAY:
+
+Your 7" internal display is enabled by attaching the black VIDEO SHORTING PLUG
+supplied with your Osborne. This plug has a label which says, "DO NOT REMOVE WHILE
+POWER IS ON".
+
+When the Video Shorting Plug is plugged onto the Drive C EXT. VIDEO/BATTERY edge
+connector, video signals are directed to your internal display.
+
+If you DO NOT PLUG the Video Shorting Plug into the Drive C EXT. VIDEO/BATTERY edge
+connector, your internal video dispay WILL NOT WORK!
+
+With the Video Shorting Plug installed on your Drive C, your Osborne keyboard can be
+attached and the case closed without interference.
+
+Please, DO NOT INSERT OR REMOVE the Video Shorting Plug with power ON.
+
+USING AN EXTERNAL VIDEO DISPLAY WITH Drive C:
+
+If you use an external video display monitor and DO NOT want your internal monitor
+on, DO NOT install the Video Shorting Plug on Drive C.
+
+If you use an external display and want BOTH the external and internal displays on,
+DO install the Video Shorting Plug on Drive C.
+
+14
+
+===== PAGE 22 =====
+
+2- GETTING STARTED (final draft)
+
+2-4 MAKING YOUR COPY OF THE Drive C SOFTWARE
+
+First we'll explain how to check your Drive C EXECUTIVE SOFTWARE DISK using DIR.COM
+to make sure it contains the correct files.
+
+You will need your Executive CP/M+ System Disk #1 for the this section. Don't use
+the original disk supplied with your Executive, use your working copy.
+
+DO NOT REMOVE THE WRITE PROTECT TAB FROM YOUR ORIGINAL Drive C EXECUTIVE SOFTWARE
+DISK! Do NOT try to load CP/M+ from this disk!
+
+Step 1. Turn ON power to your computer.
+Step 2. If either your internal or external display is not just right, please return
+to the previous section, 2-3, to make sure you have connected and adjusted your
+
+display(s) correctly.
+
+Step 3. Insert your CP/M+ System Disk #1 in drive A: and the Drive C EXECUTIVE
+SOFTWARE DISK in drive B:.
+
+Step 4. Press <CR> to load CP/M+. The A> should eventually appear on your screen.
+Step 5. Give the following command:
+ADDIR B:[FULL<CR> DIRectory of EXECUTIVE SOFTWARE DISK
+
+Scanning Directory...
+Sorting Directory...
+
+Directory For Drive B: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+
+CPM3 SYS 18k 140 Sys RO DIR COM L5k 114 Dir RW
+ECA COM 10k 77 Dir RW ECL COM 6k 48 Dir RW
+ECQ CoM 2k 1l Dir RW ECQ SUB 1k 1 Dir RW
+ECQINS COM 10k 80 Dir RW ECU COM 5k 40 Dir RW
+ERASE COM 4k 29 Dir RW EXECST COM 1k 1 Dir RW
+PIP COM 9k 68 Dir RW PRN TST 8k 62 Dir RW
+RENAME COM 3k 23 Dir RW SHOW COM 9k 66 Dir RW
+SUBMIT COM 6k 42 Dir RW TYPE COM 3k 24 Dir RW
+Total Bytes = 110k Total Records = 826 Files Found = 16
+
+Total 1k Blocks = 110 Used/Max Dir Entries For Drive B: 17/ 64
+
+NOTES: ECL.COM and ECQ.COM may vary in number of “Recs”.
+
+Step 6. If your EXECUTIVE SOFTWARE DISK is DIFFERENT from this display please write
+or call Drive C for assistance.
+
+15
+
+===== PAGE 23 =====
+
+2. GETTING STARTED (final draft)
+
+Next, we'll run through how to copy the Drive C EXECUTIVE SOFTWARE disk using
+COPY .COM.
+
+You'll need your CP/M+ System Disk #1 again (in drive A:) and a blank diskette.
+Step 7. Put your Drive C EXECUTIVE SOFTWARE DISK in drive B:
+Step 8. Label your blank disk: EC USER DISK. ( EC = Executive Drive C )
+Step 9. Type the Copy command as shown:
+A>COPY<CR>
+Step 10. Remove the CP/M+ SYSTEM Disk #1 from drive A:.
+Step 11. Put your blank EC USER DISK in drive A:.
+Step 12. Select the COPY DISKETTES function (the FIRST one listed).
+
+Step 13. On the COPY DISKETES Menu select the option (the SECOND one listed) which
+copies FROM drive B: TO drive A:.
+
+Step 14. When the copy diskettes operation is completed, press <CR> to go back to
+the main COPY menu.
+
+Step 15. Select the. Return to CP/M menu option. You should then see the A> again.
+Step 16. Remove the Drive C EXECUTIVE SOFTWARE disk from drive B:.
+
+NOTE: if COPY gives an error message while copying, wait until the red drive indica-
+tor lights on the drives have gone out, then open both drive doors. Press the RESET
+button and go back to step 1 on the previous page. If you continue to get copy
+errors try repeating the procedure with a new blank diskette (you may have a bad
+diskette).
+
+DO NOT WRITE PROTECT YOUR EC USER DISK OR IT WON'T WORK PROPERLY!
+
+Step 17. Save your Drive C EXECUTIVE SOFTWARE DISK in a safe place for future
+reference.
+
+16
+
+===== PAGE 24 =====
+
+2- GETTING STARTED (final draft)
+
+2-5 TESTING YOUR Drive C INSTALLATION
+
+** DO NOT INSTALL YOUR PARALLEL PRINTER CABLE YET **
+
+Just as you cannot use WordStar until you have loaded it into your Osborne, you
+cannot use Drive C until you have installed (loaded) the Drive C software.
+
+With our set of programs called QuickPac installing Drive C as a RAM-disk is very
+simple and requires only a single key stroke.
+
+Step 1. Put the EC USER DISK in drive A: and remove any other disk from drive B:.
+Step 2. Press the RESET button.
+Step 3. Press <CR> to load CP/M+ and QuickPac.
+
+You will see the usual messages produced by CP/M+ as it loads and then a series of
+messages produced by QuickPac as it is operating.
+
+QuickPac will then:
+
+install the Drive C RAM-disk software.
+
+rename the upper floppy drive to drive C: and the Drive C unit to drive A:.
+copy the contents of the EC USER DISK to the Drive C unit using PIP.
+
+run DIR [FULL] on the Drive C unit, now renamed to drive A:.
+
++e et
+
+When the QuickPac operation is completed it will alert you with a beep and a
+message. The entire operation should take about one minute.
+
+The Drive C RAM-disk should now be installed as a third logical drive, drive A:.
+You should see the following display:
+
+IF YOU HAVE A 192K Drive C UNIT:
+
+Scanning Directory...
+Sorting Directory...
+
+Directory For Drive A: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+
+DCLOADED SYS Ok O Dir RW DIR COM 15k 114 Dir RW
+
+ECA COM 10k 77 Dir RW ECN COM 1k 5 Dir RW
+ECQINS COM 10K 80 Dir RW ECU COM 5k 40 Dir RW
+ERASE COM 4k 29 Dir RW PIP COM 9k 68 Dir RW
+
+PRN TST 8k 62 Dir RW RENAME COM 3k 23 Dir RW
+SHOW COM 10k 66 Dir RW SUBMIT COM 6k 42 Dir RW
+TYPE COM 3k 24 Dir RW
+
+Total Bytes = 83k Total Records = 630 Files Found = 13
+
+Total 1k Blocks = 83 Used/Max Dir Entries For Drive A: 17/ 64
+
+17
+
+===== PAGE 25 =====
+
+2. GETTING STARTED (final draft)
+
+OR, IF YOU HAVE A 384K Drive C UNIT:
+
+Scanning Directory...
+Sorting Directory...
+
+Directory For Drive A: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+
+DCLOADED SYS Ok O Dir RW DIR COM 16k 114 Dir RW
+
+ECA COM 10k 77 Dir RW ECN COM 2k 5 Dir RW
+ECQINS COM 10K 80 Dir RW ECU COM 6k 40 Dir RW
+ERASE COM 4k 29 Dir RW PIP COM 10k 68 Dir RW
+
+PRN TST 8k 62 Dir RW RENAME COM 4k 23 Dir RW
+SHOW COM 10k 66 Dir RW SUBMIT COM 6k 42 Dir RW
+TYPE COM 4k 24 Dir RW
+
+Total Bytes = 90k Total Records = 630 Files Found = 13
+
+Total 1k Blocks = 83  Used/Max Dir Entries For Drive A: 17/ 128
+
+If your screen shows the correct information, your Drive C is now successfully
+installed. Please continue to Section 2-7 to install and test your printer.
+
+If your screen does NOT show the CORRECT information, please continue to the next
+section, Trouble-shooting the RAM-disk Installation.
+
+NOTE: The files ECN.COM may vary in size slightly on your unit from the number of
+"recs" shown above for either size unit.
+
+18
+
+===== PAGE 26 =====
+
+2. GETTING STARTED (final draft)
+
+2-6 TROUBLE-SHOOTING YOUR Drive C INSTALLATION
+
+Before trouble-shooting the RAM-disk installation, REMOVE the EC USER DISK and any
+other disk from their floppy disk drives and turn the Osborne's power OFF.
+
+1. Check that Drive C's VIDEO and IEEE-488 cables are securely connected to the
+Osborne connector contacts.
+
+26 If the contacts on your Osborne VIDEO edge connector or IEEE-488 connector are
+not clean, there may not be a reliable electrical connection between Drive C and
+your Osborne.
+
+Gently wipe the contacts clean, using a cotton swab slightly wetted with rubbing
+alcohol. If the contacts are really dirty you may use a fresh clean pencil eraser to
+remove any hard-to-remove tarnish or dirt.
+
+3. YOUR CENTRONICS-STYLE PRINTER CABLE SHOULD NOT BE CONNECTED DURING INITIAL RAM-
+disk INSTALLATION AND TEST. Disconnect it if it was connected and run the
+installation tests again.
+
+First: Wait until the red LED drive indicators go OFF (if they go off) and
+open BOTH disk drive doors.
+
+Second: ALWAYS turn OFF the Executive power, —
+Third: Wait three seconds,
+Fourth: Turn power back ON,
+THEN: Press <CR> to re-start QuickPac.
+4. Make sure that the test was run with the EC USER DISK.
+5. Make sure your EC USER DISK is NOT write protected with a tab.
+6. If you are re-running the EC USER DISK QuickPac test:
+
+If re-running the test still doesn't work, you should start over by re-copying the
+Drive C EXECUTIVE SOFTWARE Disk onto your EC USER DISK and then re-running the test.
+
+If you are still having problems, please contact the Drive C Service Department for
+assistance. We will need to know the following to help us to fix your problem:
+
+a. What is your Executive's Version Number, displayed in the box on the screen
+under the word EXECUTIVE just after RESET or turning on power. The number is
+either V1.2 or Vl.21 .
+
+b. Are you using the CP/M+ BIOS version 1.0 or 1.1?
+
+c. What type of printer are you using?
+
+d. What is your Drive C serial number?
+
+e. What size is your Drive C (192K or 384K)?
+
+f. Where in the test procedure did any failure occur?
+
+g- What error messages (if any) were displayed?
+
+19
+
+===== PAGE 27 =====
+
+2- GETTING STARTED (final draft)
+
+2-7 TESTING Drive C WITH CENTRONICS PRINTERS
+
+IF YOU HAVE A SERIAL PRINTER
+
+Skip the sections on installing and trouble-shooting Centronics printers and proceed
+to section 2-9, Putting your CP/M+ on the EC USER DISK.
+
+IF YOU HAVE A PRINTER WITH CENTRONICS PARALLEL INTERFACE
+** DO NOT ATTACH YOUR PRINTER CABLE YET **
+
+Installing your parallel printer with Drive C requires no special software or
+hardware. Printers and printer cables, however, are very individualized products,
+often eccentric in their design and even cantankerous in their performance. This
+section will guide you through the installation of your printer with Drive C to make
+sure that it is working properly. The Print Buffer will NOT be installed yet.
+
+Your parallel printer is normally attached to the IEEE-488 edge connector on your
+Osborne. The PRINTER/HARD DISK/8088 edge connector on the Drive C duplicates the
+parallel port function of the Osborne IEEE-488 port. To use your parallel printer
+with Drive C, your printer cable will be connected to the Drive C PRINTER/HARD
+DISK/8088 connector instead of the Osborne IEEE-488 connector.
+
+We supply a Printer Adapter Cable with each Executive Drive C unit to convert from
+your 24—pin IEEE-488 cable to the 26-pin edge connector on the Drive C front panel.
+
+Most Centronics parallel printers change the electrical conditions of the cable when
+they are turned OFF, causing problems for the Drive C.
+
+Your Centronics-style printers should ALWAYS be ON for proper Drive C operation, if
+its cable is plugged into the Drive C. Neither your printer nor Drive C will be
+harmed by keeping your printer turned ON during Drive C use.
+
+The printer cable should be attached to or removed from the PRINTER/HARD DISK/8088
+port on the Drive C unit ONLY when your Executive computer's power is OFF.
+
+20
+
+===== PAGE 28 =====
+
+2. GETTING STARTED (final draft)
+
+INSTALLING YOUR CENTRONICS PARALLEL PRINTER CABLE
+Step 1. Remove the EC USER DISK and turn the Executive power OFF.
+
+Step 2. Plug the IEEE-488 Printer Adapter Cable supplied with your Drive C into the
+Drive C unit's PRINTER/HARD DISK/8088 edge connector.
+
+To install the Printer Adapter Cable, plug it into the PRINTER/HARD DISK/8088 edge
+connector on the Drive C front panel. Orient the cable's black edge connector so
+that the black cable comes out of the black connector body DOWNWARD.
+
+You may also notice an arrow molded into the black plastic of the cable's edge
+connector. This arrow should be on the UPPER RIGHT of the connector when it is
+plugged in correctly.
+
+Step 3. Plug your Centronics-style printer cable into the other end of the Adapter
+Cable.
+
+Step 4. Optional: You may want to install 4-40 screws (1" long) and nuts to keep the
+Adapter Cable and your printer cable from coming apart.
+
+Step 5. Turn ON the power to your Executive AND to your printer.
+Step 6. Put the EC USER DISK back in drive A:.
+Step 7. Press <CR> to run QuickPac again.
+
+You should see the same sequence of events as before (in section 2-5) when you
+loaded QuickPac without the printer.
+
+If QuickPac proceeds exactly as before without any errors and the DIR [FULL] listing
+is exactly the same as before, then all is well. In this case, skip the next section
+and proceed to 2-9, Putting your CP/M+t on the EC USER DISK.
+
+If the QuickPac test did not function exactly as before, or the QuickPac DIR [FULL]
+display gave information about the files on the Drive C unit DIFFERENT IN ANY WAY
+
+from before, please proceed to the next section, Trouble-shooting the Parallel
+Printer Installation.
+
+ILLUSTRATION — ORIENTATION OF PRINTER ADAPTER CABLE (approx. 3”)
+
+PRINTER/HARD DISK /8088
+
+QQAYS |
+MW OAXOe)
+
+—)
+MMT)
+
+21
+
+===== PAGE 29 =====
+
+2. GETTING STARTED (final draft)
+
+2-8 TROUBLE-SHOOTING CENTRONICS PRINTER CABLES
+
+Tre If you tested your parallel printer installation with the printer OFF, please
+try it again with the printer power ON.
+
+2. Make sure your Printer Adapter cable is firmly plugged into the Drive C
+PRINTER/HARD DISK/8088 port edge connector, AND that your printer cable is securely
+plugged into the Printer Adapter cable and into the printer.
+
+3. Make sure your printer is ON-LINE (selected).
+
+4. Drive C works correctly with all Osborne-standard Centronics parallel printer
+cables, but some cables do not conform to standard Osborne specifications. If you
+have such a cable, both your printer AND Drive C will not work correctly. Appendix
+6-4 lists the proper cable connections.
+
+5. An incorrectly wired cable is a VERY COMMON problem.
+
+To check your parallel printer cable, first open BOTH disk drive doors and turn OFF
+power to your computer, then open the connector housing at the PRINTER END of the
+cable. The housing can usually be opened with a screwdriver or popped open with
+your fingernails.
+
+There should NOT be a connection to pin 12 on the 36-pin connector at the printer
+end of the cable. If there is a wire attached to pin 12, it must be disconnected.
+Disconnecting this wire has no effect on your printer when used either with OR
+without Drive C.
+
+DO NOT MAKE ANY MODIFICATIONS TO THE OSBORNE END OF YOUR PRINTER CABLE OR TO THE
+Drive C PRINTER ADAPTER CABLE.
+
+ILLUSTRATION - FIXING THE PRINTER CABLE (3")
+
+22
+
+===== PAGE 30 =====
+
+2. GETTING STARTED (final draft)
+
+6. Replace the cable housing and plug the cable into your printer's Centronics
+parallel connector again.
+
+7. NOTE: The Drive C EXECUTIVE SOFTWARE DISK (and the EC USER DISK) are set at the
+factory for Centronics printer assigned to the Printer (LST:) DEVICE and BOTH Modem
+and Printer RS-232 serial ports assigned to NO DEVICE.
+
+If you have run COPYSYS or SETUP (you should NOT have run them at this point in the
+test procedure) you may have inadvertently changed the Printer Port assignments. If
+you have run either COPYSYS or SETUP, go back and re-copy the EXECUTIVE SOFTWARE
+DISK onto the EC USER DISK as detailed in section 2-4 and run these tests over
+again.
+
+8. Turn the Osborne power back ON.
+
+10. Put the EC USER DISK back in drive A: and press <CR> to re-run the QuickPac
+test.
+
+If you are still experiencing difficulties, please contact the Drive C Service
+Department for assistance. We will need to know the following to help us to fix your
+problem:
+
+a. What is your Executive's Version Number, displayed in the box on the screen
+under the word EXECUTIVE just after RESET or turning on power. The number is
+either V1.2 or V1.21.
+
+b. Are you using the CP/M+ BIOS version 1.0 or 1.1?
+
+c. What type of printer are you using?
+
+d. What is your Drive C serial number?
+
+e. What size is your Drive C (192K or 384K)?
+
+f. Where in the test procedure did any failure occur?
+
+g- What error messages (if any) were displayed?
+
+23
+
+===== PAGE 31 =====
+
+2. GETTING STARTED (final draft)
+
+2-9 COPYING YOUR CP/M+ ONTO THE EC USER DISK
+
+Before trying the next test you will need to put your version of CP/M+ onto the EC
+USER DISK. For this operation you'll use the COPYSYS and SETUP utilities from your
+CP/M+ Systems Disk. If you have the new OCC version 1.1 BIOS make sure you don't mix
+up the old SETUP program with the new BIOS system file on your disk or vice versa.
+
+Put your copy of the CP/M+ system disk in drive A: and the EC USER DISK in drive B:.
+Press the RESET button and press <CR> to load CP/M+ and to get to the A>.
+A>COPYSYS<CR> Run COPYSYS from A:
+
+Select the option to Get System from Drive A:, then select the option to Save System
+to Drive B:. When COPYSYS asks if you want to overwrite the exising CPM3.SYS file
+
+answer 'Y'. Last, select the option to Return to CP/M.
+
+You now need to check the set up of your CP/M+ system so make sure the printer port
+is assigned correctly. Use this command.
+
+AD>SETUP<CR> Run SETUP from A: to check B:
+
+Select the option to SELECT SOURCE FOR CONFIGURATION FROM DRIVE B:. You may get an
+error message if you have mixed up the BIOS 1.1 version SETUP program with a BIOS
+1.0 system disk or vice versa.
+
+You should check to make sure your system is set up as follows:
+
+A. KEY DEFINITIONS: have no effect on this test procedure, but don't use them during
+tests to simplify matters.
+
+B. CONSOLE PARAMETERS: don't effect this test, use whatever you like.
+C. MODEM PORT: MUST be set to NO DEVICE, not used for this test.
+
+D. PRINTER PORT: If you are using an RS-232 printer set the correct Baud rate for
+your printer and make sure this port is set to Printer (LST:). Protocol should be
+set to whatever you normally use with your printer.
+
+If you are using a Centronics parallel printer for this test, this port MUST be set
+to NO DEVICE.
+
+E. PARALLEL PORT: Set to CENTRONICS if you are using a parallel printer for this
+test. Also make sure you have set this port to Printer (LST:).
+If you are using an RS-232 Serial printer, this port MUST be set to NO DEVICE
+
+F. GENERAL: (only appears with BIOS 1.1) Set to whatever you want.
+If you have changed any Configuration parameters first EXIT TO SAVE MENU then select
+
+the SELECT DESTINATION FOR CONFIGURATION TO DRIVE B: option. If no changes are
+required then select the EXIT TO CP/M option from the SAVE menu.
+
+24
+
+===== PAGE 32 =====
+
+2. GETTING STARTED (final draft)
+
+2-10 TESTING YOUR PRINTER OPERATION
+
+Now let's make sure your printer (whether Centronics parallel or RS-232 Serial)
+works properly with Drive C.
+
+Make sure: 1. that your printer is ON
+2. its cable is connected properly
+3. the printer has at least five continuous pages of paper
+4. it's ready to print (on-line)
+
+Put your EC USER DISK into drive A: and remove any disk in drive B:.
+Press the RESET button.
+Press <CR> to load CP/M+ and QuickPac.
+
+When QuickPac runs the DIR [FULL] command (as before in sections 2-5 and/or 2-7)
+and displays the CP/M A> prompt again, proceed as follows:
+
+ADTYPE PRN.TST[NO PAGE<CR> Display file PRN.TST on screen to see what it
+should look like.
+
+ADPIP LST:=PRN.TST<CR> Print PRN.TST via the LST: device using PIP.
+Your printer should now be printing the Drive C Print Test as shown below.
+
+Drive C: PRINTER TEST
+Drive C: PRINTER TEST a
+Drive C: PRINTER TEST ab
+Drive C: PRINTER TEST abc
+Drive C: PRINTER TEST abcd
+Drive C: PRINTER TEST abcde
+
+The PRN.TST file contains approximately four pages of this test pattern.
+If you can print even a few lines your installation is working just fine and you can
+stop the test if you want to.
+
+To STOP the print test: Type ~C to clear PIP back to the CP/M+t A>.
+
+NOTE: we are not using the Drive C Print Buffer feature for this test, so you will
+not see the next A> prompt until the file is completely printed or until you stop
+the test with “C. If your printer has an internal buffer or if you are using an
+external print buffer box, the printer may keep printing for a while after the
+computer has finished sending characters to the buffer.
+
+If your system successfully passed all the tests so far, you're all done with
+installation! If you had problems printing PRN.TST go on to 2-11.
+
+25
+
+===== PAGE 33 =====
+
+2-11
+
+l.
+
+2- GETTING STARTED (final draft)
+
+TROUBLE-SHOOTING YOUR PRINTER, PART 2
+
+Please check that the EC USER DISK is properly configured for your printer
+
+(whether CENTRONICS or RS-232 Serial) using SETUP.COM.
+
+Check your EC USER DISK's setup against the list at the end of section 2-9.
+
+2. Check that your printer is on-line (selected).
+3. If you are re-running the EC USER DISK printer operation test:
+First: Wait until the red LED drive indicators go OFF (if they go off) and
+open BOTH disk drive doors.
+Second: ALWAYS turn OFF the Executive power,
+Third: Wait three seconds,
+Fourth: Turn power back ON,
+Fifth: Press <CR> to re-start QuickPac.
+THEN: Re-type the PIP LST:=PRN.TST<CR> command to re-try the test.
+4. If you are still experiencing difficulties, please contact the Drive C Service
+Department for assistance. We will need to know the following to help us to fix your
+problem:
+a. What is your Executive's Version Number, displayed in the box on the screen
+
+26
+
+under the word EXECUTIVE just after RESET or turning on power. The number is
+either V1.2 or V1.21 .
+
+Are you using the CP/M+ BIOS version 1.0 or 1.1?
+What type of printer are you using?
+What is your Drive C serial number?
+
+What size is your Drive C (192K or 384K)?
+Where in the test procedure did any failure occur?
+
+What error messages (if any) were displayed?
+
+===== PAGE 34 =====
+
+2- GETTING STARTED (final draft)
+
+2-12 QUICK CHECKLIST OF Drive C INSTALLATION
+
+Please don't use this checklist in place of the step-by-step installation guide.
+This list was designed for your convenience to speed things up if you are already
+thoroughly familiar with your computer and CP/M.
+
+The procedure of Section 2 was developed to GUARANTEE a satisfactory Drive C
+installation EVERY TIME. This checklist refers to specific detailed parts of Section
+2 to make trouble-shooting easier.
+
+Step 1. Mechanically install your Drive C unit [Section 2-1]
+
+Step 2. Reconnect cables and Video Shorting Plug to your display [Section 2-3]
+
+Step 3. Check files on Drive C EXECUTIVE SOFTWARE Disk supplied with your unit.
+[Section 2-4]
+
+Step 4. Copy EXECUTIVE SOFTWARE Disk to EC USER Disk. [Section 2-4]
+
+Step 5. Run QuickPac, i.e. Drive C's EXECST.COM program which calls ECQ.COM,
+ECQ.SUB, PIP.COM and DIR.COM, to test Drive C installation. [Section 2-5]
+
+Step 6. If you have a Centronics parallel printer, turn OFF power to both computer
+and printer, reconnect your printer cable, and rerun QuickPac. [Section 2-7]
+
+Step 7. Put your version of CP/M+ onto EC USER Disk using COPYSYS [Section 2-9]
+Step 8. Check the setup of your EC USER DISK using SETUP.COM [Section 2-9]
+
+Step 11. Test your entire installation by printing PRN.TST from the Drive C unit
+using PIP.COM and your version of CP/M+. [Section 2-10]
+
+The Trouble-shooting Sections (2-6, 2-8 and 2-11) were written to give you the
+ability to easily correct the most common installation problems.
+
+If you run into trouble, make sure you go through the detailed installation
+
+procedure step-by-step. 99 times out of 100 you can fix just about any problem you
+might encounter very quickly without calling Drive C for help.
+
+ay
+
+===== PAGE 35 =====
+
+3. Fitting Drive C To Your Needs (final draft)
+
+CONTENTS
+
+3-1 The Automatic Approach
+3-2 The Manual Approach
+3-3. Using it both ways
+
+Your Drive C software is very comprehensive. It has been designed for Osborne
+owners of all levels of experience, from the first time enthusiast to the profes-
+sional programmer. If you are a beginner, you'll find it easy to understand and
+simple to use. If you're an old pro, you'll find it versatile and powerful.
+
+Similarly, your Drive C can enhance any application. This section is a brief
+overview of how the different Drive C software features can be used. As you learn
+about your Drive C in the rest of the manual, you might keep in mind which features
+best fit your needs.
+
+3-1 THE AUTOMATIC APPROACH
+
+QuickPac is the easiest way to use your Drive C. The QuickPac program can install
+ALL of the Drive C features, copy files from one or both of the floppy diskettes in
+your disk drives onto Drive C and run a program simply by pressing the <RETURN> key.
+
+If you are a relatively new user we suggest you use QuickPac. The QuickPac Instal-
+lation program is menu-driven and requires no technical knowledge. It lets you
+configure QuickPac to automatically install Drive C with the features you need each
+time you start your Osborne.
+
+QuickPac has the unique feature of remembering if it has copied files onto your
+Drive C so that if you press the RESET button, QuickPac will re-install the Drive C
+features you've chosen (like a new drive name or the Print Buffer) without recopying
+files.
+
+If you're a more experienced user who does the same procedures on a regular basis
+(like loading your accounting or data base program each day), you'll find it very
+convenient to setup and use QuickPac to automatically configure your system. The
+QuickPac Installation program creates a data file which QuickPac uses to find out
+which Drive C options you want to install (for instance, what program to run).
+
+If you routinely use several programs, you can create a different QuickPac setup for
+each diskette set. As an example, one QuickPac setup might rename Drive C to drive
+A:, copy WordStar and your document files onto your Drive C unit and run WordStar
+automatically. A different QuickPac setup might copy your accounting data files
+onto Drive C and run your General Ledger program from your floppy disk.
+
+Finally, if you're an experienced Osborne owner working with an inexperienced user
+
+(for instance, a new employee), you might want to setup QuickPac to automatically
+configure your system for frequently required jobs.
+
+28
+
+===== PAGE 36 =====
+
+3. Fitting Drive C To Your Needs (final draft)
+3-2 THE MANUAL APPROACH
+
+The Drive C commands have a very simple structure. ALL the Drive C features can be
+installed manually with a one-line statement (maximum length - 9 characters plus
+<RETURN>). If you do many different operations with your Osborne or if you are a
+programmer, you'll probably find it more convenient to use Drive C manually.
+
+Because the Drive C commands are simple and short, you can put many alternate
+Drive C commands on your function keys. For instance, one function key might
+install Drive C as drive A: with the Dynamic Print Buffer. A second function key
+might install Drive C as drive C: with a 16K Fixed Print Buffer.
+
+THE ECA program (ARCHIVE and RETRIEVE) can store and reconstruct the contents of
+Drive C, including files larger than the capacity of a floppy disk. ECA is also
+much faster than the standard QuickPac file copy function, which uses PIP.
+
+Storing commonly used sets of files onto an Archive diskette set can be a very
+efficient way to use Drive C. The RETRIEVE portion of ECA can be used automatically
+so that a single function key will load an Archive set onto Drive C quickly. You
+could, for example, make one function key give the command: ECA R B<CR> which
+retrieves the contents of the Archive set in drive B: onto the Drive C unit.
+
+29
+
+===== PAGE 37 =====
+
+3. Fitting Drive C To Your Needs (final draft)
+
+3-3 USING IT BOTH WAYS
+
+Finally, the most powerful way to use your Drive C is with a combination of
+techniques. QuickPac can be started manually after booting up with CP/M+ by
+renaming the EXECST.COM file created by ECQINS to some other name.
+
+By creating different QuickPac data files (ECQ.SUB) and different EXECST files
+(renamed to various different names) for different diskette sets, you can use
+QuickPac with your function keys to easily perform complex routines when you need
+them.
+
+You will find this startup method most useful if you are developing programs and
+debugging them on the same machine. With either dBASE II or languages such as
+PASCAL or MBASIC, you will have to continuously go back and forth from
+editing/compiling to run-time environments. In the run-time environment you would
+set up QuickPac for fully automatic or semi-automatic (function keys or different
+EXECST file names) to simulate actual user conditions. When in development mode you
+would use QuickPac only on start up and, after un-planned RESET's (which happen all
+the time, don't they?) re-boot and load Drive C manually.
+
+The remote RETRIEVE command, ECA R B, can be run automatically as part of QuickPac
+so that a single function key can start QuickPac and rapidly load new files onto
+Drive C using RETRIEVE and Archive sets.
+
+QuickPac can also be custom configured much like a complex Submit file. ‘Instruc-
+tions for creating custom QuickPac setups are included in the appendices.
+
+If you are an experienced user, the combination of function keys, QuickPac and ECA
+
+(ARCHIVE and RETRIEVE) will offer you almost unlimited flexibility for using Drive C
+with your Executive.
+
+30
+
+===== PAGE 38 =====
+
+4. Learning Drive C Skills (final draft)
+
+CONTENTS
+
+Sections 4-1 to 4-9: Using the RAM-disk
+Sections 4-10 to 4-14: Using the Print Buffer
+Sections 4-15 to 4-21: Using the Drive C Utility program
+
+This section of the manual teaches you how to use the individual features of the
+RAM~disk and Print Buffer, as well as ECU, the Drive C Utility program.
+
+Your Drive C has many powerful yet easy-to-use features. The exercises in this
+section will familiarize you with how each one works.
+
+Each feature can be run using a simple command. Once you find which features best
+fit your needs, you can use them automatically.
+
+The Drive C RAM-disk is installed on your Osborne as a third logical drive with a
+single command, ECL. Variations of the ECL command will install Drive C with a new
+drive name and also install the Print Buffer. ALL of the Drive C features can be
+installed with a one-line ECL command statement.
+
+Your Drive C and floppy drives can be renamed at any time using the ECN command.
+Eight different sizes of Fixed Print Buffer and a variable Dynamic Print Buffer can
+be installed with your RAM-disk. Once installed, the Print Buffer feature works
+automatically.
+
+The ECU Utility program increases the flexibility of your Print Buffer.
+
+ECU W, for example, is a feature which lets you pause Print Buffer output.
+
+!!! IMPORTANT !!!
+The software stored in the ROM chip and on the system disks of many Executive units
+contains a number of BUGS. One of the more obvious of these bugs affects Print
+Buffer operation. When you encounter this bug your entire computer will lock up and
+you will have to press the RESET button.
+
+If the ROM version number of your computer (displayed in the rectangular box after
+just power on OR after pressing RESET) is 1.2, then you will have this problem.
+
+ROM number 1.21 is the new, FIXED version, which works fine.
+Osborne Computer Corp. has an upgrade available for both ROM and system BIOS soft-
+ware problems. You can obtain these upgrades for a reasonable charge from the
+
+Drive C: factory, from national FOG, or from OCC itself.
+
+WE STRONGLY RECOMMEND YOU OBTAIN THESE SOFTWARE UPGRADES.
+
+51
+
+===== PAGE 39 =====
+
+4. Using the RAM-disk (final draft)
+
+:
+
+Getting ready
+
+Installing the RAM-disk
+
+Copying files onto the RAM-disk
+
+Saving files from the RAM-disk to floppy
+Installing the RAM-disk as drive A:
+
+Installing the RAM-disk with different drive names
+Drive C and the RESET button
+
+Renaming the RAM-disk after installation
+
+Running WordStar on Drive C - Doing it manually
+
+TTT
+
+WOONDULE WHE
+
+4-1 GETTING READY
+
+Before starting the step-by-step instructions for using your Drive C, you will need
+another blank, pre-formatted diskette.
+
+Label this disk "EC DEMO DISK" to use it later for your learning exercises. The
+CP/M+ system tracks and CPM3.SYS file must be copied onto the EC DEMO DISK as well
+as a few other files.
+
+Open BOTH floppy disk drive doors on your Executive, turn power OFF to the computer,
+pause for about 3 seconds, then turn power back ON.
+
+Step 1. Put your CP/M+ System Disk #1 in drive A: and your EC USER DISK in drive B:.
+Step 2. Press <CR> to load CP/M+. The A> should appear on your screen.
+
+Step 3. ADCOPYSYS<CR> Run COPYSYS from A:
+
+Step 4. Select the COPYSYS menu option to GET SYSTEM FROM DRIVE B:.
+
+Step 5. Remove the CP/M+ System disk from drive A: AND put your blank, formatted
+disk (labeled EC DEMO DISK) into drive A:.
+
+Step 6. Then select the COPYSYS menu option to SAVE SYSTEM ON DRIVE A:.
+
+Step 7. When the program is finished copying the CP/M+ system over to the
+EC DEMO disk, exit to the CP/M+ A>.
+
+Step 8. AD>B:PIP A:=B:ECL.COM<CR> Copy ECL.COM from B: to A:.
+
+Your EC DEMO DISK is now ready for use.
+
+32
+
+===== PAGE 40 =====
+
+4. Using the RAM-disk (final draft)
+
+4-2 INSTALLING THE RAM-disk
+
+CP/M+ must always be loaded before loading the Drive C software. The 'A' prompt
+indicates that CP/M+ has been successfully loaded onto your Executive.
+
+You should already have the EC DEMO DISK (as detailed in Section 4-1) in drive A:,
+and your EC USER DISK in drive B:
+
+Press <CR> to load CP/M+.
+
+The Drive C Loader software (ECL.COM) must be loaded (installed) into your Osborne
+before you can use Drive C.
+
+ADECL<CR> Install the Drive C RAM-disk as C:.
+AD The 'A' prompt
+
+Drive C is now installed as the third logical drive on your Osborne, drive C:. It
+can be used exactly like your floppy disk drives, drive A: and drive B:.
+
+Only one file is necessary to install Drive C, ECL.COM. ECL.COM can be on
+either floppy disk drive, but it's simplest to keep it on A:.
+
+ADDIR C:<CR> — Run DIR of drive C:
+ECN - COM List of files on Drive C
+
+The files ECN.COM and Drive C:.SYS on the Drive C unit are created automatically
+when the Drive C software is run. You can not see the Drive C:.SYS file on the
+DiRectory listing because it is in User Area 15. Do NOT attempt to erase the
+Drive C:.SYS file since it is used for the Print Buffer and to keep other files
+intact on Drive C after a RESET.
+
+Drive C, unlike a floppy disk, does not need to be formatted to be used. Nor does
+CP/M+ need to be placed on Drive C by COPYSYS. Once installed, Drive C “looks like”
+a formatted diskette ready to accept files.
+
+A>C:<CR> Log onto C:, the Drive C unit
+C>DIR<CR> Run DIR of drive C: from C:
+ECN - COM Display of DIRectory listing
+
+The CP/M+ built-in commands, like DIR, are available on the Drive C RAM-disk. But
+in order to run the extended functions of these commands, DIR [FULL], for example,
+you must have the complete program file on the logged-in drive. In this case, since
+you are logged-in on drive C:, to use the extended DIR command you have to have
+DIR-COM on drive C:.
+
+33
+
+===== PAGE 41 =====
+
+4. Using the RAM-disk (final draft)
+
+4-3 COPYING FILES ONTO THE RAM-disk
+To use the Drive C RAM-disk, files must be copied onto it from the floppy disks.
+
+The simplest way to copy files onto the Drive C RAM-disk is with a copy program like
+PIP. Other programs like NSWEEP or WASH can also be used.
+
+C>B: PIP<CR> Run PIP from B:
+*C:=B:ECU.COM[V<CR> Copy ECU.COM onto C: from B:
+*C:=B:PIP.COM[V<CR> Copy PIP.COM onto C: from B:
+*C:=B:DIR.COM[V<CR> Copy DIR.COM onto C: from B:
+*C:=B:ERASE.COM[V<CR> Copy ERASE.COM onto C: from B:
+*C:=B: SHOW.COM[ V<CR> Copy SHOW.COM onto C: from B:
+**C Press control C to exit PIP
+C>DIR[ FULL<CR> Run DIR of C: (Drive C unit)
+
+Scanning Directory...
+Sorting Directory...
+
+Directory For Drive C: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+DIR COM 16k 114 Dir RW ECN COM 2k 5 Dir RW
+ECU COM 6k 40 Dir BW ERASE COM 4k 29 Dir RW
+PIP COM 10k 68 Dir RW SHOW COM 10k 66 Dir RW
+
+Total Bytes = 48k Total Records = 322 Files Found = 6
+Total 1k Blocks = 43 Used/Max Dir Entries For Drive A: 10/ 128
+
+This DIR [FULL] listing assumes you have a large (384K) Drive C unit. If you have a
+small unit (192K) the same files will be shown but with slightly different numbers
+for file size, i.e. "Recs", and “Total Bytes”.
+
+Once you have copied files onto the Drive C RAM-disk, you can use these files just
+as you would on your floppy disks.
+
+NOTE: We strongly recommend the use of the Verify [V] option with PIP when copying
+FROM floppy TO Drive C, to enhance CP/M's ability to detect errors.
+
+When copying TO floppy FROM Drive C (or FROM floppy TO floppy) the Verify option is
+not effective and wastes time, so don't bother with it then.
+
+34
+
+===== PAGE 42 =====
+
+4. Using the RAM-disk (final draft)
+
+4-4 SAVING FILES FROM THE RAM-disk TO FLOPPY
+
+When your Osborne is turned OFF, the contents of the Drive C RAM-disk will not be
+retained, unless you have Drive C's BackPac battery backup power supply.
+
+Files on Drive C which you want to save (backup) must be stored onto floppy disks.
+
+Again, the simplest way to copy files from the Drive C RAM-disk onto your floppy
+disks is with a copy program like PIP or NSWEEP.
+
+C>PIP<CR> Run PIP from drive C: (Drive C unit)
+*A:=ECU.COM<CR> Copy ECU.COM to floppy A: (EC DEMO DISK)
+*A:=PIP.COM<CR> Copy PIP.COM to floppy A: from C:
+*A:=DIR.COM<CR> Copy DIR.COM to floppy A: from C:
+*A:=SHOW.COM<CR> Copy SHOW.COM to floppy A: from C:
+*A:=ERASE.COM>CR> Copy ERASE.COM to floppy A: from C:
+
+**C Press “C to exit PIP
+
+C>DIR A: [FULL<CR> Run DIR of EC DEMO DISK from C:
+
+Directory For Drive A: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+CPM3 SYS 18k 140 Sys RO DIR COM 15k 114 Dir RW
+ECL COM 6k 47 Dir RW ECU COM 5k 40 Dir RW
+ERASE CoM 4k 29 Dir RW PIP COM 9k 68 Dir RW
+SHOW COM 9k 66 Dir RW
+Total Bytes = 66k Total Records = 504 Files Found = 7
+Total 1k Blocks = 66 Used/Max Dir Entries For Drive A: 8/ 64
+
+The files ECU.COM, ERASE.COM, PIP.COM, SHOW.COM and DIR.COM were first copied onto
+the Drive C RAM-disk, drive C:, from the floppy disk, drive B:, using the PIP
+command from drive B:.
+
+The same files were then saved onto the floppy disk, drive A:, by using the PIP
+command from drive C:.
+
+35
+
+===== PAGE 43 =====
+
+4. Using the RAM-disk (final draft)
+
+5-1 - ILLUSTRATION - BLOCK OF PIP TRANSACTIONS (3").
+
+36
+
+===== PAGE 44 =====
+
+4. Using the RAM-disk (final draft)
+
+4-5 INSTALLING THE RAM-disk AS DRIVE A:
+
+The Drive C unit is installed as logical drive A: by adding the drive letter A to
+the ECL command. To re-install Drive C, first RESET your Osborne. Drive C is no
+longer installed after pressing the RESET button but its files remain.
+
+Press <CR> to load CP/M+. The A> should appear on your screen.
+
+ADECL A<CR> Install Drive C as A:
+C>A:<CR> Log onto drive A:
+ADDIR[ FULL<CR> DIRectory of A: (the Drive C unit)
+
+Directory For Drive A: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+DIR COM 16k 114 Dir RW ECN COM 2k 5 Dir RW
+ECU COM 6k 40 Dir RW ERASE COM 4k 29 Dir RW
+PIP COM 10k 68 Dir RW SHOW COM 10k 66 Dir RW
+Total Bytes = 48k Total Records = 322 Files Found = 6
+Total 1k Blocks = 43  Used/Max Dir Entries For Drive A: 10/ 128
+
+Again, this display assumes a 384K Drive C unit. Some numbers may vary in the
+DIR[FULL listing for a 192K Drive C.
+
+Notice that the same files are still on the Drive C unit (now renamed to drive A:)
+exactly as they were before you pressed the RESET button.
+
+37
+
+===== PAGE 45 =====
+
+4. Using the RAM-disk (final draft)
+
+4-6 INSTALLING THE RAM-disk WITH DIFFERENT DRIVE NAMES
+The command ECL A is an example of a general rule:
+
+THE LETTER AFTER THE ECL COMMAND WILL BE THE LOGICAL DRIVE NAME OF THE DRIVE C:
+UNIT. THERE MUST BE A SPACE BETWEEN ECL AND THE DRIVE LETTER.
+
+ECL A will install the Drive C unit as drive A:.
+
+i
+i}
+| ECL B will install the Drive C unit as drive B:.
+1
+1
+
+ECL or ECL C will install the Drive C unit as drive C:.
+
+After installing the Drive C unit as A:, the upper floppy is renamed C: and the
+A> appears on the screen.
+
+Another general rule is:
+
+IF THE DRIVE C: UNIT IS INSTALLED AS A: OR B:, THE FLOPPY DISK DRIVE THAT WAS
+ORIGINALLY A: OR B: WILL BE RENAMED C:.
+
+If the Drive C unit is named A:, the original A: drive
+will be renamed C:.
+
+If the Drive C unit is named B:, the original B: drive
+will be renamed C:.
+
+If you were logged-in on floppy drive A: when you gave an ECL A command, the
+logged-in drive would still be the same floppy disk drive, but it would be named
+drive C:. You will get a C> prompt.
+
+The logged-in drive remains the same actual drive as
+before running ECL.COM.
+
+If the drives are renamed, the logged-in drive has the
+NEW drive name.
+
+38
+
+===== PAGE 46 =====
+
+4. Using the RAM-disk (final draft)
+
+4-7 Drive C AND THE RESET BUTTON
+
+In the previous exercise the RESET button was pressed and Drive C was re-installed
+as A:. The files on the Drive C unit are still present after a RESET.
+
+Drive C:.SYS, a zero K (OK), R/O (READ ONLY) file stored in User Area 15 keeps the
+files on the Drive C: unit when the RESET button is pressed.
+
+In order to access the files on the Drive C: unit after pressing the RESET button,
+you need only to reinstall Drive C using the ECL command.
+
+Re-installing the Drive C unit with a new drive name does not affect files already
+on Drive C.
+
+5.2 - ILLUSTRATION - BLOCK SHOWING RESET OPERATION AND Drive C:.SYS (4")
+
+39
+
+===== PAGE 47 =====
+
+4. Using the RAM-disk (final draft)
+
+4-8 RENAMING THE RAM—disk AFTER INSTALLATION
+
+The Drive C RAM-disk and the floppy disk drives can be renamed at any time using the
+EC NAME (ECN.COM) program.
+
+ECN.COM, like the Drive C:.SYS file, is created and placed on the actual Drive C
+
+unit regardless of the Drive C unit's logical drive name.
+
+AD>ECN C<CR> Rename the Drive C unit,
+drive A:, to C:
+
+c> The 'C' prompt
+The Drive C unit, drive A:, is now renamed drive C:.
+
+Since you did not move to a different drive, ECN returned you to the drive you WERE
+ORIGINALLY logged onto, the Drive C unit, but with the NEW name, drive C:.
+
+The C> prompt therefore appeared after changing the drive names.
+
+THE LETTER AFTER THE ECN COMMAND WILL BE THE LOGICAL DRIVE NAME OF THE Drive C
+UNIT.
+
+ECN A will rename the Drive C unit as drive A:.
+
+ECN B will rename the Drive C unit as drive B:.
+
+ECN C will rename the Drive C unit as drive C:.
+
+ECN remains logged-in to the same ACTUAL drive, but with |
+the NEW drive name. :
+
+40
+
+===== PAGE 48 =====
+
+4. Using the RAM-disk (final draft)
+
+4-9 RUNNING WORDSTAR ON Drive C - DOING IT MANUALLY
+
+You now have all the tools necessary to run WordStar on the Drive C unit, now
+renamed back to drive C:. (See Section 4-8)
+
+In this exercise you will copy and run WordStar manually.
+
+Put your Executive WordStar disk in drive B:. Your EC DEMO disk should still be in
+drive A: and you should still be logged onto drive C:.
+
+C>ECN A<CR> Rename the Drive C unit to A:
+
+ADPIP A:=B:WS*.*[V<CR> Copy the WordStar files onto A:,
+(the Drive C unit) from B:
+
+PIP has copied the three WordStar files from the floppy diskette in drive B: onto
+drive A:, the Drive C unit.
+
+AD>DIR[ FULL<CR> DiRectory off A: (Drive C unit)
+
+Directory For Drive A: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+DIR COM 16k 114 Dir RW ECN COM 2k 5 Dir RW
+ECU COM 6k 40 Dir RW ERASE COM 4k 29 Dir RW
+PIP COM 10k 68 Dir RW SHOW COM 10k 66 Dir RW
+Ws CoM 18k 138 Dir RW WSMSGS OVR 30k 235 Dir RW
+
+WSOVLY1 OVR 34k 262 Dir RW
+
+Total Bytes = 130k Total Records = 957 Files Found = 9
+Total 1k Blocks = 124 Used/Max Dir Entries For Drive A: 14/ 128
+
+Again, this display is for a 384K Drive C unit. Some file sizes displayed may be
+different with a 192K Drive C.
+
+ADWS<CR> Run WordStar from A:
+WordStar will now load and run. It's ready for use on the Drive C unit.
+Press 'X' to EXIT WordStar.
+ADECU E<CR> Run ECU E (Erase) from A:
+Erase all (including R/O) Drive C: files (Y/N)? Y
+Are you absolutely certain (Y/N)? Y
+All Drive C files have been DELETED.
+The files on Drive C (with the exception of Drive C:.SYS) have been erased for the
+
+next exercise. If you wish you may type the DIR command to check. [We'll explain the
+use of ECU E in more detail in section 4-20]
+
+41
+
+===== PAGE 49 =====
+
+4. Using the Print Buffer (final draft)
+
+CONTENTS
+
+4-10 Print Buffer Operation
+
+4-11 Installing the Print Buffer
+4-12 The Fixed Print Buffer
+
+4-13 The Dynamic Print Buffer
+
+4-14 Using the Dynamic Print Buffer
+
+4-10 PRINT BUFFER OPERATION
+
+IMPORTANT, please read the notice on page 31 about Executive ROM bugs before begin-
+ning this section.
+
+The Print Buffer feature of Drive C lets you compute and print at the same time.
+
+When you print a file, you can not run a program because your printer has control of
+your Osborne until the printing operation is completed. Printers are slower than
+the computer so your Executive can be tied up for considerable lengths of time.
+
+The Print Buffer LOOKS like your printer to your Osborne. The print output is sent
+to the Print Buffer just as it would be sent to your printer. But the Print Buffer
+temporarily stores the print output at high speed while simultaneously sending it to
+the printer at the printer's slow speed.
+
+Your Osborne THINKS it has finished printing a file when all of the print output has
+been transferred to the Print Buffer. The CP/M+ prompt or your program is available
+while the Print Buffer continues to print the file.
+
+After the contents of the Print Buffer has been printed, the Print Buffer is
+automatically cleared and the space is again available for more print output from
+your Osborne.
+
+When the Print Buffer is installed, your Drive C is partitioned into two parts, the
+RAM-disk and the Print Buffer.
+
+The Fixed Print Buffer is a space solely dedicated to print buffer operation. Eight
+different Fixed Buffer sizes are available:
+
+16K, 32K, 48K, 64K, 80K, 96K, 112K, 128K
+
+The RAM-disk will be decreased in size by the amount of space you choose to allocate
+to the Fixed Buffer.
+
+The Dynamic Print Buffer (the P option) does NOT allocate a specific amount of space
+for print buffer operation. Instead, any space not used by the RAM-disk for files
+can be used for the Print Buffer.
+
+The Print Buffer is normally installed at the same time that you install the
+RAM-disk. You can also install (or de-install) the Dynamic Print Buffer at any time
+after loading Drive C using the ECU I command. ECU I will switch the Print Buffer
+back and forth from Installed to De-Installed each time you run the command.
+
+42
+
+===== PAGE 50 =====
+
+4. Using the Print Buffer (final draft)
+
+Once installed, print buffer operation is transparent. This means you can send your
+print output to your printer using your regular printing method and the Print Buffer
+will be automatically engaged. No special printing commands are necessary.
+
+If the amount of information to be printed is larger than the space available in the
+Print Buffer, the computer will slow down its output to match the printer's speed.
+The program generating the print output will slow down also.
+
+If enough extra space becomes available for the Print Buffer to contain ALL the
+print output at once (if, for example, you have deleted a file using ECU to make
+more space) then the program generating the print output will be able to complete
+its print operation. The Print Buffer will continue to send characters to the
+printer until the printer has printed them all.
+
+5-4 - ILLUSTRATION - Filling the Print Buffer (4")
+
+43
+
+===== PAGE 51 =====
+
+4. Using the Print Buffer (final draft)
+
+4-11 INSTALLING THE PRINT BUFFER
+
+The Print Buffer should normally be installed at the same time that the Drive C
+RAM-disk is installed using the ECL command.
+
+The general rules are:
+
+TO INSTALL THE FIXED PRINT BUFFER, THE PRINT BUFFER SIZE FOLLOWS THE ECL COMMAND
+WHEN LOADING Drive C.
+
+TO INSTALL THE DYNAMIC PRINT BUFFER, THE LETTER P FOLLOWS THE ECL COMMAND WHEN
+LOADING Drive C.
+
+IF YOU USE THE RENAME OPTION WITH THE ECL COMMAND, THE PRINT BUFFER OPTION FOLLOWS
+THE NEW DRIVE LETTER.
+
+THERE MUST BE A SPACE BETWEEN THE ECL COMMAND AND THE PRINT BUFFER OPTION.
+
+| BUFFER | BUFFER | RAM-disk NAME }
+| SIZE | TYPE } A: : B: : C: }
+i 16K | FIXED | ECLA 16 | ECLB16 3} ECL 16 }
+| 32K | FIXED | ECL A 32 j| ECL B 32 {| ECL 32 i
+| 48K | FIXED |} ECL A 48 | ECL B48 |! ECL 48 y
+| 64K | FIXED | ECL A 64 ! ECL B 64 ! ECL 64 H
+; 80K | FIXED {| ECL A 80 } ECL B 80 ! ECL 80 ‘
+i 96K | FIXED | ECL A 96 !} ECL B 96 !} ECL 96 }
+; 112K |; FIXED | ECL A112 } ECL B 112 } ECL 112 H
+; 128K | FIXED j| ECL A 128 | ECL B 128 } ECL 128 }
+; VARIABLE | DYNAMIC | ECLA P | ECLBP  ! ECL P t
+
+The Print Buffer is automatically removed when the RESET button is pressed. To
+change the Print Buffer type or fixed size, press the RESET button and re-install
+Drive C with a new Print Buffer option.
+
+To eliminate the Print Buffer entirely, give the command: ECU I
+
+Refer to Section 4-17 for a complete discussion of the ECU I feature.
+
+NOTE: ECU.COM is normally on the Drive C unit since ECL automatically copies
+ECU.COM over to the Drive C unit (regardless of the unit's drive name) if you select
+the Print Buffer as part of the ECL command.
+
+If ECU.COM is not present on floppy drive A: when you run ECL with a Print Buffer
+option specified, the following helpful message will appear on the screen:
+
+Note: Print Buffer Utility (ECU.COM) not available
+
+44
+
+===== PAGE 52 =====
+
+4. Using the Print Buffer (final draft)
+
+4-12 THE FIXED PRINT BUFFER
+The Fixed Print Buffer is installed as part of the ECL command.
+
+You should have run the ECU E command at the end of Section 4-9 to erase the
+contents of the Drive C unit. If you have not run ECU E<XCR> do so now.
+
+Press the RESET button.
+
+Make sure your EC DEMO DISK is in drive A: and press <CR> to load CP/M+. The A>
+should appear on your screen.
+
+ADECL<CR> Install Drive C as A:
+WITHOUT the Fixed Print Buffer
+ADSHOW C:<CR> Run SHOW for C: (the Drive C unit)
+from A:
+C: RW, Space: 378k Assumes a 384K Drive C, a 192K Drive C
+
+unit will display Space: 189K
+This SHOW command displays the amount of RAM-disk Space available for files.
+SHOW calculates the Space available by subtracting the space necessary for the —
+Directory AND the space allocated to all files already on the drive AND any space
+used for Print Buffer FROM the total drive size.
+
+Sample SHOW space calculation for Drive C with NO Print Buffer installed:
+
+Maximum RAM—disk space: 384K 192K
+- Directory space: - 4K - 2K
+- Print buffer used: - OK - OK
+- File space used: - 2K - 1K (for ECN.COM)
+Total Space availble: 378K 189K
+
+When using the Dynamic Buffer, only space actually containing characters temporarily
+stored in the Print Buffer will be subtracted by the SHOW calculation. If the Print
+Buffer is empty, SHOW will display the entire remainder of the drive as free Space.
+
+However, when using the Fixed Buffer, the space allocated to Print Buffer (from 16K
+to 128K) is subtracted from the space available for RAM-disk. SHOW will therefore
+display the Space available for file storage as 16K to 128K less than the total
+drive space.
+
+Press the RESET button.
+
+Press <CR> to load CP/M+. The A> should appear on your screen.
+
+ADECL 16<CR> Install Drive C as C: with 16K
+Fixed Print Buffer
+
+45
+
+===== PAGE 53 =====
+
+4. Using the Print Buffer (final draft)
+
+ADSHOW C:<CR> Run SHOW of C: (Drive C unit)
+
+C: RW, Space: 356k (or 168k with 192K Drive C)
+The 16K Fixed Print Buffer ig now installed. This time, SHOW displays the Space
+available on the Drive C RAM-disk has been reduced by 28K on a 384K Drive C (or by
+24K on a 192K Drive C.
+
+Sample SHOW space calculation for Drive C with 16K Fixed Print Buffer:
+
+Maximum RAM-disk space: 384K 192K
+- Directory space: - 4K - 2K
+- Print buffer used: - 16K - 16K
+- File space used: - 8K - 6K (for ECN.COM and ECU.COM)
+Total Space availble: 356K 168K
+
+5-5 - ILLUSTRATION - 16K fixed buffer installed (3")
+
+If you type an incorrect size for the Fixed Buffer, ECL 27 for instance, the Drive C
+RAM-disk will be installed but no Print Buffer will be installed. The following
+message will appear on the screen:
+
+Bad Print Buffer Parameter, not loaded
+If you have files on the RAM-disk and re-install a Fixed Buffer which is larger than
+the available space on Drive C, the Dynamic Buffer will automatically be installed
+
+instead. The following message will appear on the screen:
+
+Not enough space for Fixed Print Buffer
+
+46
+
+===== PAGE 54 =====
+
+4. Using the Print Buffer (final draft)
+
+4-13 THE DYNAMIC PRINT BUFFER
+The Dynamic Print Buffer is installed with the ECL command using the 'P' option.
+
+Press the RESET button and press <CR> to load CP/M+. The A> should appear on screen.
+
+ADECL A P<CR> Install Drive C as A: with
+the Dynamic Print Buffer, P
+
+C>SHOW A:<CR> Run SHOW to check the space available on
+the Drive C unit
+
+A: RW, Space: 378k (or 184k for a small Drive C)
+
+The Dynamic Print Buffer, the 'P' option, is now installed. Notice that the entire
+disk space is shown as available since the Dynamic Print Buffer is empty.
+
+Sample SHOW space calculation for 384K Drive C unit with Dynamic Print Buffer:
+
+Maximum RAM—disk space: 384K 192K
+- Directory space: - 4K - 2K
+- Print buffer used: - OK - OK
+- File space used: - &K - 6K (for ECN.COM and ECU.COM)
+Total Space availble: 372K 184K
+
+The Dynamic Print Buffer constantly changes size as more or less file space is used
+in the RAM-disk. SHOW will automatically show the RAM-disk reduced in size ONLY
+when the Dynamic Buffer actually contains output for the printer.
+
+COPIP A:=C:*.*[V<CR> Run PIP from C: to copy all of the
+EC DEMO DISK onto A: (the Drive C unit)
+
+C>A:<CR> Log onto drive A: (the Drive C unit)
+
+5-6 - ILLUSTRATION - BLOCK OF DYNAMIC BUFFER AND RAM-disk (3")
+
+47
+
+===== PAGE 55 =====
+
+4. Using the Print Buffer (final draft)
+
+4-14 USING THE DYNAMIC PRINT BUFFER
+
+Make sure you still have your EC DEMO DISK in the top floppy (now drive C:).
+REMOVE your WordStar disk from drive B: and put your EC USER DISK in drive B:.
+
+ADPIP A:=B:PRN.TST[V<CR> Copy PRN.TST from B: to A: (the Drive C)
+A>SHOW A:<CR> Check the Space available
+A: RW, Space: 318k (or 141k with a 192K unit)
+
+Make sure your printer is ON, has paper and is ready to print.
+ADPIP LST:=PRN.TST<CR> Print PRN.TST using PIP
+
+Your printer should now be printing the Drive C Print Test. When the entire PRN.TST
+file is in the Dynamic Print Buffer, the A> will reappear on your screen. You can
+now continue using your Osborne just as if you weren't printing at all.
+
+TYPE THE FOLLOWING COMMAND WHILE YOUR PRINTER IS PRINTING:
+
+ADSHOW A:<CR> Run SHOW while PRN.TST is printing
+A: RW, Space: 310k (or 133k with a 192K unit)
+
+SHOW will indicate that the space available on the RAM-disk has been decreased by
+the size of the PRN.TST file. The entire contents of PRN.TST has been transferred
+into the the Dynamic Buffer.
+
+NOTE: If you have a large internal buffer in your printer, the PRN.TST file may
+transfer from the Dynamic Buffer to your printer's buffer so quickly that the Buffer
+Space may already have been returned to the RAM-disk by the time you run SHOW.
+
+The Dynamic Buffer space will be available for use again as RAM-disk only when the
+Dynamic Buffer has finished printing the PRN.TST file.
+
+Please WAIT for your printer to stop printing before continuing with the next step.
+
+ADSHOW A:<CR> Run SHOW after PRN.TST has been printed
+A: RW, Space: 318k (or 141k with a 192K unit)
+
+The Dynamic Buffer is now empty and the Extended Directory will show that ALL of the
+Drive C unit is again available as RAM-disk.
+
+NOTE ABOUT WORDSTAR AND THE PRINT BUFFER:
+
+Don't expect miracles when using the Print Buffer with WordStar. WordStar outputs
+characters relatively slowly compared with other programs like SuperCalc, dBASE II,
+and PIP LST:. These other programs will show a greater improvement in speed than
+WordStar when using the Drive C Print Buffer. In general, you will see the greatest
+improvement for any printing program when using slower printers, especially daisy
+wheel printers.
+
+===== PAGE 56 =====
+
+4. Using the Print Buffer (final draft)
+
+Here is a test you can do to determine the MAXIMUM rate your WordStar will print:
+
+1. Make sure the Print Buffer is installed.
+
+2. Put WordStar and the PRN.TST file supplied by Drive C on the Drive C unit.
+
+2. Run the ECU W command to pause the Print Buffer.
+
+3. Print the file PRN.TST using the P function of WordStar. Don't pause for paper
+changes. (Use continuous form paper)
+
+4. Time how long it takes to come back and remove the "STOP PRINT" menu item.
+
+5-7 - ILLUSTRATION - BLOCK OF DYNAMIC PRINT BUFFER OPERATION (7")
+
+49
+
+===== PAGE 57 =====
+
+50
+
+4. Using the Print Buffer
+
+(final draft)
+
+===== PAGE 58 =====
+
+CONTENTS
+
+4-15 ECU -
+4-16 Using
+4-17 Using
+4-18 Using
+4-19 Using
+4-20 Using
+4-21 ECU E
+
+4. Using the Drive C Utility Program (final draft)
+
+The Drive C Utility Program
+
+ECU S - The Space option
+
+ECU I - The Install/Un-Install option
+ECU to control the Drive C Print Buffer
+ECU D - The File Delete option
+
+ECU without the menu
+
+- Erasing the RAM-disk
+
+4-15 ECU — THE Drive C UTILITY PROGRAM
+
+ECU.COM, the Drive C Utility program, provides a number of powerful features to use
+
+with your Print Buffer.
+
+ADECU<CR>
+
+Run ECU from A:
+
+The command ECU without a parameter specified will display the ECU menu.
+
+Drive C: RAM-disk UTILITY PROGRAM. Version 1.06.
+
+COPYRIGHT (c) 1984 by Drive C:. All Rights Reserved.
+
+Buffer
+
+REN HOM
+
+oO
+
+type — dynamic status — normal
+
+SHOW available buffer SPACE.
+
+DELETE a file to create SPACE.
+INSTALL/UN-INSTALL print buffer.
+
+ZAP — clear the print buffer.
+
+WAIT — pause print buffer operation.
+RESTART - continue print buffer operation.
+ERASE all Drive C: files.
+
+EXIT to CP/M.
+
+223333353 3SS2S25S SSS 335 555 533==> —
+
+Please enter one of the above options:
+
+An explanation of the Type and Status fields of the ECU display follows:
+
+51
+
+===== PAGE 59 =====
+
+4&. Using the Drive C Utility Program (final draft)
+
+The type and current status of the Print Buffer will always be displayed first.
+Buffer: type — dynamic status - normal
+
+TYPE indicates whether the Print Buffer is Fixed or Dynamic. If the Print Buffer is
+Fixed, TYPE will show the size of the Fixed Print Buffer.
+
+If you do not install the Print Buffer, the TYPE line will be blank and the status
+will be NOT INSTALLED.
+
+List of various TYPE Messages:
+
+K Fixed Buffer Size of Fixed Print Buffer (See chart in section 4-11)
+dynamic Dynamic Print Buffer P
+(BLANK) Print Buffer NOT installed
+
+The STATUS indicates the current condition of the Print Buffer.
+
+List of various STATUS Messages:
+
+normal installed
+NOT INSTALLED Print Buffer NOT installed
+**WAITING** Print Buffer has been interrupted
+
+SPECIAL NOTE ABOUT WORDSTAR AND ECU:
+You can run the ECU program from the WordStar <<OPENING MENU>> using the TR!
+
+command. DO NOT RUN THE ECU I COMMAND FROM WORDSTAR, OR USE THE I OPTION WHEN
+RUNNING ECU FROM WORDSTAR. ECU I may totally confuse WordStar's print output.
+
+52
+
+===== PAGE 60 =====
+
+4. Using the Drive C Utility Program (final draft)
+
+4-16 USING ECU S -— THE SPACE OPTION
+
+The SPACE option 'S' shows how much space is available for use as the Dynamic
+Print Buffer.
+
+Please enter one of the above options: 5S
+There is _K of SPACE available for dynamic buffer.
+Please note the amount of SPACE available before returning to CP/M+.
+Please enter one of the above options: X
+The 'X' option returns you to CP/M+.
+ADSHOW A:<CR> Run SHOW to check Space on A:
+
+SHOW indicates that more space is left on the Drive C unit than was shown by the ECU
+Space option.
+
+The ECU S (Space) command will accurately tell you how much space is available for
+the Dynamic Print Buffer.
+
+You will notice that SHOW and ECU S will always display Space values which differ by
+8K bytes. The Print Buffer software always keeps this fixed difference between
+
+files on RAM-disk and the Print Buffer as a safety margin to avoid “collisions”
+between the two.
+
+53
+
+===== PAGE 61 =====
+
+4. Using the Drive C Utility Program (final draft)
+
+5.8 - ILLUSTRATION - Dynamic Buffer and CP/M+ file allocation (6")
+
+The ECU Space option will tell you how much space is available for the Dynamic Print
+Buffer, if the Dynamic Buffer is installed.
+
+If you are using the Fixed Buffer the ECU Space option will tell you how much space
+would be available IF you RESET and reinstall the Dynamic Buffer.
+
+PLEASE NOTE THAT THE ECU SPACE OPTION WORKS EVEN IF THE FIXED BUFFER IS INSTALLED OR
+IF NO PRINT BUFFER IS INSTALLED.
+
+54
+
+===== PAGE 62 =====
+
+4. Using the Drive C Utility Program (final draft)
+
+4-17 USING ECU I — THE INSTALL/UN-INSTALL OPTION
+
+With the ECU I option you can remove or reinstall the Print Buffer (whether it's
+Fixed or Dynamic) after you have run the ECL loader program.
+
+ADECU<CR> Run ECU from A: to get the ECU menu.
+Drive C: RAM-disk UTILITY PROGRAM. Version 1.06.
+
+COPYRIGHT (c) 1984 by Drive C:. All Rights Reserved.
+
+Buffer: type - dynamic status - normal
+
+S -— SHOW available buffer SPACE.
+
+D - DELETE a file to create SPACE.
+
+I — INSTALL/UN-INSTALL print buffer.
+
+Z — ZAP — clear the print buffer.
+
+W - WAIT - pause print buffer operation.
+
+R — RESTART - continue print buffer operation.
+E — ERASE all Drive C: files.
+
+X - EXIT to CP/M.
+
+Please enter one of the above options: I
+After typing the I you will see a message which states:
+Print buffer has been UN—INSTALLED.
+Notice that the type has been blanked and the status changed to: NOT INSTALLED
+
+Press I again. Now the previous buffer type is restored and the status is set to
+normal. A message is also displayed:
+
+Print buffer has been INSTALLED.
+Exit back to CP/M+ for the next section.
+Please enter one of the above options: X
+
+*** CAUTION *** IMPORTANT ***
+
+Un-Installing the Print Buffer has the same effect as the ECU Z command, i.e. ALL
+of your print output still in the buffer will be LOST if you Un-Install the buffer
+while printing or when the Buffer is WAITING.
+
+55
+
+===== PAGE 63 =====
+
+4. Using the Drive C Utility Program (final draft)
+
+4-18 USING ECU TO CONTROL THE Drive C PRINT BUFFER
+First, make sure your printer is ON, has paper and is ready to print.
+
+ADPIP LST:=PRN.TST<CR> Print PRN.TST using PIP
+Your printer should now be printing the Drive C Print Test. When the entire PRN.TST
+file is in the Dynamic Print Buffer, the A> will reappear on your screen, returning
+control of your Osborne back to you. Please give the following command WHILE your
+printer IS printing PRN.TST:
+
+AD>ECU<CR>
+
+Please enter one of the above options: W
+
+Print buffer is WAITING.
+
+The ECU W command (WAIT) pauses output from the Print Buffer to the printer
+without affecting the contents of the Print Buffer.
+
+PLEASE NOTE: If your printer has an INTERNAL BUFFER, it will CONTINUE to print the
+contents of ITS OWN BUFFER until it's EMPTY. The ECU W command cannot affect
+characters after they are sent to the printer.
+
+5-10 - ILLUSTRATION - ECU WAITING AND PRINTER INTERNAL BUFFER (5")
+
+56
+
+===== PAGE 64 =====
+
+4. Using the Drive C Utility Program (final draft)
+
+Now restart the Print Buffer output as follows:
+
+Please enter one of the above options: R
+Print buffer has been RESTARTED.
+
+ECU R (RESTART) will cause the Drive C Print Buffer to resume printing after being
+interrupted by ECU W and will change the status back to “normal”.
+
+Your printer should again be printing PRN.TST.
+
+Please enter one of the above options: Z
+Print buffer has been ZAPPED.
+
+ECU Z (ZAP) immediately clears the contents of either the Fixed Print Buffer or the
+Dynamic Print Buffer. The space allocated to the Print Buffer May not be released
+for RAM-disk use until CP/Mt's own small buffer outputs a few characters more.
+
+AGAIN, please NOTE that data in your printer's own PRINT BUFFER will CONTINUE to be
+printed EVEN IF the Drive C Print Buffer has been CLEARED by ECU Z.
+
+Once your print file is in the Drive C Print Buffer, it cannot be accessed by its
+name, nor can multiple files in the print buffer be separated and manipulated
+individually. If several files are in the Print Buffer, they will ALL be cleared by
+ECU Z. : —~
+
+ECU W, R and Z work with both the Fixed Buffer and the Dynamic Buffer.
+
+5-11 - ILLUSTRATION - Multiple files in the Print Buffer (3")
+
+57
+
+===== PAGE 65 =====
+
+4. Using the Drive C Utility Program (final draft)
+
+4-19 USING ECU D - THE FILE DELETE OPTION
+If you need additional Print Buffer space, you can delete files from the RAM-disk.
+Please enter one of the above options: D
+
+ECU will display a directory list of each file on the RAM-disk plus its size and a
+message telling you how much space is free for use by the Print Buffer.
+
+There is K buffer SPACE available.
+You can press <ESC> at any time to return to the main ECU menu.
+
+Press <ESC> to rerun.
+FILE TO DELETE: ECL.COM<CR>
+
+There is K buffer SPACE available.
+Do you want to delete another file (Y/N)? N
+
+Files must be deleted individually and must be named exactly. The CP/M+ '*!
+(WILDCARD) convention cannot be used. Delete ECL.COM for this example.
+
+After deleting one file ECU will ask you if you want to delete more. If you answer
+"Y¥' (for YES) you can enter more file names to delete. If you answer 'N' (for NO)
+ECU will return to its main menu.
+
+NOTE: With CP/M+, in order to erase a RO (Read-Only) file, you first have to run
+SET.COM to change the file to RW (Read-Write). ECU, unlike the ERAse function of
+CP/M+, WILL delete RO (Read-Only) files.
+
+The new SPACE available to the Print Buffer will be displayed after each file you
+specify is deleted.
+
+58
+
+===== PAGE 66 =====
+
+4. Using the Drive C Utility Program (final draft)
+
+4-20 USING ECU WITHOUT THE MENU
+
+All of the ECU options except EXIT and file DELETE can be executed from the CP/M+
+prompt without displaying the ECU menu.
+
+For example, the SPACE option can be used without the full menu by typing ECU and
+the option letter 'S'.
+
+First, exit back to CP/M+ from the ECU menu.
+Please enter one of the above options: X
+ADECU S<CR> Run ECU S from drive A:.
+
+Notice that this command skips the menu and just tells you how much Print Buffer
+Space you have available, then returns to the CP/M+ prompt.
+
+The general rule for “menu-less ECU" is:
+
+ECU FOLLOWED BY THE OPTION LETTER (S,E,1,W,R,Z) EXECUTES ONE SPECIFIC ECU FUNCTION
+WITHOUT DISPLAYING THE MENU AND RETURNS TO THE CP/M+ PROMPT.
+
+i; ECU S ! Space :
+; ECU I {| Install (or un-Install) 1
+i ECU Z } Zap t
+; ECUW }! Wait H
+i; ECUR } Restart :
+|; ECUE } Erase all '
+
+NOTE: ECU D (Delete file) will always give you the ECU menu and you will have to
+type 'D' again to enter the Delete function.
+
+59
+
+===== PAGE 67 =====
+
+4. Using the Drive C Utility Program (final draft)
+
+4-21 ECU E — ERASING THE RAM-disk
+
+There are many times when you will want to erase ALL the files on the Drive C RAM~
+disk (for instance, if you wanted to reload a new set of files using QuickPac).
+
+AD>ECU E<CR>
+ECU E will erase ALL files on the Drive C unit, including any files which are RO
+(Read-Only), regardless of user area or drive name. The only file NOT erased by
+ECU E is the Drive C:.SYS file in user area 15.
+
+To prevent you from accidentally erasing all your files (a most annoying event)
+ECU E asks you twice if you are really sure.
+
+Erase all (including R/O) Drive C: files (Y/N)? Y
+Are you absolutely certain (Y/N)? Y
+All Drive C: files have been DELETED.
+ADDIR<CR> Check drive A: directory.
+Drive A: is now blank with the exception of the Drive C:.SYS file (still in user 15).
+
+ECU E will erase ONLY the RAM-disk file storage space, NOT the contents of the Print
+Buffer.
+
+ECU E does not affect Print Buffer operation, unless you erase a file which has not
+yet been completely sent to the Print Buffer for output. For example, if you run
+ECU E from WordStar (using the R command) while it is printing a file from Drive C
+you will erase the file, and WordStar itself as well, if WS.COM was on Drive C.
+
+Press the RESET button.
+
+You are finished with this section on Learning the Drive C Skills.
+
+60
+
+===== PAGE 68 =====
+
+5- Using Your New Drive C Skills (final draft)
+
+CONTENTS
+Sections 5-1 to 5-3 Using QuickPac
+
+Sections 5-4 to 5-11 Saving Drive C files
+Sections 5-12 to 5-14 Making it even more automatic
+
+This section of the manual shows you how to use the other Drive C features easily
+and automatically.
+
+In this section you will learn how to use QuickPac to set up Drive C.
+
+Several methods for saving Drive C files will be demonstrated. The most powerful,
+ARCHIVE (ECA A), can save files much larger than the storage capacity of a diskette.
+
+The RETRIEVE program (ECA R) reconstructs your Archived files onto Drive C.
+
+Finally, we discuss powerful methods of combining QuickPac and RETRIEVE to make
+using Drive C even easier.
+
+When you've finished this section, don't forget to check the APPENDICES for
+additional helpful hints and technical information.
+
+60
+
+===== PAGE 69 =====
+
+
+===== PAGE 70 =====
+
+5- Using QuickPac (final draft)
+
+CONTENTS
+
+5-1 Making Drive C automatic
+5-2 ECQINS - Installing the QuickPac options
+5-3 Using QuickPac
+
+5-1 MAKING Drive C AUTOMATIC
+
+QuickPac (ECQ.COM) automatically installs any of the Drive C features, copies files
+onto the Drive C RAM-disk and even runs a program. QuickPac runs automatically each
+time you start your Executive.
+
+QuickPac Install (ECQINS.COM) is a menu-driven program that asks you which options
+you wish QuickPac to perform. Your choices are stored in two special files,
+EXECST.COM and ECQ.SUB, which are accessed later by QuickPac. Each of these files
+specifies different QuickPac options.
+
+With ECQINS you can create a custom ECQ.SUB file for each set of application prog-
+rams. For instance, you might create one ECQ.SUB file that copies WordStar and your
+WordStar document files onto Drive C, and another ECQ.SUB file that copies SuperCalc
+and your .CAL files
+
+The EXECST.COM program is created by ECQINS and specifies the Print Buffer option
+chosen by you.
+
+QuickPac will allow you to install the following options:
+
+1. Copy the contents of one or both of the diskettes in your floppy drives onto
+Drive C.
+
+2. Rename Drive C as drive A: or drive B:.
+
+3. Install any of the nine Print Buffer sizes.
+
+4. Automatically run a program on Drive C or on one of your floppy drives.
+
+CP/M+ is set up to run any program named EXECST.COM when you press <CR> after either
+power up or pressing the RESET button.
+
+PLEASE NOTE: You have many different EXECST.COM files on your Osborne diskettes. Be
+sure not to mix up your EXECST.COM files. They are not the same even though they
+have the same name.
+
+In the next section, as a practical exercise you will use the QuickPac Install
+
+program to set up QuickPac to install Drive C as A: with the Dynamic Print Buffer,
+to copy your WordStar disk onto the Drive C RAM-disk and to run WordStar.
+
+61
+
+===== PAGE 71 =====
+
+|
+
+5- Using QuickPac (final draft)
+
+5-2 ECQINS — INSTALLING THE QUICKPAC OPTIONS
+Open BOTH disk drive doors, turn power OFF to your Osborne, then turn power back ON.
+Put your EC DEMO disk in drive A: and the EC USER DISK in drive B:.
+
+Press <CR> to load CP/M+. The A> should appear on your screen.
+
+A>PIP<CR> Run PIP from A: (EC DEMO DISK)
+*A:=B:ECQ*.*<CR> Copy ECQ (QuickPac) files to A: from B:
+*A:=B:ECA.COM<CR> Copy ECA.COM (Archive) to A: from B:
+*A:=B: SUBMIT. COM<CR> Copy SUBMIT.COM to A: from B:
+
+*C Press ~“C to exit PIP
+
+ECQINS, the QuickPac Install program, is menu-driven. It lets you custom tailor
+QuickPac to fit your needs.
+
+ADECQINS<CR> Run ECQINS (QuickPac Install) from A:
+The QuickPac Installation title screen will appear. Press any key to start ECQINS.
+
+Pressing <ESC> will let you restart the QuickPac Install program or exit to CP/M+t.
+You can press <ESC> at any time.
+
+QUICKPAC INSTALL - COPY DISKS
+Do you want to copy disks to Drive C: (Y/N)? Y
+
+This question asks whether you want QuickPac to copy the complete contents of either
+one or both of the floppy disks in your drives onto the Drive C unit.
+
+Is your unit 384K (Large), or 192K (Small) (L/S)?
+Please indicate the size of your Drive C unit, L for 384K, S for 192K.
+Only if you have a 192K Drive C, the following question will appear:
+Will your disks be Single or Double density (S/D)?. D
+Normally you use only Double-density disks on an Executive so type 'D'.
+QuickPac asks about density to check that you don't try to copy two 185K double-
+
+density diskettes onto a 192K Drive C.
+
+Which disks do you want copied to Drive C:?
+Disk A: or B: or both (A/B/2)?._B
+
+62
+
+===== PAGE 72 =====
+
+A
+
+5- Using QuickPac (final draft)
+
+When QuickPac first loads the Drive Cc software (ECL.COM) the Drive C is always
+temporarily named drive C:. QuickPac will rename Drive C (if you've so specified)
+only AFTER copying the floppy disk files over to the Drive C unit. Therefore, when
+
+specifying which disks to copy FROM, use the USUAL Executive floppy disk drive names
+as if Drive C was NOT installed.
+
+When you program your own QuickPac choices, you should answer A to copy the files
+from drive A:, B for drive B: or 2 to copy the contents of BOTH floppy diskettes.
+If you have a 192K Drive C you can answer only 'A' or 'B'.
+
+Are the above choices correct (Y/N)? Y
+
+If you've made an error in the copying instructions, QuickPac will let you start
+over if you answer 'N'.
+
+QUICKPAC INSTALL - RENAMING THE Drive C RAM-disk
+
+Do you want your Drive C: unit to become
+drive A:, drive B: or drive C: (A/B/C)? A
+
+Answer A to name the Drive C unit drive A: for this exercise. Again, QuickPac will
+rename the drives in the same way you would if you were running ECL manually.
+
+QUICKPAC INSTALL - INSTALLING THE PRINT BUFFER
+Do you want to install the Print Buffer (Y/N)? Y
+
+Please choose one of the above fixed buffer sizes
+or press (P) for the dynamic buffer: P
+
+Any of the Fixed Buffers can be installed by typing the appropriate letter or the
+Dynamic Buffer can be installed by typing P. For this exercise, please type P.
+
+QUICKPAC INSTALL - RUNNING A PROGRAM AUTOMATICALLY
+Do you want to run a program (Y/N)? Y
+On which disk drive will the program be (A/B/C)? A
+This part of QuickPac allows you to specify a program to be run automatically. You
+must specify on which logical drive the program file is located. If you've renamed
+
+the drives, you must specify the FINAL, NEW name of the Drive C unit or the FINAL,
+NEW name of the floppy drive where the program file is located.
+
+Enter the command (i.e. WS YOURFILE.EXT<CR> ):
+>A:WS<CR>
+
+The drive name you previously chose for the program is automatically inserted by
+
+ECQINS into the program command line. You've now told QuickPac to run WordStar from
+drive A:, the (renamed) Drive C unit.
+
+63
+
+===== PAGE 73 =====
+
+5- Using QuickPac (final draft)
+
+Later, when make your own command selection, you can give any CP/M+ command line,
+for example, SUBMIT TEST, MBASIC HA, or B:DBASE A:MAILIST.
+QUICKPAC INSTALL - CREATING ECQ.SUB
+You have chosen the above options.
+
+If they are correct press <Return>.
+To change any options press <ESO.
+
+This screen shows you the choices you've made for QuickPac. If you've made a mis-
+take, press the <ESC> key and try again. If your choices are correct, press <CR>.
+
+Do you want to store these files on drive A:, B: or C:? A
+
+ECQ-SUB and the special EXECST.COM must be stored on the diskette you will use for
+autoloading, i.e. the same diskette with ECL.COM, ECQ.COM and PIP.COM.
+
+NOTE: ECQINS creates new copies of ECQ.SUB and EXECST.COM. The new files will
+overwrite the OLD copies of the files that were on the EC DEMO DISK.
+
+Since you are storing ECQ.SUB and EXECST.COM now, you should use the name of the
+drive as it is named RIGHT NOW. In this case, it is the upper floppy, drive A:.
+Remember, we haven't installed Drive C in this exercise.
+** The QUICKPAC installation has been completed ** plus a beep!
+CHECKING THE NEW QUICKPAC CONFIGURATION
+ADDIR[ FULL<CR> DIRectory of EC DEMO DISK in A:.
+
+Directory For Drive A: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+
+CPM3 SYS 18k 140 Sys RO DIR COM 15k 114 Dir RW
+
+ECA COM 10k 77 Dir RW ECL COM 6k 47 Dir RW
+
+ECQ COM 1k 7 Dir RW ECQ SUB 1k 1 Dir RW
+ECQINS COM 10k 80 Dir RW ECU CoM 5k 40 Dir RW
+ERASE COM 4k 29 Dir RW EXECST COM lk 1 Dir RW
+
+PIP COM 9k 68 Dir RW SHOW COM 9k 66 Dir RW
+SUBMIT COM 6k 42 Dir RW
+
+Total Bytes = 95k Total Records = 712 Files Found = i3
+
+Total 1k Blocks = 95  Used/Max Dir Entries For Drive A: 14/ 64
+
+If your EC DEMO DISK now contains the files listed above you are ready to try out
+this new QuickPac configuration, so proceed to the next section.
+
+NOTE: ECQINS can be run even if you don't have a Drive C in your Osborne, or if you
+have not yet run the ECL loader.
+
+64
+
+===== PAGE 74 =====
+
+5- Using QuickPac (final draft)
+
+5-3 USING QUICKPAC
+
+Remove the EC USER DISK from drive B:.
+
+You should still have the EC DEMO DISK (prepared in section 5-2) in floppy drive A:.
+Put your usual WordStar system disk in drive B:.
+
+Press the RESET button.
+
+Press <CR>. Your Osborne will automatically run the QuickPac programs using the
+options you stored earlier in the ECQ.SUB and EXECST.COM files.
+
+You will find that QuickPac usually takes about one minute to load, copy one floppy
+disk to Drive C and run a program from Drive C.
+
+WordStar should eventually run on drive A:, the Drive C unit.
+
+Press 'X' to EXIT WordStar.
+
+65
+
+===== PAGE 75 =====
+
+6.1 ILLUSTRATION
+
+66
+
+5- Using QuickPac (final draft)
+
+- BLOCK OF THIS QUICKPAC ROUTINE (8")
+
+===== PAGE 76 =====
+
+
+===== PAGE 77 =====
+
+5- Using QuickPac (final draft)
+
+A>DIR[ FULL<CR>
+
+Check the DiIRectory listing of the Drive C, now renamed as drive A:, to see if all
+the files on your WordStar disk have been copied to A:.
+
+Notice that there is a new file on the Drive C unit, DCLOADED.SYS. Whenever
+QuickPac automatically copies files onto Drive C, it also generates DCLOADED.SYS.
+
+Press the RESET button.
+
+Now press <CR> to start QuickPac a second time.
+
+QuickPac will reinstall ALL the same parameters as before, including running
+WordStar from the Drive C unit, but WILL NOT COPY the files from the disk in B: onto
+Drive C.
+
+The DCLOADED.SYS file on the Drive C unit alerts QuickPac that it has already copied
+files over to Drive C and needn't copy them again.
+
+Press 'X' to EXIT WordStar again back to the A> prompt.
+NOTE: If you specifically want to reload another set of programs and files onto
+your Drive C unit using QuickPac, you must first erase the DCLOADED.SYS file. You
+
+can use the ERA D*.SYS command, or the ECU D command, or even the ECU E command
+(to erase ALL files on Drive C).
+
+This completes the section on QuickPac. Please proceed to the next section, which
+covers Archive and Retrieve operations.
+
+67
+
+===== PAGE 78 =====
+
+5- Saving Drive C Files (final draft)
+
+CONTENTS
+
+5-4 Getting Ready
+
+5-5 ARCHIVE
+
+5-6 ARCHIVE - Choosing which files to store
+5-7 ARCHIVE - Storing files on floppy disk
+5-8 The ARCHIVE Diskette
+
+5-9 Using an ARCHIVE Diskette Set
+
+5-10 ARCHIVE - Saving all of Drive C
+
+5-11 RETRIEVE - Recovering files to Drive C
+
+When you've completed working with your Drive C files, they must be saved (backed
+up) onto floppy disks unless you are using BackPac. There are several ways to do
+this, depending on your application.
+
+You can use PIP, NSWEEP or WordStar to backup individual files or groups of files
+from Drive C to floppy disk. Refer back to Section 4-4 for more details.
+
+The following sections explain how to use the most powerful and fastest backup
+method, ARCHIVE AND RETRIEVE.
+
+68
+
+===== PAGE 79 =====
+
+5- Saving Drive C Files (final draft)
+
+5-4 GETTING READY
+
+IF YOU HAVE A 192K Drive C - You will need one blank, pre-formatted diskette.
+
+IF YOU HAVE A 384K Drive C - You will need two, plus your SuperCalc disk.
+Please label one of the blank disks BACKUP 1 and the other, if needed, BACKUP 2.
+
+Step 1. Open BOTH disk drive doors, turn power OFF to your Osborne, pause for about
+3 seconds, then turn power back ON again.
+
+Step 2. Make sure your EC DEMO DISK is in floppy drive A: and that your WordStar
+Disk system disk is still in floppy drive B:.
+
+Step 3. Press <CR> to load CP/M+. QuickPac will load, then WordStar will load and
+run from drive A: (the Drive C unit).
+
+Step 4. Press 'X' to exit from WordStar back to the CP/M+ A> prompt.
+Step 5. Remove your WordStar disk from drive B: and put your EC USER DISK in B:.
+
+Step 6. AD>PIP A:=B:ECA.COM[V<CR> Copy ECA.COM to Drive C from B:
+
+If you have a 192K Drive C unit, SKIP Steps 7 & 8 and proceed to Step 9.
+
+If you have a 384K Drive C unit, follow Steps 7-8 to copy SuperCalc onto Drive C
+
+If you have more than 180K space available on your 384K Drive C you will need to
+copy some more files from one of your other floppy disk so that the total space used
+on the Drive C is larger than the capacity of one floppy, i.e. 185K.
+
+Remove your EC USER DISK from drive B: and put your SuperCalc disk in drive B:.
+
+Step 7. ADPIP A:=B:*.*(V<CR> Copy all of floppy B: onto A: (Drive C)
+
+If you get a message from PIP such as:
+
+DESTINATION IS R/O, DELETE (Y/N)? N Type 'N' to not delete old file.
+**NOT DELETED**
+
+Step 8. ADSHOW A:<CR> Check to see that there is LESS THAN
+180K Space available.
+
+Step 9. Remove your WordStar (or SuperCalc) disk from drive B: and put your
+BACKUP 1 Disk in B:
+
+A>PIP B:DIRTEST.COM=DIR.COM<CR> Copy DIR.COM onto BACKUP 1 Disk and
+rename it to DIRTEST.COM.
+
+Now you are ready to proceed with the ARCHIVE exercises.
+
+69
+
+===== PAGE 80 =====
+
+5- Saving Drive C Files (final draft)
+
+5-5 ARCHIVE
+
+One of the major advantages of your Drive C is its ability to accomodate files much
+bigger than your floppy disks.
+
+ECA.COM, the ARCHIVE and RETRIEVE program, lets you backup these big Drive C files
+onto a set of backup diskettes.
+
+ECA is much faster than PIP, and can copy individual files and groups of files (like
+PIP) as well as the entire contents of the Drive C unit.
+
+ADECAXCR>
+You will see some legalistic messages and then the question:
+ARCHIVE OR RETRIEVE (A/R)? A
+
+ARCHIVE will store Drive C files onto any combination of single- and double-density
+diskettes.
+
+You can Rerun or Exit ARCHIVE at any time by pressing the <ESC> key.
+STORE ONTO FLOPPY (B/C)? 8B
+
+ARCHIVE always knows the current name of your Drive C unit and will only let you
+backup files to one of your floppy drives, in this case drive B: or drive C:.
+
+ARCHIVE uses a unique file format. When you save files onto floppy disk using
+ARCHIVE, you will NOT be able to use the files until they have been reloaded onto
+the Drive C unit using the RETRIEVE portion of ECA.
+
+In order to easily identify your ARCHIVE floppy set, you need to enter up to 50
+characters for the ARCHIVE SET LABEL. You MUST enter a label so that ARCHIVE can
+identify each ARCHIVE SET, but you do not have to use the full 50 characters
+available.
+
+Helpful information can be entered as part of the LABEL, such as the date or even
+the time. It's a good idea to give each ARCHIVE SET a unique label so you won't
+have to worry about mixing different sets.
+
+Enter LABEL:
+[TEST SET EC EXERCISES<CR> ]
+
+70
+
+===== PAGE 81 =====
+
+5- Saving Drive C Files (final draft)
+
+5-6 ARCHIVE —- CHOOSING WHICH FILES TO STORE
+
+The initial ARCHIVE menu is displayed after a paragraph of explanations:
+
+<TAB> Store ALL files (*.*)
+<RETURN> Store specific files
+<ESC> Rerun or Exit
+
+D Directory of Drive C:
+
+Please enter your choice. D
+
+ARCHIVE can display a directory (like DIR) of all the files on your Drive C unit
+and their sizes. You do not have to leave ARCHIVE in order to check the contents of
+Drive C.
+
+A <CR> by itself in response to the FILES TO STORE: query moves you to the next
+ARCHIVE command entry.
+
+FILES TO STORE: PIP.COM<CR>
+FILES TO STORE: WS*.*<CR>
+FILES TO STORE: <CR>
+
+You've instructed ARCHIVE to copy PIP.COM and the WordStar files, WS*.* onto the
+backup diskette in B:.
+
+PLEASE NOTE THAT THE CP/M+ WILDCARD FILENAME CONVENTIONS, LIKE WS*.*, WORK WITH
+ARCHIVE.
+
+After you've completed entering the files that you want to backup, the following
+menu will appear on your screen:
+
+<RETURN> Begin storing files to floppy
+Rerun or exit
+
+Directory of Drive C:
+
+List of files to be stored
+Unselect files
+
+Select more files
+
+me
+
+Please enter choice. iL
+
+A list of the files you've selected for backup and their sizes will appear. You can
+always check your selection using the L option before starting the actual copying
+process.
+
+List of files selected to be Archived:
+ws -COM 18 #£=WSOVLY1 .OVR 34 WSMSGS .OVR 30 PIP -COM 10
+
+71
+
+===== PAGE 82 =====
+
+5. Saving Drive C Files (final draft)
+
+Next, you'll get the same six key choices as before:
+Please enter choice. S
+
+The S option will let you SELECT additional files to backup in this set.
+
+<TAB> Store ALL files (*.*)
+<RETURND Store specific files
+<ESC> Rerun or Exit
+
+D Directory of Drive C:
+
+L List files to be stored
+
+Please enter choice. <CR>
+
+FILES TO STORE: DIR.COM<CR>
+FILES TO STORE: <CR>
+
+Please enter choice. Lb
+The LIST of selected files now includes DIR.COM.
+
+Please enter choice. U
+
+<TAB> Un-Store ALL files (*.*)
+<RETURN> Un-Store specific files
+<ESC> Rerun or Exit
+
+D Directory of Drive C:
+
+L List files to be stored
+
+Please enter choice. <CR>
+
+FILES TO UN-STORE: PIP.COM<CR>
+FILES TO UN-STORE: <CR>
+
+The U option, UN-STORE, lets you remove files from the list of files to be
+transferred. This can be a very convenient tool.
+
+Suppose you wanted to backup ALL the .DOC files EXCEPT ONE. You would store *.DOC
+and then UN-store the one you didn't want.
+
+Please enter choice. L
+
+The LIST option shows that PIP.COM will no longer be stored.
+
+72
+
+===== PAGE 83 =====
+
+5. Saving Drive C Files (final draft)
+
+5-7 ARCHIVE — STORING FILES ON FLOPPY DISK
+
+<RETURN> Begin storing files to floppy
+<ESC> Rerun or exit
+
+Directory of Drive C:
+
+List of files to be stored
+Unselect files
+
+Select more files
+
+adres
+
+Please enter choice. <CR>
+
+Pressing <RETURN> will now start the actual copying of files onto the backup
+diskette in drive B:.
+
+Press <RETURN> to begin. <CR>
+
+PLEASE INSERT ARCHIVE DISK #1 INTO FLOPPY DISK B:
+Press <RETURN> to begin. <CR>
+
+** THE FLOPPY DISK IS NOT BLANK **
+
+Directory for floppy disk B:
+DIRTEST .COM
+
+ARCHIVE will store Drive C files on single- or double-density diskettes. If your
+diskettes are NOT BLANK, ARCHIVE must erase them before copying onto them.
+
+In this case, a directory of the old files on the backup diskette will appear on the
+screen. Remember, we put the file DIRTEST.COM onto the BACKUP 1 disk in section 5-4.
+
+IF YOU DO NOT WANT TO KEEP THE OLD FILES ON YOUR BACKUP DISKETTE, ARCHIVE WILL ERASE
+ALL OF THEM AND USE THE DISKETTE FOR BACKUP.
+
+IF YOU MADE A MISTAKE AND INSERTED A DISKETTE IN DRIVE B: THAT HAS FILES THAT YOU
+DON'T WANT ERASED, THIS DIRECTORY CHECKING FUNCTION OF ARCHIVE ALERTS YOU.
+
+To avoid deleting all the files on your backup diskette (and the possibility of a
+catastrophic mistake), all Drive C programs require you to confirm your decision to
+delete TWICE.
+
+DELETE ALL THESE FILES (Y/N)? Y
+
+<RETURN> Delete files and begin Archiving. <CR>
+(Press any other key to ABORT)
+
+<RETURN> Delete files and begin Archiving.
+(Press any other key to ABORT) ** DELETING **
+
+73
+
+===== PAGE 84 =====
+
+
+===== PAGE 85 =====
+
+5. Saving Drive C Files (final draft)
+ARCHIVE has deleted the files on the BACKUP 1 DISK and is now copying the files
+chosen onto drive B:.
+The file names will be displayed as they are backed up.
+
+LIST OF FILES STORED:
+WS -COM WSOVLY1 .OVR WSMSGS .OVR DIR -COM
+
+Press <ESC> while ARCHIVE is storing files.
+INTERRUPTED...
+C Continue
+R Rerun
+X Exit to CP/Mt
+
+The ARCHIVE process can be interrupted at any time and then resumed, restarted or
+aborted.
+
+Press 'C' to continue.
+LIST OF FILES STORED:
+When the files you have specified have been stored, the following message appears:
+ARCHIVE OPERATION COMPLETED.
+Number of disks: 1
+Files stored in this set: 4
+
+A> Back to the familiar 'A>' prompt.
+
+ARCHIVE returns you to CP/M+ when it's finished.
+
+74
+
+===== PAGE 86 =====
+
+5- Saving Drive C Files (final draft)
+
+5-8 THE ARCHIVE DISKETTE
+
+ADDIR B:[FULL<CR> DIRectory of BACKUP 1 Disk in B:
+
+Directory For Drive A: User 0
+
+Name Bytes Recs Attributes Name Bytes Recs Attributes
+
+TESTSETE AR1 95k 753 Dir RW
+
+Total Bytes = 95k Total Records = 753 Files Found = 1
+
+Total 1k Blocks = 95  Used/Max Dir Entries For Drive A: 6/ 64
+
+The only file on the BACKUP 1 DISK is TESTSETE.AR1. ARCHIVE will create only ONE
+backup file which may contain many different CP/M+ files.
+
+The name of the BACKUP file is the first eight characters in the Set Label (SPACES
+in the Set Label are ignored).
+
+In this case, the Set Label 'TEST SET EC EXERCISES' has become the name TESTSETE.
+The file extension AR1 shows that this is the FIRST disk of an ARchive set.
+
+If you had used more than one disk for your ARCHIVE SET, subsequent disks would have
+been automatically named TESTSETE.AR2, TESTSETE.AR3, etc.
+
+ADTYPE B:TESTSETE.AR1<CR> Use the CP/M+ TYPE command to look at
+ARCHIVE file TESTSETE.AR1 on BACKUP 1 DISK
+
+ARCHIVE DISK: TESTSETE.AR1
+DISK #1
+
+LABEL: TEST SET EC EXERCISES
+$
+
+A> Back to the 'A>' prompt.
+The TYPE command, a CP/M+ utility that's always available, will display the complete
+
+SET LABEL. This command lets you check an ARCHIVE disk in case you forgot to put a
+written label on it.
+
+73
+
+===== PAGE 87 =====
+
+5. Saving Drive C Files (final draft)
+
+5-9 USING AN ARCHIVE DISKETTE SET
+
+If you have a small Drive C unit (192K) then you will find it impossible to put
+enough files onto your Drive C to require two Archive disks.
+
+So, if you have a 192K Drive C, continue with section 5-10, but pay no attention to
+the parts of this section describing the second Archive disk (the BACKUP 2 DISK).
+
+If you have a 384K Drive C the next exercise will use both BACKUP disks.
+ADECA<CR> Run ECA from A:
+ARCHIVE OR RETRIEVE (A/R)? A
+STORE ONTO FLOPPY (B/C)? B
+Enter LABEL:
+
+[TEST ALL EC EXERCISES<CR> ]
+
+76
+
+===== PAGE 88 =====
+
+5- Saving Drive C Files (final draft)
+
+5-10 ARCHIVE - SAVING ALL OF Drive C
+
+The initial ARCHIVE menu is displayed:
+
+<TAB> Store ALL files (*.*)
+<RETURN> Store specific files
+<ESC> Rerun or Exit
+
+D Directory of Drive C:
+
+Please enter your choice. <TAB>
+
+Pressing <TAB> instructs ARCHIVE to copy ALL the files from Drive C onto as many
+backup diskettes as are necessary.
+
+ARCHIVE will show that ALL the files on Drive C have been selected to be stored.
+
+<RETURN> Begin storing files to floppy
+<ESC> Rerun or exit
+
+Directory of Drive C:
+
+List of files to be stored
+Unselect files
+
+Select more files
+
+aarse
+
+Please enter choice. <CR>
+
+Pressing <RETURN> will now start the copying of ALL Drive C files onto the backup
+diskette in drive B:.
+
+Press <RETURN> to begin. <CR>
+
+Keep the BACKUP 1 DISK with the file TESTSETE.AR1 on it in drive B: and have your
+other diskette, labeled BACKUP 2 DISK, available.
+
+PLEASE INSERT ARCHIVE DISK #1 INTO FLOPPY DISK B:
+Press <RETURN> to begin. <CR>
+
+** THE FLOPPY DISK IS NOT BLANK **
+
+Directory for floppy disk B:
+TESTSETE -.AR1
+
+DELETE ALL THESE FILES (Y/N)? Y
+
+<RETURN> Delete files and begin Archiving. <CR>
+(Press any other key to ABORT) ** DELETING **
+
+LIST OF FILES STORED:
+ARCHIVE has deleted TESTSETE.AR1 from the BACKUP 1 DISK and is now copying ALL the
+
+contents of Drive C onto drive B:.
+
+77
+
+===== PAGE 89 =====
+
+5. Saving Drive C Files (final draft)
+Again, if you have a 192K Drive C you can skip the next steps and continue to
+section 5-11 on Retrieving your Archived files.
+When the BACKUP 1 DISK is full, the following message will be displayed:
+THIS ARCHIVE DISK IS FULL
+
+PLEASE INSERT DISK #2 INTO FLOPPY DISK B:
+Press <RETURN> to begin.
+
+Remove the BACKUP 1 DISK from drive B: and insert the BACKUP 2 DISK into drive B:.
+**k* DO NOT PRESS *C WHEN CHANGING ARCHIVE DISKETTES. ****
+
+Pressing <CR> will cause ARCHIVE to continue storing files until ALL the files on
+Drive C have been saved.
+
+When ARCHIVE is finished, you'll see the message:
+
+ARCHIVE OPERATION COMPLETED.
+Number of disks: 2
+Files stored in this set: _
+
+A> The CP/M+ 'A' prompt once again.
+If you have a 384K Drive C it required two floppy disks to store ALL the files from
+Drive C. If there had been ONE big file instead of many small files on Drive C,
+
+ARCHIVE would have automatically divided the large file and stored it on a series of
+ARCHIVE diskettes: TESTALLE.AR1, TESTALLE.AR2, TESTALLE.AR3 etc.
+
+78
+
+===== PAGE 90 =====
+
+5- Saving Drive C Files (final draft)
+
+5-11 RETRIEVE
+RETRIEVE reloads your ARCHIVE SET onto Drive C.
+First, make sure you still have your EC DEMO DISK in floppy drive A:, now named C:.
+Second, erase the contents of Drive C using the ECU E command, as shown:
+A>C:<CR> Log onto drive C: (the EC DEMO DISK)
+
+C>ECU E<XCR> Run ECU E (Erase) from floppy C: to
+erase ALL files on the Drive C unit
+
+Erase all (including R/O) Drive C: files (Y/N)? Y
+
+Are you absolutely certain (Y/N)? Y
+
+All Drive C files have been DELETED.
+C>ECA<CR> Run ECA from C: (the EC DEMO DISK)
+ARCHIVE OR RETRIEVE (A/R)? R
+
+The RETRIEVE program, like ARCHIVE, knows the current name of the Drive C unit and
+will only let you RETRIEVE from the floppy drives, in this case B: and C:.
+
+RETRIEVE FILES FROM FLOPPY DRIVE (B/C)? B
+PLEASE INSERT ARCHIVE DISK #1 INTO FLOPPY DISK B:
+
+FOR THIS EXERCISE, PLEASE INITIALLY LEAVE THE BACKUP 2 DISK IN DRIVE B:, EVEN THOUGH
+THE PROGRAM ASKS YOU TO INSERT ARCHIVE DISK #1.
+
+If you have a 192K Drive C please put any diskette that is not a Archive disk in
+drive B:, since you don't have a BACKUP 2 disk.
+
+Press <RETURN> to begin. <CR>
+THIS IS NOT ARCHIVE DISK #1.
+ARCHIVE DISK: TESTALLE.AR2
+DISK #2
+LABEL: TEST ALL EC EXERCISES
+
+PLEASE INSERT ARCHIVE DISK #1 INTO FLOPPY DISK B:
+Press <RETURND to begin.
+
+RETRIEVE requires that each ARCHIVE SET be retrieved in order. The .AR1 diskette
+must be inserted first, then the .AR2 diskette, etc.
+
+RETRIEVE also checked that the diskette you inserted was an ARCHIVE disk and NOT one
+of your program or data diskettes.
+
+79
+
+===== PAGE 91 =====
+
+5. Saving Drive C Files (final draft)
+
+RETRIEVE identifies an incorrect diskette and asks you to insert another diskette.
+Please remove the BACKUP 2 DISK and insert the BACKUP 1 DISK.
+
+DO NOT PRESS “C WHEN CHANGING ARCHIVE DISKETTES.
+
+PLEASE INSERT ARCHIVE DISK #1 INTO FLOPPY DISK B:
+Press <RETURN> to begin. <CR>
+
+ARCHIVE DISK: TESTALLE.AR1
+DISK #1
+LABEL: TEST ALL EC EXERCISES
+
+Press <RETURND if Archive set is CORRECT
+OR
+Insert another diskette and press <R> to RETRY. <CR>
+
+After pressing <CR> RETRIEVE will begin copying and reconstructing the Drive C files
+that were stored on this specific ARCHIVE SET.
+
+RETRIEVE will query you even if you have inserted the #1 disk of an ARCHIVE SET to
+make sure that you are retrieving the correct ARCHIVE SET.
+
+RETRIEVE will display the files it is reconstructing on Drive C as they are
+retrieved from the ARCHIVE diskette.
+
+If you have a 192K Drive C, Retrieve will have completed reloading the entire disk,
+so skip to the last paragraph on this page.
+
+When all the information on the first ARCHIVE diskette has been retrieved, the
+following message will be displayed:
+
+THIS ARCHIVE DISK HAS BEEN COMPLETELY RETRIEVED.
+
+PLEASE INSERT ARCHIVE DISK #2 INTO FLOPPY DISK B:
+Press <RETURN> to begin.
+
+Remove the BACKUP 1 DISK from drive B: and insert the BACKUP 2 DISK into drive B:.
+REMEMBER, DO NOT PRESS “C WHEN CHANGING ARCHIVE DISKETTES.
+
+PLEASE INSERT ARCHIVE DISK #2 INTO FLOPPY DISK B:
+Press <RETURN> to begin. <CR>
+
+Press <CR> and RETRIEVE will continue reconstructing and listing the files from the
+BACKUP 2 DISK, the second disk in this ARCHIVE SET.
+
+When ALL of the ARCHIVE SET has been retrieved, this message will appear:
+RETRIEVE OPERATION COMPLETED.
+Archive diskettes read: 2
+Files retrieved: ___ will show the number of files
+
+80
+
+===== PAGE 92 =====
+
+5- Saving Drive C Files (final draft)
+
+You can RETRIEVE onto Drive C even if there are already files on Drive C.
+
+There must, however, be sufficient space on the Drive C RAM-disk for the retrieved
+files.
+
+If there is not enough space, you will see the message:
+
+Drive C: DISK SPACE IS FULL.
+
+In process of retrieving file:
+
+You must delete some files from Drive C: before
+attempting to retrieve this Archive set.
+
+PLEASE START RETRIEVE OPERATION OVER.
+
+xk IMPORTANT **%*
+If you retrieve files with exactly the same name as files already on Drive C the new
+
+file (that is, the one from the Archive Disk Set) will overwrite the old file, and
+the old Drive C file will be lost.
+
+The RETRIEVE program can be run automatically. This method is discussed in
+Section 5-13, "The Remote Retrieve Command”.
+
+You are now finished with the Archive & Retrieve exercises, so proceed to
+Section 5-12 on using function keys with Drive C.
+
+81
+
+===== PAGE 93 =====
+
+5. Making It Even More Automatic (final draft)
+
+CONTENTS
+
+5-12 Using your Function Keys
+
+5-13 The Remote Retrieve command
+5-14 Remote Retrieve with QuickPac
+
+5-12 USING YOUR FUNCTION KEYS
+
+Placing several Drive C commands on your function keys can make using Drive C very
+simple no matter what your application.
+
+Some suggestions are:
+
+ECL _ _<CR> The Drive C LOAD command with
+your choice of names and Print Buffer
+ECN _<CR> The Drive C NAME command
+ECU E<CR> The Drive C ERASE command
+ECU Any of the ECU Utility commands
+
+Another command which is can be used to great benefit as a function key is the
+remote RETRIEVE command.
+
+82
+
+===== PAGE 94 =====
+
+5- Making It Even More Automatic (final draft)
+
+5-13 THE REMOTE RETRIEVE COMMAND
+Typing ECA R<CR> will automatically load the RETRIEVE function.
+
+RETRIEVE will then ask from which drive to retrieve.
+
+Even more powerful is the ECA R A, B or C command. These commands will immediately
+
+begin retrieving without any inputs from you.
+
+The general rule is:
+
+RETRIEVE WILL WORK AUTOMATICALLY USING THE COMMAND ECA R FOLLOWED BY THE LETTER OF
+
+THE DRIVE WHICH HAS THE ARCHIVE DISKETTE.
+
+THE DRIVE MUST CONTAIN DISK #1 OF AN ARCHIVE SET.
+
+ECA R A will retrieve from drive A:
+
+I
+
+|
+
+| ECA RB will retrieve from drive B:
+i
+
+1
+
+| ECA RC will retrieve from drive C:
+
+The most powerful combination is the remote RETRIEVE command with QuickPac.
+
+83
+
+===== PAGE 95 =====
+
+5- Making It Even More Automatic (final draft)
+
+5-14 REMOTE RETRIEVE WITH QUICKPAC
+RETRIEVE is a much faster means of loading Drive C than PIP.
+
+To use Remote Retrieve with QuickPac, setup a QuickPac disk similar to the EC
+DEMO DISK using QuickPac Install (ECQINS) as follows:
+
+1. Do NOT tell ECQINS to have QuickPac copy files from EITHER floppy disk.
+
+2. Specify the program to run automatically at the end of QuickPac as: ECAR d,
+where d is the name of the floppy drive to retrieve from, usually B or C.
+
+For example, if QuickPac was set up to rename Drive C to A:, the command line to
+give ECQINS to implement Remote Retrieve is:
+
+C:ECA R B<CR>
+Remember, after renaming the drives, ECA.COM will be on floppy drive C:.
+
+The next time you load CP/M+ with that disk QuickPac will automatically run ECA and
+retrieve whatever Archive Set you choose to load in drive B:.
+
+If you use the same group of programs and data files over and over, you will find it
+
+beneficial to create an Archive Set of these files and quickly load them onto your
+Drive C using the QuickPac Remote Retrieve feature.
+
+84
+
+===== PAGE 96 =====
+
+6. Appendices (final draft)
+
+CONTENTS
+6-1 Using Drive C with Executive System Utilities
+6~2 Executive Drive C hardware specifications
+6-3 Executive Drive C software specifications
+6-4 Disk space usage with Drive C
+6-5 Centronics parallel printer cable specifications
+
+6-6 Patching WordStar for improved printing
+6-7 Modifying QuickPac data files
+
+6-1 USING Drive C WITH EXECUTIVE SYSTEM UTILITIES
+
+There are four programs supplied with your Executive which were written specifically
+for your Executive and which assume that your computer has just two floppy disk
+drives.
+
+You must follow a few special rules when using these programs.
+
+COPY
+COPY assumes that you have just two floppy drives named A: and B:.
+To use COPY with Drive C installed you must NOT rename the drives. The floppy
+drives MUST be named A: and B: and the Drive C unit must be logical drive C: while
+you use COPY. You can use the Drive C command "ECN C" to rename the drives at any
+
+time to be properly configured for COPY.
+
+The RULES are:
+
+' TO USE COPY, THE FLOPPY DRIVES MUST BE NAMED A: AND B:.
+|
+
+| |
+| THE Drive C UNIT (IF INSTALLED) MUST BE NAMED C:. }
+
+COPY CANNOT BE USED TO COPY FILES ONTO THE Drive C UNIT.
+
+85
+
+===== PAGE 97 =====
+
+6. Appendices (final draft)
+
+COPYSYS
+
+COPYSYS works just like COPY. It MUST have the floppy disk drive named A: and B: as
+they were before Drive C was installed.
+
+COPYSYS cannot get the CP/M+ system from the Drive C unit since the system can only
+be stored on floppy.
+
+The RULES are:
+
+TO USE COPYSYS, THE FLOPPY DRIVES MUST BE NAMED A: AND B:.
+
+'
+\
+THE Drive C unit (IF INSTALLED) MUST BE NAMED C:. |
+'
+I
+
+COPYSYS CANNOT BE USED TO GET (OR PUT) CP/M+ ON Drive C.
+
+SETUP
+
+SETUP, unlike COPY and COPYSYS, ALWAYS assumes that drive A: and drive B: are the
+floppy disk drives, whether or not you have installed Drive C.
+
+Typically, the upper floppy drive is initially drive A: and the lower floppy drive
+is drive B:. In this case, if you “tell” SETUP to get the CP/M+ System from drive
+A:, it will get it from the upper floppy REGARDLESS of the names of the logical
+drives.
+
+SETUP cannot get the CP/M+ system from the Drive C unit since the system can only be
+stored on floppy.
+
+The RULES are:
+
+SETUP ASSUMES THE NAMES OF THE FLOPPY DRIVES ARE NEVER
+CHANGED BY THE Drive C SOFTWARE.
+
+THE LOWER (OR OTHER) FLOPPY IS DRIVE B:, WITH OR WITHOUT
+Drive C INSTALLED.
+
+'
+1
+'
+1
+SETUP ASSUMES THE UPPER (OR BOOT) FLOPPY IS DRIVE A: AND
+1
+I
+\
+!
+1
+!
+1
+
+SETUP CANNOT GET (OR PUT) THE CONFIGURATION ON Drive C.
+
+86
+
+===== PAGE 98 =====
+
+6. Appendices (final draft)
+6-2 EXECUTIVE Drive C HARDWARE SPECIFICATIONS
+
+MECHANICAL SPECIFICATIONS
+
+Dimensions (not including cables): 5.6in x 5.9in x 1.0in (14 cm x 15 cm x 2.5em)
+
+Weight: 1 1b (.45 kg) -
+Shipping Weight: 3 lbs. (1.4 kg) :
+Operating Temperature Range: +5 to + 60 degrees C (+40 to +140 degrees F)
+Storage Temperature Range: -20 to +100 degrees C (-5 to +212 degrees F)
+
+ELECTRICAL SPECIFICATIONS
+Power Requirements: 11 to 14.5 VDC at 0.3A max. (2.5 Watts nominal, 384K unit)
+Source: Draws power from the Executive EXT. VIDEO connector or
+from the optional Drive C BackPac backup power supply.
+PERFORMANCE SPECIFICATIONS
+Latency time: NONE (Drive C is solid state and has no moving parts)
+
+Maximum data throughput rate: 55,000 bytes per second
+(445,000 bits per second)
+
+Access time to random sector: approx. 40 usec. (software access time)
+
+Time reqired to load 32K byte .COM file and run it: 1.0 seconds max.
+
+87
+
+===== PAGE 99 =====
+
+6. Appendices (final draft)
+
+6-3 EXECUTIVE Drive C SOFTWARE SPECIFICATIONS
+
+CP/M+ PARAMETERS
+
+192K UNIT 384K UNIT TURBOPAC
+
+Useful Storage Capacity: 190 KB 380 KB 10, 20 OR 33 MB
+Block Size: 1K 2K 8K (can be modified)
+Number of Directory Entries: 64 128 512 per logical drive
+Directory Space: 2048 bytes 4096 bytes 16384 bytes per drive
+Number of Logical Sectors: 1536 3072 varies with Block
+
+size & capacity
+Number of Reserved Tracks: 0 612 landing area
+Number of logical sectors/track: 2 32
+Bytes per sector: 128 256
+
+Amount of TPA RAM used:
+
+WITHOUT Print Buffer Installed:
+WITH Print Buffer Installed:
+
+768 Bytes
+786 Bytes
+
+when used with TurboPac hard disk: 1024 Bytes
+
+PRINI BUFFER SPECIFICATIONS
+
+Installation: Automatically installed with Drive C RAM-disk
+loader. User can select NO buffer if desired.
+
+Buffer Modes: Two, user selectable.
+Dynamic or Fixed.
+
+TurboPac Spool Buffer: 128K fixed capacity when used with 384K Drive C
+Not installed when used with 192K Drive C
+
+Fixed Buffer Capacity: User selectable from 16K to 128K
+in increments of 16K.
+
+Dynamic Buffer Capacity: Up to the maximum space available
+on the Drive C unit.
+
+Print Buffer Speed: Input from CP/M+ via control P, limited by display speed
+Input from PIP LST: Command, about 1300 characters per second
+Output speed limited by printer.
+
+===== PAGE 100 =====
+
+6. Appendices (final draft)
+
+6-4 DISK SPACE USAGE WITH Drive C
+
+A certain amount of disk space is required on Drive C for the unit to function
+properly. Space is required for the disk directory and for two or three Drive C
+
+special files.
+
+Function
+
+Directory space
+ECN.COM program
+ECU.COM program
+
+totals
+
+NOTES:
+
+erase the “optional”
+
+DISK SPACE USED
+
+Small Drive C (192K)
+
+2K needed
+1K optional
+
+10K optional
+
+2K min. needed
+13K incl. options
+
+programs are explained (again) below.
+
+Large Drive C (384K)
+
+4K needed
+2K optional
+
+10K optional
+
+4K min. needed
+16K incl. options
+
+7S VSOmuy
+
+In applications where you need every last bit of disk space you may want to
+programs ECN.COM and ECU.COM. The functions of these
+
+ECN.COM is needed only if you want to rename the drives after running ECL.
+The ECN.COM program file is created by ECL at the time ECL is run.
+
+The ECU.COM program is a utility copied automatically by ECL to the Drive C
+
+unit when ECL is run.
+
+If you don't need these utility functions, or if you
+
+are not using the Print Buffer feature, you can erase this file.
+
+89
+
+===== PAGE 101 =====
+
+6. Appendices (final draft)
+6-5 CENTRONICS PARALLEL PRINTER CABLE SPECIFICATIONS:
+
+Cables manufactured exactly as specified in the Executive User's Manual will always
+work fine with Drive C. Unfortunately, many cable builders include an extra signal
+line which is never used by the Executive computer.
+
+This signal, called 'PE' for Paper out Error, will interfere with normal Drive C
+operation.if connected and MUST be removed to guarantee compatibility among your
+Executive; Drive C unit.and printer. If present, this signal wire will be connected
+FROM pin 12 (PE) on the 36—-pin connector at the Printer end of the cable to pin 13
+(NRFD) on the 26~pin edge connector at the Drive C end.
+
+A properly built cable will have these signal connections:
+
+Drive C unit Centronics-style
+PRINTER/HARD DISK/8088 Centronics Printer
+ou. Connector pin, numbers Signal name Connector pin no.s
+YuaS? 1 Data bit 0 2
+vs 2 Data bit 4 6
+bas 3 Data bit 1 3
+4 Data bit 5 7
+sap 5 Data bit 2 4
+6 Data bit 6 8
+7 Data bit 3 5
+8 Data bit 7 9
+10 Ground 30 (see Note 1 below)
+
+11 Output Strobe 1
+
+15 Printer Busy 11
+
+16 Ground 29
+
+18 Ground 21
+
+20 Ground 20
+
+Note 1. There are several signal ground connections on both Drive C and
+Printer ends of the cable. Your cable,may have one or two connections less than
+shown here.
+
+In general, more ground connections are better and it doesn't really matter which
+Ground pin on the Centronics printer end is connected to which Ground pin on the
+Drive C end.
+
+Note 2. Some Executive printer cables also have a wire connecting Centronics pin 13
+(SLCT OUT) to Drive C pin 19 (SRQ). This signal is NOT used by your Executive, AND
+it has NO effect on Drive C. If this wire is connected in your cable, leave it
+connected.
+
+Ground Connection pin numbers:
+
+Drive C 26-pin edge connector: 12,14,16,18,20,22,23,24
+
+Centronics 36-pin connector: 19 through 30 (some printers have even more)
+
+90
+
+===== PAGE 102 =====
+
+6. Appendices (final draft)
+
+6-6 PATCHING WORDSTAR FOR IMPROVED PRINTING:
+
+Version 3.3x for the Osborne Executive has NOT been set up by MicroPro Int'l or OCC
+for efficient print while editing. If you have edited a file while printing another
+file you may have noticed (especially with Centronics parallel printers) periods
+when your keyboard seems to be locked up or WordStar misses characters you type. -:..
+This condition is caused by the CP/M+ list output function (LST:) which:willswait:i07
+until the printer is ready (no matter how long) to output a. charaéter:: “Ohce™ iiarsg:
+WordStar outputs a character to the LST: routine CP/Mt will’ not- return’ t6“WordStarsx®
+for any other function until that character has’-been accepted by thé printer..ig MUS?
+“. 2yps nig-c& ofd mo (CIA)
+The Drive C Print Buffer feature can eliminate most, but not all, of this annoying
+WordStar problem. To eliminate this problem entirely, a modificatién-to'WSYCOM‘%igs: §
+required. We have listed a patch below which you can install in WordStar yourself
+to implement the List Status function. :
+
+WordStar has a built-in ability to use the CP/M+ function calléd*List Status, but
+this function has not been installed in the standard O€C versions~of WordStar. When
+using the List Status function, WordStar can check the printer to see if it's ready
+before actually sending out a character to be printed. This function virtually
+eliminates the annoying WordStar hang-ups when simultaneously editing and printing.
+
+Please do NOT attempt to install this patch unless you are thoroughly familiar with
+the utility and the SAVE command. 2G BIB
+
+It is ALSO POSSIBLE to implement this patch with WINSTALL.COM's own patching feature,
+i.e. via the '+' response to the main WINSTALL menu. You would patch HAVBSY and
+MORPAT areas. For more information, see the FOGHORN, July 1984 issue, page 60.
+
+This procedure assumes you have SID.COM, SAVE.COM and WS.COM on the same drive. You
+must patch WS.COM AFTER you have run the WINSTALL program supplied with your version
+of WordStar. Otherwise the installation programs may erase these patches. Similarly,
+each time you re-install WordStar you may have to re-do these patches.
+
+1. Give the command SID<CR> to load SID into*memory. 293
+2. Give the command -RWS.COM<CR>
+
+3. List address 0718(hex): —-L0718 ,071C<CR>
+If the List Status patch has NOT been made yet you should see:
+
+0718 NOP
+0719 NOP
+071A ORA A
+071B RET
+071C MOV E,A
+If the patch has ALREADY been installed you should see:
+
+0718 RST 07
+0719 JMP O2CB (or some other address)
+071C MOV E,A
+
+91
+
+===== PAGE 103 =====
+
+6. Appendices (final draft)
+
+4. Check the WordStar user patch areas to see if they are available:
+
+—-DO2CB<CR> if the 25 bytes after address 02CB are all 00 it's OK to put the
+patches at this standard address. If not, any area between
+
+O2CB and 035B will do if available.
+5-043 Use the inline assembler of SID to install the patch as follows:
+
+Version 3%3.;.-AQO718<CR> . ;
+0718 RST 07<CR>
+(EBS &.. 1479007192 TMPC 02CBSCR>
+071C<CR>
+ui 9113 S72 7AO2ZCB<ERD
+sioc02€B »LXI_D,O2DB<CR>
+O2CE MVI C,32<CR>
+02D0 . CALL 0005<CR>
+02D3. INR A<CR>
+02D4 JZ 02D9<CR> -
+vivuosys .2. 102DF xS#C<ER:.:. 5.
+: of Q02D8 2RET<CR> fius<
+02D9 ORA A<CR>
+. O2BDAs* RETSER>-
+02DB RRC<CR>
+Wee 02DC <CR>;: >>
+
+1 Sey, Dar “B.9F.
+
+6. Now: cheak: the onda you ‘have ahewed using ° che L0718 and LOZEO commands to make
+
+sure the result is exactly as shown above.
+7.°Give*this command to save the modified file back to disk: «=
+
+2o=WWS .COM<CR>«:
+
+8. Exit:SID. using “C.
+
+0H: ik nod UBM .€
+9. You're done! Go ahead and use your newly patched WordStar. If it
+sure to save it on floppy.
+
+92
+
+works fine be
+
+===== PAGE 104 =====
+
+6- Appendices (final draft)
+
+6-7 MODIFYING QUICKPAC DATA FILES
+
+This section is recommended for users who already know how to use SUBMIT. It is NOT
+intended as a tutorial on SUBMIT. The Drive C QuickPac program set consists of:
+
+1. EXECST.COM Drive C's own version, not to be confused with OCC versions,
+
+created autatically by ECQINS, contains the ECL line and forces the
+“SUBMIT ECQ” command line on startup.
+
+2- ECQ.COM A program to implement several special Drive C functions 2¢i27s\
+3. ECQ.SUB The data file used by SUBMIT.COM iosve Taq BV
+4. ECQINS.COM A menu-driven program to make setting up QuickPae’ options easy.
+
+This section discusses how ECQ.COM works and how to modify the-ECQ;SUB file in case
+you want to add extra operations to the usual QuickPac startup precedure.
+
+ee
+
+EXECST is called automatically by CP/M+ just after you boot-up.’ It works similarly
+to the usual OCC EXECST except that our version can only execute’ECL and SUBMIT ECQ.
+A typical ECQ.SUB file (in this case, the one provided on your original Executive
+Software Disk) looks like this, explanations for each line‘adre onSthe right:
+
+Mf Li
+
+ECQ T+ 1 Transfer files if not already transferred,
+
+PIP C:=A:*.*[WVOR] using PIP to move from drive’ A: to‘‘drive C:
+ECQ N A + A:XDIR Rename Drive C to drive A:,<then rufi' XDIR on new A:
+
+If you want to add command lines to this file you can edit it using the Non-Document
+mode of WordStar. You can add just about any command-lines you choose BEFORE. the
+"ECQ T +n" line, e.g. you might run a user group program. - I. 34
+
+Generally, if you want to run a program which modifies the CP/M+ system in some. way,’
+you should run these programs BEFORE ECL. This can be very difficult with QuickPac
+since our EXECST program immediately run ECL. Generic programs which.do not affect
+the Drive C unit should be added AFTER the "ECQ T + n” line. ~
+
+Do NOT add any command lines after the last line containing a ECQ statement.“ Anyx:
+
+such lines will be ignored, or, in some cases, may cause improper ECQ operation.
+a ssc st ' yuo
+
+The rules for ECQ command syntax are simple: o3
+
+1. ECQT+n_ means: “If there is a file on the Drive C unit named ECLOADED.SYS,
+
+then skip n lines in this file to the next command line.
+
+If no such file exists execute the next line, and create the
+
+ECLOADED.SYS file on the Drive C unit."
+
+This operation prevents QuickPac from copying all your files over from floppy to
+Drive C if you have already done so but are forced to reload and reboot CP/Mt.
+
+Note: T stands for Transfer.
+
+93
+
+===== PAGE 105 =====
+
+6. Appendices (final draft)
+
+2. ECQ.N.d+-A:XDIR “Rename the Drive C unit to logical drive d: ( d MUST be the
+letters A, B or C). Next display a message and beep the Executive's beeper. Then
+run a program called A:XDIR.”
+
+Note: N stands for re-Name.
+
+3. ECQNd+ “Rename the Drive C unit to drive d:. Then display a message and
+beep the Executive's beeper. QuickPac exits to CP/M+ without running another
+program. ~+' {7 , ; ahs od
+
+GENERAL RULES ‘TO -FROLLOW::3 Git eokta32
+
+or eae
+
+To add command ‘Line(s)! ERORE the. first line (the one with ECL in it):
+
+1. You ‘can add .any. paid ‘of dang before the ECL line as long as “the commands
+specified are -the type which will return to CP/M+ immediately after execution.
+
+2. Do ‘NOT’ .specify commands. -hefore the ECL command line which attempt to access
+the Drive ¢ “7 -since Drive C@ is,.not’ installed until ECL runs.
+PI aa la lie oy ve » + Sgsee: late od oo
+To add a ian to be women only; if;QuickPac is running the first time, i.e. if
+
+DCLOADED. S¥S is NOT lig lie Dxtve C unit:
+e: . s (y £ DF!
+
+1. Add “your command ‘lind(s) in “ee the "“ECQ T + n" line and the "ECQ N"
+line, eithér- ‘before OR at the: PIP; ‘kine.
+
+2. Change the nian n to reflect. the silane sof commands lines you added. If
+you addéd.just -one line, ohenees n from Lito 2. Ifyou added two lines, change
+n from 1 to ae So ne Pe DT
+
+To stiches the wean’ to .run. jet the: end of QuickPac:
+
+“
+
+1. fink -ECQINS. COM: casa! this: option.
+
+To change the ‘disks .to be copied :to.- the Drive Cc unit:
+fii tBeTO
+1. Use ECQINS. COM ‘ta ‘change | this,s,eption.
+
+~~ *)
+
+#iISE
+
+To install the Print Buffer at a. time:
+
+l. uae a COM to change thiseption.
+LOGGED-IN DRIVE: j
+Normally, if you run ECL manually, you remain logged-on to the same physical drive
+you ran ECL on. Since ECL can only be run from your initial floppy drive A:, you
+will still be logged-on to that floppy after running ECL.
+
+If QuickPac runs a program, ECQ always logs onto the drive the program is on.
+
+If QuickPac does not run a program but transfers files, ECQ logs onto the Drive C
+unit, regardless of its logical drive name.
+
+94
+
+===== PAGE 106 =====
+
+INDEX,
+
+EXECUTIVE Drive C USER'S MANUAL
+
+Item Page Item “vy Page, ¢ js:
+Archive ECA.COM (cont'd)
+
+SEE ECA.COM
+BackPac «.scsiveitetraneesions 6
+Backup -
+SEE Saving files
+Backup Disk......eeeeeees 69-80
+BIOS, 1.0 and 1.1 ....... 23,24,31
+BLOCK S1Z@eewosccciccccvice 88
+Cables
+Ext. Video/Battery.....
+Parallel printer
+Adapter cable........ 20-21
+Attaching. «s......00- 21
+Fixing o's ccs ccccccee 224235
+Pinout. .cesecvecccsee 90
+Printer/Hard en 11,20—212002
+
+11~13,19
+
+Video - LSA
+SEE Video ;
+Centronics printer-— 9/5 g2-haus ol ou:
+SEE Printer,Parallel 2 TD
+
+Checklist, Installation.. 27
+COPY ov sdeversevecceesevss 16{85- $20"-edt.
+Copy files
+
+COPY scwsisssavecacevucas 16188
+
+ECA — Retrieve..ccsees (6729-30,
+cocccccce 19481
+ECA — Remote Retrieve... 6,30,83-84
+PIP cccccccccccccccccces 59295 34—36;
+eccccccccccccccccces 62169,93
+QuickPac..ccccsccccccee 9,28-30
+CP/M+
+COPYSYS.cccccsccccccece 23724,32,86
+DIR. cccccccccccvccsccve L5417—18,
+Ce ccccccvcccccccccces JI7IT,41
+ERA cccccccccccccscccce OF
+SHOW. cc cccccccscccccces 45748
+CP/M+ SYS DISK........++- 15716,24,32
+DCLOADED .SYS..eeeeeeeeees 67,94-95
+Displays -
+SEE Video
+Drive C:.SY¥S.ccccccccceee 39540,59
+Dynamic Buffer -
+SEE Print Buffer
+ECA.COM
+Archive
+Applications......... 6-7,29,68-78
+Choosing files.....+-. 71-72
+
+Diskette....cccesssee 75
+
+Exiting to CPM+...... 74. # sot
+
+Interrupting......... 74
+
+LABEL te %s:0:0 2's caiwialewieis 70g er BR OOOE
+
+REGO cide co ocieciorsiéle 0 68! Dese xh az case
+
+SOGsa cs cece secwssscice 10 (74-15 80 2012
+
+Storing Files........ 73-74
+
+Storing ALL filés.i08. V7=<7Bis WaAsaso
+
+TABecccccccccccccccce JI
+
+Un-selecting “filesieni Tdismaoo bbs 0%
+Remote Retrieve
+
+Manual. oe cidivicis cvs He 30,8310" . !
+
+QuickP ac’. diecicie’s cise 29 84 os! a:
+Retrieve
+
+Applicattonsw.. i oioes 29530 583 |;
+
+Diskette order. s0iic. 79: Ob 4.
+
+Error message....ccee 79, 81
+
+LURCLCOMAS bertupexs of o2 Bim. ¢ bps
+
+Fite requirements... JD. 33, SO. AHA IG
+Loading Drive C........ 29,33, 37-39,
+
+QIWISG ot 4 oe BUG He 44 Oe
+
+2 j SN
+
+s | ogee ae ‘Buffer « Slée Oke HE yey ee
+
+Renaming drives..+..+-. 6,325 37-39,
+‘T Sane’ Sicicle oo She 630" .
+
+ECN COM. és Oosies de. cerccce: 40,85, 89:
+ECQINS .COM
+
+Copying files.......... 61-62, 65
+
+Print Bufferieae eicic sieieise 61563 eurarin 07
+
+Renaming drives......-. 63,65
+> Running <a Program vei. 2316465 aU «1
+ECQ.SUB
+
+it gitrey
+
+‘TC Quist onmizing oo. 80.65. 200195=96 sensing 0%
+
+Creating. .cccsccccccoee 62-64
+
+Structure..cccccccccvccs 95-96
+
+ECU..COM BIuL
+Abbreviated commands... 58
+SECU Bs <a 60 00s © wie 6 6 we oH 41,5921 «J
+
+File Delete..........6. 57,58
+
+Install Print Buffer... SMHIsd “I- NEA!
+
+REStarteccccccccccccees 55°56
+
+SpaC@cscsoctecsssscaccs 52
+
+Walt ccccscccsesssssssss 55-56
+
+LAD cc vciciiesaeweesweciens 0
+EC DEMO DISK....cceccceee 32733,35,41,
+47-48 ,62 ,64,
+65,69 ,79
+
+95
+
+===== PAGE 107 =====
+
+INDEX, EXECUTIVE Drive C USER'S MANUAL
+
+Item Page Item Page
+EC USER DISK.....+seeee0- 16717,19,21, Fixed Print Buffer(cont'd)
+eeecccceeeees 23727 ,32-33, SIZES. cescccccccscccsces 44
+cececeeeccces 48,62,69 Specs & TPA ..eseeeeeee 88-89.
+Erasing files Installing later....... 54
+ECU E — Drive C......+- 41,59 Theory of operation.... 79
+ERA — CPMP.cccceccesces 57459 PRINTER/HARD DISK/8088... 9-11;22
+Error Messages Printer, Parallel aot A
+CPM. ccccvvcicescccceeee 65 Cable.ccsccceccccccveee 21723,90
+Drive Crrsceccsccecvees 46,81 Power ONeccsccccccccces 20 #4;
+PIP .cccccccccccccccccce 69 SETUP .ccscccccccccccces 19524
+EXECST.COM...eeeeeeseeees 61,64,65,93 TeStrccccecccccccccccee 20,2526
+EXT. VIDEO port - EXEC... 11,14 Trouble~shooting....... .22,26,90
+EXT. VIDEO/BATTERY port.. 11,14 Printer, Serial
+Files SETUP . cccwccccccosecone 24
+Multiple - Buffer...... 8,55 Test ecccccccsccccccscces 25
+Buffer organization.... 43 Se ena eri ah 26
+Fixed Buffer - QuickPac
+SEE Print Buffer Data files - —
+Function keys.....e.eee-. 28-30,82 SEE ECQ.SUB
+Hard disks - Installation -
+SEE TurboPac SEE ECQINS.COM
+IEEE-488 port - EXEC..... 11-13 Running -
+Installation SEE ECQ.COM
+Cable clip..cccccccccce L112 Starting -
+Checklistiscssccccscecse 27 SEE EXECST. a
+Displays - RAM-disk . dai
+SEE Video Capacttyssseeyseeeeeees 4,6,88
+Drive C unit.....eeeee- 10713 Files - . ety oer Sm
+Drive C signal cable... 11 SEE Copying files Poon
+Drive C video cable.... 11 Loading, ocvceccseccccees 22531739
+Parallel printer cable. 21=22 Renaming ——
+Video Shorting Plug.... 14 Initial installation. 5,37 ,61-62
+LABEL - After installation... 40-85
+SEE ECA.COM Specs & Theory.......+- 5,31,87-89
+Monitors - Renaming drives -
+SEE Video SEE RAM-disk
+ViPenecceneraeewssasmans LA RESET button.......eeee0+ 39
+ec cccccccccccccccccccs 34735,41,47, Remote Retrieve -
+ce cecccccccccececccces 48,62,68-71, SEE ECA.COM
+ee cccccvccecccccccccce 84,88,92,94 Retrieve -
+Print Buffer SEE ECA.COM
+Dynamic Print Buffer ROM — Rev. 1.2 & 1.21.... 23,24,31
+Manual installation... 42,47 R/O (Read Only) files.... 39,57,59
+QuickPac...ecccseccese 61,63 RS-232 port -
+Remove....secccecee ee 54 SEE Printer,Serial
+Specs & TPA .eccceeeee 88-89 Saving files
+Fixed Print Buffer EGA ss sicisie seeine es eu) eees 6,29 ,30,70-72
+Manual Installation.. 42,45 EG eies eS Ecsieeseescecce FT
+QuickPacecccccccccces 61,63 PIP csvviciccsesicvcewesss 29,35
+REMOVE ce occccccccccce 54
+
+96
+
+===== PAGE 108 =====
+
+INDEX, EXECUTIVE Drive C USER'S MANUAL
+
+Item cr Page ae - _ _ med.
+
+SECLOLSs ccecvccdiccodsvcs 88 fo ime oa p) 1G Kee E
+Serial port - ‘ ne a as
+
+SEE Printer,Serial CO,S7, ae eee
+SETUP. 6.6 6 660 ssere Sk oes ccisees 23-24 , 26-27 , 86 ee ie?
+Space - es Cae ee BU ETE
+
+SEE ECU.COM. ~. ii 8S Oe 0S Tes caw ein ns oe STS
+Specifications...cccsccses 87-589 nesolis HYRKEE
+Status messages - ..6idsd BO RSs ty 2S eiele sm wietsi nee
+
+SEE ECU.COM : ( Tewed i glOP)| wice-es a wiew cere is
+System Utilities - IUTSC OO see suiskesnnewe wm:
+
+roofee nee me oA AS - rye
+COPY e:sidiad Saved Gowns sescce 16,85 e+ JSS. ce Ce, etc nat BS Ass MK CRED Lemelannesh
+COPYSYS.. die eeccee eoece 24,86 ~siduen? Pile [ eorsdada ~ 1Og OMGIV .TXS
+
+SETUP cc saivivccccowsvcecca 22-24 ,86 Fae eh Bs ETS &f {: «SIOg eSETTAR \GHGz Vv ae
+TRA 6 oe 6 e600 ESC Raemweceeces 88 | mt we Sh dee ea
+
+TYPE messages —— .. rind Hare SBS Soke pisin w Le I
+SEE ECU.COM.. ..... 2) t4eneesidusy] BR...
+
+TurboPac...eseseccecccese 9,89
+SEE ECU.COM AUE.ODH GE-ES wecoovcoeensS¥SH OOhtony
+
+Video - notselissen! - adethb hvab
+EXt. Monitor....sceeee ihe optics oedudizuT che
+Internal display....... 14 - genic of
+
+Of, 9 fu)
+
+tf)
+>
+
+La art 2)
+et OAC
+
+tlhe, ds we eke ~ “3 T0q
+Video Shorting Plug. cccce 14, i9. . ac rtag Si=LJ sear our wails Si TBC
+Wildcard “90. T20REN 52 TS nu iyi ys L2et isos
+ECA ie: 6 0:0 00 «nieve: 016 © weieKeis ms Y ery rs
+WordStar ae a. adn a ott BE babe? ts
+Print pekel Srsisnnases 91-92 eealrh ClMOL weeesc-oeesttor 3D avwiawG
+Running on Drive C oe a rE’ 909 9g¢ ft) «eeSider Ipagita G svinrd
+
+Manually. ceccccccece 41 : . : : "
+
+Vis, es ite © pagntbaad! iioase--8idso osbiv 2 sviz
+QuickFacessssesceeee 6365-670 SSeS .sicso usantre isiisyss
+Cad. aiainl Hb eee eQalS agaistrode esbiv
+M4 eet - THAT
+we wb wae “ ‘ = t tse ak Al
+ADT Be
+- eros inom
+aV age
+¢ ta oreaee
+Ve .
+ive v TTT
+St3ssi HO Se ec ar cine ie tues sds
+382 restiudy talss
+
+97
+
+===== PAGE 109 =====
+
+
+===== PAGE 110 =====
+
+Drive C COMMAND SUMMARY
+ff eS OD
+
+Command Explanation
+
+ECA.COM Drive C Archive/Retrieve program
+COMMAND : ECA mode drive<CR>
+
+mode = ARCHIVE or ” RETRIEVE
+if no function is specified then ECA displays a command menu.
+ARCHIVE: wil] enter Arghive Rade, ,t0 store files from Drive C unit
+onto floppy disk, .
+
+sre:
+
+drive =,, floppy drive. . ta use, fox “automatic “Retrieve, only valid if Retrieve
+tRieak ilow ree is. selected. drive specified . must be correct after renaming.
+Examples: ECA<CR> will Sterley ‘complete command menu.
+
+wiley BCA, ACER, “starts ‘ECA program “in ‘Archive mode.
+ECA R BKCR * Petrieves files onto Drive. C- from Archive Set
+ry 4h 1nd GSR OetOe: ‘in. -£Loppy.- drive .B:.
+LikT YsISIsegaes 82 Feastue sobs 129%
+"eles | anise ese le esa-daco evises rast:
+ECL.COM Drive C loader program, installs Drive C in crite
+r= £GF oranmoc Fc sem yealeesb al ke
+COMMAND : ECL drive buffer<cR>
+tBREAALL ot fs Sequyvo tssiuG gantry ees: q
+drive = pereyen) new logical drive name for Drive C
+unit, must be A, B or C.
+if NO drive is specified, Drive C is named C:
+buffer = optional Print buffer type:
+P = Dynamic Print Buffer
+number = size of Fixed Print Buffer,
+must be 16, 32, 48, 64, 80, 96, 112, 128
+
+q
+
+Examples: ECL A 32 renames upper floppy drive to C: and
+Drive C unit to A: with 32K Fixed Print Buffer
+
+ECL P Drive C is named C: with Dynamic Print Buffer
+
+ECQINS . COM QuickPac Installation program
+
+COMMAND: ECQINS<CR> starts program with menu of QuickPac options
+to be used after power up or RESET.
+options = Copying zero, one or two floppy disks onto
+Drive C unit.
+Renaming the Drive C unit to drive A: or B:
+Installing Fixed or Dynamic Print Buffers.
+Running a program on any drive.
+
+98
+
+===== PAGE 111 =====
+
+aMMle oF Ae
+Drive C COMMAND SUMMARY
+
+ECU-COM ~Drive C Utility program, controls Print Buffer functions--—----. — 22 =/ey
+
+COMMAND: ECU letter<cr> ra bers it wl ay wa gerry
+letter = single letter command abbreviation: ~“° ~- Hetie AOE BOM es
+If no letter is specified, ECU displays menu.
+D file DELETE, to erase one file at ae thine to = 1 POL = sbor
+
+o Jit sik
+
+"take more space for ‘Print “Buffer. *- Axsou. on LT
+“gE ERASE ALL files on ‘Drive even ¥ Read-Only! 144
+ry § does NOT affect Print Buffer contends? vager? aaa
+~* “T° “INSTALL (or de-Instafty “print bitter “after ‘runing ECL. 1#757°
+~~ >>> Opdginal ECL command “did specify Pie? Butt ér, £00" I will install
+the Dynamic Buffer. ° ete .gqme. «slqetb iliw <FO Da resiorsxya
+R Restart the Print Buffer after a Wait command.
+S display maximum: ‘SPACE SVailable ‘for Print Buffer Use? If using
+Fixed Print Buffer, S shows Space available if Pens alee is
+” hanged to’ “Dynamic + Tsn0 @23Lr7 esverlris Caw 8
+W WAIT, pause output “frow Print. Spustewo! printer until ECU R or
+until Print Buffer is completely filled.
+Z ZAP, clear entire contents of the Print Buffer
+
++\99 of D evtzd ullstent MRTVOIG tsbsee. © seurd MOO.
+Examples: ECU<CR> will display menu of command choices
+=f HooIstive evinrb JO3 1G AMMOG
+ECU W<CR> pauses Print Buffer output, gives message.
+~ @yJTS ToT eman svitb Isotyoi wen  encizao = sycth
+
+0 30 & A St seum . sim
+. Demge ef 0 svizd ,betitosqe et sviz ;
+_— toties Sosy d Isncitaas = +s: te
+
+setivG 22039 gimecvd =
+roltiv€ setyd perl? toe oske = ts¢m
+es! .Si g€ .G# .d0 , 88 SE (6! sd sane
+©! evitb yacolt teqg:. esmsns7 Yr #& JOd tesiqmexa
+sud ans er 1G MSE ctow cA oF simu G svtre
+mae ee | ie eUT = -> boemsa ex 3D avird ¢ Jog
+CERIBOAG wes LS se Ge le MOD. "Oo 3
+Fw moTgZg0%q 274 i POW OG ‘OH AMEOD
+swoq tstis bees sd oc:
+~ opt re earre. CSS Ofckeqod =| aernisvec
+
+99
