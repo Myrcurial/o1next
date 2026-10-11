@@ -1,7 +1,9 @@
 # Research gaps — status review
 
-**Last reviewed:** 2026-10-10, after the archive drop (#71), the ROM-source
-indexing (#72) and the MAME work (#79).
+**Last reviewed:** 2026-10-11, after the *Portable Companion* extract batches
+(#73), the issue triage that re-scoped this doc's subject list, and the Phase-0
+sub-issue tree (§F). Previous review 2026-10-10, after the archive drop (#71),
+the ROM-source indexing (#72) and the MAME work (#79).
 
 This is the single place that says, for every open research question, **whether
 it is answered, by what evidence, and what is left** — cross-checked against the
@@ -32,12 +34,15 @@ status.
 
 1. **#39** — the identity of the three target machines (user action; blocks gap 12).
 2. **Drive C's command set** — blocks #6/#22, and therefore the standalone Drive C
-   reproduction (#84).
-3. **#79** — the Nuevo system disk does not boot under MAME. *No longer blocking:*
-   the decision taken is not to chase it, and to build the video personality from
-   the ScreenPac design plus OZROM's soft 52/80/104-column switch.
+   adapter (#84, `hardware/drive-c-adapter/`).
+3. **The hard-disk controller decision (#8)** — two products are characterised;
+   pick the one worth emulating before any personality code is written.
+4. **The RT-60A ABI (#7)** — decide the contract, then implement it in #18.
 
 Everything else is either done, or is research that can proceed in parallel.
+**#79 is closed and no longer blocking**: the decision taken is not to chase the
+Nuevo path, and to build the video personality from the ScreenPac design plus
+OZROM's soft 52/80/104-column switch.
 
 ---
 
@@ -52,8 +57,8 @@ Everything else is either done, or is research that can proceed in parallel.
 | 5 | Power budget | **Solved** | Decision taken: the interposer gets its own 5 VDC feed near the Z80 socket, sized for Pico 2 W bursts (~300 mA+) | #12 | — |
 | 6 | CoPower-88 protocol | **Partially** | `copower88-protocol.md` (Kaypro↔Zorba driver diff), `copower88-schematics.md` (SWP 611-0003), plus the 8088 ROM | #3, #4, #5, #23 | Doorbell/IRQ semantics; the 611-0003 sheet-4 comparator reference value; consolidate into one authoritative spec |
 | 7 | Drive C IEEE-488 protocol | **Partially** | `drive-c-protocol.md`; `DRIVE_C.IMD` extracted and disassembled (`research/drive_c/disasm/`); the ROM's IEEE-488 implementation gives the PIA programming, the GPIB command bytes and the "always ready" stub behaviour (`o1-rom-source.md`); and the **byte transport is now read from `DCL`** — PIA init, the 128-byte strobed transfer, the operation bytes `88h`/`81h`, port B bit 6 as the device status input. The transport is in `DCL`, **not** `DFD.SPR` (which makes no PIA references at all); and the **port's own semantics are now documented from the vendor's side** — `o1-ieee488-port.md` (Companion #8): **eight** low-level ROM drivers, **15** devices on the bus (**8** if parallel poll is used), the machine's own address is **0**, and the driver table is the eight 3-byte jumps at **`013F–0156`** | #6, #22, #84 | How `DFD.SPR` reaches the transport; the meaning of the command/address bytes; capacity reporting. The manual settles one thing: real GPIB protocol is *not* supported on the Drive C connector |
-| 8 | RT-60A register map | **Partially** | `rt60a-analysis.md`, reconstructed from the manual | #7, #18 | A read against a real unit — or a re-dump; the bitsavers TD0 is a damaged dump (27 no-id sectors) |
-| 9 | OCC1 hard disk | **Partially** | `occ1-harddisk-analysis.md`; **and the archive drop showed there are two distinct products, not one** (see §B1) | #8 | The controller command sets, the default port, and a re-check of the doc's `0x2A00`/`0x2C01` claim — those are the ACIA and video PIA addresses, so something there is misread |
+| 8 | RT-60A register map | **Partially** | `rt60a-analysis.md`, reconstructed from the manual | #7, #18 | **Decision taken 2026-10-11 (#7): implement the ABI, not the hardware.** The manual documents the memory contract (`0x0040` pointer, the block, the `0xEFF8` vector) and does *not* document the IEEE handshake — so faithful-hardware emulation is blocked on a `CLOCK.COM` we cannot read, and buys nothing the ABI does not. Left: promote the map to a contract, then implement it in #18. The bitsavers TD0 is still a damaged dump (27 no-id sectors) |
+| 9 | OCC1 hard disk | **Partially** | `occ1-harddisk-analysis.md`; the archive drop showed there are two distinct products, not one; and the Media Distributing one is now **named** — it is the **MD-10** (§B1) | #8 | **Now a decision, not a question** (#8): pick the cheapest controller to emulate — one personality, not two. Left: the command sets, the default port, and a re-check of the doc's `0x2A00`/`0x2C01` claim (those are the ACIA and video PIA addresses, so something there is misread) |
 | 10 | 6850 ACIA location for the WiFi modem | **Solved** | `o1-memory-io-map.md` §3: `2A00`/`2A01`, UC4 — confirmed independently by the ROM source | #21 | — |
 | 11 | Floppy controller, port map, DD changes | **Partially** | Ports `2100–2103` and the full WD179x command set from the ROM source; 1.44 *is* the DD ROM; DD block = 1K; the Nuevo and Osmosis DD boards are documented | #20, #30, #73 | MB8877 vs WD1793 (schematic-level); the DD upgrade's electrical changes |
 | 12 | Which three machines, which board revisions | **Open** | — | #39 | **User action**: machine IDs (one is 24187A) and Z80 markings |
@@ -171,59 +176,69 @@ constrains any 2.0 ROM (#83).
 
 | Item | Issue | State |
 |---|---|---|
-| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | Material archived; write-up outstanding |
+| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Video half written up**; the DD halves of both products, and how each lets software detect the board, are outstanding |
 | Advent Products' **Osbaud** baud-rate generator (#21) | #21 | The four connection points are decoded from the review + schematic (6850 pins 4/12, 74LS32 and 74LS04 pin 7); the internal crystal/divider topology is **not** known — needs the instruction sheet or a photo. `o1-modem-serial.md` |
-| Archive provenance TODOs (2 items) | #74 | Needs the user's memory |
-| `cpmtools` misreads Kaypro DSDD images | #35 | Low priority — `tools/cpmfs.py` replaces it; the upstream fix is a courtesy |
-| G2 multi-format diskette read/write | #30 | Open design work |
-| Case + power research (1:1 replacement board, "lunchbox") | #52 | Ongoing |
-| The complete Osborne 1 reference ("the book") | #75 | Gated on the above |
+| Archive provenance TODOs (2 items) | #74 | **Closed** |
+| `cpmtools` misreads Kaypro DSDD images | #35 | `misc`. Upstream identified: the primary site is `moria.de` (Michael Haardt, 2.23, **email patch** — no GitHub, no tracker), and the practical PR venue is the unofficial `lipro-cpm4l/cpmtools` fork (3 open PRs, 2.21-based). Closes **when filed**, not when merged |
+| G2 multi-format diskette read/write | #30 | **Closed** — folded into #95 |
+| Case + power research (1:1 replacement board, "lunchbox") | #52 | **Phase 5** (#49). A design task, not Phase-0 research |
+| Contribute OZROM 1E to MAME (BIOS slot or an `osborne1oz` machine) | #82 | `misc`. The **machine definition may be worth more than the dump**; a physical OZROM 1E is available to read, which would at least give honest provenance |
+| A local Jekyll environment | #106 | `misc`. `site/` has **no `Gemfile`**, so this is partly creating the manifest, not just resolving it |
+| `Osborne1ng.ttf` — a complete modern font | #107 | `misc`. Extrapolate the O1's 8x10 forms into a full modern face with accents |
+| The complete Osborne 1 reference ("the book") | #75 | **Ungated** — a rolling build; pieces tracked as #108–#115 |
 
 ---
 
 ## C. The `research`-labelled issues, and what closes each
 
+After the 2026-10-11 triage the label means **reverse engineering and
+documentation** again. Five issues left it: **#35** and **#82** (`misc` — upstream
+contributions), **#97** (`misc` — site and font), **#84** (a build, now
+`hardware/drive-c-adapter/`) and **#52** (Phase 5). **#83** was never
+research-labelled and has been removed from this table.
+
 | Issue | Title | State | What closes it |
 |---|---|---|---|
-| #1 | Phase 0 umbrella | Open | The list in §E |
-| #3 | Disassemble Kaypro CoPower-88 CP/M loader | **Satisfied** | `copower88-protocol.md` + `research/copower88/kaypro/disasm/` |
-| #4 | Disassemble Zorba `swpdos.td0`, diff vs Kaypro | **Satisfied** | Same doc + `zorba/disasm/pcdos.asm` |
-| #5 | CoPower-88 port map & mailbox from the schematics | **Satisfied** | `copower88-schematics.md` + `copower88-protocol.md` |
-| #6 | Drive C → GPIB protocol spec | Partially | The Drive C command set |
-| #7 | RT-60A → RTC register map | Partially | A real unit, or a re-dump |
-| #8 | Analyse `OCC1_HARDDISK.IMD` | Partially | Two products now identified (§B1); command sets remain |
-| #30 | G2 multi-format diskette support | Open | Design work |
-| #35 | `cpmtools` misreads Kaypro DSDD | Open | Optional upstream fix; superseded locally by `cpmfs.py` |
-| #44 | Char-gen ROM variants | **Satisfied** | Both variants captured and catalogued (§B2) |
-| #52 | Case + power research | Open | Ongoing design research |
-| #64 | Index the Rev E schematic set + machine oracle | **Satisfied** | `o1-mainboard-schematic.md`, `tools/check_o1_map.sh` |
-| #72 | Index the ROM source, re-derive the map | **Satisfied** | `o1-rom-source.md` |
-| #73 | Nuevo + Osmosis prior art | Open | The write-up |
-| #74 | Provenance TODOs | Open | User input on two items |
-| #75 | The book | Gated | Everything above |
-| #79 | Nuevo system disk does not boot | **Closed** | Not needed — the Nuevo path is not pursued (§B3) |
-| #81 | OZROM as tooling | Partially | The appendices (C-5…C-7) and the column switch |
-| #82 | Contribute OZROM to MAME | Open | A dump with acceptable provenance |
-| #83 | A 2.0 ROM with CP/M resident | Open | Design + build + a no-disk boot test |
-| #84 | Standalone Drive C reproduction | Open | Depends on #6 |
+| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 15 of 23 closed |
+| #6 | Drive C → GPIB protocol spec | Partially | The Drive C command set; plus the GPIB **device-address** question (can Drive C, the printer at device 3 and the RT-60A coexist on the one bus?) |
+| #7 | RT-60A → a time **ABI**, not the hardware | Partially | The contract written down, then implemented in #18 |
+| #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
+| #73 | Nuevo + Osmosis prior art | Partially | The DD halves of both products, and the board-detection method |
+| #75 | The book | **Ungated** | The pieces in #108–#115 |
+| #81 | OZROM as tooling | Partially | The column-switch mechanism; appendices C-5…C-7 |
+| #95 | DD multi-format (now also the G2, absorbed from #30) | Partially | The MAME test matrix — read **and** write |
+
+Closed, but still carrying the label — the work that got Phase 0 to where it is:
+**#2, #3, #4, #5, #9, #10, #30, #44, #64, #70, #71, #72, #74, #79**. They are
+attached to #1 as sub-issues, so the parent's progress bar counts them.
 
 ---
 
-## D. Recommended close-outs
+## D. Triage decisions taken 2026-10-11
 
-These seven issues have their deliverable in the repo and should be closed so the
-list reflects reality — each with a comment pointing at the evidence:
+This section used to be a "recommended close-outs" list. **It has been done** —
+#3, #4, #5, #44, #64 and #72 are all closed — so it now records the *decisions*
+from the issue triage instead, because they are reached by discussion and are not
+re-derivable from a source:
 
-- **#3, #4, #5** — the CoPower-88 research is consolidated in
-  `docs/copower88-protocol.md` and `docs/copower88-schematics.md`. The one
-  residual (doorbell/IRQ semantics) is now answerable from
-  `research/roms/swp-p88.rom` and belongs with #23, not spread across three
-  disassembly issues.
-- **#44** — both character-generator variants are captured and catalogued.
-- **#64** — the schematic set is indexed and the machine-level oracle exists and
-  runs.
-- **#72** — the ROM source is indexed and the memory/I/O map cross-checked
-  against it.
+- **#30 folded into #95.** Same question one product apart: the DD half is already
+  answered in `dd-upgrade-formats.md` from the DD upgrade manual, and the G2
+  format table moves to that doc.
+- **#35 and #82 stay open, as `misc`.** They are upstream contributions, not
+  reverse engineering — and #35 is a genuine courtesy fix now that `cpmfs.py`
+  gives us a known-good oracle to diff against.
+- **#7 re-scoped to an ABI.** Implement the *documented* memory contract, not the
+  *undocumented* IEEE handshake (see §A gap 8).
+- **#8 re-scoped to a decision.** Which controller to emulate — one personality,
+  not two.
+- **#97 keeps the machine's own repertoire** — the graphics-set Unicode mapping
+  and the recovered logo art. The modern font is split out as **#107**
+  (`Osborne1ng.ttf`).
+- **#84 is a build**, filed beside the other standalones (#47, #56) in
+  `hardware/drive-c-adapter/`, not under the interposer.
+- **#52 belongs to Phase 5** (#49).
+- **The book is ungated.** #75 no longer waits on every research issue; it is a
+  rolling build (#108–#115), with Part I and the appendices buildable today.
 
 ---
 
@@ -234,13 +249,44 @@ Ordered by what blocks what:
 1. **#39** — machine identities, board revisions and ROM markings (user action;
    unblocks gap 12 — the issue lists the three things actually worth reading).
 2. **Finish Drive C's command set** from `DCL`/`DFD.SPR` (unblocks #6, #22, #84).
-3. **Re-check `occ1-harddisk-analysis.md`'s port claim**, characterise the two
-   hard-disk controllers, then pick the one to emulate (unblocks #8).
-4. **#73** — write up the Nuevo and Osmosis boards as prior art (unblocks #30).
-5. **#74** — close the two provenance TODOs (needs the user).
+3. **Decide the hard-disk controller** (#8): characterise both, pick one to
+   emulate, and correct `occ1-harddisk-analysis.md`'s port claim.
+4. **Write the RT-60A ABI contract** (#7), then implement it in #18.
+5. **#73** — the DD halves of the Nuevo and Osmosis boards.
 
-After that, #75 (the book) can start and #11/#12 (interposer design) have
-everything they need.
+The book (#75) is **no longer gated on all of this**: it is a rolling build whose
+pieces are tracked as #108–#115, and Part I plus the appendices are buildable now.
+#11/#12 (interposer design) have everything they need.
+
+---
+
+## F. The issue tree (added 2026-10-11)
+
+Phase 0 was an umbrella with **no children**, so "how close is Phase 0?" was
+unanswerable from the issue list. Every phase parent now carries a sub-issue
+tree, **closed issues included**, so each one renders a progress bar:
+
+| Phase parent | Children | Closed |
+|---|---|---|
+| **#1** — Phase 0: research & reverse engineering | 23 | 15 |
+| **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 0 |
+| **#16** — Phase 2: firmware personalities | 11 | 1 (#86) |
+| **#25** — Phase 3: Osborne-side software | 4 | 0 |
+| **#29** — Phase 4: on-hardware validation | 0 | — |
+| **#49** — Phase 5: the reproduction | 1 (#52) | 0 |
+| **#75** — the book | 8 (#108–#115) | 0 |
+
+Two conventions came out of this, and both are worth keeping:
+
+- **Closed work stays attached.** #2, #3, #4, #5, #9, #10, #30, #40, #44, #64,
+  #70, #71, #72, #74 and #79 are children of #1. The progress bar is the point:
+  Phase 0 is two-thirds done and should read that way.
+- **`misc` is the label for work that is not a phase** — upstream contributions
+  (#35, #82), the site (#97), build tooling (#106) and the modern font (#107).
+  Everything else belongs to a phase, and to a parent.
+
+The rule that keeps it honest: when an issue is opened, closed or re-scoped, the
+tree and this table move in the same PR — the same way a doc row does.
 
 ---
 
