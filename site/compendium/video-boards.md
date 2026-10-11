@@ -161,6 +161,71 @@ Three things worth taking from that:
 
 The disk products from the same advertisement are in [`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md).
 
+### The Nuevo boards themselves (2024 photo drop)
+
+No Nuevo schematic is in the archive, so both products have only ever been known
+through their software. Two field photographs change that: they are the **first
+hardware views of either Nuevo board**. Source: **Mike Loewen**, private Facebook
+group, 2024-10-14
+([post](https://www.facebook.com/groups/690000664701397/posts/2260585240976257/));
+archived as [`research/nuevo/photos/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/nuevo/photos/).
+
+**80-column board** — silk `NUEVO ELECTRONICS CORPORATION © 1984`,
+`80 COLUMN UPGRADE REV. D`, **serial 4348**. It is not a video tap; it is a
+**self-contained video subsystem**:
+
+| Device | What it is |
+|---|---|
+| **NEC D780C-1** (PI9455-138) | a Z80 — the board has its own CPU |
+| **Nuevo `SY6545A-1`** (8325) | a 6545/6845-class CRTC, so the board makes its own video timing |
+| `SRM2016C25` ×2 | 2 K × 8 SRAM — about 4 KB of video RAM |
+| socketed **`CHARACTER GENERATOR`** ROM, `88332 SINGAPORE`, dated **6-29-84** | the board's own font, under a Nuevo printed label |
+| `NYMPH 12.288 NMP122` | 12.288 MHz oscillator (dot clock) |
+| `74S157` ×3, `74LS194A`, `74LS161B`, `74LS273`, `74LS374B` ×2, `74LS166`, `74LS174`, `74LS86B`, `74LS74A`, `74LS20`, `74LS10`, `74LS02` ×2, `74LS00`, `7406` ×2 | glue: multiplexers, counters, shift registers, latches, drivers |
+| `VR1`, `Y2` | video-level trimmer, crystal |
+| `J1`–`J6`, **`J9`–`J12`** | configuration jumper blocks |
+| `P2`, `P3` (10-way edge fingers), `P4` | host/display interface |
+| `BAUD` section, 14-pin `P2111-2` | the **optional** baud-rate generator the advertisement prices at +$30 |
+
+Two consequences, and both *corroborate* what the software already said:
+
+- **The 80-column mode is a second video system, not a wider window.** Its own
+  CPU, CRTC, video RAM and font are why the advertisement can sell "six cursor
+  styles" and horizontal scroll as *features* — those are properties of a real
+  CRTC. It is also why [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md) §"one late image, five names"
+  concludes Nuevo's 80-column design is not the OCC one: the SCREEN-PAC widens
+  the *existing* video path, Nuevo builds another one.
+- **The socketed `CHARACTER GENERATOR` chip is dated 6-29-84** — the date in
+  MAME's `character_generator_6-29-84.14`, the Nuevo-era char-gen already tracked
+  in [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md). So the font the board carries is an image the
+  project holds, not an unknown ROM.
+
+**Double-density board** — silk `NUEVO ELECTRONICS CORPORATION © 1984 MADE IN
+USA`, `DAL DENS` (dual density), **serial 20011**. This one is an *encoding*
+board, not a controller:
+
+| Device | What it is |
+|---|---|
+| `STD DRIVE` silk; `J1`/`J2`; 34-pin IDC header (pins 1–34) | the drive-cable side of the interface (the O1's own 34-pin floppy header is `P8`) |
+| `WRITE PRE COMP` silk; `74LS195A` (U4), `SN74LS14N` ×2 (U3, U5), `SN74LS00N` ×2 (U2, U6), `SN74LS02N` (U7) | a discrete **write-precompensation delay line** (shift register + Schmitt inverters), and the **data separator** |
+| U1, 16-pin DIP marked `VD9216 / CA00 / 8402` | unresolved. `9216` is the number Standard Microsystems uses for its **FDC9216 floppy data separator**, which would make U1 the separator and put the precompensation in the LS chain — but the marking needs a higher-magnification re-read before either reading is asserted |
+| `RN1`, `RN2`; `P4` | resistor networks; 4-pin power |
+
+The likely division of labour — that the DD upgrade supplies the **MFM data
+separator and write precompensation** the stock machine lacks, and leaves the
+controller alone — fits the rest of the archive: the controller is `MB8877` ≡
+`WD1793` on the mainboard, and the separator is a *separate board on the drive
+side* rather than part of it ([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-mainboard-schematic.md) §2, sheets 9/9 and
+2/3, U8 and U12–U22). **That is an inference, not a finding** — Nuevo's own
+installation instructions are the missing piece.
+
+**Does any of this bear on Drive C?** No, and it is worth saying plainly. Both
+boards are host-side — video, and floppy encoding — while Drive C is an IEEE-488
+peripheral that draws power from the EXT. VIDEO connector and speaks over the
+GPIB port ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)). The photo drop is recorded here because
+it is the first hardware view of either Nuevo product, not because it changes the
+Drive C contract.
+
 ## Osmosis — a Z80 interposer with an escape-sequence interface
 
 Osmosis's 80-column board is the one that matters most to this project, because
