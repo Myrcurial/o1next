@@ -18,9 +18,20 @@
     </a>
     <nav class="site-nav" aria-label="Site">
       <a href="{{ '/' | relative_url }}">Posts</a>
+      <a href="{{ '/hardware/' | relative_url }}">Hardware</a>
+      <a href="{{ '/compendium/' | relative_url }}">Osborne 1 Compendium</a>
       <a href="{{ site.repository }}">Code &amp; research</a>
       <a href="{{ '/feed.xml' | relative_url }}">RSS</a>
     </nav>
+    <div class="screenpac" role="group" aria-label="Screen width">
+      <span class="screenpac-name">Screen Pac</span>
+      <input type="radio" name="columns" id="columns-52" value="52">
+      <label for="columns-52" title="52 columns">52</label>
+      <input type="radio" name="columns" id="columns-80" value="80" checked>
+      <label for="columns-80" title="80 columns">80</label>
+      <input type="radio" name="columns" id="columns-104" value="104">
+      <label for="columns-104" title="104 columns">104</label>
+    </div>
   </div>
 </header>
 
@@ -32,7 +43,7 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <p>o1nextgen &mdash; keeping an Osborne 1 alive, in the open.</p>
+    <p>o1nextgen &mdash; keeping the Osborne 1 alive, in the open.</p>
     <p class="colophon">
       <a href="{{ site.repository }}">GitHub</a> &middot;
       <a href="{{ '/feed.xml' | relative_url }}">RSS</a>
