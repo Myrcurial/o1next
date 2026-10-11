@@ -24,5 +24,7 @@ when written); physical integration with `hardware/floppy-adapter/`.
 
 - PIO flux engine + Shugart bus drive logic
 - `.IMD` / `.HFE` image handling
-- Mailbox port protocol spec for `MOUNT.COM`
+- Mailbox port protocol spec for `MOUNT.COM` — specified in
+  `docs/mailbox-protocol.md` (#155); this personality implements its
+  image-library commands
 - Web-UI mount/library endpoints

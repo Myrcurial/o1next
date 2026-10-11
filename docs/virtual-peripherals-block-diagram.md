@@ -117,6 +117,11 @@ leaves free **and** that does not collide with the CoPower-88's
 on the real CoPower board (the "16-2103" IC, see photo-survey) is the
 model for a clean single-port-pair decode.
 
+The interposer's **own** host↔firmware channel — the mailbox, the one port the
+machine's CP/M tooling talks to directly — is specified separately in
+`docs/mailbox-protocol.md` (#155): it takes a port pair of its own, chosen so that
+a leaked write cannot move the bank latches.
+
 ## 4. The virtual peripherals (from the roadmap)
 
 | Virtual peripheral | Bus type | Address/Port | Host interface | Back end |
