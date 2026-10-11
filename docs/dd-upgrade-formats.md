@@ -80,9 +80,9 @@ The 4 x 4 text is the important one:
 > TPI**. You can **read or write, even boot**, any of these discs automatically.
 > Directory Capacity 256 File Names.
 
-So Nuevo claims four formats beyond OCC's list — 96 TPI, both densities, both
-sidednesses — and claims to **boot** them. Two things make that credible rather
-than just advertising:
+So Nuevo claims four formats beyond the six in OCC's DD table — 96 TPI, both
+densities, both sidednesses — and claims to **boot** them. Two things make that
+credible rather than just advertising:
 
 - **The stock O1 interface already carries what it needs.** P8 pin 4 is **TG43**,
   the drive's write-current-reduce input for 96 tpi media, and pin 32 is **SIDE
@@ -105,7 +105,7 @@ the O1's own floppy connector carries the signals for both. A floppy personality
 ## Nuevo's own BIOS 1.4 → 1.5 list: the formats are **disk parameter blocks**
 
 Nuevo's DD manual has a passage that settles the mechanism behind all of this.
-Its BIOS 1.5 differs from OCC's 1.4 in ways it enumerates itself:
+Its BIOS 1.5 differs from the factory BIOS 1.4 in ways it enumerates itself:
 
 > 2) For BIOS Version 1.5 the **disk parameter blocks for IBM, Xerox and DEC
 > formats have been removed** to provide space for code to allow **auto
