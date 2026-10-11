@@ -96,6 +96,33 @@ above, the working assumption is a simplified handshake over the same connector
 rather than SRQ/EOI/ATN semantics — which is good news for emulation: the device
 has to match a byte sequence, not a bus protocol.
 
+## What the unit was like to use (contemporary reports)
+
+Two letters in *The Portable Companion* #15 (Jan/Feb 1985, PDF p. 52) give the
+user side of the unit. That matters to the reproduction (#84): it has to be worth
+using, not merely protocol-correct.
+
+> I've been using my **384K unit** for one month and it's turned my single density
+> Osborne 1 into a totally new machine. … it takes **six seconds** to go from the
+> editing no file menu in WordStar to the dot prompt in dBASE II. **Before I had
+> Drive C: I had to boot up a new disk every time** I wanted to edit a program.
+> That was minutes waiting while the Osborne booted up different files. … I had to
+> shell out **$250 to Xerox for an exchange disk drive** two months ago. Now my
+> **disk drives get 90% less wear** and I do 90% more work.
+> — Martin Kilgore, South Pasadena, CA
+
+And the reviewer, in the same issue, standing by a negative verdict:
+
+> I still stand by what I wrote — **Drive C: is not a good buy for the average
+> user**. … both of the readers who responded are doing precisely what I said the
+> unit would be good at — **disk intensive operations for large parts of the
+> day**.
+> — Donald G. Krantz, Minneapolis, MN
+
+So there was a **384K** configuration, and the disagreement was never about
+whether it worked — it was about who it was for. Extract:
+`research/technical-articles/TPC-Issue15-1985-pp52-drive-c-letters.pdf`.
+
 ## Open questions (next steps)
 
 1. **How DFD.SPR reaches the transport.** It makes no PIA references at all, so

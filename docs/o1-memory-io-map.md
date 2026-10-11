@@ -178,6 +178,22 @@ reproduce a cursor the machine makes outside video RAM, and the block cursor is
 the variant OCC's own engineer preferred. Extract:
 `research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`.
 
+**And it works with the SCREEN-PAC fitted, leaving the board in place.** Hogan's
+version is for a stock machine. A reader's fix, printed in *The Portable
+Companion* #15 (Jan/Feb 1985, letters, PDF p. 32), makes the block cursor work on
+a machine with the **SCREEN-PAC 80** installed — *"and it can be carried out
+without removing the piggy-back board containing the Screen-Pac 80
+electronics"*. What changes is **where** the logic is: the modification is done
+on the *upgrade board's* own chips — **U2 (74HC00)** and **U23 (74HC74)** — not
+the main board's, and the letter warns in capitals that *"THESE PINS ARE NOT THE
+SAME ONES LISTED IN THOM HOGAN'S ARTICLE!"*.
+
+That the SCREEN-PAC carries a 74HC00 and a 74HC74 of its own is useful in itself:
+the cursor logic is **duplicated on the piggy-back board**, which fits the service
+manual's description of the upgrade as an IC-harness board soldered over the main
+logic (`2F00040` §6.12, the source used by `firmware/screenpac-video/`). Extract:
+`research/technical-articles/TPC-Issue15-1985-pp32-block-cursor-with-screenpac.pdf`.
+
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
 
 All onboard peripherals are **memory-mapped**, reached through the bank-2
