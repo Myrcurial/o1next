@@ -319,6 +319,33 @@ wrong one here.
   changes. This is also what makes "persistent Drive C" (#20) fall out for free:
   flash holds the records, and §4.1 says the loader will not re-format them.
 
+**The write path is verified too.** The DPB above was first read off the read
+side; the whole round trip now passes through `cpmtools` as well, on an image
+built from the same diskdef — write, list, read back, byte-compare:
+
+```sh
+dd if=/dev/zero of=d.img bs=128 count=3072   # 393216 bytes; mkfs does not size it
+mkfs.cpm -f drivec d.img
+cpmcp -T raw -f drivec d.img hello.txt 0:HELLO.TXT
+cpmls  -T raw -f drivec d.img                # 0: hello.txt
+cpmcp -T raw -f drivec d.img 0:HELLO.TXT hello.out
+cmp hello.txt hello.out                      # byte-identical
+```
+
+**Why `-T raw` is needed.** `cpmls`/`cpmcp` hand libdsk a bare filename and let
+it autodetect the container — and libdsk 1.4.2's **IMD** driver answers for a
+file that is not an IMD. Its `imd_readto()` counts the read that hits EOF, so
+`imd_open()` then asks for one byte more than the file holds and returns
+`DSK_ERR_SYSERR`, which `dsk_strerror()` renders as `strerror(errno)` — *"No such
+file or directory"* on a file that is plainly there. IMD is probed **before** the
+raw drivers, so autodetection aborts there and never reaches the one that would
+have accepted the image. `-T raw` names that driver (`dc_posix`, the "Raw file
+driver") instead of asking for a guess; `-T logical` works equally well.
+`mkfs.cpm` needs no flag because it opens the file directly and never consults
+libdsk. A reinstall does not change this, and neither does an upgrade: upstream
+is at 1.5.22 and `imd_readto()` is unmodified there. It is an upstream bug, not a
+local repair.
+
 ## 5. Coexistence: the pass-through printer, and address 0
 
 Drive C duplicates the IEEE-488 connector on its front panel so a printer can
