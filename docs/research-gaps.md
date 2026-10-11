@@ -221,7 +221,7 @@ research-labelled and has been removed from this table.
 | Issue | Title | State | What closes it |
 |---|---|---|---|
 | #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 15 of 23 closed |
-| #6 | Drive C → GPIB protocol spec | Partially | The Drive C command set; plus the GPIB **device-address** question (can Drive C, the printer at device 3 and the RT-60A coexist on the one bus?) |
+| #6 | Drive C → GPIB protocol spec | **Largely** | The **command layer** (`DFD.SPR`, a code-aware disassembly) and how the box resolves banks 0–2; plus the GPIB **device-address** question (can Drive C, the printer at device 3 and the RT-60A coexist on the one bus?) |
 | #7 | RT-60A → a time **ABI**, not the hardware | Partially | The contract written down, then implemented in #18 |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
 | #73 | Nuevo + Osmosis prior art | Partially | The DD halves of both products, and the board-detection method |
@@ -269,8 +269,12 @@ Ordered by what blocks what:
 
 1. **#39** — machine identities, board revisions and ROM markings (user action;
    unblocks gap 12 — the issue lists the three things actually worth reading).
-2. **Finish Drive C's command set** from `DCL`/`DFD.SPR` (unblocks #6, #22, #84)
-   — now scoped to a **code-aware `DFD.SPR` disassembly** plus DCL's patch loop.
+2. ~~**Finish Drive C's command set** from `DCL`/`DFD.SPR`.~~ **Largely done
+   2026-10-11** — the protocol, the DPB and the capacity ceiling are in
+   `drive-c-protocol.md`, and the **P3 pinout** came out of the Technical Manual
+   already in the archive (`o1-ieee488-port.md` §6). What remains is a
+   **code-aware `DFD.SPR` disassembly** to name the command layer, and the open
+   question of how the box resolves banks 0–2 (`drive-c-protocol.md` §10).
 3. **Decide the hard-disk controller** (#8): characterise both, pick one to
    emulate, and correct `occ1-harddisk-analysis.md`'s port claim.
 4. ~~**Write the RT-60A ABI contract** (#7), then implement it in #18.~~ **Written

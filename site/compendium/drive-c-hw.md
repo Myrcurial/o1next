@@ -5,11 +5,12 @@ subtitle: "Peripherals and storage · design"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Status: design.** The protocol it must speak is solved and validated
-([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)), so this is a specification to build against rather
-than a research question. Two things it deliberately does *not* invent: the
-**pin-level map of P3** (we hold the connector's existence and its role, not its
-pinout — §7), and the **DPB** the installer patches for drive `C:` (§6).
+**Status: design — buildable.** The protocol it must speak is solved and validated
+([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)), the **DPB** that sets the drive's size is found
+(`drive-c-protocol.md` §8.1), and the **pin-level map of P3** is transcribed from
+the Technical Manual ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6). Nothing in the electrical or
+logical design is waiting on a measurement any more; what is left is a layout and
+firmware (§7).
 
 Tracks: #84 (the device), #6 (the protocol). Sibling of
 [`hardware/usb-keyboard-adapter/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/usb-keyboard-adapter/) and [`hardware/wifi-modem-module/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/wifi-modem-module/) — a period
@@ -52,37 +53,63 @@ consequences, and they are the whole electrical design:
 3. **Present a sane load.** The O1's pull-ups are 3.3 K; the box should not add
    appreciably more capacitance or loading than one more TTL device on the bus.
 
-Which P3 pin is which signal is **not** in our material — the ROM's comments give
-the PIA↔signal map (`drive-c-protocol.md` §2), not signal↔pin. §7 makes that the
-first thing to measure.
+Which P3 pin is which signal **is** in our material, and it never needed
+measuring: [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6 transcribes §4.1.2 of the Technical
+Manual, and the ROM's own comment block agrees with it line for line. §2.3 gives
+the mapping for the lines this design actually touches.
 
 ### 2.2 Power
 
 The EXMON precedent ([`hardware/drive-c/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/README.md)) takes power from **P5**, the
 10-pin video connector, through a **passive shunt** — a Sullins
 MP-0100-10-DS-4 edge connector and a Hyko K688-DI sync combiner — and uses
-**+12 V**. What else is on P5, whether **+5 V** is available there, and what the
-connector's current budget is are all **unmeasured**; §7 lists them. The RP2040
-needs 3.3 V at ~50 mA (more in bursts), so a small buck from whichever rail P5
-provides is the likely answer.
+**+12 V**.
+
+**The budget is documented, not guessed.** §7-2 of the Drive C manual gives the
+original unit's own supply requirement:
+
+> Power Requirements: **11 to 14.5 VDC at 0.3 A max.** (2.5 Watts nominal, 384K
+> unit). Source: Draws power from the **O1 EXT. VIDEO connector** or from the
+> optional Drive C BackPac backup power supply.
+
+So the vendor ran the whole 384K unit — 384 KiB of static RAM, the printer
+pass-through, all of it — off P5 at **0.3 A worst case**, from the same rail that
+feeds the CRT. An RP2040 plus flash is a small fraction of that (a Pico is ~50 mA
+at 3.3 V, well under 0.1 A at the rail after a buck). **No new measurement is
+needed:** the shunt has to pass less than the original did, and the EXMON shunt is
+only a connector plus a sync combiner, so it does not change the arithmetic.
 
 The shunt is a **mod**, even though it is passive and reversible, and must be
 documented as one — the same way the USB keyboard adapter's J6 bridge is.
 
-### 2.3 Signals the box must actually watch
+### 2.3 Signals the box must actually watch, and where they are on P3
 
-Per the protocol, the box needs only:
+Per the protocol the box needs only five things, and [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6
+gives each of them a pin. The **P3** column is what the board is laid out
+against; the Technical Manual and the ROM agree on it.
 
-| Signal | PIA | Role |
-|---|---|---|
-| DIO1–DIO8 | PA0–PA7 | the data byte |
-| PB0 | port B bit 0 | direction: `0` = host drives, `1` = box drives |
-| PB3, PB7 | port B bits 3, 7 | frame open/close framing |
-| CA2 | CRA bits 5:3 | **the byte clock** |
-| PB6 | port B bit 6 | *optional* — the box may drive it high as "ready"; the transport never reads it |
+| Signal | PIA | **P3 pin** | Role in this design |
+|---|---|---|---|
+| DIO1–DIO8 | PA0–PA7 | **1,3,5,7,2,4,6,8** | the data byte |
+| PB0 | port B bit 0 | *not on the connector* | direction: `0` = host drives, `1` = box drives — it gates the 7406s |
+| EOI | PB3 | **9** | low for the whole frame (`08h`, `88h`, `09h`) — frame framing |
+| NRFD | PB7 | **13** | high only in the operation byte (`88h`/`81h`) — what distinguishes it |
+| IFC | **CA2** | **17** | **the byte clock** — one pulse per byte |
+| NDAC | PB6 | **15** | *optional* — the box may drive it high as "ready"; the transport never reads it |
 
-PB1, PB2, PB4, PB5, CA1, CB1 and CB2 are not needed to satisfy the transport.
-(They matter for the **pass-through printer**, §5.)
+Two consequences a layout has to respect:
+
+- **The data lines are interleaved across the edge** — `DIO1–4` on the odd pins
+  `1,3,5,7` and `DIO5–8` on the even pins `2,4,6,8`. That is the card edge's own
+  geometry, not a bit-order choice, and it is why a straight ribbon will not do.
+- **Pin 15 is `NDAC` in this personality and *busy* in the printer one**
+  (`o1-ieee488-port.md` §6.2), while pin 11 (`DAV`) is the printer's strobe. A box
+  that drives pin 15 has to stay harmless when the machine switches to the
+  printer personality.
+
+PB1, PB2, PB4, PB5, CA1, CB1 and CB2 are not needed to satisfy the transport —
+though `PB1` and `PB2` are *enables* for the NDAC/NRFD and EOI/DAV drivers, so
+they gate lines this design reads (`NDAC`) and watches (`EOI`, `NRFD`).
 
 ## 3. Firmware — the Drive C personality
 
@@ -136,25 +163,34 @@ already exists as the home; this spec is what it implements.
 
 ## 4. Storage and geometry
 
-**Addressing.** `DE` (the CP/M record address, in 128-byte units) is what the
-host sends; the header pair encodes it bijectively (`drive-c-protocol.md` §5).
-The box should decode it back to `DE` and index a flat store at
-`DE * 128` bytes — the simplest correct model, and the one the validation model
-in `drive-c-box.lua` uses (which is why the loader completes).
+**Addressing.** The host sends `DE`, the CP/M record address in 128-byte units,
+as the header pair, and `drive-c-protocol.md` §5 decodes it. `DE>>1` is the box's
+**track** (256 bytes), `DE&1` is the sector inside it, and `DE>>9` selects a
+64 KiB bank. The box should decode the pair back to a flat byte offset —
+`DE * 128` — which is the simplest correct model and the one `drive-c-box.lua`
+uses.
 
-**Size.** The vendor sold 192 K and 384 K. `DE`'s encoding tops out around
-448 K. A **512 KiB flash** covers every variant; the personality can report a
-size or simply accept whatever `DE` the DPB produces.
+**Size: 384 KiB, and the ceiling is 448 KiB.** The DPB is found
+(`drive-c-protocol.md` §8.1): `SPT = 2`, 2 KiB blocks, `DSM = 191` → **192 blocks
+= 384 KiB**; `DRM = 127` → 128 directory entries; `AL0 = C0h` → 4096 bytes of
+directory. That is the 384K unit the archived disk belongs to, and it is what the
+box must present. The host's own code caps the addressable range at `n ≤ 6` →
+**448 KiB** (`drive-c-protocol.md` §8.3), so a **512 KiB flash** holds any Drive C
+that can ever be driven, with room for a copy of the original image beside it.
 
 **What the box does *not* do.** It does not implement CP/M. The directory,
 allocation map and file structure live on the host side, in the CBIOS that
-`DCL.COM` patches in. The box is a paged 128-byte record store, and the
-boot-time format it sees (`0xE5` written across two regions and read back,
-`drive-c-protocol.md` §8) is CP/M formatting *its own* disk through the box.
+`DCL.COM` patches in. The box is a paged 128-byte record store, and the boot-time
+format it sees (`0xE5` written across two regions and read back,
+`drive-c-protocol.md` §8.5) is CP/M formatting *its own* disk through the box.
 
-**What is missing** is that DPB (§7 item 4): how many records `C:` has. Until it
-is known, the box can be built and will answer every frame correctly, but the
-drive will be the wrong size.
+**One thing to leave open in the firmware.** `f(n)` is identical for `n = 0, 1, 2`
+(`drive-c-protocol.md` §5), so the header alone cannot tell tracks 0, 256 and 512
+apart. A reproduction that treats `f` exactly as the driver does is unaffected —
+it aliases exactly as much as the original does, if it aliases at all — but the
+firmware should key storage on the **raw `(h1, h2)` pair** rather than
+pre-decoding to an address, so that whichever answer turns out to be right can be
+implemented without touching the frame decoder.
 
 ## 5. Coexistence: the pass-through printer, and address 0
 
@@ -185,31 +221,49 @@ construction: it stays released until it sees its own framing.
    1983 loader complete and PIP write to `C:`. Extend it into a proper harness
    once the DPB is known — that is the fastest place to iterate on firmware logic
    before any hardware exists.
-3. **DPB** (§7 item 4). Until `C:` has the right size, nothing downstream is
-   meaningful.
+3. **DPB (done).** `drive-c-protocol.md` §8.1 — 192 blocks of 2 KiB, 128
+   directory entries, 4096 bytes of directory. Give the box model that geometry
+   and a full `PIP` copy can be checked end to end.
 4. **Hardware-in-the-loop.** With a real O1: `DCL`, then `DCQ`, then
    `PIP C:=A:*.*[WV]` and a byte-comparison of a file moved both ways — the same
    acceptance test #95 used for the floppy formats, and the one the software
    itself provides.
 
-## 7. What must be measured before a board is laid out
+## 7. What is left
 
-1. **The P3 pinout.** Which signal is on which of the 26 pins. The ROM gives
-   PIA↔signal; the connector's signal↔pin is unrecorded. One pass with a
-   continuity tester on a real machine settles it, and it blocks layout.
-2. **P5 power.** What rails are on the 10-pin video connector, whether +5 V is
-   among them, and the connector's current budget. The EXMON shunt uses +12 V; do
-   not assume the rest.
-3. **Bus loading.** How much additional load (capacitance, pull-up) the bus
-   tolerates before the O1's timings move — worth a scope check with a TTL gate
-   as the load, before committing to a buffer choice.
-4. **The DPB** (`drive-c-protocol.md` §8): the record count `C:` gets, from
-   `DCL.COM`'s BIOS patch. A disassembly job on `DCL.COM`, not a measurement, and
-   the last thing standing between this spec and a working drive.
+Everything this spec was waiting on has now been answered from material already
+in the archive, so this is a work list rather than a measurement list.
+
+1. **Board layout — unblocked.** The P3 pinout is documented (§2.3,
+   [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6) and the power budget is documented (§2.2).
+2. **Bus loading — the one real electrical unknown.** How much additional load
+   (capacitance, pull-up) the O1's bus tolerates before its timings move. The
+   honest framing is that this is **probably a non-issue and should be confirmed
+   cheaply, not designed around**: the O1's pull-ups are 3.3 K, the transport
+   clocks a byte every ~13 µs, and one more TTL-class load — or the AHCT input the
+   RP2040 side will present, which is lighter still — is a leakage-and-a-few-pF
+   question at those edge rates. What it actually decides is whether the board
+   needs a **bus buffer at all**, so it is a confirmation step, not a blocker. A
+   scope check with a spare TTL gate as the load settles it in an afternoon.
+3. **Firmware against the model.** Turn [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drive-c-box.lua) into a
+   proper harness (§6 item 2) and drive the §8.1 DPB geometry through it.
+4. **The `f(n)` ambiguity** (`drive-c-protocol.md` §10 item 2). Not a blocker —
+   keep the raw `(h1, h2)` key so the answer stays swappable (§4).
+5. **TurboPac is out of scope for #84.** The unit is also the Trantor hard-disk
+   host adapter (`drive-c-protocol.md` §8.4); that half needs the hard-disk side,
+   which overlaps #8.
 
 ## Sources
 
-- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) — the protocol this implements (the contract).
+- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) — the protocol this implements (the contract), the
+  DPB (§8.1) and the capacity ceiling (§8.3).
+- [`research/drive_c/Drive_C_Users_Manual.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/Drive_C_Users_Manual.pdf) (OCR at `…ocr.txt`) — §7-2 hardware
+  specifications (power, throughput, access time) and §7-3 CP/M parameters. Both
+  spec pages are image-only with an OCR that loses the table alignment, so read
+  them from the PDF: printed p. 133 = PDF p. 141, printed p. 134 = PDF p. 142.
+- [`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf) — §4.1.2 the **P3
+  pinout**, §4.1.1 the signal directions, §4.1.5 the same pins as a Centronics
+  port; transcribed in [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6.
 - [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) — the port's device-level behaviour, the ROM's eight
   drivers, and the joystick worked example.
 - [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §6 — P3/P5 and the other connectors.
