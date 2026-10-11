@@ -5,10 +5,13 @@ subtitle: "The project · living document"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Last reviewed:** 2026-10-11 (third pass), after #6 was finished — the Drive C
-transport and device contract are now measured and validated, and
-[`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) (#84) is the build spec. Previous review 2026-10-11
-(later pass), after #95 was answered from the OCC
+**Last reviewed:** 2026-10-11 (fourth pass), after **#6 and #7 were closed** — #6
+on its stated deliverable ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md), validated end to end), with
+its residue moved to #84; #7 because the clock ABI *is* its deliverable and #18
+owns the implementation. Phase 0 now reads **17 of 23**. Previous review
+2026-10-11 (third pass), after #6's transport and device contract were measured
+and validated and [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) (#84) became the build spec. Previous
+review 2026-10-11 (later pass), after #95 was answered from the OCC
 CBIOS source, #7's clock ABI was written as a contract, #81's OZROM index was
 built, and #6's `DFD.SPR` blocker was re-characterised. Previous review
 2026-10-11, after the *Portable Companion* extract batches
@@ -44,14 +47,15 @@ status.
 **What actually blocks the next phase** — everything else can wait:
 
 1. **#39** — the identity of the three target machines (user action; blocks gap 12).
-2. **Drive C's command set** — blocks #6/#22, and therefore the standalone Drive C
-   reproduction (#84, [`hardware/drive-c/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/)). *Updated 2026-10-11 (later):* **the
-   transport and the device contract are solved** — `drive-c-protocol.md` is
-   measured from the disassembly *and* a trace of the real software, and a model
-   of the box makes the 1983 loader complete and PIP write to `C:`. What is left
-   is (a) the **DPB** `DCL.COM` patches for drive `C:` (its size), and (b) the
-   **`DFD.SPR` command layer**, whose committed listing is a linear sweep through
-   zero blocks. The build spec is [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) (#84).
+2. ~~**Drive C's command set**~~ — **closed 2026-10-11 (#6).** The transport and
+   the device contract are measured from the disassembly *and* a trace of the real
+   software, and a model of the box makes the 1983 loader complete and PIP write
+   to `C:`. The DPB came out of `DCL.COM` (#145), and `DFD.SPR` turned out to be a
+   replacement CCP rather than the transport, so the disassembly it was waiting on
+   is off every critical path. What is left is **#84's**, not research's: how the
+   box resolves banks 0–2 (hardware-gated) and whether Drive C, the printer at
+   device 3 and the RT-60A can share one bus. The build spec is
+   [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md).
 3. **The hard-disk controller decision (#8)** — two products are characterised;
    pick the one worth emulating before any personality code is written.
 4. ~~**The RT-60A ABI (#7)** — decide the contract, then implement it in #18.~~
@@ -82,8 +86,8 @@ OZROM's soft 52/80/104-column switch.
 | 4 | CoPower-88 monitor ROM dump | **Superseded** | The SWP co-processor ROM is **in the repo**: [`research/roms/swp-p88.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/swp-p88.rom), 8088 code, from Maslin's archive. The board and interposer are common across hosts; only the driver varies | #3, #4, #5, #70 | Confirm the residual doorbell/IRQ semantics *from that ROM* rather than by inference |
 | 5 | Power budget | **Solved** | Decision taken: the interposer gets its own 5 VDC feed near the Z80 socket, sized for Pico 2 W bursts (~300 mA+) | #12 | — |
 | 6 | CoPower-88 protocol | **Partially** | `copower88-protocol.md` (Kaypro↔Zorba driver diff), `copower88-schematics.md` (SWP 611-0003), plus the 8088 ROM | #3, #4, #5, #23 | Doorbell/IRQ semantics; the 611-0003 sheet-4 comparator reference value; consolidate into one authoritative spec |
-| 7 | Drive C IEEE-488 protocol | **Partially** | `drive-c-protocol.md`; `DRIVE_C.IMD` extracted and disassembled ([`research/drive_c/disasm/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/disasm/)); the ROM's IEEE-488 implementation gives the PIA programming, the GPIB command bytes and the "always ready" stub behaviour (`o1-rom-source.md`); and the **byte transport is now read from `DCL`** — PIA init, the 128-byte strobed transfer, the operation bytes `88h`/`81h`, port B bit 6 as the device status input. The transport is in `DCL`, **not** `DFD.SPR` (which makes no PIA references at all); and the **port's own semantics are now documented from the vendor's side** — `o1-ieee488-port.md` (Companion #8): **eight** low-level ROM drivers, **15** devices on the bus (**8** if parallel poll is used), the machine's own address is **0**, and the driver table is the eight 3-byte jumps at **`013F–0156`** | #6, #22, #84 | How `DFD.SPR` reaches the transport; the meaning of the command/address bytes; capacity reporting. The manual settles one thing: real GPIB protocol is *not* supported on the Drive C connector |
-| 8 | RT-60A register map | **Partially** | `rt60a-analysis.md`, reconstructed from the manual | #7, #18 | **Decision taken 2026-10-11 (#7): implement the ABI, not the hardware.** The manual documents the memory contract (`0x0040` pointer, the block, the `0xEFF8` vector) and does *not* document the IEEE handshake — so faithful-hardware emulation is blocked on a `CLOCK.COM` we cannot read, and buys nothing the ABI does not. Left: promote the map to a contract, then implement it in #18. The bitsavers TD0 is still a damaged dump (27 no-id sectors) |
+| 7 | Drive C IEEE-488 protocol | **Solved** | `drive-c-protocol.md`; `DRIVE_C.IMD` extracted and disassembled ([`research/drive_c/disasm/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/disasm/)); the ROM's IEEE-488 implementation gives the PIA programming, the GPIB command bytes and the "always ready" stub behaviour (`o1-rom-source.md`); and the **byte transport is now read from `DCL`** — PIA init, the 128-byte strobed transfer, the operation bytes `88h`/`81h`, port B bit 6 as the device status input. The transport is in `DCL`, **not** `DFD.SPR` (which makes no PIA references at all); and the **port's own semantics are now documented from the vendor's side** — `o1-ieee488-port.md` (Companion #8): **eight** low-level ROM drivers, **15** devices on the bus (**8** if parallel poll is used), the machine's own address is **0**, and the driver table is the eight 3-byte jumps at **`013F–0156`** | #6, #22, #84 | — **#6 closed 2026-10-11.** The two residues are #84's now: bank resolution for `n = 0,1,2` (hardware-gated) and the GPIB device-address question. The manual settles one thing: real GPIB protocol is *not* supported on the Drive C connector |
+| 8 | RT-60A register map | **Solved** (as a contract) | `rt60a-analysis.md`, reconstructed from the manual | #7, #18 | **Decision taken 2026-10-11 (#7): implement the ABI, not the hardware.** The manual documents the memory contract (`0x0040` pointer, the block, the `0xEFF8` vector) and does *not* document the IEEE handshake — so faithful-hardware emulation is blocked on a `CLOCK.COM` we cannot read, and buys nothing the ABI does not. Left: ~~promote the map to a contract, then implement it in #18.~~ **The map is promoted to a contract** and #18 implements it — **#7 closed 2026-10-11**. The bitsavers TD0 is still a damaged dump (27 no-id sectors) |
 | 9 | OCC1 hard disk | **Partially** | `occ1-harddisk-analysis.md`; the archive drop showed there are two distinct products, not one; and the Media Distributing one is now **named** — it is the **MD-10** (§B1) | #8 | **Now a decision, not a question** (#8): pick the cheapest controller to emulate — one personality, not two. Left: the command sets, the default port, and a re-check of the doc's `0x2A00`/`0x2C01` claim (those are the ACIA and video PIA addresses, so something there is misread) |
 | 10 | 6850 ACIA location for the WiFi modem | **Solved** | `o1-memory-io-map.md` §3: `2A00`/`2A01`, UC4 — confirmed independently by the ROM source | #21 | — |
 | 11 | Floppy controller, port map, DD changes | **Partially** | Ports `2100–2103` and the full WD179x command set from the ROM source; 1.44 *is* the DD ROM; DD block = 1K; the Nuevo and Osmosis DD boards are documented | #20, #30, #73 | MB8877 vs WD1793 (schematic-level); the DD upgrade's electrical changes |
@@ -226,8 +230,8 @@ research-labelled and has been removed from this table.
 | Issue | Title | State | What closes it |
 |---|---|---|---|
 | #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 15 of 23 closed |
-| #6 | Drive C → GPIB protocol spec | **Largely** | The **command layer** (`DFD.SPR`, a code-aware disassembly) and how the box resolves banks 0–2; plus the GPIB **device-address** question (can Drive C, the printer at device 3 and the RT-60A coexist on the one bus?) |
-| #7 | RT-60A → a time **ABI**, not the hardware | Partially | The contract written down, then implemented in #18 |
+| #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
+| #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed 2026-10-11** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
 | #73 | Nuevo + Osmosis prior art | Partially | The DD halves of both products, and the board-detection method |
 | #75 | The book | **Ungated** | The pieces in #108–#115 |
@@ -235,7 +239,7 @@ research-labelled and has been removed from this table.
 | #95 | DD multi-format (now also the G2, absorbed from #30) | Partially | The MAME test matrix — read **and** write |
 
 Closed, but still carrying the label — the work that got Phase 0 to where it is:
-**#2, #3, #4, #5, #9, #10, #30, #44, #64, #70, #71, #72, #74, #79**. They are
+**#2, #3, #4, #5, #6, #7, #9, #10, #30, #44, #64, #70, #71, #72, #74, #79**. They are
 attached to #1 as sub-issues, so the parent's progress bar counts them.
 
 ---
@@ -274,12 +278,13 @@ Ordered by what blocks what:
 
 1. **#39** — machine identities, board revisions and ROM markings (user action;
    unblocks gap 12 — the issue lists the three things actually worth reading).
-2. ~~**Finish Drive C's command set** from `DCL`/`DFD.SPR`.~~ **Largely done
-   2026-10-11** — the protocol, the DPB and the capacity ceiling are in
+2. ~~**Finish Drive C's command set** from `DCL`/`DFD.SPR`.~~ **Done 2026-10-11
+   (#6 closed)** — the protocol, the DPB and the capacity ceiling are in
    `drive-c-protocol.md`, and the **P3 pinout** came out of the Technical Manual
-   already in the archive (`o1-ieee488-port.md` §6). What remains is a
-   **code-aware `DFD.SPR` disassembly** to name the command layer, and the open
-   question of how the box resolves banks 0–2 (`drive-c-protocol.md` §10).
+   already in the archive (`o1-ieee488-port.md` §6). The `DFD.SPR` disassembly
+   came *off* the list rather than onto it: it is a replacement CCP, which a
+   reproduction inherits. The bank-resolution question is hardware-gated and now
+   sits on **#84**.
 3. **Decide the hard-disk controller** (#8): characterise both, pick one to
    emulate, and correct `occ1-harddisk-analysis.md`'s port claim.
 4. ~~**Write the RT-60A ABI contract** (#7), then implement it in #18.~~ **Written
@@ -300,7 +305,7 @@ tree, **closed issues included**, so each one renders a progress bar:
 
 | Phase parent | Children | Closed |
 |---|---|---|
-| **#1** — Phase 0: research & reverse engineering | 23 | 15 |
+| **#1** — Phase 0: research & reverse engineering | 23 | 17 |
 | **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 0 |
 | **#16** — Phase 2: firmware personalities | 11 | 1 (#86) |
 | **#25** — Phase 3: Osborne-side software | 4 | 0 |
@@ -310,9 +315,9 @@ tree, **closed issues included**, so each one renders a progress bar:
 
 Two conventions came out of this, and both are worth keeping:
 
-- **Closed work stays attached.** #2, #3, #4, #5, #9, #10, #30, #40, #44, #64,
-  #70, #71, #72, #74 and #79 are children of #1. The progress bar is the point:
-  Phase 0 is two-thirds done and should read that way.
+- **Closed work stays attached.** #2, #3, #4, #5, #6, #7, #9, #10, #30, #40, #44,
+  #64, #70, #71, #72, #74 and #79 are children of #1. The progress bar is the
+  point: Phase 0 is three-quarters done and should read that way.
 - **`misc` is the label for work that is not a phase** — upstream contributions
   (#35, #82), the site (#97), build tooling (#106) and the modern font (#107).
   Everything else belongs to a phase, and to a parent.
