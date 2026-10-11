@@ -173,7 +173,9 @@ Basis for #3/#4/#5 (CoPower-88 protocol analysis). The board's own 8088 ROM is
 
 | Path | What it is | Sourced from |
 |---|---|---|
-| `Drive_C_Users_Manual.pdf` | Drive C user manual (IEEE-488 virtual disk drive) | [bitsavers `bits/Osborne/Osborne1/Drive_C/`](https://bitsavers.org/bits/Osborne/Osborne1/Drive_C/) (upstream name `Drive_C_-_Users_Manual.pdf`) |
+| `Drive_C_Users_Manual.pdf` | Drive C user manual (IEEE-488 virtual disk drive), **second edition June 1984** | [bitsavers `bits/Osborne/Osborne1/Drive_C/`](https://bitsavers.org/bits/Osborne/Osborne1/Drive_C/) (upstream name `Drive_C_-_Users_Manual.pdf`) |
+| `Drive_C_Executive_Users_Manual.pdf` | **Drive C user manual for Osborne Executive computers** — the same product on the other host: identical hardware appendix, `ECL`/`ECN`/`ECU` software under CP/M+ instead of `DCL`/`DCN`/`DCU` under CP/M 2.2, and **no `DFD.SPR`**. First edition July 1984, second printing 9/84; cover stamped PRELIMINARY, running headers "final draft". 111 pp, 44 MB, image-only. Analysis: [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) (#84, #6, #145) | Owner-supplied local file, 2026-10-11 (name `Executive_DriveC.pdf`); **source URL not yet recorded** |
+| `Drive_C_Executive_Users_Manual.ocr.txt` | OCR text layer for the above — 300 dpi `tesseract`, per the convention below | Derived in-project, 2026-10-11 |
 | `DRIVE_C.IMD` | ImageDisk image of the Drive C utility disk (label comment `Drive C for the Osborne 1 computer`) | same folder — **not** imaged in-project; corrected 2026-10-10 |
 | `Drive_C_disk_label.jpg` | Photo of the physical disk label | same folder (15 044 B, byte-identical) — **not** a project photo; corrected 2026-10-10 |
 | `extracted/` | Files extracted from `DRIVE_C.IMD` by the project pipeline (#2) | Derived in-project |

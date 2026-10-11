@@ -21,7 +21,9 @@ connector** (P3) and duplicates that connector plus the Ext. Video connector on
 its own front panel, so the printer and a monitor can be plugged through it. It
 sold as 192 K and 384 K, in two parts: the unit (the RAM) and a software package
 (`DCL.COM` + `DFD.SPR`) that installs it as a CP/M drive and adds a print buffer.
-`DCL.COM` is the installer/transport, `DFD.SPR` the resident command layer.
+`DCL.COM` is the installer and carries the transport; `DFD.SPR` is a
+**substitute console command processor** that CP/M reloads on every warm boot in
+place of `CCP.COM` (`docs/drive-c-executive.md` §4).
 
 **The manual is explicit that this is not GPIB:**
 
@@ -335,6 +337,23 @@ already headroom.
 the unmodified 1983 software. Anything larger needs a new driver, which is
 outside what #84 is for.
 
+**And the manuals' own capacity figures reconcile with the DPB.** The Osborne 1
+book quotes 187 KB / 376 KB "useful"; the Executive book, for the same hardware,
+quotes 190 KB / 380 KB. Both are right, and the difference on the 384K unit is
+exactly `DFD.SPR`:
+
+| | 192K unit | 384K unit |
+|---|---:|---:|
+| Raw capacity | 192 KB | 384 KB |
+| less the directory | −2 KB | −4 KB |
+| **= the Executive's "useful"** | **190 KB** | **380 KB** |
+| less `DFD.SPR` (Osborne 1 only) | −3 KB | −4 KB |
+| **= the Osborne 1's "useful"** | **187 KB** | **376 KB** |
+
+380 KB is 190 blocks of 2K, which is `DSM = 191` (192 blocks) **minus the two
+directory blocks** — so the vendor's own figure *is* our DPB, reached
+independently. `docs/drive-c-executive.md` §3.
+
 ### 8.4 Drive letters, and what TurboPac actually is
 
 - **`C:` is one drive and its letter is renamable.** `DCN.COM` ("DCN version
@@ -425,17 +444,26 @@ taps. Treat the box model as a validation aid for short runs, not a harness.
    because the boot-time format and `DCL`'s own install only touch tracks 0–40.
    **It does not block a reproduction** — a box that treats `f` exactly as the
    driver does behaves identically whatever `f` turns out to mean.
-3. **The print-buffer path** (`PRN.TST`, `DCU`) and how spooling shares the port
-   with the pass-through printer connector. One thing is clear from the manual —
-   the buffer lives in the *unit's* memory ("Dynamic Buffer Capacity: Up to the
-   maximum space available on the Drive C unit"), and `DCL.COM` carries the
-   string `Not enough space for fixed print buffer` — so a **fixed** buffer very
-   likely shrinks `DSM`. The DPB in §8.1 is the no-buffer case. Not established,
-   and only matters if a reproduction offers a print buffer.
-4. **`DFD.SPR`'s command layer** — the resident CCP-style driver that calls the
-   transport. Its committed listing is a linear sweep through zero blocks and is
-   not usable; a code-aware disassembly would name the operations (§5's `DE` is
-   the record, but *which* CP/M call drives which is in DFD.SPR).
+3. **The print-buffer path — mostly closed.** The manuals give the budget
+   (`docs/drive-c-executive.md` §5): a **fixed** buffer is carved out of the
+   unit's own RAM disk, user-selectable from **16K to 128K in 16K steps**, and
+   the 384K TurboPac configuration is stated outright as **256K cache + 128K
+   fixed print buffer**. So the DPB in §8.1 is the *no-buffer* case and a unit
+   with a fixed buffer presents a smaller `DSM` — the hypothesis this item was
+   carrying is confirmed. What is still not established is the spooling
+   *protocol* — how the box interleaves buffer traffic with the pass-through
+   printer connector — which only matters if a reproduction offers a buffer.
+4. **`DFD.SPR` — closed, and the item was asking the wrong question.** This
+   document already quoted the vendor calling `DFD.SPR` "a substitute console
+   command processor (CCP)" (appendix table, §Appendix), but §10 framed it as
+   the resident transport layer. It is not: it is a **replacement CCP**, loaded
+   by CP/M on every `^C` and every program exit in place of the Osborne 1's
+   `CCP.COM`, living in **user area 15** on the unit and required on logical
+   drive `A:` during installation. `DCL.COM` is the loader and carries the
+   transport. The code-aware disassembly this item asked for would have
+   characterised a command processor rather than a device — and a replacement
+   **inherits** `DFD.SPR` rather than reimplementing it, so the item is removed
+   from the work list. See `docs/drive-c-executive.md` §4.
 
 ## Sources
 
