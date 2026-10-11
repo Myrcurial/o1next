@@ -1,6 +1,9 @@
 # Research gaps — status review
 
-**Last reviewed:** 2026-10-11 (later pass), after #95 was answered from the OCC
+**Last reviewed:** 2026-10-11 (third pass), after #6 was finished — the Drive C
+transport and device contract are now measured and validated, and
+`docs/drive-c-design.md` (#84) is the build spec. Previous review 2026-10-11
+(later pass), after #95 was answered from the OCC
 CBIOS source, #7's clock ABI was written as a contract, #81's OZROM index was
 built, and #6's `DFD.SPR` blocker was re-characterised. Previous review
 2026-10-11, after the *Portable Companion* extract batches
@@ -37,10 +40,13 @@ status.
 
 1. **#39** — the identity of the three target machines (user action; blocks gap 12).
 2. **Drive C's command set** — blocks #6/#22, and therefore the standalone Drive C
-   reproduction (#84, `hardware/drive-c/`). *Refined 2026-10-11:* the blocker is
-   now a **code-aware disassembly of `DFD.SPR`** — the committed listing is a
-   linear sweep through the file's zero blocks and its call targets are spurious
-   (`drive-c-protocol.md`).
+   reproduction (#84, `hardware/drive-c/`). *Updated 2026-10-11 (later):* **the
+   transport and the device contract are solved** — `drive-c-protocol.md` is
+   measured from the disassembly *and* a trace of the real software, and a model
+   of the box makes the 1983 loader complete and PIP write to `C:`. What is left
+   is (a) the **DPB** `DCL.COM` patches for drive `C:` (its size), and (b) the
+   **`DFD.SPR` command layer**, whose committed listing is a linear sweep through
+   zero blocks. The build spec is `docs/drive-c-design.md` (#84).
 3. **The hard-disk controller decision (#8)** — two products are characterised;
    pick the one worth emulating before any personality code is written.
 4. ~~**The RT-60A ABI (#7)** — decide the contract, then implement it in #18.~~
