@@ -326,6 +326,21 @@ Measured: a `--dd` blank and the `52-blank.imd` system disk both convert to HFE
 `disk-analyse`'s HFE output is what a hardware floppy emulator wants, so the
 images built and validated above are directly testable on a real Osborne 1.
 
+**Sweep of the archive (measured 2026-10-11).** Every `.imd` we hold converts —
+**22 of 22, no failures** — including the ones that are *not* Osborne-format:
+the double-density system disks, all fourteen Dunfield shipped-software images
+(SD and DD), `DRIVE_C.IMD`, `OS1NUEVO.IMD`, `OCC1_HARDDISK.IMD` and the two
+diagnostic disks. A spot round trip on the single-density 80-column
+`OS1XUTLS.IMD` reproduces the raw sector image byte-for-byte. So the "foreign"
+images in the collection are ready to write to a hardware emulator.
+
+```bash
+for f in research/shipped-software/*.IMD research/drive_c/DRIVE_C.IMD; do
+    disk-analyse "$f" "$(basename "${f%.*}.hfe")"
+done
+```
+
+
 
 
 - [`research/osborne1/o1doubledensityusersguide.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/o1doubledensityusersguide.pdf) — *Osborne 1 Double Density
