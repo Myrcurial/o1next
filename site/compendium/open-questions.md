@@ -8,7 +8,8 @@ draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`.
 **Last reviewed:** 2026-10-11 (fourth pass), after **#6 and #7 were closed** — #6
 on its stated deliverable ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md), validated end to end), with
 its residue moved to #84; #7 because the clock ABI *is* its deliverable and #18
-owns the implementation. Phase 0 now reads **17 of 23**. Previous review
+owns the implementation. Phase 0 now reads **17 of 22** — counted from the tree,
+not from memory, because this number had drifted. Previous review
 2026-10-11 (third pass), after #6's transport and device contract were measured
 and validated and [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) (#84) became the build spec. Previous
 review 2026-10-11 (later pass), after #95 was answered from the OCC
@@ -229,7 +230,7 @@ research-labelled and has been removed from this table.
 
 | Issue | Title | State | What closes it |
 |---|---|---|---|
-| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 15 of 23 closed |
+| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 17 of 22 closed |
 | #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
 | #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed 2026-10-11** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
@@ -305,12 +306,12 @@ tree, **closed issues included**, so each one renders a progress bar:
 
 | Phase parent | Children | Closed |
 |---|---|---|
-| **#1** — Phase 0: research & reverse engineering | 23 | 17 |
+| **#1** — Phase 0: research & reverse engineering | 22 | 17 |
 | **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 0 |
 | **#16** — Phase 2: firmware personalities | 11 | 1 (#86) |
 | **#25** — Phase 3: Osborne-side software | 4 | 0 |
 | **#29** — Phase 4: on-hardware validation | 0 | — |
-| **#49** — Phase 5: the reproduction | 1 (#52) | 0 |
+| **#49** — Phase 5: the reproduction | 3 (#52, #125, #128) | 0 |
 | **#75** — the book | 8 (#108–#115) | 0 |
 
 Two conventions came out of this, and both are worth keeping:
