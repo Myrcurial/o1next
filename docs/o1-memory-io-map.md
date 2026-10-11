@@ -162,6 +162,22 @@ The width is set from the configuration screen (Item C, "Screen Size", in the
 Osborne 1 Configuration Program) or from software by poking `E1A5H` and calling
 `E4E5H` as above. Both do the same thing.
 
+**The cursor is hardware, and it can be reversed** (#24). The stock cursor is an
+**underline**, and OCC knew it was poor — Thom Hogan argued against it while at
+the company and was refused twice (*The Portable Companion* #13, June/July 1984,
+"Reverse Video and a Faster Serial Port", p. 24): he could not get the change made
+permanent, and could not get permission to publish it, *"as the company was
+worried about the legal implications of publishing modifications"*. The
+modification makes the cursor a **solid white block**, and the article locates the
+circuit precisely: a **74LS86 piggybacked on the 74LS00 at E22**, with **pin 1 of
+the 74LS74 at UE21 lifted**, plus changes around the VIDEO and DIM signals.
+
+So **the cursor is generated in hardware** — not by the character generator, and
+not by the attribute bit — which matters to a video personality: it has to
+reproduce a cursor the machine makes outside video RAM, and the block cursor is
+the variant OCC's own engineer preferred. Extract:
+`research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`.
+
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
 
 All onboard peripherals are **memory-mapped**, reached through the bank-2
@@ -181,6 +197,20 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
 - Baud clock from divider **UC3** (÷13) fed by a 2/4 µs tap off the video
   counter (UA13). ACIA (UC4) divides by 16 or 64 → **1200 or 300 baud**.
 - Jumper **J1** selects 300/1200; Rev E+ can be re-jumpered to 600/2400.
+- **Faster rates, from inside OCC** (#21): *The Portable Companion* #13
+  (June/July 1984), "Reverse Video and a Faster Serial Port" by **Thom Hogan** —
+  the same Hogan whose `AUTOCPM.ASM` is the source of the site wordmark (#97) —
+  written as former OCC manager of software and publications: *"developed
+  internally by the company, [but] not promoted … the primary … was the problem of
+  warranty repair on modified machines."*
+  - Removing **J1** doubles 300/1200 to **600/2400** — exactly as above — and he
+    adds a detail the schematic cannot show: **the SETUP program cannot sense
+    J1**, so it still displays 300/1200 after the modification.
+  - For **2400/9600** the mod is to the baud divider: the **LS161/LS163 at C3**,
+    with **pin 2 moved to the middle pin of J2** ("for 2400/9600 baud rates rather
+    than 1200/4800") and pins 3, 7 and 10 lifted. Figure 3 in the article has the
+    detail. Extract:
+    `research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`.
 - Modem status (DTE): MSB (pin 4), MCB (pin 8), RI (pin 9); BIOS `LISTST`
   at `0E12D` returns `0FFH`/`00H`.
 - **IRQ0** = ACIA interrupt (one of three IRQ sources; see §5).

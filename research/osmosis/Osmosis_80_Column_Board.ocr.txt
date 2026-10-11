@@ -1,0 +1,939 @@
+
+===== PAGE 1 =====
+
+mm)
+
+OSMOS 5 80 COLUMN BOARD
+INSTALLATION, MANUAL
+AND
+
+APPLICATIONS GUIDE
+
+Version 1.0
+
+DATE: October, 1983
+
+===== PAGE 2 =====
+
+INTRODUCTION
+
+Fitting the Osmosis board is relatively easy providing you follow the
+step by step instructions and give care and thought to the job. Many of
+these boards have been installed in Europe by end-users like yourself
+and this Manual has been compiled based on the questions they raised.
+
+A table or bench large enough to accomodate the dismantled Osborne 1 is
+required in the first instance. Mistakes will be made if you try to
+install the board on the floor or where there is not enough room to
+work.
+
+Collect all the tools required (they are itemized at the foot of the
+contents page) then turn to the section for installation appropiate to
+your model. Generally the Osborne 1 mkI is a brown case and the Osborne
+1 mkII a blue case. If your model does not fit either circumstance then
+follow Osborne 1 mkI installation.
+
+The 80 column board has been well proven in Europe, however we operate
+a hot-line telephone service (415) 864 - 6372 which you should use if
+you have any problems.
+
+Do not foget to complete and return the registration form since
+software is constantly updated to take advantage of the boards
+excellent enhancements to the Osborne 1 computer. Your will be notified
+by letter of all the new software and new options as they become
+available. Updates cannot be given free of charge although Osmosis will
+always keep any charge for updates to a minimum.
+
+This manual describes installation and application of the Osmosis 80
+column board. The material presented is the proprietary information of
+Osmosis Computer Corporation and is intended for the personal use of
+the purchaser of the Osmosis 80 column board. Incorporation of this
+material in any product or use in any commercial venture is prohibited.
+
+COPYRIGHT 1983 OSMOSIS COMPUTER CORPORATION
+
+===== PAGE 3 =====
+
+Contents PAGE
+
+1. Dis-assembly and assembly of Osborne 1 Mk 1 1
+Figures for chapter 1
+
+2. Dis-assembly and assembly of Osborne 1 Mk II 2
+Figures for chapter 2
+
+3. Installation of the Osmosis 80 column board 5
+Figures for chapter 3
+
+4. 80 Column Applications Guide 8
+
+5. Appendix
+
+Tools required
+
+Installation into Osborne i Mk I.
+
+#0 Pozidriv Screwdriver.
+#1 Pozidriv Screwdriver.
+0.050 Allen Key.
+Flat-head screwdriver.
+
+i
+
+Installation into Osborne 1 Mk II.
+
+1 #1 Pozidriv Screwdriver with long shaft (4" or longer).
+1 Flat~-head screwdriver.
+
+===== PAGE 4 =====
+
+AC Input
+
+(Hidden) Main Case
+
+Video Monitor
+
+Disk Drive A
+
+RS-232
+Connector.
+
+Modem
+Connector
+
+Video Brightness and
+Contrast Controls
+
+Keyboerd Assy
+
+FIGURE 6-3. OCC-1A ASSEMBLED
+
+===== PAGE 5 =====
+
+10.
+
+11.
+
+12.
+
+DIS-ASSEMBLY AND ASSEMBLY OF OSBORNE 1 MK I
+
+Disconnect from the power source.
+
+Disconnect the keyboard connector (and any other connectors such as
+modem or external video) place keyboard to one side and ensure connec-
+tor latches are pushed back in.
+
+NOTE: When removing screws seperate or mark them so you will know
+which to re-insert. The screws for the handle are different from the
+others you will remove.
+
+Release and remove the 7 phillips head screws as shown in fig. 1.1.
+
+Turn the contrast and brightness control knobs fully counter-cloc-
+kwise, unscrew and remove using a 0.050" (0/20) Allen key.
+
+The front black plastic moulding can now be removed.
+
+Working from the back of the unit, the head screws either side of
+the handle can be removed. Do not remove the six phillips head screws
+around the power plate (fig 1.2). Should you find the internal frame
+cannot be slid clear of the plastic case (as step 8) because the
+internal cables have been clipped together, then remove the 6 phillips
+screws around the power plate.
+
+Now release and remove the phillips head screws shown in fig 1.3.
+The internal frame can now be slid out of the plastic case.
+
+Turn the frame upside down so that the underside of the main Printed
+Circuit Board (PCB) is uppermost, release and remove the 4 phillips
+head screws that hold the PCB to the frame. The PCB can now be laid
+flat with the component side on top. Take care not to bend any
+component legs.
+
+Turn to page 5 of this manual for installation instructions of the 80
+column board.
+
+THE 80 COLUMN BOARD HAS NOW BEEN INSTALLED ON THE OSBORNE PCB.
+
+Replace the Osborne PCB with the 4 screws, turn the frame the right
+side up and slide it into the plastic case. Replace the screws either
+side of the handle, making sure the correct screws are used as incor-
+rect screws may damage the drive harness situated behind the handle
+assembly.
+
+If you removed the 6 screws from around the power plate, replace them
+at this time taking care to mount the power plate right side up. .
+
+Replace the screws in the side of the case. Then replace the front
+black plastic cover ensuring that all the connectors come through
+their holes before replacing the last seven screws.
+
+===== PAGE 6 =====
+
+bb Old
+
+‘GsaA0WSY
+
+QHYVOGASY HLIM M3IA LNOYS
+
+SM3Y9S GH SSOND X L
+
+===== PAGE 7 =====
+
+2b Old
+
+"SJNYOESO SO M3IA V3"
+
+1@
+
+Ne
+
+“SM3YIS OH SSOYD X 8
+
+
+===== PAGE 8 =====
+
+e1Old
+
+‘Q3AOWSY = Y3SA09
+WSVId WOVId HLIM MalA LNOYWS
+
+SM3Y4IS GH SSOYD X 7
+
+
+===== PAGE 9 =====
+
+10.
+
+11.
+
+12.
+
+13.
+
+14,
+
+15.
+
+DIS-ASSEMBLY AND ASSEMBLY OF OSBORNE 1 MK II
+Disconnect from the power source.
+
+Disconnect the keyboard connector, (and any other connectors such as
+modem and external video) place keyboard to one side and ensure conne-
+ctor latches are pushed back in.
+
+Release and remove the 6 phillips head screws as shown in fig. 2.1.
+
+Pull off the contrast and brightness control knobs.
+The front blue plastic moulding can now be removed.
+
+Close the air cooling door if open and carefully turn the unit upside
+down and release the 5 screws shown in fig 2.2
+
+Remove the plastic case bottom (now on top) and place it to one side.
+
+Release and remove the 4 cross head screws that hold the main Printed
+Circuit Board (PCB) to the frame. Carefully lift out the plastic
+power plate and put it to one side. Lift out the handle plate and put
+it to one side.
+
+Unplug any cables necessary to lay the PCB flat, taking a careful note
+of where they come from and where they plug-in.
+
+The PCB can now be laid flat with the component side on top. Take
+care not to bend any component legs.
+
+Turn to page 5 of this manual for installation instructions of the 80
+column board.
+
+THE 80 COLUMN BOARD HAS NOW BEEN INSTALLED
+
+Replace the power plate and cover remembering to plug-in any cables
+which were unpluged earlier. Replace the 4 screws which hold the
+Osborne PCB in place. The power plate and cover are positioned with
+the hinge nearest the work surface and clips into small inserts at the
+lower end.
+
+Replace the handle plate taking care to place it the right side up ie.
+match it to the case molding. Take note at this point that the disk
+drive data cable is still clipped behind the video display.
+
+Replace the case bottom and screw it down. The fig. 2.2 points to a
+phillips screw, care must be taken when re-inserting this screw since
+the disk data cable may have slipped into the screws path. Do not
+force the screws entry, check first. Do not over-tighten the 5 screws.
+
+Turn the unit the right side up and replace the front blue plastic
+cover. Do not force the cover on check first that all the connectors
+have come through the appropiate holes. The keyboard connector latches
+must be positioned forwards to come through the cover hole. Replace
+the 6 phillips screws that secure the cover.
+
+===== PAGE 10 =====
+
+eZ Old
+
+‘G3SA0WSY
+
+QUYVOGASN HLIM MalIA = LNOYS
+
+SM3Y0S OVSH SSOUD X 9
+
+e*
+
+
+===== PAGE 11 =====
+
+@2 Old
+‘QSAON3Y GYVOBASRY
+
+HIM MaIA_ HIVaNaSaNn
+
+<4
+
+w&
+
+@
+
+SMa4OS GVSH SSOWD XS
+
+===== PAGE 12 =====
+
+Al.
+
+A2.
+
+A3.
+
+A4.
+
+A5.
+
+A6.
+
+A?.
+
+A&.
+
+A9.
+
+INSTALLING THE OSMOSIS 80 COLUMN BOARD
+NOTE: FOLLOW THIS SECTION ONCE THE OSBORNE IS DISASSEMBLED
+
+Locate the monitor ROM (fig 2.1). This ROM can be carefully removed by
+placing a flat-head screwdriver under either end and gently turning
+the screwdriver until the ROM lifts from it's socket at that end.
+Repeat this procedure at the other end of the ROM until it is removed
+altogether.
+
+Now take the ROM we supplied (for shipping purposes it is mounted in
+the blue 40 way header on the 80 column board and should be carefully
+removed in the same sequence as the monitor ROM from the Osborne main
+Printed Circuit Board).
+
+Fit the ROM we supplied (marked Osborne 1.44 GM) by positioning the
+small semi-circular cut-out in the ROM to the LEFT looking from the
+keyboard connector end of the Osborne PCB. If you are still in doubt
+look at the other larger components on the Osborne PCB which all fit
+in the same way. If the ROM pins will not fit into the socket, lay the
+ROM ona flat surface and gently bend the pins inwards on both sides
+until the pins line up with the socket.
+
+Locate the Z80 processor (fig. 2.1) which will be marked NEC since
+Osbornes use the NEC equivilant of the Zilog Z80 processor. Remove the
+40 pin 280 in the same way that the monitor ROM was removed i.e. with
+a flat head screwdriver.
+
+Fit the 280 into the blue 40 way header on the Osmosis 80 column
+board. You MUST fit the Z80 in the correct way round. The small semi-
+circular cut-out in the Z80 chip must face toward the row of three
+SN74LS374 IC's on the Osmosis 80 column board which are next to the
+blue 40 way header.
+
+Unscrew the two nuts from the mounting pillars on the under-side of
+the Osmosis board. Remove the two nuts and the lock washers and put
+them in a safe place.
+
+Fit the Osmosis 80 column board onto the Osborne PCB by inserting the
+40 pins (header pins) which extend from the under-side of the Osmosis
+board into the socket on the Osborne PCB from which you have just
+removed the Z80 chip. The Osmosis board fits over the front left of
+the Osborne PCB so that the keyboard connector, IEEE port and RS 232
+ports are almost covered by the Osmosis board. The correct placement
+of the Osmosis board will be found when the two mounting pillars are
+centered though the two holes on the Osborne PCB. (fig 2.2)
+
+Make certain that all the pins from the Osmosis board fit into the
+socket on the Osborne board correctly.
+
+Fit the lock washers and nuts onto the mounting pillars and tighten
+securley. The Osmosis board and the Osborne board are now fastened
+together.
+
+===== PAGE 13 =====
+
+All.
+
+Al2.
+
+A13.
+
+Al4,
+
+Al5.
+
+A16.
+
+Clip the right-angled board support to the left hand rear of the
+Osborne PCB and to the left hand rear of the Osmosis board. Fit and
+GLUE with a suitable adhedsive the second Osmosis board support to the
+Osborne board at the right hand side of the processor socket (fig 2.2)
+so that the Osmosis board is held by the second support between the
+two 12 and 10 way connectors at the right hand side of the Osmosis
+board (fig 2.2).
+
+Locate P9 on the Osborne PCB (fig 2.1) and dis-connect the Osborne 10
+way connector. Connect the 10 pin connector which extends from the
+right hand side of the Osmosis board. The 10 pin connector should be
+connected such that the cable (10 wires) extents AWAY from the front
+(keyboard connector end) of the Osborne PCB.
+
+Fit the 10 way Osborne connector (the one just dis-connected from P9)
+onto the Osmosis board into the spare 10 way connector to the rear
+right of the Osmosis board. The connector should be connected such
+that the cable extends down-wards as does the other cable next to it.
+
+The single pink wire extending from the 14 way connector on the Osmo-
+sis board could be soldered to pin 9 of the SN74LS00 IC which is
+located behind P9 on the Osborne PCB. It is by no means essential that
+this be carried out since the 80 column board will work whether it is
+soldered or not. This connection ensures the correct operation of 1/2
+intensity when using the 52 column display. Apart from this the system
+will function correctly if it is not connected.
+
+KKKKKKEKKKEKKEKK WA RN ION G BRKKKKKKKKEK
+
+Experience is required to solder directly onto an IC leg. Do not att-
+empt the connection if you do not have the necessary experience. If
+you are not attempting the connection to pin 9 of SN74LS00, pull the
+pink wire away from the Osmosis board connector and dispose of it.
+
+KHKKKEKEK KEKE KKK KEKE KEE EKER EEK EEEEKEKKEKKEKKEKEEREKEKEREEEEEEEKKKEEKK
+
+A two wire (yellow and orange) harness extends from the left hand rear
+of the Osmosis board which must be connected to the Osborne power
+supply. Fig 2.4 shows the spare 4 pin socket on the Osborne power
+supply. Connect the Osmosis power harness into the unused socket in
+the same orientation as the original Osborne leads i.e. with the same
+colors in the same directional pattern. The connector should only join
+correctly in this way.
+
+A hole must be drilled into the blue or black front cover (bezel) of
+the Osborne 1 to accomodate the external video connector. The _ hole
+should be approx. 2.25 inches to the right of the keyboard connector
+(measured from the middle of the connector). The hole should be app-
+rox. 0.5 inches in diameter or large enough to accomodate easy insert—
+ion of your video lead (about the same size as the reset button hole).
+
+Mark the exact position and lay the cover (bezel) in such a way 50
+that the area you are drilling is supported. Use a small drill bit to
+drill the first hole, then gradually increase the drill bit size until
+
+===== PAGE 14 =====
+
+the correct size hole is achieved.
+
+A17. The Osmosis 80 column card is now fully installed and re-assembly of
+the Osborne can take place. Return to the relevant section for re-
+
+assembly.
+
+===== PAGE 15 =====
+
+LY
+2-1 ~-
+4
+Double Density Board i F:79L£4
+Character ROM
+Double Density Cable Assy
+
+280 Microprocessor Standort Tocations
+1 Monitor ROM ; v\
+| 54 and JS
+| 13
+
+ooecnneeed
+
+rina 10 (PRK) SpNCOE es ram AST TH gal
+AE ERUONTOT 3 em mt wn
+: | TT rw an
+
+TEN
+
+1 -Y
+ome
+
+Om en
+
+===== PAGE 16 =====
+
+Dm SryMPTPN EU 46 ng
+o
+
+eed YN \
+
+= T ey LSPINTMIATINITENL
+
+( Cow } vd)
+C
+av vn yd duns
+
+
+===== PAGE 17 =====
+
+coal
+
+FIG DY OUtihul Like Sutny,
+
+n fh
+| THLS STACE
+
+| CON ACT x
+
+l,.
+
+JS Rake MyenuesT
+
+===== PAGE 18 =====
+
+80 COLUMN APPLICATIONS
+
+B1. Power up your Osborne.
+
+B2. Place any normal Osborne diskette (containing a CP/M system) in drive
+A and press return to boot the system. If necessary press’ the
+appropiate key(s) to arrive at the CP/M prompt.
+
+B3. Press escape (ESC), 8 and return. The screen should now be showing a
+full 80 columns.
+
+B4. Enter any keys to take the cursor to the right of the screen and see
+if the cursor shows a correct line feed and carrage return. If not
+press the return key and enter escape (ESC), F and return. Check to
+see if the auto carrage return and line feed are now working.
+
+B5. Try pressing escape (ESC), 5 and return to take you back to 52
+columns.
+
+B6. Look at the Escape Sequences in the appendix section of this manual
+and try some out with keyboard commands.
+
+B7. If you know how to program in BASIC, invoke Basic and write a simple
+program to use the additional features of the 80 column board. The
+board will react to a command such as:
+
+10 PRINT CHR$(27)+'"8"
+B8. Wordstar, Basic, Cbhasic, Supercalc and CP/M do not require re-
+
+installing to use 80 columns. However Dbase II does and this is the
+patch necessary:
+
+NOTE:
+(ret) = Press the return key
+; = comment
+
+(a) Place your Osborne diskette marked CP/M Utility in drive A and a COPY
+of your Dbase II program in drive B.
+
+(b) Boot the system to arrive at the CP/M prompt. Enter DDT B:DBASE.COM(ret)
+
+The screen will show:
+
+DDT Vers. 2.2
+Next PC
+4700 0100
+
+(c) Enter S130 (ret)
+The screen will show:
+
+0130 05
+
+Enter 01 (ret)
+
+
+===== PAGE 19 =====
+
+“e
+
+(d)
+
+(e)
+
+(£)
+(g)
+
+The screen will show:
+0131 1A
+
+Enter . (ret) ;Enter period (ret)
+Enter $154 (ret)
+
+The screen will show:
+0154 80
+
+Enter 50 (ret)
+
+The screen will show:
+0155 18
+
+Enter . (ret) ;Enter period (ret)
+Enter S395A (ret)
+
+The screen will show:
+395A 3A
+
+Enter C9 (ret)
+
+The screen will show:
+395B 5A
+
+Enter . (ret) ;Enter period (ret)
+Enter control C ;Enter CTRL C
+
+Enter SAVE 70 B:DBASE.COM (ret)
+
+
+===== PAGE 20 =====
+
+*®s es} » & » ® 2 ese 8 8
+
+id
+
+*
+
+*e 2s ¢ 8 = 8
+
+ASCII HEX
+
+APPENDIX -E-
+
+ESCAPE SEQUENCES
+
+2CH
+2DH
+28H
+29H
+2A
+2BH
+2EH
+2FH
+30H
+
+-
++ a~me
+
+qQnre
+
+31H
+32H
+33H
+34H
+35H
+38H
+43H
+45H
+46H
+47H
+48H
+61H
+6 2H
+52H
+53H
+54H
+SSH
+56H
+$7H
+58H
+59H
+SAH
+--H
+67H
+6CH
+60H
+
+Za TONAMNDWUYVAWA
+
+SBeOvn<e xe SSLewyyAy
+
+DEC
+
+Effect:
+
+SETS CHARS TO INVERSE
+
+SETS CHARS TO NORMAL
+
+SETS FULL INTENSITY
+
+SETS HALF INTENSITY
+
+SETS 3/4 INTENSITY
+
+SETS 1/4 INTENSITY
+
+NORMAL CHARACTER SET
+ALTERNATE CHARACTER SET
+SELECT DEFAULT 24 LINE SCREEN
+WITH UP/DOWN 48 LINE SCROLL
+reserved
+
+—SOSCEVER” NO Scholl
+
+reserved Scot F LIVES opty
+reserved
+
+DISPLAY 52 CHARACTERS
+DISPLAY 80 CHARACTERS
+reserved
+
+INSERT A LINE
+
+ENABLE 86 COLUMN AUTO-CRLF
+END GARPHICS
+
+DISABLE 86 COLUMN AUTO-CRLF
+INVERT SCREEN
+
+NORMAL SCREEN
+
+DELETES A LINE
+
+INSERT A CHARACTER
+
+DELETES TO END OF LINE
+reserved
+
+reserved
+
+DELETES CHAR AT CURSOR
+reserved
+
+SETS 60 HZ OPERATION
+
+SETS S5@ HZ OPERATION
+reserved
+
+START GRAPHICS
+
+START UNDERLINE
+
+STOP UNDERLINE
+
+Commands which are unique to the OS/5 83-column
+OSBORNE 1 are annotated with an * symbol. Use of
+these commands on standard systems may cause spurious
+data to be displayed on the screen; the program should
+not be otherwise affected.
+
+
+===== PAGE 21 =====
+
+430 Pacific Avenue, San Francisco, CA 94133 (415) 864-6372
+
+ADDENDUM
+
+a
+
+1. Some external video monitors may not be able to syncronize with the signal
+from the 80 columm board correctly. If this is the case enter:
+
+ESC C CTRLC: (ret )
+
+Notes
+(a) This sequence must be entered when you are operating under 80 columm mode
+
+(») (RET) = Press the return key
+(c) BSC @ Escape
+
+(4) CERL «= Control
+
+. 2. 80 Columm applications 38
+
+io Supercalc, because it manipulates the video R4M directly, bvpasses the §0 Column
+. board. The program must therefore be "patched". Details of the patch will be
+available within the next few weeks.
+
+December 2 1983
+
+OSMOSIS is a division of COMPU-LINE CORPORATION
+
+
+===== PAGE 22 =====
+
+OSMOS 5 MANUAL ADDENDUM
+
+1. Some external video monitors may not be able to syncronize with the
+signal from the 80 column board. If this is the case enter:
+
+Esc C Ctrl C: (return) Note: This command should be entered after Esc 8
+
+2. 80 COLUMN APPLICATIONS B8
+
+Supercalc was re-designed specifically for the Osborne Double Density
+computer. The re-design incorporated direct manipulation of the Osborne
+video ram, which bypasses our 80 column board. Versions 1.00 and 1.05 will
+work in 80 column mode if the INSTALLS.COM program is run.
+
+Supercalc 1.12 and 2 require a "patch" which Sorcim will only allow us to
+distribute if we copy the patch directly to the ORIGINAL diskette issued.
+Please ensure that you have adequate copies before you send the diskette to
+us. Two patches have been prepared for Supercale 1.12 and Supercalc 2 and
+if you desire both you should send both original diskettes. Please note
+that we are not allowed to implement: the patches on anything other than the
+original diskette.
+
+3. TECHNICAL MANUAL
+
+We have prepared a technical manual for the 80 column board which contains
+program listings to assist the user to implement the many features of the
+board; theory of operation; documentation on the CP/M interface; cursor
+addressing; together with full supporting documentation. We are able to
+provide this manual for $8 which includes packaging and shipping for a
+limited period of 3 months only, from mid July the price will be $15. A
+
+‘check is the only payment we will accept, which should be made payable to
+
+Osmosis Computer Corporation.
+4, GRAPHICS PROGRAMS
+
+Since the commercially available graphics programs are not designed to take
+advantage of the extended column width and will only work in 52 column
+mode, we are designing an 80 column graphics program which will enable easy
+creation of horizontal and vertical bar charts, pie charts and xy _ plots.
+The program will operate on both the 80 column screen and virtually every
+dot matrix and daisy wheel printer. Numerical data can be entered from the
+keyboard or produced by DBase, Supercalc, Mbasic and Wordstar files. The
+program will be available in 45 days and will be priced at $45.00 which
+includes full supporting documentation, packaging and shipping. Further
+information is available, or your order can be placed now with a check for
+$45.00, payable to Osmosis Computer Corporation.
+
+April 20, 1984 OSMOSIS COMPUTER CORPORATION
+
+ae
+
+
+===== PAGE 23 =====
+
+Osmosis Computer (
+manufacture of it's
+defects in material
+qualifications and
+
+1.
+
+IDENTITY OF PAR’
+This warranty
+subsequent trans
+
+THIS WARRANTY CC
+Osmos 1. - Double
+Osmos 5 - 80 Col
+
+THIS WARRANTY AL
+BY OSMOSIS COMPL
+Control Data Cor
+1800
+
+STATEMENT OF EXT
+In the event of
+warranty, the hk
+merchandise, in
+all transportat
+malfunctions, f
+unreasonable or
+warranty. In t
+product in th
+Corporation or
+from the warra
+determine if thi
+
+TERM OF WARRANTY
+This warranty s
+the date of orig
+thereto on trans
+
+PROCEDURE TO OBT
+Contact Osmosis
+
+Merchandise Aut
+packaged, to Os
+Pacifica, CA 9
+shipping and del
+
+ADDITIONAL WARRA
+There are no war
+specifically in
+
+OSMOSIS COMPUTER COR’
+
+LIMITED PRODUCT WARRANTY
+OSMOSIS COMPUTER CORPORATION
+
+rporation (Warrantor), uses the utmost care in the
+roducts and this product is warranted to be free from
+nd workmanship, subject to the following limitations,
+nditions:
+
+COVERED BY WARRANTY:
+xtends only to the first purchaser and not to any
+eree,
+
+ERS THE FOLLOWING PRODUCTS
+Density board. Osmos 2, 3 and 3.5 - Double Sided board.
+mn board. Osmos 6 - IBM PC Upgrade board.
+
+2 EXTENDS TO THE FOLLOWING PRODUCTS NOT MANUFACTURED
+ER CORPORATION:
+oration disk drives CDC 9409 Tab 1501 and CDC 9409 Tab
+
+YT OF WARRANTY:
+a defect, malfunction or failure to conform to this
+rrantor, at it's election, will replace or repair such
+Luding cost of labour and parts, but the consumer pays
+on costs for return to the warrantor. Defects,
+ilure or damage to the product caused by improper,
+negligent abuse are specifically excluded from this
+2 event any repair or modification is done to the
+warranty period other than by Osmosis Computer
+='s agent, the product will be specifically excluded
+ty. The Warrantor, in it's sole operation, will
+exclusion shall be applicable.
+
+ill extent for a period of ninety days (90 days) from
+ial purchase by the first purchaser, but will expire
+2r to another person.
+
+(N PERFORMANCE OF WARRANTY:
+
+mputer Corporation at (415) 355-4848. Obtain a Return
+xrization number (RMA). Send the product, well
+»sis Computer Corporation, Suite 214, 80 Eureka SQ.,
+)44 showing the RMA number on the outside of the box,
+rery charges pre-paid.
+
+“TES:
+
+inties expressed or implied other than those expressed
+1is document.
+
+JRATION
+
+MARCH 1984
+
+a
+ae oe
+
+ay ares
+

@@ -1,0 +1,614 @@
+
+===== PAGE 1 =====
+
+Reverse Video and
+a Faster Serial Port
+
+For Osborne 1 owners: how to change your serial port baud rate,
+and how to change your underline cursor to a reversed-video one.
+
+Wi Osborne Computer Cor-
+poration may be gone, about
+
+150,000 Osborne 1 computers aren’t,
+and their users have no direct factory
+support and only scant information con-
+cerning the workings of the machine.
+
+This article addresses two aspects of
+the Osborne 1 that many owners wish
+could be changed: the way in which the
+cursor displays, and faster baud rates
+for the serial port. This information,
+while developed internally by the com-
+pany, was not promoted by Osborne
+Computer Corporation for a number of
+reasons, the primary of which was the
+problem of warranty repair on modified
+machines.
+
+Don’t attempt these modifications
+yourself if you are not qualified. You will
+be making cuts, adding jumpers, and sol-
+
+24 THE PORTABLE Companion
+
+Thom Hogan
+
+Warning
+
+This article describes how to modify
+your Osborne 1. If you have a warranty
+still in effect (such as one through the Xe-
+rox® Americare® program or other
+such service), you should not perform
+the modification without becoming fully
+aware of the consequences.
+
+dering directly on integrated circuits if
+you follow these instructions. A slip of
+the soldering iron can be fatal (at least to
+the Osborne 1). If you want the modifica-
+tions but haven’t worked with delicate
+electronic components before, see if
+your local computer dealer or someone
+in your local Osborne user’s group is will-
+ing to make them for you. Expertly done,
+the modifications shouldn’t take more
+thanan hour to make, and the parts cost
+is minimal — so $50-$100 is a reason-
+able fee for the work.
+
+The end result of the modifications
+will be a computer that has an easily-rec-
+ognizable cursor and is capable of com-
+municating at as fast as 9600 baud.
+
+© 1984 Thom Hogan Xerox and Americare are registered trade-
+
+marks of Xerox Corp.
+
+June/July 1984
+
+Reversing the Cursor
+
+During my short tenure at Osborne
+Computer Corporation (1981-1982) as
+manager of the software and publica-
+tions departments and as a key member
+of the new product design council at the
+company, I had argued that the under-
+line cursor on the Osborne 1 was not ap-
+propriate, especially considering the
+small screen — you just couldn’t find it
+fast enough during the word processing.
+I discussed this problem with the com-
+puter’s designer, Lee Felsenstein, who.
+informed me that at one time the
+Osborne 1 computers had reverse video,
+but that the cursor was switched to an
+underline before production.
+
+To make a long story short, I had Lee
+rework my Osborne 1, and started a
+
+===== PAGE 2 =====
+
+Reverse Video Schematic Change
+
+CURSOR 2 PR 5
+——ent 2) Q —
+H COUNT . 3 D CLK
+UE22
+a 6 5 74LS00
+UE21 cist
+CLR 74LS74 6 t becomes
+jumper and , xX ? video out
+cut change (change #1)
+oan 4
+t cut 4
+ie
+VIDEO connect
+f —@
+DIM 12 PR 9
+D Q
+11
+a CLK
+~16
+ween
+UE21 5
+NX
+CLR 74LS74
+Y 13
+tT | UE22A
+
+Figure 1. A schematic of the reverse video cursor modification and how it affects the original circuitry.
+
+long vigil of trying to convince others in
+the company to make this permanent
+change. No luck. How about publishing
+the modifications? No luck there either,
+as the company was worried about the
+legal implications of publishing modifica-
+tions.
+
+The modification for reverse video
+cursor is actually quite simple. Current-
+ly, the video goes through one portion of
+a 74LS00 logic gate just prior to heading
+towards the video display. Simply
+switching the type of logic gate used,
+and making one small cut on the elec-
+tronics board gives a reverse video
+cursor. Figure 1 shows a schematic of
+the modification and how it affects the
+original circuitry.
+
+Logical considerations aside, the
+practical problems of changing the gate
+used to implement the cursor became
+important — we don’t want to have to
+unsolder an IC, since that’s not an easy
+process. Besides, the rest of the 74LS00
+is needed for some other functions. In-
+stead, we’ll simply piggyback a new IC
+on top of the old one, and make our con-
+nections to it. Such a practice is relative-
+ly common for minor changes such as we
+are making.
+
+First, you'll have to open up the
+Osborne 1 case and remove the main
+electronics board. If you don’t already
+know how to do this, you shouldn’t be
+making this modification! Opening the
+Osborne 1 is a simple process. Make
+
+June/July 1984
+
+74LS86
+new IC (change #2)
+
+sure that you note the orientation of the
+various cables as you unplug them.
+
+Now we’re ready for the delicate
+work. All you need is two short lengths of
+wire-wrap or other suitable wire and a
+74LS86 to perform the change. Let’s
+work in an ordered, logical fashion:
+
+1. Take the 74LS86 chip and careful-
+ly cut off pins 1-3 and 8-13 as close
+to the plastic housing as possible.
+We aren’t going to use these pins.
+
+2. While you’ve got the snips out,
+
+very carefully cut off pin 6 of IC
+UE22, the 74LS00 located at posi-
+tion E22 on the main circuit board.
+
+THE PORTABLE Companion
+
+25
+
+===== PAGE 3 =====
+
+Lift pin 1 from the PC board
+
+- and connect to end of C82.
+
+\
+cs
+
+Pins 4 and 5 connected.
+
+Pin 6 of bottom chip removed, with
+pin 6 of top chip replacing it.
+
+Pin 7 connected.
+
+Pins 1-3 not connected
+
+Pin 14 soldered to pin 14
+
+to chip underneath.
+fo of chip underneath.
+
+.
+NN
+
+\
+oe
+
+Pins 8-13 not connected
+to chip underneath.
+
+—@)
+
+U
+
+arsenal sl
+
+{ 10 pin in-line connector.
+
+NOTE: ICs shown are located at
+board positions E21 and E22.
+
+Figure 2. The modifications to the ICs located at board positions E21 and E22 to produce a reverse video cursor.
+
+26
+
+Make sure that you don’t damage
+the solder pad that pin 6 connects
+to or the other pins on the
+74LS00.
+
+Next, carefully lift pin 1 of UE21,
+the 74LS74 located at position
+E21 on the main circuit board.
+
+Place the 74LS86 on top of the
+74LS00 at E22. You’re going to
+solder pins 4, 5, 7, and 14 of the
+two chips together (make sure that
+the chips are oriented the same
+direction!).
+
+THE PORTABLE Companion
+
+Take a short length of wire-wrap
+wire, strip both ends to a length of
+about 1/4 inch. Tack solder one
+end to pin 6 of the 74LS86, follow-
+ing the cautions described above.
+Solder the other end into the sol-
+der pad previously occupied by
+pin 6 of the 74LSO00. Make sure
+that you don’t create any solder
+bridges when you do this.
+
+Next, take another short length of
+stripped wire-wrap wire and con-
+nect one end it to pin 1 of the
+
+June/July 1984
+
+74LS74, which you lifted its solder
+pad in step 3. The other end of this
+wire goes to the nearest end of the
+C82 (immediately to the left of the
+IC), as shown in the illustration in
+Figure 2.
+
+That’s it! A few cuts and a few solder
+tacks and we’re done. A professional
+wouldn’t take more than 30 minutes
+making this modification, and most of
+that would be dis-assembling and assem-
+bling the computer.
+
+Reconnect all cables, making sure
+
+
+===== PAGE 4 =====
+
+Pin 2 connects to middle pin of J2 for
+2400/9600 baud rates rather than 1200/4800.
+
+Pins 3, 4, 7 and 10 are connected.
+Pins 3, 7 and 10 are lifted from the main board.
+
+Pins 1, 5, 8, 9 and 11 through 16
+unchanged.
+
+Figure 3. Modifying the LS161 or LS163 IC at location C3 on the Osborne 1 main electronics board, to get a combination of faster baud rates for the serial port.
+
+that you properly align pin 1 (offsetting
+some of the cables can result in a very
+dead electronics board) and re-assemble
+the computer. When you turn the com-
+puter on, the cursor should be a nice sol-
+id white block.
+
+As an interesting side benefit, chang-
+ing the cursor with the above modifica-
+tion also results in underlined characters
+now being displayed in reverse video.
+
+The SuperCalc prompt, for example, be-
+
+comes a solid reverse video bar instead
+of a thin. underline.
+
+If you used the public domain ‘‘blink-
+ing cursor program’”’ (available from
+Osborne user groups) on your version of
+WordStar, you’ll now have a blinking sol-
+id block. However, even without this
+software patch, it should be easy for you
+to find the cursor.
+
+June/July 1984
+
+Speeding up
+the Serial Port
+
+Our second change involves the serial
+port on the Osborne 1 computer. This
+change appears on page 21 and 22 of
+the Osborne 1 Technical Manual. Mike
+Iannamico and I, co-authors of the man-
+ual, managed to sneak this modification
+past the ‘‘engineering-powers-that-
+
+THE PORTABLE Companion 27
+
+
+===== PAGE 5 =====
+
+were,” but it is buried at the end of the
+Interface Design chapter, and many peo-
+ple who’ve read the manual didn’t even
+notice it.
+
+The Osborne 1 is capable of commu-
+nicating at two baud rates. Normally,
+this is 300 and 1200 baud, the most
+commonly-used communication rates.
+By opening the computer and removing
+jumper J1, these baud rates are dou-
+bled, to 600 and 2400, respectively
+(note that the SETUP program used to
+change the baud rates still displays 300
+and 1200 — jumper J cannot be sensed
+from the software, thus the message re-
+mains the same in SETUP).
+
+The upper limit of 2400 baud was
+chosen for a number of reasons. First,
+the parts purchased by Osborne for the
+serial interface were only specified to
+have to work up to this rate (almost all
+work at far greater rates, however). Sec-
+ond, the fastest an Osborne 1 could func-
+tion as a terminal (i.e., displaying
+received information and sending typed
+information) was 2400 baud —: any
+faster and characters would be lost,
+since the software could not keep up
+with the hardware.
+
+Nevertheless, the Osborne 1 is quite
+capable of receiving and sending infor-
+mation at higher baud rates, just as long
+as it doesn’t have to display it or save it
+to disk while doing so. Four possible
+baud rate choices exist, two of which in-
+volve modifications:
+
+300/1200 As the Osborne 1 comes.
+600/2400 Remove jumper J1 inside
+the Osborne.
+
+1200/4800 Basic modification de-
+scribed below.
+2400/9600 basic modification plus ad-
+ditional wire.
+
+Again, we’ll be dealing with an IC
+soldered into the main electronics board
+of the Osborne 1 — in this case, UC3, a
+LS161 or LS163 at location C3. The
+Osborne 1 Technical Manual suggests
+that you de-solder this chip and replace
+it with a 16-pin socket. This is preferable
+to simply lifting and bending pins, espe-
+cially if you may want to switch back and
+forth between pairs of baud rates at a fu-
+ture date.
+
+Here’s how to perform the baud rate
+modification (see figure 3):
+
+28 THE PORTABLE Companion
+
+1. Pins 2, 3, 7, and 10 of the
+74LS161 (or 74LS163) must be
+lifted off the solder pads they are
+currently connected to. You may
+de-solder the chip, install a socket,
+bend these four pins up on the
+74LS161 and re-insert it into the
+socket, or you may simply de-sol-
+der those four pins and bend them
+up.
+
+2; Using wire-wrap wire, connect
+pins 3, 4, 7, and 10 together.
+Make sure only these pins are con-
+nected — solder bridges to other
+pins can cause problems. At this
+point, you have 1200/4800 baud
+instead of 300/1200 baud —
+where the SETUP program refers
+to the 300 baud, you get 1200,
+where SETUP says 1200, you get
+4800. Jumper J1 may be in or out
+— it won’t affect the transmission
+speed with this modification
+completed.
+
+3. If you want the fastest baud rate
+combination, connect a wire from
+pin 2 of the 74LS161 to the mid-
+dle pin on jumper J2 (located be-
+tween 74LS74 at B6 and the 1793
+at B7). You now have 2400 baud
+in place of 300 baud, and 9600
+baud in place of 1200 baud.
+
+That’s all there is to it. Any cable that
+works correctly at the slower baud rates
+(i.e., handles the hardware handshake
+protocol of the serial port without losing
+characters) will work at these new, faster
+rates. The XON/XOFF protocol should
+still function correctly. It’s as if you had
+given your Osborne 1 a shot of high oc-
+tane gas — transmissions and recep-
+tions move faster.
+
+One Last Caution
+
+Toward the end of Osborne 1 produc-
+tion history Osborne started receiving a
+new, multi-layered main logic board. |
+was unable to ascertain, from my con-
+tacts at the company, when and how
+many of these multi-layered boards were
+put into production. Soldering directly
+on a multi-layer board can be quite
+tricky, because you may get the connec-
+
+June/July 1984
+
+tion on the surface, but fail to make con-
+tact underneath. If you have a late
+model Osborne 1 and have problems
+with the modification, the multi-layered
+board may be the culprit — have a pro-
+fessional repair technician lL. < at your
+work and check it out.
+
+These two changes are by no means
+all the modifications that can be per-
+formed on an Osborne 1. Osborne ex-
+perimented by created prototypes with
+80-track drives (368k per diskette), dou-
+ble-sided drives (736k per diskette), and
+had even replaced the B drive with a
+half-height winchester-type hard disk
+and controller. The primary problem in-
+volved in each of these changes was not
+hardware (slide out one drive, slip in an-
+other), but software.
+
+In addition, the Osborne Executive
+logic board was originally designed to fit
+in the Osborne 1 case and provide an up-
+grade to 80 columns (with a few other
+niceties thrown in). A seven-inch monitor
+version of the Osborne 1 was discussed,
+but rejected in favor of the Executive 1.
+Indeed, a whole new computer, code-
+named Vixen, was designed. It had ev-
+erything a fully equipped Osborne 1 did
+(and more), but weighed in at 18 pounds
+and measured only half the size.
+
+On the purely software side, I pre-
+pared a 52-column version of WordStar
+in mid-1982, but the then-promised re-
+lease by MicroPro of a new version of
+WordStar cancelled the release of the
+52-column version. The UCSD p-system
+was worked up for the Osborne 1 dou-
+ble-density option, but again, new ver-
+sion releases pushed back the
+introduction date until it was too late. A
+new HELP utility was also put together,
+as were a few other simple upgraded of-
+ferings, but most of these never saw the
+dealer’s shelves, either.
+
+(Fortunately, the plan to re-organize
+Osborne Computer Corporation is up
+for final approval. If and when that hap-
+pens, we will report the latest product
+offerings — editors).
+
+It is my hope in offering these two
+modifications that Osborne 1 computers
+will continue to be put to good use. Per-
+haps, when all the dust has settled, some
+of these modifications will become part
+of service agreements or new products.
+We Osborne 1 owners can only hope.
+
+oO
+
+
+===== PAGE 6 =====
+
+Rescue From
+Toxic Spills
+
+The program GAUSS calculates a Gaussian dispersion model
+of gases released from a toxic spill. It runs on
+
+an Osborne 1 or Executive under MBASIC.
+
+Aw truck carrying a_ toxic
+chemical is traveling along a ru-
+
+ral road near a south California commu-
+nity. In the early Sunday morning hours,
+a light fog hangs over the valley making
+the winding road treacherous. A passen-
+ger car in the opposite lane has a
+blowout. Car and truck collide. Tires
+screech, metal crunches, radiators hiss,
+and then almost silence. The driver of
+the car lies unconscious on the roadway,
+his vehicle wedged under the tank truck,
+now punctured and leaking. The truck
+driver scrambles from the cab, stunned
+but apparently uninjured. The truck
+driver quickly calls for police and fire as-
+sistance. Upon questioning by the police
+dispatcher, the driver reads the shipping
+manifest. He informs the dispatcher that
+
+© 1984 William White
+
+William White
+
+the chemical he is hauling is anhydrous
+ammonia.
+
+The dispatcher calls CHEMTREC
+(Chemical Transportation Emergency
+Center) for instructions on how to handle
+the chemical spill. After providing brief
+directions on handling the spill, the
+CHEMTREC duty officer calls the truck
+firm and the shipper. Within minutes
+your phone rings waking you from an en-
+joyable dream. As Transportation Emer-
+gency Team Leader for your company,
+
+you are requested to go to the scene and
+render assistance. You phone your plant
+and request that other team members
+be dispatched with the vehicle contain-
+ing various patching devices.
+
+On the way to the scene, many
+thoughts race through your head. How
+bad is the leak? Will you be able to stop it
+with the emergency capping kit? Has
+anyone been exposed to the chemical?
+Have people been evacuated from the
+downwind areas? Will the news media
+
+As you drive back home to your sleeping family, you real-
+ize that your fast response and accurate information to
+the fire chief would not have been possible without your
+
+Osborne.
+
+June/July 1984
+
+THE PORTABLE Companion 29
