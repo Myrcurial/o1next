@@ -34,6 +34,15 @@ Tracks: #47 (split out of #45). Target: PCBway build.
   common ground comes through P4 pins 1/20 and the open-drain column
   drivers tolerate the unpowered-machine / powered-adapter (and vice
   versa) states.
+- **Power (variant C — from the MODEM port, no case opened):** the simplest
+  no-open-case route, and the one to prefer. **P1 (MODEM, DE-9 pin 7) carries the
+  same +12 V through the same R21, and it is reachable without opening anything**
+  — so a **9-pin passthrough from this adapter to the modem port** takes power
+  from there. That removes the J6 bridge from variant A entirely, on the same
+  documented-and-reversible principle the WiFi modem module already uses: it
+  powers itself off that pin (`../wifi-modem-module/README.md`). One PCB should
+  serve all three variants via the power-source jumper — variant C is variant A's
+  rail, sourced from a different connector.
 
 ## Host interface — P4 keyboard connector (O1A)
 
