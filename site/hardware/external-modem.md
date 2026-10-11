@@ -1,7 +1,7 @@
 ---
 layout: page
 title: External WiFi modem
-subtitle: A Hayes-compatible modem that hangs off the back of the machine
+subtitle: A Hayes-compatible modem that plugs into the machine's own MODEM port
 ---
 
 **Status:** concept; the P1 pinout and levels are documented.
