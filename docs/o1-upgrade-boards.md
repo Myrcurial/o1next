@@ -32,7 +32,9 @@ This doc covers the **video** side. The DD side is in
 | Character generator | stock late | **its own** (adds underline via row 9) | stock 1.44 |
 
 Sources for each row are quoted below. "—" means the material in the archive
-does not say; it is not a claim that the feature is absent.
+does not say; it is not a claim that the feature is absent. A **fourth**
+implementation, The Research Associates' TRA board, is not in the archive at all
+— it is covered separately below from its advertisement.
 
 ## OCC SCREEN-PAC — hardware only, driven by the stock BIOS
 
@@ -42,6 +44,39 @@ already contains the width-switching routine** (`E1A5H` / `E4E5H`), that the
 board announces itself at **`2400H` in bank 2**, and that the SCREEN-PAC's own
 2 KiB ROM is *the same image as the stock late character generator*
 (`docs/o1-rom-variants.md`) — so the capability genuinely is not in a ROM.
+
+## The Research Associates (TRA) — 80/100 columns, over the IEEE port
+
+A **fourth** 80-column answer, and the only one that reaches the screen through a
+*different connector*. An advertisement in *The Portable Companion* #5
+(February/March 1983, PDF p. 98 = printed 84; extract
+`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`)
+announces "**80 and 100 column video**" from **The Research Associates** (Forest
+Hill, Dunstable, Massachusetts) as "an add-on to the Osborne 1", providing:
+
+- an **80×24 window** and a **100×24 window** "into a 128 character by 32 line
+  video format" — the same 128-wide buffer this project already models
+  (`docs/o1-memory-io-map.md` §2a), so TRA widens the *window* exactly as the
+  others do;
+- **soft scrolling**, **reverse video and blinking**, **composite and TTL video
+  monitor outputs**;
+- connection "by any Osborne 1 user. **Simply plug into the IEEE port** and into
+  your external monitor";
+- "**parallel printer connection is not forfeited**" — the printer moves to a
+  **parallel port on the TRA**;
+- "a one-time, automatic disk configuration process", with the **driver software
+  supplied by the vendor**.
+
+Two things make it worth recording. First, **the interface is the IEEE port**,
+not the video bus — so a video personality (#24) cannot assume an 80-column
+upgrade lives on the video side of the machine, and the IEEE port becomes
+contended between a video device, Drive C (#6/#84), the RT-60A (#18) and Trantor
+storage. Second, its **on-board printer port** is the same "duplicated port"
+pattern as the Drive C panel (`docs/drive-c-protocol.md`): the add-on
+*re-presents* an existing connector. Neither its width-switching mechanism (no
+ROM or BIOS patch is mentioned — a driver plus a disk configuration step) nor its
+presence detection is documented in the ad, and **unlike SCREEN-PAC and Nuevo it
+is not in the archive**: the ad is all we hold.
 
 ## Nuevo — a new monitor ROM, and a CBIOS patched on disk
 
@@ -214,10 +249,11 @@ mapping between the two is not established — relevant to #24.
 
 ## What this means for this project
 
-1. **A video personality (#24) needs three interfaces, not one.** The
-   SCREEN-PAC's `E1A5H`/`2400H`, Nuevo's patched CBIOS, and Osmosis's escape
-   sequences are three different contracts. Emulating the window is not enough;
-   the *selection* mechanism differs per board.
+1. **A video personality (#24) needs four interfaces, not one.** The
+   SCREEN-PAC's `E1A5H`/`2400H`, Nuevo's patched CBIOS, Osmosis's escape
+   sequences and the TRA's **IEEE-port driver plus disk configuration** are four
+   different contracts. Emulating the window is not enough; the *selection*
+   mechanism — and, for the TRA, the *connector* — differs per board.
 2. **Osmosis is prior art for the interposer, not just for video** (#11/#12): a
    board that takes the Z80's socket and drives the bus is the shape being
    designed here.
@@ -247,6 +283,9 @@ mapping between the two is not established — relevant to #24.
   diskdef matching the image exactly (`seclen 1024, sectrk 5, blocksize 1024,
   maxdir 64, boottrk 3`).
 - `research/osmosis/Osmosis_80_Column_Board.pdf` (+ `.ocr.txt`), §3 and §4.
+- `research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`
+  — the TRA "80 and 100 column video" advertisement (video), and the Helix
+  Winchester advertisement on the same page.
 - `docs/o1-rom-variants.md` — ROM inventory, char-gen variants, Nuevo 1.51.
 - `docs/o1-memory-io-map.md` §2a — the window, the widths, the bit fields.
 

@@ -222,4 +222,41 @@ The OSBAUD instruction sheet — which the review calls thorough — or a photo 
 fitted board would settle all three; worth watching for on the second-hand
 market.
 
+## Framing — the 6850 control byte in the BIOS (#21, #56)
+
+Baud rate is only half of what a modem personality has to present. The other half
+is the **frame** — data bits, stop bits and parity — and OCC documented how to
+change it. "**Programming the serial port — modifying the serial port for
+scientific test devices**", signed by the **Osborne Computer Corporation System
+Technical Support Group**, in *The Portable Companion* #7 (June 1983, PDF
+pp. 56–57 = printed 54–55; extract
+`research/technical-articles/TPC-Issue07-1983-pp56-57-programming-the-serial-port.pdf`)
+is a worked BIOS patch:
+
+- The factory default is **8-bit data, 1 stop bit, no parity**.
+- The change is a **single control byte written into the BIOS image**: build a
+  relocatable CP/M (`MOVCPM 60 *` for a **1.3** BIOS, `MOVCPM 59 *` for **1.4**),
+  `SAVE 39 CPM60.COM`, `DDT CPM60.COM`, then **`S1FE9`** and put the code in at
+  **`1FE9H`/`1FEAH`**, and `SYSGEN` it to the target disk. So the ACIA's
+  **control-register init byte lives at BIOS offset `1FE9H`** — a second,
+  independent handle on the ACIA beyond the `2A00H`/`2A01H` port pair, and the
+  address to watch for #21/#56.
+- **Figure 1** is a "**Table of 6850 control codes**" covering all 16
+  combinations at 1200 and 300 baud — e.g. **8-N-1 @1200 = `55H`**, **8-N-1 @300
+  = `56H`**, 7-E-1 @1200 = `49H`, 8-N-2 @1200 = `51H`; arrows mark the factory
+  default. Read as the 6850's control register (word-select bits 2–4, clock-divide
+  bits 0–1) the values are exactly right, which is a useful cross-check on the
+  `docs/o1-memory-io-map.md` §"6850 ACIA detail" claim that the ACIA divides by
+  16 or 64 — the `55H`/`56H` default sits in the **÷16** field.
+- **Figure 2** is a **which-BIOS-do-I-have** test: `DDT`, `DA900`, and look at the
+  third byte after the `490` — `C3 xx E5` is a **1.3** BIOS, `C3 xx E1` a
+  **1.4**.
+
+The article does not touch the baud divider, so it is complementary to the
+Hogan/Figure 4.4 rate modifications above: **rate from the divider, frame from
+the BIOS control byte**. For the module (#56) both matter — a WiFi modem that
+only ever presents 300/1200 8-N-1 will fail on a machine whose owner has patched
+the frame for a lab instrument, which is exactly the case the article exists for.
+
+
 

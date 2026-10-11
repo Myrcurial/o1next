@@ -65,7 +65,7 @@ Everything else is either done, or is research that can proceed in parallel.
 
 ## B. Questions that appeared since the original review
 
-### B1. Hard-disk products — two in the archive, and five routes advertised in total
+### B1. Hard-disk products — two in the archive, and seven routes advertised in total
 
 The original gap 9 assumed a single OCC1 hard disk. The archive drop (#71) turned
 up a second, unrelated one. Confirmed from their own strings:
@@ -84,9 +84,9 @@ hard disks use a *port-relocatable* controller — which matters, because the O1
 I/O decode is sloppy, so "4 port boundary" is the same two-address-line decode the
 rest of the machine uses.
 
-**Two more routes appear only in the magazine archive**, with no software or media
+**Four more routes appear only in the magazine archive**, with no software or media
 of ours behind them — recorded because a survey of "what storage existed" is
-incomplete without them, and because neither is buildable from what we hold:
+incomplete without them, and because none is buildable from what we hold:
 
 - **Corvus hard disks**, reached through a link program — `CLINK2`, built from
   `CLINK2K2.ASM` and assembled by the owner with `ASM.COM` and `LOAD.COM`. *The
@@ -98,10 +98,41 @@ incomplete without them, and because neither is buildable from what we hold:
   units - a 42 Megabyte max capacity", $2475–$3650 — on the same page as the
   OSMOS 5 80-column board, which itself "**includes a Hard Disk interface for
   future plug-in expansion**" (`docs/o1-upgrade-boards.md`). No media held.
+- **Trantor TSL-5 / TSL-10** — *The Portable Companion* #5 (February/March 1983),
+  PDF p. 28: "unpack your disk, **plug it into the IEEE port**, run a simple 5
+  minute installation procedure", 5 MB $2995 / 10 MB $3395, supplied with BIOS,
+  back-up and retrieve utilities and cable
+  (`research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf`).
+  This is the line `docs/drive-c-protocol.md` records the Drive C vendor as
+  reselling at a discount; the advertisement is what pins its interface to the
+  **IEEE bus**. No media held.
+- **Helix** (Micro Computers of New Orleans) — *The Portable Companion* #5,
+  PDF p. 98, "**Winchesters Now Available For The Osborne 1**", 5/10/15 MB at
+  $2500/$3000/$3500, a "**Z-80 adaptor** card [that] leaves external ports free"
+  and a ribbon cable that "disconnects for portability"
+  (`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`).
+  No media held.
 
-So the honest count is **five** advertised storage routes beyond the floppies —
-ACT, Media Distributing/Adaptec, Drive C, Corvus and OSMOS 7 — of which only
-**Drive C** is buildable from what this project holds (#84).
+**One of the two archived products now has a name.** The Mega-byte Inc.
+advertisement in *The Portable Companion* #5 (PDF p. 25) sells the **MD-10** —
+10 MB formatted for $2295, "20 and 44 megabyte Winchesters also available" — and
+its footnote reads *"MD-10 is a registered trademark of **Media Distributing**."*
+That is the same Media Distributing whose September-1983 disk sits in
+`research/adaptec/`, and that disk ships `MD10.COM`/`MD20.COM`, matching the 10
+and 20 MB models. So the archive's "Media Distributing / Adaptec" entry **is the
+MD-10**, with an Adaptec ACB-4000 controller inside
+(`docs/occ1-harddisk-analysis.md`). The ad also fixes the *architecture*: the
+MD-10 "does not tie up existing OSBORNE ports" and is "significantly faster than
+other winchester subsystems **which use the IEEE port**" — i.e. it is **not** an
+IEEE-488 device, unlike Trantor, Drive C and the RT-60A. Taken with the ACT
+unit's Z80-socket interposer and Helix's "Z-80 adaptor card", that is a pattern
+worth recording for #84: **several vendors reached the Osborne 1's storage
+through the CPU socket or a port of their own, not through IEEE.**
+
+So the honest count is **seven** advertised storage routes beyond the floppies —
+ACT, Media Distributing/Adaptec (**the MD-10**), Drive C, Corvus, OSMOS 7,
+Trantor TSL-5/TSL-10 and Helix — of which only **Drive C** is buildable from what
+this project holds (#84).
 
 ### B2. Character-generator ROM variants — closed
 

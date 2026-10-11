@@ -76,6 +76,13 @@ The 64 KB address space is overlaid by **three banks**, selected by the
 | `4000–EFFF` | RAM — CP/M TPA, BDOS/CCP, BIOS live here |
 | `F000–FFFF` | Video RAM low 8 bits (128 cols × 32 rows char data) |
 
+**Page zero.** CP/M owns `0000–00FF` while a program runs, but the *Osborne 1
+User's Guide* "Memory Allocation" chart (p. R-243) marks **`0050H–005BH` — 12
+bytes — as "not used"**, and at least one published program relied on that: the
+date facility in *The Portable Companion* #7 keeps the system date there in both
+binary and ASCII form (`docs/rt60a-analysis.md`). Treat it as documented free
+scratch space — worth remembering for the interposer (#12).
+
 ### Bank 2 — BIOS ROM + memory-mapped I/O ("shadow mode")
 Selected when `ROM MODE*` is active (low). Only `0000–3FFF` is affected;
 `4000–FFFF` still reads bank 1 RAM.
@@ -254,6 +261,12 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
   (1983, $59.95, 16 DIP-switch rates) is soldered to the ACIA's own clock and
   supply pins and replaces the clock net outright — see
   `docs/o1-modem-serial.md`.
+- **The ACIA's control-register init byte is in the BIOS at `1FE9H`.** The
+  vendor's own "Programming the serial port" patch (*The Portable Companion* #7,
+  June 1983, PDF pp. 56–57) rewrites `1FE9H`/`1FEAH` to move off the 8-N-1
+  default, with a table of 6850 control codes (`55H` = 8-N-1 @1200). A second
+  handle on the ACIA besides the port pair — see `docs/o1-modem-serial.md`
+  §"Framing".
 - Modem status (DTE): MSB (pin 4), MCB (pin 8), RI (pin 9); BIOS `LISTST`
   at `0E12D` returns `0FFH`/`00H`.
 - **IRQ0** = ACIA interrupt (one of three IRQ sources; see §5).

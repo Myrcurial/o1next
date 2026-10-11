@@ -188,7 +188,16 @@ close files") → `DCA.COM`.
   memory for **8–10 hours** after power is lost, "deliberately or through power
   failure". Announced but not shipping at the time of writing, manual still being
   written, target price **$150**.
-- The same vendor resold **Trantor** hard disks at a discount (not reviewed here).
+- The same vendor resold **Trantor** hard disks at a discount. The Trantor
+  advertisement itself (*The Portable Companion* #5, February/March 1983,
+  PDF p. 28; extract
+  `research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf`)
+  shows what the product was: the **TSL-5** and **TSL-10**, **5 MB $2995 /
+  10 MB $3395**, *"unpack your disk, **plug it into the IEEE port**, run a simple
+  5 minute installation procedure"*, supplied *"complete with BIOS, back-up,
+  retrieve utilities and cable"*. So Trantor's Winchester is a **third
+  IEEE-488-attached** storage device on this machine alongside Drive C — one more
+  claimant on the port that #84 has to arbitrate.
 
 Extract: `research/technical-articles/TPC-Issue14-1984-pp43-47-drive-c-loader-and-archive-programs.pdf`.
 
