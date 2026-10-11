@@ -99,6 +99,12 @@ layouts cannot be built locally. Two ways to see a change before pushing:
 Rendering the PDF needs an external engine for pandoc (`typst`, `tectonic` or a
 LaTeX). Without one the tool says so and writes the HTML pages anyway.
 
+**The PDF is committed**, because the Pages deploy builds Jekyll but does not run
+our tools — so whatever is in the repository is what gets served. That also means
+a document edited in `docs/` needs `tools/build_book.py` re-run before the
+chapter pages are correct; `.github/workflows/generated-artifacts.yml` runs both
+`--check` modes so a stale artifact fails in CI rather than shipping quietly.
+
 ## Planned articles (tracking issue)
 
 - My first computer

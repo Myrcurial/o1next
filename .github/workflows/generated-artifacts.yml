@@ -1,0 +1,63 @@
+name: generated artifacts
+
+# The site's font family and the book's chapter pages are *generated* and then
+# committed, because GitHub Pages serves the repository as-is -- the deploy
+# workflow builds Jekyll but does not run our tools.  That only stays true if
+# the generated files are kept in step with their sources: edit a document in
+# docs/ without re-running the builder and the published book silently goes
+# stale, still showing the old text.
+#
+# Both tools have a --check mode for exactly this, and neither needs the host
+# tooling that produced the files.  The PDF is deliberately *not* checked: it
+# needs typst, which this runner does not have, and it is committed rather than
+# built on deploy.
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - 'research/README.md'
+      - 'book/**'
+      - 'tools/romfont.py'
+      - 'tools/build_book.py'
+      - 'site/assets/fonts/**'
+      - 'site/compendium/**'
+      - 'site/_includes/compendium-toc.html'
+      - '.github/workflows/generated-artifacts.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'research/README.md'
+      - 'book/**'
+      - 'tools/romfont.py'
+      - 'tools/build_book.py'
+      - 'site/assets/fonts/**'
+      - 'site/compendium/**'
+      - 'site/_includes/compendium-toc.html'
+      - '.github/workflows/generated-artifacts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generated:
+    name: fonts + book pages match their sources
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # romfont.py rebuilds the whole family to compare bytes, so it needs the
+      # same build-time dependency the tool documents.
+      - name: Install fonttools
+        run: pip3 install fonttools brotli
+
+      - name: Font family matches the character generator ROM
+        run: python3 tools/romfont.py --check
+
+      - name: Book pages match their source documents
+        run: python3 tools/build_book.py --check
