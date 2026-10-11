@@ -128,3 +128,98 @@ Also on sheet 7 (for the record): the ACIA baud clock comes from **UC3
 (LS161)** dividing a `4USEC`/`2USEC` tap (jumper **J1** selects the rate), and
 **MODEM RI** routes to the video-PIA **UC15 CA2** input (sheet 5) — consistent
 with `docs/o1-memory-io-map.md`.
+
+## Baud-rate options the archive documents (#21)
+
+The stock machine gives 300/1200 (J1 in) or 600/2400 (J1 out), and the factory
+documents 2400/9600 as a modification — the jumper and divider detail is in
+`docs/o1-memory-io-map.md` §"6850 ACIA detail". Two further things come from
+*The Portable Companion* #8 (July 1983).
+
+### The factory modification, as the Companion cites it
+
+The issue's "**The CRT Connection**" box (PDF p. 87, printed 85) tells a user who
+wants an 80-column terminal to *"set your computer for 9600 baud using Osbaud or
+the method shown on page 22 in the Technical Manual."* That page is the
+manual's **Figure 4.4 "Baud Rate Hardware Modification"** — the LS161/LS163 at
+C3, pin 2 moved, J2 fitted, J1 *"DON'T CARE"* — quoted in
+`docs/o1-memory-io-map.md` §"6850 ACIA detail". So the Companion's
+pre-SCREEN-PAC answer to "how do I get 80 columns?" was the **serial port plus
+the factory's own baud mod**, not a video board.
+
+### The CRT recipe itself
+
+1. Set the machine for **9600 baud** (as above).
+2. Connect a standard serial cable between the terminal and the computer. The
+   cable is only **pins 1, 2, 3 and 7, straight through** (1–1, 2–2, 3–3,
+   7–7).
+3. Set the terminal's DIP switches to **1 start bit, 1 stop bit, 8 data bits,
+   no parity, full duplex**.
+4. `STAT CON: = CRT:` to make the terminal the console.
+5. *"The end result is a 80-column, 9600 baud refreshed, block cursor
+   screen."* The procedure is *"untested with terminals other than
+   Televideo"* — the reviewer's was a **Televideo 920C**.
+
+### Advent Products "Osbaud" — a clock substitution, not a bus interposer
+
+Reviewed by **Brad Baldwin** in the same issue (PDF p. 87, printed 85; extract
+at
+`research/technical-articles/TPC-Issue08-1983-pp87-osbaud-baud-rate-generator.pdf`).
+$59.95, **16 DIP-switch-selectable baud rates**, used by the reviewer at **110**
+(an ASR33 Teletype), **9600** (the Televideo 920C) and **19200** (a $10,000
+high-speed band printer), with mainframe up/downloads at high speed. It is
+*"a small auxiliary circuit board … soldered to the main logic board **in the
+area behind the serial port**"*, with the DIP switches reached through **a small
+slot cut in the venting grill** and a self-adhesive rate chart stuck to the
+keyboard. Advent even supplies the .050" Allen wrench for the brightness and
+control knobs, and the package covers both case colours (blue/gray and
+black/brown). Installation wants a Phillips screwdriver, an **Xacto knife to cut
+across a circuit trace**, and a low-wattage soldering iron — and, like any such
+product, **voids the warranty**.
+
+#### The four solder points, decoded
+
+*"Osbaud is soldered to **pins 4 and 12 of the 6850 UART**, **pin 7 of the
+74LS32**, and **pin 7 of the 74LS04**."* Read against the schematic
+(`docs/o1-mainboard-schematic.md` sheet 10, and §"6850 ACIA detail" in the
+memory map):
+
+| Solder point | Is | Why |
+|---|---|---|
+| 6850 **pin 4** | **TxCLK** — strapped on the board to pin 3 (RxCLK) | the clock *input*: one wire drives both halves of the ACIA |
+| 6850 **pin 12** | **Vcc** | +5 V, taken from the ACIA's own supply pin |
+| 74LS32 **pin 7** | GND | ground |
+| 74LS04 **pin 7** | GND | ground — and this one is **UB3**, the inverter inside the ACIA's own baud divider |
+
+So OSBAUD does not tap the bus, needs no address, and does not use the LS161's
+socket: it **replaces the ACIA's clock**, powered and grounded from the ACIA's
+immediate neighbourhood. That makes the Xacto knife unambiguous — the trace to
+cut is the one carrying the factory clock (UC3's `QD`) to the ACIA's clock pins,
+so that OSBAUD's oscillator is the only driver on that net.
+
+#### What the design has to be
+
+The review gives the connections and the rate count, not a schematic, so the
+rest is inference — but tightly constrained:
+
+- The ACIA still divides by 16 or 64 internally (the factory's Figure 4.4 is
+  captioned *"SPEED SELECTED W/IN 6850"*), so OSBAUD's clock is **16× the marked
+  rate** on the ÷16 setting — 800 Hz … 307.2 kHz across 50 … 19200 baud.
+- Sixteen rates off a DIP code means sixteen selectable taps, but **a single
+  binary chain from one crystal cannot produce the odd rates** of the standard
+  16-rate list (110, 134.5, 2000), so the divider has to be
+  **preset/programmable** — the same trick the factory divider next door uses,
+  its LS161 being a preset-load counter (`RCO` → inverter → `/LD`).
+- The three rates the reviewer names (110, 9600, 19200) all sit inside the
+  classic 50/75/110/134.5/150/300/600/1200/1800/2000/2400/3600/4800/7200/9600/
+  19200 set — the same list Nuevo's optional generator advertises ("16 baud
+  rates from 50 to 19.2K", `docs/o1-upgrade-boards.md`).
+
+**Open:** the crystal and divider topology, whether the ACIA is left in ÷16
+mode, and where the **74LS32** sits on the board (the LS04 is UB3 on the serial
+sheet; a 74LS32 near the serial port has not been located on the schematic yet).
+The OSBAUD instruction sheet — which the review calls thorough — or a photo of a
+fitted board would settle all three; worth watching for on the second-hand
+market.
+
+
