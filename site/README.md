@@ -23,6 +23,11 @@ engineering-notes tree and stays as-is.)
 - `_config.yml` — Jekyll config (title, theme, permalinks)
 - `index.md` — landing page
 - `_posts/YYYY-MM-DD-title.md` — blog entries
+- `hardware/` — the Hardware section: one page per planned device, plus an index
+- `compendium/` — the Osborne 1 Compendium. `index.md` is hand-written; the
+  chapter pages are **generated** by `tools/build_book.py` from
+  `book/manifest.txt` and should not be edited by hand
+- `_includes/compendium-toc.html` — **generated** table of contents
 - `assets/` — images; keep photos reasonably sized and prefer links to
   `research/pictures/` where the same photo already exists in-repo
 
@@ -46,6 +51,13 @@ The look is taken from the machine, not invented:
   **80-column** mode at `80ch`, the width this project's video work is about.
   Changing mode is two lines in `main.css` (`--mono` and `--measure`). The
   measure is set in characters rather than pixels because the cell is fixed.
+- **The SCREEN PAC switch** in the masthead makes that a user choice: three
+  radios that force the matching face *and* its own column count together, so the
+  rendered window is the **same physical width** in all three modes — the type
+  narrows, the screen does not. It is pure CSS (`:has()`), so the site keeps its
+  no-script character, and where `:has()` is unsupported the 80-column default
+  simply stands. `tools/site_preview.py` accepts `home-52` / `home-80` /
+  `home-104` so any mode can be previewed offline.
 - **The wordmark** (`_includes/logo.svg`) derives from the Osborne Computer
   Corporation logotype: O, N and E are its letterforms; 1, X, T and G are drawn
   to the same measured metrics. It is an homage for a non-commercial project and
@@ -62,9 +74,30 @@ Jekyll cannot be installed against this machine's system Ruby (2.6), so the
 layouts cannot be built locally. Two ways to see a change before pushing:
 
 1. Render a preview built from the real CSS, logo and font:
-   `tools/site_preview.py home|post /tmp/preview.html`, then
-   `qlmanage -t -s 1300 -o /tmp /tmp/preview.html` and look at the PNG.
+   `tools/site_preview.py home|home-52|home-80|home-104|post /tmp/preview.html`,
+   then `qlmanage -t -s 1300 -o /tmp /tmp/preview.html` and look at the PNG. The
+   `-52`/`-80`/`-104` modes render the SCREEN PAC switch in that mode.
 2. Push and read the deployed page — `curl` the site and check the markup.
+
+## The Osborne 1 Compendium
+
+`compendium/` is the book (#75), and it is **assembled rather than written**:
+
+- **`book/manifest.txt`** is the table of contents — one line per chapter naming
+  its source document and its status.
+- **`tools/build_book.py`** reads the manifest and generates the chapter pages,
+  the table of contents include, and (when a PDF engine is installed) the PDF.
+  `--check` fails if the committed pages are stale, so the generated files can be
+  verified in CI.
+- **The chapter pages are generated.** Do not edit them; edit the source document
+  in `docs/` and re-run the tool. The landing page, `compendium/index.md`, is
+  hand-written and is not touched by the build.
+- The tool never writes into `docs/`, and it marks every page as a draft with a
+  banner, because the book is assembled from documents that are themselves
+  explicitly partial.
+
+Rendering the PDF needs an external engine for pandoc (`typst`, `tectonic` or a
+LaTeX). Without one the tool says so and writes the HTML pages anyway.
 
 ## Planned articles (tracking issue)
 
