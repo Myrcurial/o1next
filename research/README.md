@@ -105,7 +105,8 @@ The maintainer reads the issues and hands over the ones worth keeping, giving th
 
 Two things to know before cutting pages:
 
-- **Page numbers are PDF pages, not printed pages.** Both issues checked so far
+- **Page numbers are PDF pages, not printed pages.** All three issues checked so
+  far (13, 14, 15)
   print their own numbers two lower (`PDF = printed + 2`), so an article "on page
   26" is PDF page 26 and printed page 24 — and cutting printed 26 would miss the
   article's title page. Confirm with `pdftotext -f N -l N -layout ISSUE.pdf - |
