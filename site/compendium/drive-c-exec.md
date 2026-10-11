@@ -19,6 +19,13 @@ venture*. 111 pages, image-only scan, OCR'd at 300 dpi per the
 [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) convention. The Osborne 1 manual already in the archive is
 `Drive_C_Users_Manual.pdf` — **second edition, June 1984**, same publisher.
 
+**Provenance** (recorded 2026-10-11, closing the open item in
+[`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md)): supplied by **Jim Rayburn** from a private Facebook
+group, posted 2024-01-06 — two posts,
+[.../2063148960719887](https://www.facebook.com/groups/690000664701397/posts/2063148960719887/)
+and
+[.../2023247321376718](https://www.facebook.com/groups/690000664701397/posts/2023247321376718/).
+
 One bibliographic note worth recording: the cover is stamped **PRELIMINARY**,
 while every running header in the body reads "(final draft)". The PDF is a
 draft/review copy, not a production print. Its *content* is nevertheless
