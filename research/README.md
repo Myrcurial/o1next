@@ -105,6 +105,11 @@ The maintainer reads the issues and hands over the ones worth keeping, giving th
 2. OCR the extract with `tools/ocr_pdf.sh OUT.pdf` — adjacent, per the convention
    above. **Wait for its `Wrote <path>` line before committing**; the file exists
    while it is still being written.
+   - **If you drive `tesseract` by hand, do not render into `/tmp`.** On this
+     machine it cannot open images under `/tmp` (Leptonica reports the file as
+     not found) and, with `2>/dev/null`, fails *silently* — a 43-page sweep over
+     `/tmp` returned nothing at all and looked like "no matches". The script is
+     fine because it renders into a `mktemp -d`.
 3. Add a row below, and write the findings into the `docs/` page they bear on
    with the extract cited.
 
