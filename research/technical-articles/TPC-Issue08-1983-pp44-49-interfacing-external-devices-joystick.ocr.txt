@@ -1,0 +1,706 @@
+
+===== PAGE 1 =====
+
+‘DEVICES |
+
+add a game joystick to the
+: Osborne 1
+
+Kelly Smith
+
+42 ‘THE PORTABLE Companion july 1989
+
+===== PAGE 2 =====
+
+Editor's note—The subject of external devices talking to
+and interacting with a personal computer is one of great
+interest. Today, many applications exist for scientific in-
+struments to work side by side with a computer. For
+example, in the medical profession, a microcomputer
+can be used to monitor a patient's vital signs and take
+appropriate steps when the measurements appear ab-
+normal. in the engineering field, computers routinely
+monitor and control temperature, light intensity, valves,
+and electrical current flow, to name a few.
+
+Agame joystick is not a scientific instrument, but it
+does represent an external device that can produce
+certain responses on a host computer. It’s also a pro-
+duct that is inexpensive, sold just about everywhere,
+and simple to connect and operate. Keep in mind that
+the theories and principles behind interfacing a device
+as simple as a joystick can be carried over to any num-
+ber of applications. In that regard, Kelly Smith’s article
+provides an excellent foundation towards the under-
+standing of the Osborne 1 as a tool that can interact
+with its environment. In this first of two parts, Kelly
+shows you how to:
+
+* Connect and wire an Atari joystick
+
+© Create an "Etch-a-Sketch” assembly program that
+tests the joystick
+
+© Write a program that can be used within any MBASIC
+application requiring a joystick interface
+
+In next month's Portable Companion, we'll publish
+Kelly's educational and informative SPACEWAR pro-
+gram, which utilizes the joystick —bb
+
+Osborne 1 IEEE-488 to Joystick, Interface
+Adaptor Cable
+
+Time now to gain alittle hardware experience. The
+parts required for the interface adaptor cable can be
+purchased at an electronic supply house or your local
+Radio Shack retailer. You will need:
+© one DB-9 Male connector (solder type)
+© one 26 pin (13 pin dual row) card edgefflat ribbon
+
+connector that mates with the IEEE-488 connector on
+
+your Osborne
+* about 7 inches of 12 conductor flat ribbon cable (14
+conductor is standard, just strip off 2 conductors to
+make 12) is alsoneeded
+© an Atari game joystick (about $15.00)
+(See the note at the end of this article for information on
+obtaining a ready-made game diskette, cable and
+joystick.)
+
+The external IEEE-488 connector (labeled “IEEE-
+488") pin assignments and all relevant data signals ap-
+pear as shown in Figure 1 when looking at the front of
+your Osborne 1 computer:
+
+p32 DL Do
+25023 pl o18 ays 3 at
+ert) (right)
+2624022 2018 16 os?
+
+cup" |p? 6 pss
+
+Figure 1
+
+The DB-9 Male connector (it mates with the Atari
+joystick) pin assignments and data signals appear as
+shown in Figure 2 (back view, solder pin side). Note that
+only signals D0 to D4 and sample signal (GND) are
+used when wiring the joystick interface cable:
+
+a eT
+
+so 8 7 6
+exp bs
+Figure 2
+
+D0 to D7 comprise the eight possible data bits for the
+joystick data byte. Signal GND is a ground return that
+may be sampled as a switch closure in any one of five
+possible switch positions (Up, Down, Right, Left, Fire) of
+the game joystick. Signal name, connector pin numbers
+and functions are assigned as shown in Figure 3
+
+Signal IEE-488 Pin # Joy Stick Pin # Function
+
+Data
+
+Nove up
+Nove Down
+
+Data
+Data
+Data
+Data
+
+(not usea)
+{not used)
+
+Hove
+
+Right
+
+Nove Lett
+
+Pare Button
+(spare)
+(spare)
+
+Ground
+
+(not used)
+2 @
+
+(spare)
+Sample Signal
+
+Figure 3
+
+If assembled correctly, the flat ribbon cable should
+exit UP from the IEEE-488 connector, and then loop
+down (for strain relief) to go under the case of the
+Osborne 1 (if you rest its edge on the keyboard case
+for better screen visibility). The cable is then neatly out
+of the way of the keyboard. Also, note that other game
+joysticks can work, and in fact some offer as many as
+eight different switch closures. If you feel so inclined,
+experiment. | chose just one of the easy possibilities,
+because it was convenient to modify SPACEWAR (my
+game appearing in next month’s issue), that | had previ-
+ously written to use the Osborne 1 numeric keypad for
+position control.
+
+Keep in mind that this does not even have to be a
+game joystick. Any switch closure to the ground pin
+can be sampled from a variety of sources—magnetic
+switches, mercury ‘tilt’ switches, bi-metallic tempera-
+ture switches, etc., etc. (| am hinting that a home con-
+trol/security system would be VERY EASY to do...
+consider the possibilities). Just one word of caution:
+these switches must have full ISOLATION from any
+source of external electrical power.
+
+DO NOT (for example) hook your Osborne 1 up to
+your front door bell/buzzer switch. Itis guaranteed
+“Zorch-City” as you fry the electronics in your $1,795
+Osborne the first time someone rings the bell. “Zorch”
+is one computer game that will cost you more than a
+quarter to play.
+
+July 1983 THE PORTABLE Companion 43
+
+===== PAGE 3 =====
+
+A Simple “Etch-a-Sketch” Checkout Program
+
+Now, we need to create a simple program that checks
+all possible switch combinations on our newly-made in-
+terface adaptor cable by graphically displaying the po-
+sition of a “pointer” on the screen display of the Os-
+borne. It's easy to make an electronic “Etch-a Sketch”
+using the entire 4096 character positions of the display.
+Edit the following assembly language program with
+WordStar (as a Non-document), assemble and load it
+(refer to your User's Reference Guide for the discus-
+sions of ASM and LOAD).
+
+Now, connect your interface adaptor cable to the
+IEEE-488 connector on your Osborne 1 front panel, boot
+your system with a diskette that has been SETUP with
+Auto-Scroll set to OFF, and locate the pointer that is in
+the middle of the display screen. Use the CTRL (Con-
+trol) and Left Arrow key to scroll the screen display until
+you locate the pointer. Now the fun begins!
+
+If your interface adaptor cable is wired properly, you
+should be able to write all over the screen in any direc-
+tion. Notice that any point that is crossed-over suddenly
+flips to a brighter (or dimmer) display position. Swirling
+the joystick 360 degrees will produce some very inter-
+esting patterns. Press the button on the joystick at any
+time to entirely clear the display screen.
+
+The code at label “begin” initially set the register
+pair H and L to a value that “points” to the center of the
+Osborne 1 screen memory. This pointer [HL] is then
+saved (push h) on the push-down stack to preserve its
+content from the certain destruction of the use of [HL]
+in the routines “delay” and subsequent “call 0e154h”
+(the IEEE-488 input parallel poll routine).
+
+The call to a delay subroutine is required only if you
+want to draw things on the screen with the speed of nor-
+mal human response time (drawing circles, angles,
+etc.). Remove the call to the delay subroutine and the
+response to any joystick movement is instantaneous —
+filling the screen with patterns in a flash. The actual
+“workhorse” that reads the joystick is all taken care of
+for us in the IEEE-488 input parallel poll routine. A call to
+that address simply returns the bit pattern (in the [A]
+register) corresponding to the mechanical switch
+closures within the joystick.
+
+The pointer [HL] is recovered from the stack (pop h),
+and the joystick data in [A] is then compared to see
+which (if any) switch position(s) have been closed. Also,
+a corresponding offset value is pre-loaded into regis-
+ters [DE] in anticipation that the value will be added to
+[HL] from [DE] (in the “wrt$crt" subroutine that positions
+the pointer in the screen memory display). The main
+program loops through all eight possible switch closure
+Positions (refer to Figure 4), checking for the next direc-
+tion to move the pointer by adding an offset value to the
+current position in screen memory ... whew!
+
+44 THE PORTABLE Companion
+
+July 1983
+
+(oe) =
+
+northgeast+5
+Toe} ==127
+
+northswest=9
+[DE] ==129
+
+== casted
+(De) =1
+
+southseast-§
+
+south$wost=10
+
+(oe) =127| southe2 toe} =123
+(DEI #128
+Figure 4
+Electronic Etch-a Sketch
+org -100n—¢ start of P/M transient program area
+
+Bogint De,
+
+,0#Sbeny center of 126 X 32 osborne 1 screen,
+starts puen BUY eave pal
+
+call Senste } 1n"b:
+
+Angie deneity) Osborne
+
+pep get pointer to video screen position
+Senter: 1 etay where you are.
+cet «0 Af taro, ction is canter posieion
+3 wrtsert
+orth: 4 up one Line,
+Pet teste Alaskat
+ge Meesere
+fouens 4 own one Line
+re
+TH Sa20
+gr Ntdere
+Pete to Jersey"
+je Mitsore
+forenseasts 1 back one Line, plus one character position
+gets a norteastors a'biowin mate...
+je Mesare
+‘ournseasts: 1 over one 1ine, plus one character position
+get 1 otf to nncor center...
+St Gags
+ge Mtieee
+sei 8,1 Tae went young joy ation
+Sr Mefcet
+EL eeaay 7 Montes
+st weesere
+Southwest 1 over one line, minus one character position
+# wetsert
+eps 10m "on a clear Gian, you can seek forever
+jmp eat + loop back and sample joy stick again
+poe
+oe 1 as S€ by magic, the screen is cleared
+daddy ad position offset eo {xt}
+Geo ash below soreen menory?
+See 4ar0p a block pattera on the screen
+ee S05 tata posleion
+nooks BP ple Joy stick asain
+aetay: isi heaven | delay amnile, to Keep fon moving £0
+
+Set loop
+
+===== PAGE 4 =====
+
+Where do these values come from? Well, if we exam-
+ine the original layout for the assignment of IEEE-488
+data signals D0 to D7 (and we throw in a little binary
+to decimal conversion), we find that each data bit posi-
+tion has a corresponding decimal value, as shown in
+Figure 5.
+
+Data Bit #: D7 D6 «Stk?
+Decimal Value: 128 6 032 «6 BD
+Figure 5
+
+The “real” binary ones-and-zeros bit patterns that
+come from the IEEE-488 interface are then translated
+directly from bit number positions to decimal value,
+and finally, to direction as shown in Figure 6.
+
+aecinal
+value
+
+bits #5
+76543210
+
+airection offset
+0000000
+0000001
+0000010
+0000100
+oo00101
+0000110
+0001000
+0001001
+0003010
+0010000
+
+center ° o
+north 1 -128
+south 2 Te
+eat 4 a
+north ease 5 127
+South east ‘ sis
+
+8 a1
+
+3 129
+
+a ey
+
+16 (clear screen)
+
+west
+orth west
+south west
+
+0
+Five bueton G
+
+Figure 6
+
+Notice that north east, south east, north west, and
+south west are the sum of the binary values (actually two
+simultaneous switch closures)—combinations such as
+3 and 7 are not mechanically possible within the joy-
+stick. The only exception to this is bit position 4 (decimal
+value 16) that | chose to use as the “Fire Button” (more
+on that in Part Two). As programmed, you MUST return
+to center position on the joystick to detect the closure of
+the 'Fire Button’ ONLY. Can you figure out how to fix this?
+If you have a joystick with three more switches, they
+could just as well be assigned to bit positions 5, 6, and 7
+and “sampled-in-software” accordingly.
+
+High Level to Low Level
+IEEE-488 Interfacing
+
+Allof the IEEE-488 interfacing was done very simply
+for us with just a “call” to a predefined high level subrou-
+tine built-in to your Osborne 1 computer. There are
+times, however, when you must access certain portions
+of a computer at the very basic or lowest level of the
+computer—now we get into the very soul of the machine.
+
+The IEEE-488 Bus implementation is really just a par-
+allel data port controller that can be used for a variety
+of interfacing possibilities that require byte-wide (8 bits
+ata time) data. This controller is known as a 6821 PIA
+(Peripheral Interface Adaptor), and may be pro-
+grammed in a variety of different input/output contro!
+modes. We are going to program it at the low level in as-
+sembly language for use in the joystick control game
+called SPACEWAR to be introduced next time around.
+
+First the low level programming: Edit the assembly
+language code shown below with WordStar (yes, Non-
+document), as a file called JOYSTIK.ASM—assemble it,
+but DO NOT load it—we need to modify the .HEX file
+that is generated from the assembly, in the various steps
+that follow on the next page.
+
+Joystik. ASM
+
+} routine to read an Atari joystick via the 6621 PIA/P
+
+/airection register
+
+Boreoz eqs 2802h G21 fia portab data/Gicection register
+portbs equ 290m Gezl is portcb control regi
+Fiagpos qu Seoun } San/com elag position addres
+
+eee =r dotine true
+
+ly one of the following ‘versions! may be set true for assembly +++
+
+land 100k at the monitor version number
+
+se vers
+
+Sig, Seddon
+Sty, Sebton
+baat ao Wve Joystick data here (initially no airection)
+
+Fottons at,
+
+, ‘ng Foutine (probably tm BASIC)
+J seproueine co Anissaisse 6821 Pua/Paraiiel port for joystick controt
+fectone at 1 quiet please
+
+1 fom onfren oft
+
+ei
+
+corm the systen that zon {8 on
+sar"control and data porte co” float the 6821 PIA
+
+‘et control for peripheral register-a direction in
+
+at for direct date out
+
+an on/ron off
+
+TE ea, FIMfmR/ER Sifeenenat we are Baok neon
+= 1 you say talk now
+July 1983 THE PORTABLECompanion = 45
+
+===== PAGE 5 =====
+
+JOYSTIK.HEX after
+assembly of
+JOYSTIK.ASM
+
+Atterassembly of JOYSTIK. ASM, two files will be cre-
+ated. They are JOYSTIK.PRN, and JOYSTIK.HEX. Enter
+TYPE JOYSTIK.HEX and your keyboard RETURN key
+then compare it to the following explanation of what a file
+of type HEX is comprised of (if you have a printer. Also
+enter CTRL-P (press the CTRL key and the P key to-
+gether) just before the RETURN key to get a listing
+(entering CTRL-P again, will turn the printer output off):
+
+start of record identifier (colon character)
+
+1 byte record byte count (10 Hex/16 Decinal)
+2 byte load address (EABO Hex, for Ist record)
+1 byte recora type (read)
+
+16 bytes data 1 byte checksum
+
+|
++10BA800000F 3030008 3208P3A002947D3013E0127 <-- 1st record
+10EA900032082PFRIGESIP32002XC9RID300A32C1 C= Ind cecard
+F1DBAADODDaEe320129220029320¢120129A8320332 <—- ind record
+$10EKB00029263202293£043203293EPF9202290390 <-- 4th record
+‘08EAc00001 3E01 3200RFPBCIID E> Sth Fecora
+#9000000000 <-~ 6th (and final) record and ond of file
+
+Now, enter TYPE JOYSTIK.PRN and note the address
+of ‘sdata’ (joystick data, address EA80, 1.4 bios), ‘rstick’
+(read joystick subroutine, address EA81), ‘istick’ (initial-
+ize joystick subroutine, address EA9B), and ‘end’ (end
+of assembly, address EAEC8). Write down the label
+names and associated address values, as we will need
+to use them later.
+
+JOYSTIK.HEX
+after 2nd pass of
+WordStar edit
+
+Good, you have isolated the ‘load information’ from
+the data field ... now locate the end of the data field (one
+byte before each checksum) and enter RETURN as
+follows:
+
+:10BAg000
+(00F3D300AF3200EP3A00294703013801,
+2B
+
+F2ozag000
+3208BFPB7#E6LF3280EAC9P3D300AF32
+oo
+
+SLOBAA00O.
+
+(BEF 320129320029304320129AF3203
+36
+
+#1oEaBoo0
+292320229380632032938FP22022903
+Ey
+
+rO8EAco00
+
+013e01220eRrFRCS
+
+2
+
+Fo000000000
+
+46 THE PORTABLE Companion —_ June 1983
+
+JOYSTIK.HEX
+after 1st pass of
+WordStar edit
+
+Normally a.COM (command) file would be created
+from the HEX file by using the CP/M LOAD command
+But in this application, we want just the data portion of
+the HEX file to be used in this special application to in-
+terface MBASIC to the Osborne 1 computers machine
+code (i.e., the data!). So first, we will use WordStar to
+edit the JOYSTIK.HEX file in either document or non-
+document mode (we will clean-up the file with PIP later,
+since it will contain special control code left by Word-
+Star that antagonizes MBASIC). Locate the start of the
+data field in each record, and enter RETURN (<cr> is
+used here to indicate the carriage return position) as
+follows:
+
+208x800 :
+bar303008r32008e3A0029470201360128
+S2oanePa?en61e 2¢0EAca#30300A32C9
+310BAA000
+
+(0gB# 3203299200253804320129AF320236
+$108A8000
+s5232022990432022998002202290394
+
+0238013200BFFaC921
+0000000000
+
+JOYSTIK.HEX
+after 3rd pass of
+WordStar edit
+
+Great. We are almost done, and you are finally finding
+‘out what those mysterious .HEX files were all about.
+Now position the WordStar cursor in front of each colon
+character and press ~ Y. Now carefully go back and de-
+lete each one byte checksum. When done, your original
+-HEX will look like this:
+
+00'30300ar32068"3n00294703013E01
+320BEFFS75E61F 3200EAC9P 3D300AF22
+088F3201233200293804320129A3203
+292832022938043203293EFP 32022903
+O1de01320eEFPECS
+
+===== PAGE 6 =====
+
+JOYSTIK.HEX
+after 4th pass of
+WordStar edit
+
+Now that we have stripped the file to its bare essen-
+tials, we must enter a comma character to isolate each
+machine code data byte, one from the other, that will be
+required by MBASIC’s READ statement. (Be sure you
+are in WordStar's INSERT mode (*V toggles insert ON
+and OFF) Do two character moves to the right (~D), en-
+ter acomma, two moves again, etc., etc. When you are
+done, the final (honest, we really are almost done!)
+HEX should appear as follows:
+
+00,P3,03,00,AF,32,08,EP, 3A,00,29,47,03,01, 38,02
+
+2) 8048K,C9,P3,D3,00/AP, 32
+9, 3E,04, 32, 01,29, AF, 32,03
+2403429, 38,PP, 32/02/29,03
+
+Converting
+JOYSTIK.HEX to
+JOYSTIK.BAS
+
+Now, enter *K and D to save JOYSTIK.HEX, then use
+“0 to rename JOYSTIK.HEX TO JOYSTIK.BAS. With that
+done, edit JOYSTIK.BAS adding MBASIC line numbers
+(starting with some high number like 8000), and the
+statements required to block move the machine code
+into the area in the Osborne 1 system BIOS that nor-
+mally is used for diskette data buffer transfers (this last
+comment was for the ‘Techy-Types’ only):
+
+6000 DEFINT K ‘double density (1.4x) code. see note for others.
+S010 BSNK=4uEAGO:RoTR-sHEABL: 1S7K-GHEASS:He"012345¢ 789ABCOEE"
+8020
+
+030
+040
+050
+8060 Bana
+
+8070 DATA
+boeo bara
+
+'GHEABO TO EHEAC?
+INSTR(HS,LEPTS (DS, 1) )~1) #16+INSTR(HS , RIGHTS (DS 1) )=1
+xT: RETURN
+5,03, 00/A8, 32, 08,EP,3A,00,29,47,D3, 01, 38,02
+BEF FB, 78,/E6/1P,32,80,ER,C9,/P3;D3/00,AP,32
+29 ,3E,04,32/01,29,AF ,32,03
+P,32,02,29,03,
+
+Change to 61
+Change to GHEE:
+
+‘ae monitor rom. (Also EA on line
+ind ED on tenth byte on line 8060
+and EE on tenth byte on line 8060 => 1.2 mon rom
+
+Line 8000 defines integer variable K as the data value
+that will be used by the read statement in Line 8030 to
+“fetch” the data (your modified . HEX file) in Line 8050 to
+Line 8090. Line 8010 defines the addresses that you
+wrote down earlier. It performs the following:
+
+© calls the subroutine to initialize the joystick (ISTK)
+
+@ reads the joystick (RSTK)
+
+© calls an address from which we may PEEK at the data
+value read from the joy stick (DSTK)
+
+© and finally calls a string constant H$ that defines the
+permissible range of hexadecimal digits (0 to F hex,
+‘or 1 to 15 decimal)
+
+Ifyou're using double density, the addresses are the
+same as the addresses shown here; if you're using 1.2
+or 1.3 BIOS, they will have an offset of either 300 or 400;
+e.g., for 1.2 bios, EE9B instead of EA9B, EE81 instead of
+EA81
+
+Line 8020 is the statement to define the start of aFOR
+NEXT loop, where A is a counter whose first count is the
+“org” address (program origin EA80), and a final count
+of “end” minus one (EAC8-1 = EAC7). This is the block
+move address counter that will be used in Line 8040,
+
+Line 8030 reads the data sequentially into string D$
+from each DATA statement in Line 8050 to 8090, where
+the integer variable K is converted byte-by-byte to bi-
+nary machine code (something the Z80 Central Proces-
+sor Unit (CPU) in your Osborne 1 can actually execute
+directly without MBASIC’s interpretive aid),
+
+Line 8040 is simply a means to POKE into memory,
+the value in K pointed to by the address counter A. Just
+remember that Ais the incrementing address starting at
+EE80, and K is the sequential read value of the DATA
+statements—just picked up from one place and put
+down (block moved) to another.
+
+When the total FOR NEXT loop is completed (all data
+block moved), the MBASIC subroutine exits back toa
+(as yet unspecified) calling routine.
+
+We are done with the basic (literally!) joystick rou-
+tines, but just with the preliminary stuff. JOYSTIK.BAS
+may now be used as a library routine that you can use
+over and over again in various other MBASIC program
+applications that require a joystick interface. See you
+next time around with a joystick game for the Osborne 1
+
+In case the creation of cables and assembly lang-
+uage programs are a little beyond your capabilities or
+time requirements, you may contact Kelly Smith at P.O.
+Box 964, Chatsworth, CA 91311 to purchase the SPACE-
+WAR software (a 200 line program) and joystick hard-
+ware at a nominal fee. Indicate your computer's BIOS
+version (press the RESET button and look at the sign-on
+message).—bb
+
+Kelly Smith is with the Wizard of OsZ, a software and
+accessories company. He was the author of the popular
+“Monster” program for the Portable Companion’s inau-
+gural issue. r=)
+
+July 1983 THE PORTABLE Companion 47
