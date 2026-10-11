@@ -32,8 +32,10 @@ four independent places to attach something modern:
 
 - **the Z80 socket** — the interposer, and anything that wants to see or drive
   every bus cycle;
-- **a port on the back** — the keyboard connector (P4), the MODEM port (P1), the
-  IEEE-488 card edge (P3), the video connector (P5);
+- **a port on the front** — the keyboard connector (P4), the MODEM port (P1), the
+  IEEE-488 card edge (P3) and the video connector (P5). **Every connector on an
+  Osborne 1 is on the front of the machine**; there is nothing at the back, which
+  is why fitting anything means unclipping the keyboard that docks over that face;
 - **the character-generator socket** (UA15) — for video work; and
 - **the mainboard itself** — for the reproduction.
 

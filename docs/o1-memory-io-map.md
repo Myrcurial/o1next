@@ -400,6 +400,13 @@ This is the second tap point the ScreenPac personality (#24) uses.
 > tristate it without intercepting those two pins.
 
 ### Other onboard connectors (for reference)
+
+**Every connector on an Osborne 1 is on the FRONT of the machine** — there is
+nothing to plug into at the back. That is not a detail: it is why fitting a
+period peripheral meant unclipping the keyboard, which docks to seal that same
+face (the O1A design note in `hardware/o1ng/`), and it is why every standalone
+device in this project attaches at the front (#47, #56, #84).
+
 - **P3** — IEEE-488, 26-pin edge (pins 25/26 unused)
 - **P2** — RS-232, DB-25 (DTE)
 - **P1** — Modem
