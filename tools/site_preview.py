@@ -72,11 +72,14 @@ POST_BODY = """<article class="post">
 
 def build(mode):
     css = (SITE / "assets" / "main.css").read_text()
-    woff = base64.b64encode(
-        (SITE / "assets" / "fonts" / "osborne1-chargen.woff2").read_bytes()
-    ).decode()
-    css = css.replace('url("fonts/osborne1-chargen.woff2") format("woff2")',
-                      'url(data:font/woff2;base64,%s) format("woff2")' % woff)
+    # Inline every face in the family, so the preview renders offline with the
+    # same type the deployed site gets.
+    for columns in (52, 80, 104):
+        name = "osborne1-%d.woff2" % columns
+        woff = base64.b64encode(
+            (SITE / "assets" / "fonts" / name).read_bytes()).decode()
+        css = css.replace('url("fonts/%s") format("woff2")' % name,
+                          'url(data:font/woff2;base64,%s) format("woff2")' % woff)
     # the masthead graphic is generated from the ROM's own glyphs by
     # tools/o1art.py, so it is a PNG rather than an inline SVG
     logo = ('<img src="data:image/png;base64,%s" alt="o1nextgen" '

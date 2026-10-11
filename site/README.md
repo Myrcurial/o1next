@@ -36,9 +36,16 @@ The look is taken from the machine, not invented:
 - **The body face is the Osborne 1's own character generator**, decoded from the
   ROM in UA15 by `tools/romfont.py` and shipped as `assets/fonts/`. The page is
   set in the same letters the machine drew on its own screen.
-- **The measure is 104 characters** — the machine's own widest text mode — which
-  is why the body size is 1.5× the ROM's 10px cell. Long lines wrap there rather
-  than at a pixel width.
+- **The face comes in the machine's three text widths — `osborne1-52`, `-80` and
+  `-104`.** The physical screen width never changes; the type narrows. So the
+  three files share height and pixel components and differ only in horizontal dot
+  width: **100%, 65% (52/80) and 50% (52/104)**. That makes `52ch` in the
+  52-column face, `80ch` in the 80-column face and `104ch` in the 104-column face
+  all the *same physical width*.
+- **The site pairs a face with its own column count** — currently the
+  **80-column** mode at `80ch`, the width this project's video work is about.
+  Changing mode is two lines in `main.css` (`--mono` and `--measure`). The
+  measure is set in characters rather than pixels because the cell is fixed.
 - **The wordmark** (`_includes/logo.svg`) derives from the Osborne Computer
   Corporation logotype: O, N and E are its letterforms; 1, X, T and G are drawn
   to the same measured metrics. It is an homage for a non-commercial project and

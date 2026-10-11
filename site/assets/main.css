@@ -9,15 +9,41 @@
  *
  * The body face is the Osborne 1's own character generator, extracted from the
  * 2716 in UA15 by tools/romfont.py — so the page is set in the same letters the
- * machine drew on its own screen.  It is a fixed 8x10 pixel cell, and the
- * measure is set in characters rather than pixels: 104 of them, the machine's
- * own widest text mode, which is why the body size is 1.5x the 10px cell (a
- * 104-character line then fits a laptop screen).
+ * machine drew on its own screen.
+ *
+ * It is a fixed 8x10 pixel cell, and the machine has three text widths: 52, 80
+ * and 104 columns.  The screen is a fixed width and only the type narrows, so
+ * tools/romfont.py emits the same glyphs at 100%, 65% and 50% dot width — one
+ * face per mode, identical in height.
+ *
+ * That is why 52ch in the 52-column face, 80ch in the 80-column face and 104ch
+ * in the 104-column face are all the *same physical width*.  The site pairs a
+ * face with its own column count and gets the machine's 80-column mode — the
+ * width this project's video work is about — at a readable measure.  To change
+ * mode, change --mono and --measure together.
  */
 
+/* One face per display width.  Same height, same pixel components; only the
+ * horizontal dot width differs.  See the header comment and tools/romfont.py. */
 @font-face {
-  font-family: "Osborne 1 Char-Gen";
-  src: url("fonts/osborne1-chargen.woff2") format("woff2");
+  font-family: "Osborne 1 52";
+  src: url("fonts/osborne1-52.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Osborne 1 80";
+  src: url("fonts/osborne1-80.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Osborne 1 104";
+  src: url("fonts/osborne1-104.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -37,9 +63,13 @@
   --rule: #2b3034;
 
   --cell: 15px;
-  --mono: "Osborne 1 Char-Gen", ui-monospace, "SF Mono", Menlo, Consolas,
+  /* The machine's three text modes.  Pair the face with its own column count --
+   * 52/52, 80/80, 104/104 -- because all three are the same physical width: a
+   * wider mode means a proportionally narrower dot (tools/romfont.py).  The
+   * default is the 80-column mode, the width the video work is about. */
+  --mono: "Osborne 1 80", ui-monospace, "SF Mono", Menlo, Consolas,
           "DejaVu Sans Mono", monospace;
-  --measure: 104ch;
+  --measure: 80ch;
 }
 
 * { box-sizing: border-box; }
