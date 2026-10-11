@@ -58,7 +58,7 @@ stale the day after it is written. The two live sources are:
   will carry each result named up front.
 
 The narrative version — how the research actually went, what was surprising, and
-the machines it is about — lives on the blog in `site/`.
+the machines it is about — lives on the [Project Blog](https://myrcurial.github.io/o1nextgen/).
 
 ## Repository layout
 

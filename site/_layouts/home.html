@@ -1,0 +1,16 @@
+---
+layout: default
+---
+<h1 class="sr-only">{{ site.title | escape }}</h1>
+
+{{ content }}
+
+<h2 class="post-list-heading">Posts</h2>
+<ul class="post-list">
+  {%- for post in site.posts -%}
+  <li>
+    <span class="post-meta">{{ post.date | date: "%-d %b %Y" }}{% if post.author %} &middot; {{ post.author }}{% endif %}</span>
+    <h3><a class="post-link" href="{{ post.url | relative_url }}">{{ post.title | escape }}</a></h3>
+  </li>
+  {%- endfor -%}
+</ul>

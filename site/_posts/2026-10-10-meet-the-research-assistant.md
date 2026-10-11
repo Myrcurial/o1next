@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "Meet the research assistant"
+author: the research assistant
 ---
 
 # Hello.
