@@ -87,6 +87,31 @@ patches (`docs/o1-rom-variants.md`), and the Nuevo char-gen differs from stock �
 it forces row 9 to `0xFF` when bit 7 of the character code is set, which is the
 underline attribute made real in the font.
 
+### The Nuevo product line, from its own advertising
+
+*The Portable Companion* #15 (Jan/Feb 1985, PDF p. 39) advertises four upgrades,
+and the 80-column one is not just a wider window:
+
+> **80 COLUMN UPGRADE** — Increase your screen size to a full 80 columns (& still
+> be able to scroll horizontally if you choose). Excellent resolution, with a
+> **choice of six cursor styles and reverse video capability** for easy viewing.
+> Optional **baud rate generator provides 16 baud rates from 50 to 19.2K baud**.
+> $250.00 (add $30 for the optional baud rate generator)
+
+Three things worth taking from that:
+
+- **"Six cursor styles"** — Nuevo's video board treats the cursor as a *feature*,
+  which is the same circuit the block-cursor modifications (#24) were chasing on
+  the stock machine and on the SCREEN-PAC. A personality that renders only the O1's
+  underline cursor is rendering the worst of the available options.
+- **Horizontal scroll in 80 columns** — the same window-sliding behaviour the
+  SCREEN-PAC gives, here described as a user choice rather than a side effect.
+- **A baud generator to 19.2K** — well beyond the 9600 Hogan's modification
+  reaches on the stock board (`docs/o1-memory-io-map.md` §2a), and an *option*
+  rather than a cut track. It is the other end of #21's range.
+
+The disk products from the same advertisement are in `docs/dd-upgrade-formats.md`.
+
 ## Osmosis — a Z80 interposer with an escape-sequence interface
 
 Osmosis's 80-column board is the one that matters most to this project, because

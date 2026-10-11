@@ -87,6 +87,7 @@ cut from, so it can be checked against the original.
 | `TPC-Issue15-1985-pp72-77-16bit-msdos-and-cpm-for-your-o1.pdf` (4.9 MB, 6 pp) | "**16-Bit MS-DOS & CP/M For Your Osborne One!**" by **Robert J. Thomson** — the **Co-Power-88**: an 8088 processor, MS-DOS / CP/M-86 / CP/M, and a 256K memory disk under regular CP/M, with the installation. Directly relevant to #23/#26 and the CoPower-88 work in `research/copower88/`. | *The Portable Companion* #15, January/February 1985 — PDF pp. 72–77 |
 | `TPC-Issue15-1985-pp32-block-cursor-with-screenpac.pdf` (0.8 MB, 1 p) | Letters: **the Lovells**' fix making Hogan's block cursor work on a machine with the **SCREEN-PAC 80 fitted, without removing the piggy-back board** — the modification moves to the upgrade board's own **U2 (74HC00)** and **U23 (74HC74)**, with a capitalised warning that the pins to cut are *not* the ones in Hogan's article. Quoted in `docs/o1-memory-io-map.md` §2a. Relevant to #24. | *The Portable Companion* #15, January/February 1985 — PDF p. 32 |
 | `TPC-Issue15-1985-pp52-drive-c-letters.pdf` (0.9 MB, 1 p) | Letters on **Drive C:** — a user report (a 384K unit, WordStar to the dBASE II dot prompt in six seconds, 90% less drive wear) and the reviewer's rebuttal (*"Drive C: is not a good buy for the average user"*). Quoted in `docs/drive-c-protocol.md`. Relevant to #6, #22 and #84. | *The Portable Companion* #15, January/February 1985 — PDF p. 52 |
+| `TPC-Issue15-1985-pp39-nuevo-four-upgrades-ad.pdf` (0.7 MB, 1 p) | Nuevo Electronics' full-page advertisement, "**Four Nuevo Ways to Upgrade**": the 80-column board (**six cursor styles**, reverse video, horizontal scroll, optional baud generator to **19.2K**), the DD upgrade (183K), the **2 x 2** (780K, DS/DD, 128 directory entries) and the **4 x 4** (1580K, **double-sided 96 tpi drives**, auto-recognising SS SD/DD and DS 48/96 TPI, "read or write, even boot"). Quoted in `docs/dd-upgrade-formats.md` and `docs/o1-upgrade-boards.md`. Relevant to #95, #30, #24 and #21. | *The Portable Companion* #15, January/February 1985 — PDF p. 39 |
 
 ### How these extracts are made
 
@@ -190,6 +191,7 @@ These are the known-good boot images the validation matrix (#29) needs.
 | File | What it is | Sourced from |
 |---|---|---|
 | `Nuevo_Electronics_DD_Upgrade_Manual.pdf` (13 MB) | DD upgrade manual | [bitsavers `bits/Osborne/Osborne1/`](https://bitsavers.org/bits/Osborne/Osborne1/) (13 810 755 B, exact match) |
+| `Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt` (919 lines) | OCR of the manual — the BIOS 1.4→1.5 difference list (DPBs for IBM/Xerox/DEC removed, 80-column presence check, jump table at `E100h`), the 380K double-sided claim and the single/double-density system-track rules, all quoted in `docs/dd-upgrade-formats.md` | derived in-project with `tools/ocr_pdf.sh … 300` |
 | `OS1NUEVO.IMD` | `Osborne 1 with DD and 80 col mods` boot disk, re-imaged 2026-10-10 with Disk-Utilities | derived in-project |
 
 > **Removed 2026-10-10: `NUEVO151.BIN`.** It was a byte-identical duplicate of
