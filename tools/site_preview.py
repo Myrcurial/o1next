@@ -88,6 +88,12 @@ def build(mode):
 
     body = INTRO + POSTS if mode == "home" else POST_BODY
     heading = ('<h1 class="sr-only">o1nextgen</h1>' if mode == "home" else "")
+    # The SCREEN PAC switch, with one radio pre-selected so the preview can
+    # render any of the machine's three text modes: `home`, `home-52`, etc.
+    columns = mode.split("-")[-1] if "-" in mode else "80"
+    check52 = ' checked' if columns == "52" else ""
+    check80 = ' checked' if columns == "80" else ""
+    check104 = ' checked' if columns == "104" else ""
 
     return """<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
@@ -101,9 +107,20 @@ def build(mode):
     <a class="brand" href="#">%s</a>
     <nav class="site-nav">
       <a href="#">Posts</a>
+      <a href="#">Hardware</a>
+      <a href="#">Osborne 1 Compendium</a>
       <a href="#">Code &amp; research</a>
       <a href="#">RSS</a>
     </nav>
+    <div class="screenpac" role="group" aria-label="Screen width">
+      <span class="screenpac-name">Screen Pac</span>
+      <input type="radio" name="columns" id="columns-52" value="52"%s>
+      <label for="columns-52" title="52 columns">52</label>
+      <input type="radio" name="columns" id="columns-80" value="80"%s>
+      <label for="columns-80" title="80 columns">80</label>
+      <input type="radio" name="columns" id="columns-104" value="104"%s>
+      <label for="columns-104" title="104 columns">104</label>
+    </div>
   </div>
 </header>
 <main class="page-content"><div class="wrap">
@@ -111,11 +128,11 @@ def build(mode):
 %s
 </div></main>
 <footer class="site-footer"><div class="wrap">
-  <p>o1nextgen &mdash; keeping an Osborne 1 alive, in the open.</p>
+  <p>o1nextgen &mdash; keeping the Osborne 1 alive, in the open.</p>
   <p class="colophon"><a href="#">GitHub</a> &middot; <a href="#">RSS</a></p>
 </div></footer>
 </body></html>
-""" % (css, logo, heading, body)
+""" % (css, logo, check52, check80, check104, heading, body)
 
 
 if __name__ == "__main__":

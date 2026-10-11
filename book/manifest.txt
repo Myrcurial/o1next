@@ -1,0 +1,59 @@
+# The Osborne 1 Compendium -- chapter manifest (#75)
+#
+# This file IS the table of contents. tools/build_book.py reads it and generates
+# the Jekyll pages, the clickable TOC and the PDF. docs/ stays the single source
+# of truth: the book adds ordering and front matter, and never a second copy.
+#
+# Format, one chapter per line:
+#
+#   slug | Chapter title | source | status
+#
+#   source   a path in the repo, or "-" for a chapter that has not been written
+#            yet (it appears in the TOC, marked as such, with no page)
+#   status   solved | partial | design | reference | living | pending
+#
+# `[part]` starts a new part. Lines beginning with # are comments.
+
+[part] The machine
+
+overview        | Overview and history                    | -                              | pending
+mainboard       | Mainboard and the schematic set         | docs/o1-mainboard-schematic.md | solved
+memory-io       | Memory and I/O map                      | docs/o1-memory-io-map.md       | solved
+rom             | ROM and firmware                        | docs/o1-rom-source.md          | solved
+rom-variants    | ROM variants and third-party ROMs       | docs/o1-rom-variants.md        | solved
+video           | Video and the character generator       | docs/o1-chargen-graphics.md    | solved
+
+[part] Interfaces
+
+floppy          | The floppy subsystem and its formats    | docs/dd-upgrade-formats.md     | partial
+floppy-adapter  | The floppy adapter design               | docs/floppy-adapter-design.md  | design
+serial          | Serial and the modem                    | docs/o1-modem-serial.md        | solved
+ieee488         | The IEEE-488 port                       | docs/o1-ieee488-port.md        | solved
+keyboard        | Keyboard and printer                    | -                              | pending
+
+[part] Peripherals and storage
+
+drive-c         | Drive C: the IEEE-488 RAM disk          | docs/drive-c-protocol.md       | partial
+hard-disks      | The hard-disk products                  | docs/occ1-harddisk-analysis.md | partial
+rt60a           | The RT-60A real-time clock              | docs/rt60a-analysis.md         | partial
+copower88       | CoPower-88: the host protocol           | docs/copower88-protocol.md     | partial
+copower88-sch   | CoPower-88: the schematics              | docs/copower88-schematics.md   | solved
+video-boards    | 80-column boards: SCREEN-PAC to TRA     | docs/o1-upgrade-boards.md      | partial
+
+[part] Software
+
+software-lib    | The software library                    | -                              | pending
+boot-disks      | Boot disks                              | -                              | pending
+
+[part] The project
+
+emulation       | Emulation and testing                   | docs/mame-emulation.md         | solved
+virtual-periph  | The interposer and its virtual peripherals | docs/virtual-peripherals-block-diagram.md | design
+prior-art       | Prior art: Z80 bus interposers          | docs/interposer-survey.md      | solved
+open-questions  | Open questions                          | docs/research-gaps.md          | living
+
+[part] Appendices
+
+provenance      | Archive provenance                      | research/README.md             | living
+photographs     | The machines: a photographic survey     | docs/photo-survey.md           | reference
+tpc-extracts    | The Portable Companion extract index    | -                              | pending
