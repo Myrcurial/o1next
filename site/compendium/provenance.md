@@ -280,6 +280,21 @@ convention above). Good enough to grep for the technical appendices — which is
 how the IEEE-488 removal and the 3 KB video window were found (#81) — but not
 reliable for exact code or pin detail.
 
+`OZROM-1E/OZROM_1E_Utilities.IMD` — the **OZROM 1E Utilities disk**, the
+software half of the OZROM package, which we did not previously have. ImageDisk
+1.19, label `ozrom`; 40 cyl × 10 × 256 B FM (O1 single density), 22 of 40 tracks
+in use. Its CP/M directory is complete and readable: 20 files, all Micro
+Management 1984, with `READ.ME`, `CRCKLIST.CRC` and the docs for `TIMER`,
+`CLKPATCH`, `DVORAK` and `TD`. **Condition: partial.** 290 of the 400 sectors
+read back as uniform `0xE5` and the gaps fall *inside* file bodies, so most
+files are truncated or holed; the directory and a minority of complete files
+(`SET.COM`, `MEMORIZE.COM`, `FK.COM`) are the recoverable part. It is a data
+disk, not a system disk — the boot tracks carry a stub whose message is
+"There is no CP/M system on this disk." Provenance: supplied by the project
+owner as a local file (2026-10-11); the original source URL is not yet recorded,
+so treat the chain of custody as open. Analysis: [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md) §10. Used by
+#81.
+
 ## shipped-software/ — the shipped application library (2026-10)
 
 Fourteen ImageDisk images of the disks that shipped with (or were published
