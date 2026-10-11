@@ -25,14 +25,16 @@
 
 :root {
   --blue: #687898;
-  --blue-deep: #4d5b76;
-  --blue-ink: #2b3547;
+  --blue-deep: #9db0d0;   /* the panel blue, lifted to read on a black screen */
+  --blue-ink: #2b3547;    /* text on the grey footer */
   --grey: #d0d8d8;
-  --grey-soft: #e4e9e8;
+  --grey-soft: #16191c;   /* code and quotes, now on the dark side */
   --cream: #d8d0c0;
-  --paper: #f7f8f7;
-  --ink: #1c2126;
-  --rule: #c3cccb;
+  --paper: #0b0c0e;       /* the CRT: white on black, not the green of the last
+                             production run -- that is a monitor option, and the
+                             video personality has to offer both (#24) */
+  --ink: #e9e7e0;
+  --rule: #2b3034;
 
   --cell: 15px;
   --mono: "Osborne 1 Char-Gen", ui-monospace, "SF Mono", Menlo, Consolas,
@@ -44,8 +46,17 @@
 
 html { -webkit-text-size-adjust: 100%; }
 
+/* The masthead and the footer are the case; the middle is the screen.  Only the
+ * screen scrolls: the header stays on the top of the window and the footer on the
+ * bottom, which is what a machine with a fixed case and one display does. */
+html, body { height: 100%; }
+
 body {
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--mono);
@@ -94,6 +105,7 @@ img { max-width: 100%; height: auto; }
 
 /* ---- masthead: the machine's blue front panel ---- */
 .site-header {
+  flex: 0 0 auto;
   background: var(--blue);
   color: #f1f4f6;
   border-bottom: 6px solid var(--blue-ink);
@@ -109,7 +121,7 @@ img { max-width: 100%; height: auto; }
 }
 
 .brand { display: block; color: inherit; }
-.brand svg { display: block; width: min(360px, 64vw); height: auto; }
+.brand img { display: block; width: min(420px, 68vw); height: auto; }
 
 .site-nav { margin-left: auto; display: flex; gap: 1.2rem; }
 .site-nav a {
@@ -119,8 +131,13 @@ img { max-width: 100%; height: auto; }
 }
 .site-nav a:hover { color: #fff; border-bottom-color: var(--cream); }
 
-/* ---- content ---- */
-.page-content { padding: 2.2rem 0 3rem; }
+/* ---- content: the screen, and the only thing that scrolls ---- */
+.page-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2.2rem 0 3rem;
+}
 .page-content > .wrap > :first-child { margin-top: 0; }
 
 /* ---- post list ---- */
@@ -135,7 +152,7 @@ img { max-width: 100%; height: auto; }
 .post-header {
   margin-bottom: 1.8em;
   padding-bottom: 0.7em;
-  border-bottom: 3px solid var(--grey);
+  border-bottom: 3px solid var(--rule);
 }
 .post-title { margin: 0 0 0.15em; }
 .post-meta .post-author { color: var(--blue-deep); }
@@ -144,10 +161,11 @@ img { max-width: 100%; height: auto; }
 /* ---- tables ---- */
 table { border-collapse: collapse; width: 100%; margin: 1.5em 0; }
 th, td { border: 1px solid var(--rule); padding: 0.35em 0.6em; text-align: left; }
-th { background: var(--grey); }
+th { background: #1b1f23; }
 
 /* ---- footer: the base of the machine ---- */
 .site-footer {
+  flex: 0 0 auto;
   background: var(--grey);
   border-top: 6px solid var(--blue);
   color: var(--blue-ink);

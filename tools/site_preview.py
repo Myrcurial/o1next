@@ -77,8 +77,11 @@ def build(mode):
     ).decode()
     css = css.replace('url("fonts/osborne1-chargen.woff2") format("woff2")',
                       'url(data:font/woff2;base64,%s) format("woff2")' % woff)
-    logo = (SITE / "_includes" / "logo.svg").read_text()
-    logo = logo.split("-->", 1)[1].strip()
+    # the masthead graphic is generated from the ROM's own glyphs by
+    # tools/o1art.py, so it is a PNG rather than an inline SVG
+    logo = ('<img src="data:image/png;base64,%s" alt="o1nextgen" '
+            'width="1664" height="240">' % base64.b64encode(
+                (SITE / "assets" / "o1nextgen-logo.png").read_bytes()).decode())
 
     body = INTRO + POSTS if mode == "home" else POST_BODY
     heading = ('<h1 class="sr-only">o1nextgen</h1>' if mode == "home" else "")
