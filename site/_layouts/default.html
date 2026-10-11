@@ -12,26 +12,34 @@
 
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="{{ '/' | relative_url }}">
-      <img src="{{ '/assets/o1nextgen-logo.png' | relative_url }}"
-           alt="{{ site.title | escape }}" width="1664" height="240">
-    </a>
+    <div class="masthead">
+      <a class="brand" href="{{ '/' | relative_url }}">
+        <img src="{{ '/assets/o1nextgen-logo.png' | relative_url }}"
+             alt="{{ site.title | escape }}" width="1664" height="240">
+      </a>
+      <div class="screenpac" role="group" aria-label="Screen width">
+        <span class="screenpac-name">Screen Pac</span>
+        <div class="screenpac-modes">
+          <input type="radio" name="columns" id="columns-52" value="52">
+          <label for="columns-52" title="52 columns">52</label>
+          <input type="radio" name="columns" id="columns-80" value="80" checked>
+          <label for="columns-80" title="80 columns">80</label>
+          <input type="radio" name="columns" id="columns-104" value="104">
+          <label for="columns-104" title="104 columns">104</label>
+        </div>
+      </div>
+    </div>
     <nav class="site-nav" aria-label="Site">
       <a href="{{ '/' | relative_url }}">Posts</a>
+      <span class="nav-sep" aria-hidden="true">|</span>
       <a href="{{ '/hardware/' | relative_url }}">Hardware</a>
+      <span class="nav-sep" aria-hidden="true">|</span>
       <a href="{{ '/compendium/' | relative_url }}">Osborne 1 Compendium</a>
+      <span class="nav-sep" aria-hidden="true">|</span>
       <a href="{{ site.repository }}">Code &amp; research</a>
+      <span class="nav-sep" aria-hidden="true">|</span>
       <a href="{{ '/feed.xml' | relative_url }}">RSS</a>
     </nav>
-    <div class="screenpac" role="group" aria-label="Screen width">
-      <span class="screenpac-name">Screen Pac</span>
-      <input type="radio" name="columns" id="columns-52" value="52">
-      <label for="columns-52" title="52 columns">52</label>
-      <input type="radio" name="columns" id="columns-80" value="80" checked>
-      <label for="columns-80" title="80 columns">80</label>
-      <input type="radio" name="columns" id="columns-104" value="104">
-      <label for="columns-104" title="104 columns">104</label>
-    </div>
   </div>
 </header>
 

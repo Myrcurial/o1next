@@ -240,8 +240,12 @@ def build_pdf(parts):
                 "(`brew install typst`) or tectonic, then re-run. The pages "
                 "and the TOC are written regardless.")
     OUT_PDF.parent.mkdir(parents=True, exist_ok=True)
+    # `markdown-citations` is off deliberately: the book is a technical
+    # reference, not an academic paper, and pandoc otherwise reads the RT-60A
+    # chapter's literal `@T` / `@D` printer escapes as citation keys and fails
+    # with "the document does not contain a bibliography".
     proc = subprocess.run(
-        ["pandoc", "--from", "markdown", "--to", "pdf", "--toc",
+        ["pandoc", "--from", "markdown-citations", "--to", "pdf", "--toc",
          "--toc-depth=2", "--pdf-engine", engine,
          "-o", str(OUT_PDF)],
         input=book_markdown(parts), text=True,

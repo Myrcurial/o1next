@@ -51,13 +51,17 @@ The look is taken from the machine, not invented:
   **80-column** mode at `80ch`, the width this project's video work is about.
   Changing mode is two lines in `main.css` (`--mono` and `--measure`). The
   measure is set in characters rather than pixels because the cell is fixed.
-- **The SCREEN PAC switch** in the masthead makes that a user choice: three
-  radios that force the matching face *and* its own column count together, so the
-  rendered window is the **same physical width** in all three modes — the type
-  narrows, the screen does not. It is pure CSS (`:has()`), so the site keeps its
-  no-script character, and where `:has()` is unsupported the 80-column default
-  simply stands. `tools/site_preview.py` accepts `home-52` / `home-80` /
-  `home-104` so any mode can be previewed offline.
+- **The SCREEN PAC switch** sits in a box the height of the logo, standing to its
+  right: the name in the top half, the three modes in the bottom half, split
+  three ways. Each radio forces the matching face *and* its own column count
+  together, so the rendered window is the **same physical width** in all three
+  modes — the type narrows, the screen does not. It is pure CSS (`:has()`), so
+  the site keeps its no-script character, and where `:has()` is unsupported the
+  80-column default simply stands. `tools/site_preview.py` accepts `home-52` /
+  `home-80` / `home-104` so any mode can be previewed offline.
+- **The menu is left justified**, never pushed to the right, and the items are
+  divided by a literal `|` so the grouping still reads when the row wraps — which
+  it does at 52 columns, where the face is at its widest.
 - **The wordmark** (`_includes/logo.svg`) derives from the Osborne Computer
   Corporation logotype: O, N and E are its letterforms; 1, X, T and G are drawn
   to the same measured metrics. It is an homage for a non-commercial project and
@@ -98,6 +102,12 @@ layouts cannot be built locally. Two ways to see a change before pushing:
 
 Rendering the PDF needs an external engine for pandoc (`typst`, `tectonic` or a
 LaTeX). Without one the tool says so and writes the HTML pages anyway.
+
+**The PDF is committed**, because the Pages deploy builds Jekyll but does not run
+our tools — so whatever is in the repository is what gets served. That also means
+a document edited in `docs/` needs `tools/build_book.py` re-run before the
+chapter pages are correct; `.github/workflows/generated-artifacts.yml` runs both
+`--check` modes so a stale artifact fails in CI rather than shipping quietly.
 
 ## Planned articles (tracking issue)
 
