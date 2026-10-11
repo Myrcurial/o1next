@@ -89,12 +89,13 @@ than just advertising:
   SELECT** — both documented in `docs/floppy-adapter-design.md` from the schematic
   and the OEM cable. The controller is not the limit; the drives and the format
   table are.
-- **The format table is the ROM's job, and Nuevo patches the BIOS.** The
-  installers on `OS1NUEVO.IMD` are DDT patches inserting BIOS 1.5 objects into the
-  CBIOS (`docs/o1-upgrade-boards.md`), and the advertised directory capacities —
-  128 and 256 entries — are disk parameter block values, exactly what such a patch
-  changes. The 2 x 2 and 4 x 4 prices include **new drives**, so the media
-  capability is hardware and the *recognition* is the ROM's.
+- **The format table is the CBIOS's job, and Nuevo replaces it.** The installers
+  on `OS1NUEVO.IMD` are DDT patches inserting `BIOS15.OBJ` at `1F00` and
+  `BIOS15BM.OBJ` at `29E0` (`docs/o1-upgrade-boards.md`), and the advertised
+  directory capacities — 128 and 256 entries — are disk parameter block values,
+  exactly what such a patch changes. The 2 x 2 and 4 x 4 prices include **new
+  drives**, so the media capability is hardware and the *recognition* is the
+  BIOS's.
 
 **Consequence for #95 and #30:** the multi-format requirement is not an OCC
 quirk. Two vendors shipped it, with overlapping but different format lists, and
@@ -121,18 +122,26 @@ Its BIOS 1.5 differs from OCC's 1.4 in ways it enumerates itself:
 > — *Nuevo Double Density Upgrade Manual*, "differences between the two BIOS
 > versions" (OCR: `research/nuevo/Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt`)
 
-Four things follow, and the first is the important one:
+Five things follow, and the first two correct an assumption worth recording:
 
-- **The multi-format support is a table of DPBs in the BIOS.** That is what "the
-  disk parameter blocks for IBM, Xerox and DEC formats" means, and it is how the
-  OCC DD BIOS recognises five foreign formats at all — one DPB per geometry. It
-  also means **#95 can be settled without hardware**: the DPBs are a data
-  structure in the ROM, so reading them out gives the geometries directly and the
-  capacities in the table above can be checked against them.
-- **Nuevo is not a superset of OCC.** Nuevo *removed* IBM, Xerox and DEC to make
-  room for its own code and re-added formats through **auto-configuration at boot
-  via NEWSETUP.COM**. Two vendors, two mechanisms, overlapping lists — the same
-  conclusion as above, now with the reason.
+- **"BIOS 1.4" and "BIOS 1.5" here are the *CBIOS on the system tracks*, not the
+  monitor ROM.** Nuevo's installers load `BIOS15.OBJ` at `1F00` and
+  `BIOS15BM.OBJ` at `29E0` (`docs/o1-upgrade-boards.md`), and the manual compares
+  1.5 against *"Version 1.4, the most recent **factory** version"* — so the DPB
+  table it describes lives in the bootable CBIOS image, and *that* is the file to
+  read for #95, not the 4 KiB monitor ROM.
+- **The monitor ROM contains no literal DPBs, and the factory BIOS does not need
+  them.** A structural scan of all four ROMs the project holds — factory 1.4, 1.43,
+  1.44 and Nuevo 1.51 — finds **zero** CP/M DPB-shaped structures. The reason is in
+  the 1.44 source: the loader *"will load single or double density and any number
+  of sectors per track or bytes per sector"*, and `SENSE THE DENSITY` **probes** —
+  it reads an address mark at one density, flips the density bit, and retries, with
+  a second pass after a home command (`rom144.asm` lines 3666–3712). Geometry is
+  discovered by trying, not by table lookup.
+- **Nuevo is not a superset of the factory BIOS.** Nuevo *removed* IBM, Xerox and
+  DEC to make room for its own code and re-added formats through
+  **auto-configuration at boot via NEWSETUP.COM**. Two vendors, two mechanisms,
+  overlapping lists — the same conclusion as above, now with the reason.
 - **"Space remains for two more DPB's to be inserted"** — the table is extensible,
   which is how the 2 x 2 and 4 x 4 geometries fit into the same scheme.
 - **Nuevo's BIOS checks for its own video board's presence** and skips the
