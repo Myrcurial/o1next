@@ -186,7 +186,7 @@ constrains any 2.0 ROM (#83).
 | Archive provenance TODOs (2 items) | #74 | **Closed** |
 | `cpmtools` misreads Kaypro DSDD images | #35 | `misc`. Upstream identified: the primary site is `moria.de` (Michael Haardt, 2.23, **email patch** — no GitHub, no tracker), and the practical PR venue is the unofficial `lipro-cpm4l/cpmtools` fork (3 open PRs, 2.21-based). Closes **when filed**, not when merged |
 | G2 multi-format diskette read/write | #30 | **Closed** — folded into #95 |
-| Case + power research (1:1 replacement board, "lunchbox") | #52 | **Phase 5** (#49). A design task, not Phase-0 research |
+| Case + power research (the LFF and SFF boards, and the O1NG enclosure) | #52 | **Phase 5** (#49). A design task, not Phase-0 research |
 | Contribute OZROM 1E to MAME (BIOS slot or an `osborne1oz` machine) | #82 | `misc`. The **machine definition may be worth more than the dump**; a physical OZROM 1E is available to read, which would at least give honest provenance |
 | A local Jekyll environment | #106 | `misc`. `site/` has **no `Gemfile`**, so this is partly creating the manifest, not just resolving it |
 | `Osborne1ng.ttf` — a complete modern font | #107 | `misc`. Extrapolate the O1's 8x10 forms into a full modern face with accents |

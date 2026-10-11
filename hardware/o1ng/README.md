@@ -31,41 +31,57 @@ AHCT to the original NMOS part).
   and gets the RIFA caps out of the mix.
 - **Battery option:** a ~15–19 V input rail suits an 18650 pack (4S).
 
-## Form factors (share the power design)
+## Two boards, one machine
 
-1. **1:1 mainboard replacement** — drops into an otherwise-stock O1/O1A
-   chassis. **As true to the original as possible**: a faithful
-   reproduction of the stock machine, including a **40-pin DIP socketed
-   Z80** (Z84C00) — deliberately socketed so the **interposer
-   (`../interposer/`) is the upgrade path**: anyone wanting the advanced
-   features (bus analyzer, virtual peripherals, WiFi modem, Gotek
-   switching) installs the interposer onto this board exactly as they
-   would on a 1982 original. **L-shaped board**: skinny arm services
-   left-hand-side ports (front-left screw boss); chunky short side
-   mounts front/rear right bosses. Stock port locations (front ports,
-   power, internal video, floppy connectors) and only **four mounting
-   screws** constrain layout.
-2. **"Lunchbox" (O1 Next Generation)** — Dolch / Compaq Portable III
-   idiom in **O1A blue/grey** industrial design; "keyboard seals the
-   unit" aesthetic retained. Unlike the 1:1 board, this is a **fully
-   integrated single board** — the interposer's capability set (video,
-   storage, modem, keyboard input) is thoroughly grafted in rather than
-   stacked on, following the original design language. One reason:
-   integration keeps the timing margins needed for the **clock-doubled
-   8 MHz "business turbo"** (#55) — limited usefulness, but everyone
-   will be fine with it. **Onboard library flash** (SPI NOR, per
+The project builds **two boards** here. They share the power design, and only one
+of them becomes the O1NG.
+
+1. **LFF board — the 1:1 mainboard replacement.** Drops into an
+   otherwise-stock **OCC1 or OCC1A** chassis (the two share an
+   architecture, so one board covers both). **As true to the original
+   as possible**: a faithful reproduction of the stock machine,
+   including a **40-pin DIP socketed Z80** (Z84C00) — deliberately
+   socketed so the **interposer (`../interposer/`) is the upgrade
+   path**: anyone wanting the advanced features (bus analyzer, virtual
+   peripherals, WiFi modem, Gotek switching) installs the interposer
+   onto this board exactly as they would on a 1982 original.
+   **L-shaped board**: skinny arm services left-hand-side ports
+   (front-left screw boss); chunky short side mounts front/rear right
+   bosses. Stock port locations (front ports, power, internal video,
+   floppy connectors) and only **four mounting screws** constrain
+   layout. **This is the restoration path, not the O1NG.**
+
+2. **SFF board — the integrated board.** **Not a 1:1 swap, and it does
+   not try to be**: it can go into a real chassis **or** into any other
+   design, up to the end user, with nothing constrained by a 1982
+   footprint. The interposer's capability set (video, storage, modem,
+   keyboard input) is thoroughly grafted in rather than stacked on,
+   following the original design language. One reason: integration
+   keeps the timing margins needed for the **clock-doubled 8 MHz
+   "business turbo"** (#55) — limited usefulness, but everyone will be
+   fine with it. **Onboard library flash** (SPI NOR, per
    `../interposer/` decision): a built-in diskette library with at
-   least the boot diskette, so the lunchbox boots "factory" images with
+   least the boot diskette, so the machine boots "factory" images with
    no SD/USB inserted; removable media remains the bulk store.
-   ~8 cm thick: mainboard + 8" 4:3 LCD
-   (composite/HDMI in) + 18650 pack, detachable flip-up keyboard.
-   Optional rear "backpack" for a physical 5.25" half-height drive.
+
+## The O1NG
+
+**The O1NG is the SFF board with the rest of the machine wrapped around it** —
+the logical equivalent of the **C64 Ultimate "Crystal" edition**: an homage that
+gives the end user *everything* that would have been possible in the olden days,
+wrapped in a way that makes it awesome. The machine that was an absolute fantasy
+in 1985 and is do-able by a hobbyist today.
+
+Concretely: the **Dolch / Compaq Portable III idiom in O1A blue/grey industrial
+design**, with the "keyboard seals the unit" aesthetic retained. ~8 cm thick: SFF
+board + 8" 4:3 LCD (composite/HDMI in) + 18650 pack, detachable flip-up keyboard.
+Optional rear "backpack" for a physical 5.25" half-height drive.
 
 ## Open questions
 
 - Final video pipeline choice (discrete TTL vs small FPGA helper).
-- LCD panel + input board sourcing for the lunchbox.
-- Chassis fabrication route (sheet metal vs printed) for the lunchbox.
+- LCD panel + input board sourcing for the O1NG.
+- Chassis fabrication route (sheet metal vs printed) for the O1NG.
 - Which interposer personalities are *onboard* vs *optional modules*.
 
 ## References

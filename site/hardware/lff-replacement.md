@@ -1,7 +1,7 @@
 ---
 layout: page
 title: LFF replacement board
-subtitle: A 1:1 mainboard for a stock chassis
+subtitle: A 1:1 mainboard for an OCC1 or OCC1A chassis
 ---
 
 **Status:** block-level KiCad skeleton generated. Concept.
@@ -9,10 +9,20 @@ Tracks **#49** (Phase 5). Source: `hardware/o1ng/o1ng-lff/`.
 
 ## What it is
 
-A faithful, **1:1 replacement mainboard** for a stock Osborne 1 case — the
-"large form factor" board. Same footprint, same connectors, same mounting holes,
-so it drops into a machine whose original board has failed, or into a chassis
-someone has kept.
+A faithful, **1:1 replacement mainboard** for a real **OCC1 or OCC1A** chassis —
+the "large form factor" board. Same footprint, same connectors, same mounting
+holes, so it drops into a machine whose original board has failed, or into a
+chassis someone has kept. **It works for either machine**: the OCC1 and the OCC1A
+share an architecture, so one board covers both.
+
+## This is the restoration path, not the O1NG
+
+There are two boards in this part of the project, and this is the one that
+preserves an existing machine. The [SFF board]({{
+'/hardware/sff-integrated/' | relative_url }}) is the integrated one, and the
+[O1NG]({{ '/hardware/o1ng-complete/' | relative_url }}) is **the SFF board with
+the rest of the machine wrapped around it**. This board does not become an O1NG,
+and it is not meant to.
 
 ## The design rule that makes it work
 

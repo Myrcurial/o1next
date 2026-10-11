@@ -1,9 +1,11 @@
 # o1ng-lff/ — 1:1 mainboard replacement (KiCad skeleton)
 
 Hierarchical schematic skeleton for the **large form factor** o1ng: the
-faithful 1:1 replacement mainboard (see `../README.md` for the design
-philosophy — true to original, socketed DIP-40 Z80, interposer is the
-upgrade path).
+faithful 1:1 replacement mainboard for a real **OCC1 or OCC1A** chassis
+(see `../README.md` for the design philosophy — true to original,
+socketed DIP-40 Z80, interposer is the upgrade path). **This board is
+the restoration path, not the O1NG**: the O1NG is built on the SFF
+board, and this one does not become one.
 
 **Status: block-level skeleton.** The hierarchy and per-sheet design
 notes are the agreed decomposition; component-level capture (replacing
@@ -21,7 +23,7 @@ modernizations.
 | `io` | Serial + GPIB | 6850 ACIA (P1 TTL / P2 RS-232 per `docs/o1-modem-serial.md`), 6821 PIA, CTC 60 Hz |
 | `keyboard` | Keyboard | P4 connector incl. pin-19 +12V provision; matrix scan; interposer KVM injects here |
 | `power` | Power | **USB-C PD trigger → +5V/+12V** replaces the entire original PSU (no RIFA caps); optional stock-connector passthrough |
-| `clock` | Clock/reset | single-oscillator design (#55), 4.0 MHz, reset supervisor; **no turbo on LFF** (turbo is lunchbox-only) |
+| `clock` | Clock/reset | single-oscillator design (#55), 4.0 MHz, reset supervisor; **no turbo on the LFF board** (turbo is SFF-only) |
 
 ## Mechanical constraints (drive layout later)
 
