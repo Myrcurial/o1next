@@ -299,24 +299,7 @@ the decisions:
   firmware's state outlives the host's — the same argument as
   `docs/drive-c-design.md` §4.1, one layer down.
 
-## 7. Conformance: test it before the hardware exists
-
-The protocol is designed to be testable *now*, on the machine we already run:
-
-- **A Lua model of the mailbox** in MAME, in the same style as
-  `tools/research/drive-c-box.lua` (which answers the Drive C host by tapping the
-  PIA at `2900–2903`, and makes the real `DCL.COM` run). This one taps the **I/O
-  space** — `cpu.spaces["io"]`, which `tools/research/mame-lua-probe.lua` already
-  uses — at `0E7h`/`0EBh`, and keeps a small table of blobs. That is enough to
-  develop and regression-test `MOUNT.COM` end to end with no interposer.
-- **Host-side conformance tests** in `tools/`, the deliverable
-  `software/mount-com/README.md` already lists: drive the model through every
-  opcode, every result code, the two Drive C blob sizes, and the presence-probe
-  failure case.
-- **A shared constants file** for the opcodes, so the CP/M assembly and the Lua
-  model cannot drift apart.
-
-## 8. What is not decided
+## 7. What is not decided
 
 1. **The port numbers themselves.** `0E7h`/`0EBh` are a proposal, chosen for the
    reasons in §2.1. They are confirmed (or corrected) by measurement, and the
@@ -348,6 +331,4 @@ The protocol is designed to be testable *now*, on the machine we already run:
 - `firmware/README.md` — the radio-jitter rule that becomes result code `07h`.
 - `software/mount-com/README.md`, `firmware/floppy-emulator/README.md` — the
   consumers that were written against an unspecified port.
-- `tools/research/drive-c-box.lua`, `tools/research/mame-lua-probe.lua` — the
-  harness style §7 follows, and the I/O-space handle it needs.
 

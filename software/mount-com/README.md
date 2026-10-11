@@ -21,4 +21,3 @@ ships on the updated boot disk (#28).
 
 - `MOUNT.COM` + source
 - Usage doc (ships on boot disk)
-- Mailbox protocol conformance tests (host-side, `tools/`)
