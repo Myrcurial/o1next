@@ -215,9 +215,42 @@ that can ever be driven, with room for a copy of the original image beside it.
 
 **What the box does *not* do.** It does not implement CP/M. The directory,
 allocation map and file structure live on the host side, in the CBIOS that
-`DCL.COM` patches in. The box is a paged 128-byte record store, and the boot-time
-format it sees (`0xE5` written across two regions and read back,
-`drive-c-protocol.md` §8.5) is CP/M formatting *its own* disk through the box.
+`DCL.COM` patches in. The box is a paged 128-byte record store, and the format it
+sees (`0xE5` written across two regions and read back, `drive-c-protocol.md` §8.5)
+is CP/M formatting *its own* disk through the box — **once, at install, not at
+every boot** (§4.1).
+
+### 4.1 Persistence: the format happens once, and the loader knows it
+
+It is easy to read `drive-c-protocol.md` §8.5 as *"the unit is re-formatted on
+every boot"* and it is not true. The vendor's loader is **idempotent**, and the
+manual says so in as many words:
+
+> `DCQ T + n` means: *"If there is a file on the Drive C unit named
+> **`DCLOADED.SYS`**, then skip n lines in this file to the next command line. If
+> no such file exists execute the next line, and create the `DCLOADED.SYS` file on
+> the Drive C unit."* … *"This operation prevents QuickPac from copying all your
+> files over from floppy to Drive C if you have already done so but are **forced to
+> reload and reboot CP/M**."*
+
+`DCL.COM` guards itself independently — it carries the strings `Cannot install
+driver` / `Driver is already installed` — and the contemporary review confirms it
+from the user's side: *"The reset button does not lose the unit's contents — only
+turning off the computer does that."* To force a re-load you must `ERA
+DCLOADED.SYS`, or `DCU E`, which erases the unit.
+
+**What that means for the reproduction.** Nothing in the contract changes: the
+marker is an ordinary file in the CP/M directory, so it lives in records the box
+already stores, and **load/unload needs no special support** — QuickPac's copy-in
+and `DCA`'s Archive-Retrieve are bulk record traffic and nothing more.
+
+The one divergence to decide, and the recommendation is to keep it: the original
+loses everything on power-off unless a **BackPac** battery is fitted (8–10 hours),
+and without one the marker goes too, so the next boot re-loads. Our storage is
+**flash**, so contents persist inherently — the behaviour of a BackPac-equipped
+unit. That is strictly better, costs nothing to implement, and means a working set
+loaded once stays loaded. A bare unit's power-off amnesia is deliberately **not**
+reproduced.
 
 **One thing to leave open in the firmware.** `f(n)` is identical for `n = 0, 1, 2`
 (`drive-c-protocol.md` §5), so the header alone cannot tell tracks 0, 256 and 512
@@ -241,12 +274,18 @@ reproduction has to decide what the pass-through connector is:
 - **Full:** snoop the parallel traffic and spool it (the print buffer, `DCU`,
   `PRN.TST`). That is a separate feature and a separate issue.
 
-**Bus arbitration.** Three devices now claim this port in the archive — Drive C,
-the RT-60A clock ([`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md)) and Trantor's hard disks
-([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)) — and the O1's **own address is 0**, so nothing else
-on the bus may use it ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §1). A reproduction that only
-answers when it sees the Drive C frame pattern is compatible with all of them by
-construction: it stays released until it sees its own framing.
+**Bus arbitration.** Two devices claim this port on a real machine — Drive C itself
+and Trantor's hard disks ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)) — and the O1's **own address
+is 0**, so nothing else on the bus may use it ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §1). A
+reproduction that only answers when it sees the Drive C frame pattern is
+compatible with both by construction: it stays released until it sees its own
+framing.
+
+The **RT-60A is deliberately not in that list.** It is physically an IEEE-488
+device, but this project implements its **ABI in software** rather than the
+hardware ([`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md); #7 closed on exactly that basis), so no RT-60A
+sits on the bus in any configuration we build. It is a software contract, not a
+contender for the port, and the firmware does not need to arbitrate with it.
 
 ## 6. Test plan
 
