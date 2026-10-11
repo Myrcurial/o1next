@@ -50,13 +50,20 @@ Seven storage routes were advertised for the Osborne 1 (`docs/research-gaps.md`
 
 ## Open questions
 
+The **protocol is solved** (`docs/drive-c-protocol.md`) and the **build spec is
+`docs/drive-c-design.md`**. What is left:
+
+- [ ] **The P3 pinout.** The ROM gives PIA↔signal; the connector's signal↔pin is
+      unrecorded. One continuity pass on a real machine, and it blocks layout.
 - [ ] **Power at P5.** The EXMON shunt takes +12V; confirm what else is on the
       connector, whether +5V is available, and the connector's current budget.
       **Do not assume — measure on a real machine.**
-- [ ] **Which Drive C variant to emulate** — capacities and the exact command set
-      (#6).
+- [ ] **The DPB** — how many records `C:` gets, from `DCL.COM`'s BIOS patch. The
+      last thing between the spec and a working drive (`drive-c-protocol.md` §8).
+- [ ] **Which Drive C variant to emulate** — 192K or 384K. Both are a flash size
+      decision now that the addressing is known (`drive-c-design.md` §4).
 - [ ] **Firmware sharing with #22.** The same device as an interposer personality;
-      it should be one implementation, not two.
+      it should be one implementation, not two (`firmware/drive-c-gpib/`).
 
 ## The shunt is a mod
 

@@ -34,7 +34,8 @@ keyboard        | Keyboard and printer                    | -                   
 
 [part] Peripherals and storage
 
-drive-c         | Drive C: the IEEE-488 RAM disk          | docs/drive-c-protocol.md       | partial
+drive-c         | Drive C: the IEEE-488 RAM disk          | docs/drive-c-protocol.md       | solved
+drive-c-hw      | The Drive C reproduction: hw + firmware | docs/drive-c-design.md         | design
 hard-disks      | The hard-disk products                  | docs/occ1-harddisk-analysis.md | partial
 rt60a           | The RT-60A real-time clock              | docs/rt60a-analysis.md         | partial
 copower88       | CoPower-88: the host protocol           | docs/copower88-protocol.md     | partial
