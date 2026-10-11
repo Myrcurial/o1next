@@ -8,9 +8,9 @@ Disassembly: z80dasm (see "Tool evaluation" below).
 
 | File | Size | Role |
 |---|---|---|
-| DCL.COM | 6656 | "DRIVEC version 2.08" — driver installer/loader. Loads DFD.SPR, DCA/DCU. "Cannot install driver$Driver is already installed$" |
-| DFD.SPR | 2560 | Resident driver (page-relocatable SPR). Contains CCP-style command table (DIR ERA HELP REN SAVE TYPE USER) + BIOS hook code |
-| DCA.COM | 9984 | "DCA version 1.85" — assign/configuration |
+| DCL.COM | 6656 | "DRIVEC version 2.08" — driver installer/loader. Loads DFD.SPR, DCA/DCU. "Cannot install driver$Driver is already installed$". Per the vendor's review it **replaces the earlier `DRIVEC.COM`**, and when the print buffer is switched on it copies `DCU.COM` into the unit |
+| DFD.SPR | 2560 | Resident driver (page-relocatable SPR). Contains CCP-style command table (DIR ERA HELP REN SAVE TYPE USER) + BIOS hook code. The vendor describes it as "**a substitute console command processor (CCP)**" that is "**automatically loaded**" |
+| DCA.COM | 9984 | "DCA version 1.85" — the **Archive-Retrieve** program per the vendor's own review (it "replaces both `DCARCH.COM` and `DCRET.COM`"). The earlier "assign/configuration" label came from the disassembly and is questioned below |
 | DCU.COM | 6272 | "DCU version 1.40" — RAM-disk utility (erase all, directory, files/line config; generates DCUN.COM via SAVE 28) |
 | DCQ.COM + DCQ.DAT | 896+128 | "DCQ version 1.22" QUICKPAC — fast boot-time loader; DCLOADED.SYS marker |
 | DCQINS.COM | 7296 | QUICKPAC installer (writes boot track via DCL); text by David E. Price |
@@ -123,6 +123,75 @@ So there was a **384K** configuration, and the disagreement was never about
 whether it worked — it was about who it was for. Extract:
 `research/technical-articles/TPC-Issue15-1985-pp52-drive-c-letters.pdf`.
 
+## The vendor's software set, from a contemporary review
+
+*The Portable Companion* #14 (Nov/Dec 1984), printed pp. 41–45 = PDF pp. 43–47,
+carries **"Review of New Drive C: Loader & Archive Programs" by Larry Walker** —
+and, usefully for provenance, it is a **reprint from *FOGHORN* (First Osborne
+Group) 9/84**. It documents the second-generation Drive C: software, which is
+what this disk holds, and it names each program and its job:
+
+| Program | What the review says it is |
+|---|---|
+| `DCL.COM` | the loader "that makes the Drive C: unit accessible", replacing `DRIVEC.COM`; also turns the print buffer on, and then copies `DCU.COM` into the unit |
+| `DFD.SPR` | "**A substitute console command processor (CCP)**, DFD.SPR is designed to make Drive C: work better and is **automatically loaded**" |
+| `DCA.COM` | the **Archive-Retrieve** program, replacing both `DCARCH.COM` and `DCRET.COM` |
+| `DCU.COM` | the print-buffer utility, loaded into the unit with the buffer; `DCU` gives a menu, `DCU E` erases every file |
+| QuickPac: `DCQ.COM`, `DCQINS.COM`, `DCQ.DAT`, `DCQAUT.COM` | `DCQ.COM` "allows you to store a series of commands in SUBMIT fashion to load Drive C:, name it, copy the contents of a disk (or disks) into it, select a print buffer option, and run a program at the end of the process"; `DCQINS` is the menu-driven installer, writing the ASCII `DCQ.DAT`; startup becomes automatic by renaming `DCQAUT.COM` to **`AUTOST.COM`** |
+| `DCN.COM` | "**automatically generated and loaded into Drive C: when the loader program is run**" — it backs the `DCN` rename command |
+| `PRN.TST` | the print test file, sent to the printer at the end of installation |
+
+The archive lineage is spelled out too: `DCARCH.BAS` (needed MBASIC, "very
+slow") → `DCARCH.COM` (compiled, "bugs that arose when it was called upon to
+close files") → `DCA.COM`.
+
+### Command syntax of this generation
+
+- `DC1 A` — install the unit and name it logical A. **This replaces
+  `DRIVEC A: C:`**, which named the unit A and the left floppy C in one go.
+- `DCN x` — rename the unit to logical name `x` at the CP/M prompt.
+- `DC1 A16` … `DC1 A128` — as above plus a **fixed print buffer of 16, 32, 48, 64,
+  80, 96, 112 or 128K**. Substituting `P` installs the **dynamic** buffer — all
+  otherwise unused memory, released back to programs as the buffer drains. Any
+  other letter means no buffer is installed.
+- `DCU` — buffer menu (stop/restart the dump, clear the buffer, report dynamic
+  space); `DCU E` erases the unit.
+- `DCA RB` — run Archive-Retrieve in **Retrieve** mode from drive B:.
+
+### Behaviour, and one gotcha that matters for emulation
+
+- **A printer that is connected but switched off crashes the machine.** The
+  review is explicit: *"If the printer is connected but OFF, the Loader will not
+  work and the Osborne 1 will crash."* Cables must meet OCC's specification, and
+  some printers (the reviewer's Daisywriter 2000) "look funny" to the unit — the
+  fix being to disconnect the cable or leave the printer on. This is a property
+  of the duplicated printer port, so a personality for #84 has to reproduce the
+  failure and not only the success.
+- **The reset button does not lose the unit's contents** — "only turning off the
+  computer does that" — with the obvious advice to save first.
+- **Archived files are stored contiguously as a single file** and are only
+  readable through Retrieve; the directory shows one entry. A set spanning two
+  disks names the second `filename.AR2`. The program warns when the target disk
+  is not blank, shows its directory, and asks twice before erasing.
+- **Speed**, as measured by the reviewer: `WSMSGS.OVR` (34K) retrieved into the
+  unit in **10 seconds** versus **17** with PIP; a 272K WordStar + Spellguard set
+  in 115 seconds. Single-density owners need two disk changes and take longer.
+- **Cabling**: the unit mounts in the pocket below the right drive; the longer
+  cable goes to the **IEEE-488 connector on the left side**, the shorter to the
+  **External Video port** directly below the unit. Both O1 connectors are
+  duplicated on the Drive C: panel (Centronics printer cable and shorting plug),
+  and the unit has its own external video jack, so no adapter is needed.
+- **Capacities sold**: 192K and 384K (the reviewer bought 384K).
+- **Terms**: the new package was free to customers who bought after **31 December
+  1983**, $39 to earlier ones; the manual runs to nearly 150 pages.
+- **BackPac** — a battery pack inside the keyboard enclosure that holds the unit's
+  memory for **8–10 hours** after power is lost, "deliberately or through power
+  failure". Announced but not shipping at the time of writing, manual still being
+  written, target price **$150**.
+- The same vendor resold **Trantor** hard disks at a discount (not reviewed here).
+
+Extract: `research/technical-articles/TPC-Issue14-1984-pp43-47-drive-c-loader-and-archive-programs.pdf`.
+
 ## Open questions (next steps)
 
 1. **How DFD.SPR reaches the transport.** It makes no PIA references at all, so
@@ -145,6 +214,12 @@ whether it worked — it was about who it was for. Extract:
 7. **DCL's CPU-detection snippet** (ports `0xD6` OUT / `0xDE` IN, and the
    `rla`/`rra`/`daa`/`cpl`/`scf`/`ccf` region near `0x0748`) — still unexplained,
    and not obviously related to Drive C.
+8. **`DCA.COM`'s role** — the vendor's review calls it the Archive-Retrieve
+   program and makes it the centrepiece of the new software; our table says
+   "assign/configuration". Both may describe different versions, but the label
+   came from the disassembly, so the disassembly is what needs re-reading.
+9. **`DCN.COM`** — "automatically generated and loaded into Drive C: when the
+   loader program is run". Which build step emits it, and where in `DCL.COM`?
 
 The previous revision's question 5 — real GPIB, or a simplified handshake over the
 same connector — is answered by the manual in the negative: *"IEEE-488
