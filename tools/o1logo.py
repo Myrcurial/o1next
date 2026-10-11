@@ -32,7 +32,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from o1art import block_table, emit_art, emit_png, glyph_bitmaps, ROM  # noqa: E402
 
 CAP, STROKE, RAD = 50, 15, 6      # measured from the AUTOCPM O
+STROKE_H = 13                     # horizontals thinner than verticals, as a round
+                                  # letter has it -- and the O's counter is taller
+                                  # for it, at the same width
 HATCH, HATCH_T = 8, 2             # full-width rules, every 8 sub-pixels
+HATCH_MID = 25                    # the middle of the three rules the O's counter
+                                  # straddles: the one that carries through a G
 TOP = 4                           # the O's ink starts at sub-row 4
 TRACK = 8                         # letter spacing
 
@@ -59,10 +64,11 @@ def rounded(bm, x, y, w, h, r, v=1):
                         fill(bm, px, py, 1, 1, v)
 
 
-def ring(bm, x, y, w, h, r):
+def ring(bm, x, y, w, h, r, sv=STROKE, sh=None):
+    """A ring whose horizontals can be thinner than its verticals."""
+    sh = sv if sh is None else sh
     rounded(bm, x, y, w, h, r, 1)
-    rounded(bm, x + STROKE, y + STROKE, w - 2 * STROKE, h - 2 * STROKE,
-            max(1, r - STROKE // 2), 0)
+    rounded(bm, x + sv, y + sh, w - 2 * sv, h - 2 * sh, max(1, r - sv // 2), 0)
 
 
 def diagonal(bm, x0, y0, x1, y1, t):
@@ -77,13 +83,15 @@ def diagonal(bm, x0, y0, x1, y1, t):
 def draw(ch, bm, x, y):
     """Draw one cap, return its advance width.  Arial Bold proportions."""
     if ch == "O":
-        ring(bm, x, y, 52, CAP, RAD)
+        ring(bm, x, y, 52, CAP, RAD, STROKE, STROKE_H)
         return 52
     if ch == "G":
-        # the same ring, opened above the bar with the bar put back in
-        ring(bm, x, y, 52, CAP, RAD)
-        fill(bm, x + 30, y + 12, 24, 15, 0)      # the gap
-        fill(bm, x + 26, y + 27, 26, STROKE, 1)  # the bar
+        ring(bm, x, y, 52, CAP, RAD, STROKE, STROKE_H)
+        # The opening is one hatch line and nothing else: the ring stays solid
+        # above it -- cutting a taller gap notches the upper arm -- and closes
+        # from the bar down to the bottom stroke.
+        fill(bm, x + 30, y + HATCH_MID - TOP, 24, HATCH_T, 0)
+        fill(bm, x + 26, y + 27, 26, STROKE, 1)      # the bar
         return 52
     if ch == "1":
         fill(bm, x + 6, y, STROKE, CAP)
