@@ -91,7 +91,8 @@ def draw(ch, bm, x, y):
         hole_w, hole_h = 52 - 2 * STROKE, CAP - 2 * STROKE_H   # 22 x 24
         hx, hy = x + STROKE, y + STROKE_H
         cut = hole_h // 2                                      # 12
-        fill(bm, hx + hole_w - 2, hy + (hole_h - cut) // 2, STROKE + 4, cut, 0)
+        # the upper half of the part of the ring to the right of the hole
+        fill(bm, hx + hole_w - 2, hy, STROKE + 4, cut, 0)
         bw, bh = hole_w // 2, hole_h // 2                      # 11 x 12
         fill(bm, hx + hole_w - bw, hy + hole_h - bh, bw, bh, 1)
         return 52
