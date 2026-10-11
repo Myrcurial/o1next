@@ -9,6 +9,15 @@ cannot assume the ScreenPac's interface.
 This doc covers the **video** side. The DD side is in
 `docs/dd-upgrade-formats.md` and `docs/research-gaps.md` gap #11.
 
+> **Scope note: "Executive" means a different machine.** In Osborne's world the
+> Osborne **Executive** is the O2-class machine, not a variant of the 1. Upgrades,
+> software and advertisements aimed at it are therefore **out of scope here** and
+> must not be folded into Osborne 1 conclusions — for example the $595
+> double-sided-drive upgrade advertised in *The Portable Companion* #14, PDF p. 47,
+> which is an Executive product. The three machines this project cares about are
+> the Osborne 1, the Osborne 1 with OCC's own upgrades, and clones of them
+> (`docs/research-gaps.md` gap 12).
+
 ## The three implementations at a glance
 
 | | OCC **SCREEN-PAC** (1983) | **Nuevo** (1984) | **Osmosis** (1983) |
@@ -149,6 +158,59 @@ The manual's own dBASE instructions are the same patch Nuevo's disk applies:
 
 > (c) Enter S130 (ret) … Enter 01 (ret) … (e) Enter S154 (ret) … Enter 50 (ret)
 > … (g) Enter S395A (ret) … Enter C9 (ret)
+
+### The whole Osmosis product line, from their own advertising
+
+*The Portable Companion* #11 (October 1983), PDF p. 32 = printed p. 30, is a
+full-page OSMOSIS advertisement — "The Next Step Forward" — and it gives the
+boards **product numbers**, which the manual we hold does not:
+
+| Product | What it is | Price |
+|---|---|---|
+| **OSMOS 1** | Double Density, "184k per drive using existing drives", "fully compatible with all Osborne software" — "Install it yourself and save $165 on Osborne's charge" | $195 |
+| **OSMOS 1.5** | single-sided double density now on existing drives, upgradable to 370k per drive later with new drives | $335 |
+| **OSMOS 2** | double-sided double density, 370k per drive | $895 |
+| **OSMOS 3** | double-sided double density **double tracking**, 750k per drive, "an incredible 1.5MB of portability" | $1050 |
+| **OSMOS 4** | disk formatting and conversion — "read, write and format **over 20 other manufactures CP/M formats**" | $225 |
+| **OSMOS 5** | **the internal 80-column board** — this section's subject | $250 |
+| **OSMOS 6** | telex: prepare telexes in WordStar, timed send, "automatic transmission/reception in background while running any standard CP/M software", log and queue | $1195 |
+| **OSMOS 7** | Winchester disks, 5¼ / 10½ / 15¾ / 21 MByte units, "a 42 Megabyte max capacity" | $2475–$3650 |
+| **OSMOS 8** | instrumentation — analog/digital, digital/analog, digital/digital cards | — |
+| **OSMOS 10** | Olivetti ET121 to Osborne RS-232 KSR interface, 2K print buffer | $500 |
+
+with a bundle — "**OSMOS 1, 4 AND 5 ALL FOR $385**" against $670 separately,
+"offer extended by popular demand until December 31, 1983" — and a house claim
+that matters for the interposer work:
+
+> All OSMOSIS upgrades are **plug-in. There is no soldering or cutting.** Our
+> products are supplied as kits for existing units and require no modifications to
+> the Osborne computer. No specialized knowledge is required.
+
+That is the design philosophy this project's interposer adopts, and the opposite
+of the SCREEN-PAC's soldered fly-leads (`2F00040` §6.12). Vendor address for the
+record: 430 Pacific Avenue, San Francisco, CA 94133, (415) 864-6372.
+
+**The 80-column board carries a hard-disk interface.** The OSMOS 5 entry reads in
+full:
+
+> An INTERNAL 80 column board with lots of additional features and NO alteration
+> required to existing software:
+> - Full width screen > 80 columns on internal and external video
+> - Normal/Inverted video · Underline · ⅔ and ½ intensity
+> - Additional graphics characters for screen form design
+> - **Includes a Hard Disk interface for future plug-in expansion**
+> - At a very low price of only $250
+
+So the video board was also the doorway to a hard disk — "**future** plug-in
+expansion", i.e. the interface ships before OSMOS 7 (the Winchester product) is
+something you can buy. The board this project treats as a bus-interposer
+template is therefore a **storage** interposer too, not only a wider screen, and
+that is a second reason to read its manual closely for #11/#12.
+
+Note the attribute list as well: **normal/inverted video, underline, and ⅔ / ½
+intensity**. The stock machine exposes underline and dim as attribute bits
+(`docs/o1-memory-io-map.md` §2a/§3); Osmosis advertises two intensity steps. The
+mapping between the two is not established — relevant to #24.
 
 ## What this means for this project
 

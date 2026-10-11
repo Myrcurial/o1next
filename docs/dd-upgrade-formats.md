@@ -151,6 +151,62 @@ Five things follow, and the first two correct an assumption worth recording:
   unchanged from 1.4, which is the region the SCREEN-PAC's width variable
   (`E1A5H`, `docs/o1-memory-io-map.md` §2a) lives in.
 
+## A third vendor sold the format list itself: Osmosis OSMOS 4
+
+Osmosis advertised the capability as a **standalone product**, in *The Portable
+Companion* #11 (October 1983), PDF p. 32 = printed p. 30:
+
+> **OSMOS 4** — Disk Formatting & Conversion: Allowing your Osborne to **read,
+> write and format over 20 other manufactures CP/M formats**. $225
+
+That is the strongest form of the claim in the archive: not a capability bundled
+into a density upgrade (OCC), and not a side effect of a BIOS rewrite (Nuevo), but
+a **$225 product sold on its own**, priced *above* the $195 double-density board
+it was usually bought with. The same page bundles them — "**OSMOS 1, 4 AND 5 ALL
+FOR $385**", $670 separately — which is a fair measure of how much of the value
+was seen to be in *formats* rather than in *density*.
+
+Its density line, for the record: **OSMOS 1** 184k per drive on existing drives
+($195), **OSMOS 1.5** single-sided DD now, 370k later with new drives ($335),
+**OSMOS 2** double-sided DD, 370k ($895), **OSMOS 3** double-sided DD **double
+tracking**, 750k per drive, "an incredible 1.5MB" ($1050). The full product table
+is in `docs/o1-upgrade-boards.md`.
+
+**The tally is four independent format mechanisms:** OCC's DPB table, Nuevo's
+boot-time auto-configuration, Osmosis's separate conversion program, and the
+factory BIOS's density/sector probing. A floppy personality (#20) that knows only
+the stock geometry fails on any of them.
+
+## What the DD upgrade costs in memory: the Corvus link program
+
+A user note in *The Portable Companion* #11 (October 1983), PDF p. 54 = printed
+p. 52 — "**Doubling hard disk memory**" by Bob Gras, reprinted from the OSUG
+newsletter (Anchorage) — is a patch to Corvus's link program, and it says plainly
+why it is needed:
+
+> If you had a single-density Osborne computer, but now have a double-density and
+> are using the Corvus hard disk drives, this one is for you. … With the new double
+> density system, **more memory is required for managing the Osborne floppy
+> drives**, so this value has to be reset to accommodate the double density version
+> of the Osborne.
+
+The value is a CP/M offset in `CLINK2K2.ASM` (the source for the `CLINK2` program
+that links the machine to the Corvus drive):
+
+```
+IF NOT (ABOVE)      ;
+DELTA  EQU  500H    ; OFFSET FROM STANDARD CP/M *
+```
+
+and the fix is to "type a **900H** in place of the **500H**", then assemble and
+link with `ASM.COM` and `LOAD.COM` (the article points at the Osborne manual's
+assembly instructions, pp. 253–255 of the "Rev: 2/28/82" edition). So the constant
+grows by `400H` — 1 KB — between the single- and double-density versions of the
+same machine, and the author's stated reason is the DD system's larger floppy-
+management code. **The DD upgrade is not memory-neutral**, which matters for
+anything that assumes a fixed TPA base, and it is the kind of third-party
+consequence the DD documentation itself does not mention (#95).
+
 ## Sources
 
 - `research/osborne1/o1doubledensityusersguide.pdf` — *Osborne 1 Double Density

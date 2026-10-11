@@ -65,7 +65,7 @@ Everything else is either done, or is research that can proceed in parallel.
 
 ## B. Questions that appeared since the original review
 
-### B1. There are **two** hard-disk products, not one — three storage routes in total
+### B1. Hard-disk products — two in the archive, and five routes advertised in total
 
 The original gap 9 assumed a single OCC1 hard disk. The archive drop (#71) turned
 up a second, unrelated one. Confirmed from their own strings:
@@ -84,8 +84,24 @@ hard disks use a *port-relocatable* controller — which matters, because the O1
 I/O decode is sloppy, so "4 port boundary" is the same two-address-line decode the
 rest of the machine uses.
 
-Drive C is the only one of the three buildable without unobtainable hardware —
-see #84.
+**Two more routes appear only in the magazine archive**, with no software or media
+of ours behind them — recorded because a survey of "what storage existed" is
+incomplete without them, and because neither is buildable from what we hold:
+
+- **Corvus hard disks**, reached through a link program — `CLINK2`, built from
+  `CLINK2K2.ASM` and assembled by the owner with `ASM.COM` and `LOAD.COM`. *The
+  Portable Companion* #11 (October 1983), PDF p. 54 = printed p. 52, "**Doubling
+  hard disk memory**" by Bob Gras (reprinted from the OSUG newsletter, Anchorage),
+  is a patch for exactly that program, needed because DD leaves less memory for
+  it (`docs/dd-upgrade-formats.md`). No Corvus software or media held.
+- **Osmosis OSMOS 7**, advertised as "Winchester disks … 5¼, 10½, 15¾ & 21 MByte
+  units - a 42 Megabyte max capacity", $2475–$3650 — on the same page as the
+  OSMOS 5 80-column board, which itself "**includes a Hard Disk interface for
+  future plug-in expansion**" (`docs/o1-upgrade-boards.md`). No media held.
+
+So the honest count is **five** advertised storage routes beyond the floppies —
+ACT, Media Distributing/Adaptec, Drive C, Corvus and OSMOS 7 — of which only
+**Drive C** is buildable from what this project holds (#84).
 
 ### B2. Character-generator ROM variants — closed
 

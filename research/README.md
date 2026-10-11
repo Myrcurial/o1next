@@ -83,6 +83,8 @@ cut from, so it can be checked against the original.
 
 | Extract | What it is | Cut from |
 |---|---|---|
+| `TPC-Issue11-1983-pp32-osmosis-product-line-ad.pdf` (0.6 MB, 1 p) | OSMOSIS' full-page advertisement, "The Next Step Forward" — the whole product line **with product numbers**: **OSMOS 1** DD 184k/drive ($195), **1.5** ($335), **2** DS/DD 370k ($895), **3** DS/DD double-tracking 750k/1.5MB ($1050), **4** "read, write and format **over 20 other manufactures CP/M formats**" ($225), **5** the internal 80-column board ($250 — "**includes a Hard Disk interface for future plug-in expansion**", normal/inverted video, underline, ⅔ and ½ intensity), **6** telex, **7** Winchester to 42 MB, **8** instrumentation, **10** Olivetti ET121 interface; bundle OSMOS 1+4+5 for $385. Quoted in `docs/o1-upgrade-boards.md` and `docs/dd-upgrade-formats.md`. Relevant to #24, #11/#12 and #95/#30. | *The Portable Companion* #11, October 1983 — PDF p. 32 (printed 30) |
+| `TPC-Issue11-1983-pp54-doubling-hard-disk-memory.pdf` (0.7 MB, 1 p) | "**Doubling hard disk memory**" by **Bob Gras** (reprinted from the OSUG newsletter, Anchorage) — patching Corvus's `CLINK2K2.ASM` so the link program works after a double-density upgrade: `DELTA EQU 500H` → `900H`, because "**more memory is required for managing the Osborne floppy drives**" under DD. The same page carries the tail of John Dilday's WordStar printer-spooler article. Quoted in `docs/dd-upgrade-formats.md` and `docs/research-gaps.md` §B1. Relevant to #95 and the hard-disk survey (gap 9). | *The Portable Companion* #11, October 1983 — PDF p. 54 (printed 52) |
 | `TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf` (3.3 MB, 6 pp) | "**Reverse Video and a Faster Serial Port**" by **Thom Hogan** — changing the underline cursor to a reversed-video one, and pushing the serial port to **9600 baud**, with the schematic changes. Relevant to #24 (video) and #21 (serial/modem). Worth noting the author: the same Thom Hogan whose `AUTOCPM.ASM` is the source of the site wordmark (#97). | *The Portable Companion* #13, June/July 1984 — PDF pp. 26–31 |
 | `TPC-Issue14-1984-pp43-47-drive-c-loader-and-archive-programs.pdf` (4.6 MB, 5 pp) | "**Review of New Drive C: Loader & Archive Programs**" by **Larry Walker** — a *FOGHORN* (First Osborne Group) reprint documenting the second-generation Drive C: software: `DCL.COM` (loader, replaces `DRIVEC.COM`), `DFD.SPR` ("a substitute console command processor … automatically loaded"), `DCA.COM` (Archive-Retrieve, replaces `DCARCH.COM`/`DCRET.COM`), QuickPac (`DCQ`/`DCQINS`/`DCQ.DAT`/`DCQAUT`→`AUTOST.COM`), the `DC1`/`DCN`/`DCU` command syntax, print-buffer sizes (16–128K or dynamic), retrieval timings, the BackPac battery, and the gotcha that a printer connected but switched **off** crashes the machine. Relevant to #6, #84 and #19. | *The Portable Companion* #14, November/December 1984 — PDF pp. 43–47 (printed 41–45) |
 | `TPC-Issue15-1985-pp72-77-16bit-msdos-and-cpm-for-your-o1.pdf` (4.9 MB, 6 pp) | "**16-Bit MS-DOS & CP/M For Your Osborne One!**" by **Robert J. Thomson** — the **Co-Power-88**: an 8088 processor, MS-DOS / CP/M-86 / CP/M, and a 256K memory disk under regular CP/M, with the installation. Directly relevant to #23/#26 and the CoPower-88 work in `research/copower88/`. | *The Portable Companion* #15, January/February 1985 — PDF pp. 72–77 |
@@ -105,8 +107,8 @@ The maintainer reads the issues and hands over the ones worth keeping, giving th
 
 Two things to know before cutting pages:
 
-- **Page numbers are PDF pages, not printed pages.** All three issues checked so
-  far (13, 14, 15)
+- **Page numbers are PDF pages, not printed pages.** All four issues checked so
+  far (11, 13, 14, 15)
   print their own numbers two lower (`PDF = printed + 2`), so an article "on page
   26" is PDF page 26 and printed page 24 — and cutting printed 26 would miss the
   article's title page. Confirm with `pdftotext -f N -l N -layout ISSUE.pdf - |
