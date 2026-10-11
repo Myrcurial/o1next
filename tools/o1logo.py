@@ -86,12 +86,16 @@ def draw(ch, bm, x, y):
         ring(bm, x, y, 52, CAP, RAD, STROKE, STROKE_H)
         return 52
     if ch == "G":
+        # Reconstructed from the O rather than patched: copy the ring, take the
+        # right side away for half the hole's height (centred on the hole), then
+        # put a block half the hole's size in its south-east corner.
         ring(bm, x, y, 52, CAP, RAD, STROKE, STROKE_H)
-        # The opening is one hatch line and nothing else: the ring stays solid
-        # above it -- cutting a taller gap notches the upper arm -- and closes
-        # from the bar down to the bottom stroke.
-        fill(bm, x + 30, y + HATCH_MID - TOP, 24, HATCH_T, 0)
-        fill(bm, x + 26, y + 27, 26, STROKE, 1)      # the bar
+        hole_w, hole_h = 52 - 2 * STROKE, CAP - 2 * STROKE_H   # 22 x 24
+        hx, hy = x + STROKE, y + STROKE_H
+        cut = hole_h // 2                                      # 12
+        fill(bm, hx + hole_w - 2, hy + (hole_h - cut) // 2, STROKE + 4, cut, 0)
+        bw, bh = hole_w // 2, hole_h // 2                      # 11 x 12
+        fill(bm, hx + hole_w - bw, hy + hole_h - bh, bw, bh, 1)
         return 52
     if ch == "1":
         fill(bm, x + 6, y, STROKE, CAP)
