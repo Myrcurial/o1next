@@ -432,6 +432,11 @@ taps. Treat the box model as a validation aid for short runs, not a harness.
 
 ## 10. What is still open
 
+**#6 closed on this document (2026-10-11)** — its deliverable was the contract in
+§7 and the validation in §9, and both are done. What follows is the residue, kept
+because a reader deserves to know what is *not* known. None of it blocks a
+replacement; the first item below has moved to #84, which is where it belongs.
+
 1. **The DPB — closed** (§8.1). It is `DCL.COM` file `0x142F`, installed
    `0x052F`, and it decodes field for field against the manual. What remains is
    *mechanical* rather than unknown: the payload's pointer table lists the DPB,
@@ -448,7 +453,10 @@ taps. Treat the box model as a validation aid for short runs, not a harness.
    it cannot be settled from software alone: the trace never reaches `n ≥ 1`,
    because the boot-time format and `DCL`'s own install only touch tracks 0–40.
    **It does not block a reproduction** — a box that treats `f` exactly as the
-   driver does behaves identically whatever `f` turns out to mean.
+   driver does behaves identically whatever `f` turns out to mean, provided the
+   replacement presents 192 KiB or less. It is recorded as a **hardware-gated
+   item on #84**, because it is the reproduction, not this document, that has to
+   answer it.
 3. **The print-buffer path — mostly closed.** The manuals give the budget
    ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) §5): a **fixed** buffer is carved out of the
    unit's own RAM disk, user-selectable from **16K to 128K in 16K steps**, and
