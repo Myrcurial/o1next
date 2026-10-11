@@ -1,10 +1,22 @@
 # screenpac-video — SCREEN-PAC 80/104-column video + HDMI (RP2350)
 
 Emulates the SCREEN-PAC 80/104-column video personality and provides
-modern video out (HDMI via RP2350 HSTX/DVI, or VGA resistor DAC via
-`hardware/front-panel-ui/`).
+modern video out — **HDMI**, via the RP2350's HSTX block, with the
+connector on `hardware/front-panel-ui/`.
 
 Tracks: #24; char-gen ROM context in #44.
+
+## Output: HDMI, not VGA (settled 2026-10-11)
+
+The personality's output is **HDMI**. **VGA is not pursued**: HSTX is fixed to
+GP12–19 on the RP2350, so a resistor DAC would need the same range and the two are
+mutually exclusive.
+
+The same decision now applies across the project — the SFF board carries **HDMI
+only** and no composite circuitry at all (`hardware/o1ng/README.md`). The display
+*character* (white, green, or the amber plasma mode) is a rendering choice in the
+personality's configuration rather than a hardware one; see "Monitor character"
+below.
 
 ## Definition
 
@@ -13,7 +25,7 @@ Tracks: #24; char-gen ROM context in #44.
   works with early/late stock and Nuevo fonts without bundled ROMs.
 - Emulate the SCREEN-PAC register interface so period software (and the
   ScreenPac service-manual behaviors, `research/screenpac/`) work.
-- Render framebuffer → DVI/VGA; keep timing on PIO/core1 per the
+- Render framebuffer → HDMI; keep timing on PIO/core1 per the
   radio-jitter rule.
 - Also the video source for the KVM console (`../kvm-console/`).
 
@@ -49,7 +61,7 @@ The O1's screen is **memory-mapped video RAM**; the char-gen socket tap
 (UA15) gives the font. So the video personality can be built as pure
 **memory-side reconstruction**: watch video-RAM writes on the Z80 bus
 (already have them), read the installed font ROM via the UA15 tap,
-render the frame in the RP2350 → HDMI/VGA. No fly leads, no soldered
+render the frame in the RP2350 → HDMI. No fly leads, no soldered
 taps. ScreenPac mode-register writes are also bus-visible, so 80/104
 column switching is tracked automatically.
 
@@ -68,7 +80,6 @@ electrically" story is documented even though we don't replicate it.
 
 - Char-gen socket pinout confirmation (ScreenPac install pages +
   Rev E schematic; research-gaps #3).
-- HDMI vs VGA as the primary output (decided with front-panel hardware).
 
 ## Deliverables
 

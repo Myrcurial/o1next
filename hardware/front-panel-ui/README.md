@@ -14,7 +14,7 @@ Tracks: #14.
   firmware, #45/#47). The **original keyboard stays plugged in and fully
   functional**; the USB keyboard is an optional second input that just
   works, both live simultaneously.
-- VGA or HDMI video out (SCREEN-PAC personality, #24)
+- **HDMI video out** (SCREEN-PAC personality, #24) — decided; VGA not pursued
 - Small OLED status display
 - Rotary encoder or 5-way d-pad (FlashFloppy-style menu UI)
 - Hayes/USR-style LED bank: CTS/RTS/TX/RX/RING etc. (modem personality)
@@ -33,5 +33,3 @@ Tracks: #14.
 - OLED controller choice (I²C vs SPI over the ribbon).
 - Exact pocket geometry vs. COMM-PAC faceplate dimensions (measure
   against host machine photos, `research/pictures/`).
-- Whether video out is HDMI (RP2350 HSTX/DVI) or VGA (resistor DAC) —
-  decided with the #24 firmware personality.
