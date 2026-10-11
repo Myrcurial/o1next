@@ -104,23 +104,31 @@ def build(mode):
 <body>
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="#">%s</a>
+    <div class="masthead">
+      <a class="brand" href="#">%s</a>
+      <div class="screenpac" role="group" aria-label="Screen width">
+        <span class="screenpac-name">Screen Pac</span>
+        <div class="screenpac-modes">
+          <input type="radio" name="columns" id="columns-52" value="52"%s>
+          <label for="columns-52" title="52 columns">52</label>
+          <input type="radio" name="columns" id="columns-80" value="80"%s>
+          <label for="columns-80" title="80 columns">80</label>
+          <input type="radio" name="columns" id="columns-104" value="104"%s>
+          <label for="columns-104" title="104 columns">104</label>
+        </div>
+      </div>
+    </div>
     <nav class="site-nav">
       <a href="#">Posts</a>
+      <span class="nav-sep">|</span>
       <a href="#">Hardware</a>
+      <span class="nav-sep">|</span>
       <a href="#">Osborne 1 Compendium</a>
+      <span class="nav-sep">|</span>
       <a href="#">Code &amp; research</a>
+      <span class="nav-sep">|</span>
       <a href="#">RSS</a>
     </nav>
-    <div class="screenpac" role="group" aria-label="Screen width">
-      <span class="screenpac-name">Screen Pac</span>
-      <input type="radio" name="columns" id="columns-52" value="52"%s>
-      <label for="columns-52" title="52 columns">52</label>
-      <input type="radio" name="columns" id="columns-80" value="80"%s>
-      <label for="columns-80" title="80 columns">80</label>
-      <input type="radio" name="columns" id="columns-104" value="104"%s>
-      <label for="columns-104" title="104 columns">104</label>
-    </div>
   </div>
 </header>
 <main class="page-content"><div class="wrap">
