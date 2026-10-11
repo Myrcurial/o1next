@@ -160,7 +160,9 @@ def chapter_page(part_title, chapter):
     if body is None:
         return None
     note = STATUS_NOTE[chapter["status"]]
-    subtitle = part_title if not note else "%s &middot; %s" % (part_title, note)
+    # Plain text, not an entity: the page layout escapes the subtitle, so an
+    # `&middot;` here would render literally as "&middot;".
+    subtitle = part_title if not note else "%s · %s" % (part_title, note)
     return """---
 layout: page
 title: %s

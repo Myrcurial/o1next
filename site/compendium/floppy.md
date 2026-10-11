@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "The floppy subsystem and its formats"
-subtitle: "Interfaces &middot; partially solved"
+subtitle: "Interfaces · partially solved"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
