@@ -1,0 +1,820 @@
+
+===== PAGE 1 =====
+
+reatur e
+
+16-Bit MS-DOS & CP/M
+For Your Osborne One!
+
+The CO-POWER-88 board adds an 8088 processor,
+the MS-DOS, CP/M-86 and CP/M systems,
+and a 256K memory disk available under regular CP/M.
+
+Y= eyes do not deceive you. My
+Osborne 1 has been modified to
+run 16-bit software on both the MS-
+DOS® and CP/M-86® operating sys-
+
+tems, while still retaining the capability
+to run all of my CP/M® 8-bit software.
+Not only that! I also have a 252K RAM
+disk available when running in the 8-bit
+mode. And all for only $560!!
+
+This magic is performed by the instal-
+lation of CO-POWER-88 from SWP
+Microcomputer Products, Inc. of Arling-
+ton, Texas. CO-POWER-88 is an add-on
+board with an 8088 microprocessor chip
+and some memory chips that provide
+256K of RAM and the software to drive
+it.
+
+I first talked to SWP about a version
+of CO-POWER-88 for the Osborne 1 in
+mid-December. It was ordered in mid-
+February. It arrived in mid-April. I seem
+to have a mid-month fetish. No matter. It
+is now installed, and has been running
+for a month, and works fine!
+
+Like so many companies in the
+microcomputer industry, Software Pub-
+lishers (SWP) seem to be having order-
+ing and delivery problems. When you
+call to enquire about your order, they
+
+Robert J. Thomson
+
+are ‘‘waiting for parts” or some such re-
+sponse, and they are expecting to ship
+“real soon.”’ There is a hint that they
+have been swamped with orders and are
+trying, valiantly, to catch up. Anyway, if
+you expect about a two-month wait for
+your order to arrive you probably wont
+be disappointed. If it shows up earlier
+than expected, you will be pleased; if
+not, it’s what you expected.
+
+CO-POWER-88 has been available
+for the Kaypro II computer for some
+time but only recently has it become
+available in an Osborne 1 configuration.
+The principal differences between the
+Osborne and Kaypro configurations are
+in the hardware pieces which adapt the
+board to the computer chassis, and the
+power adapter cable. The 8088 board it-
+self is the Kaypro board — it says so
+right on it!
+
+The notes provided by SWP state
+that this installation describes the inter-
+face with Osborne 1s which have
+undergone the 80 column
+(SCREENPAC) upgrade. All instructions
+refer to how it interfaces with the
+Osborne’s 80 column board. Osborne 1s
+that have this upgrade are, of course,
+
+70 ~— February 1985 THE PORTABLE Companion #15 (Vol. 4.1)
+
+double-density machines.
+
+The installation is straightforward, re-
+quiring no soldering. However, since the
+board is installed inside the case, you
+must disassemble your Osborne. If you
+have the blue case Osborne 1, this is
+easy to do. But I have one of the old tan
+case machines.
+
+What You Get
+
+The number of separate parts pro-
+vided is small. The kit, shown in figure 1,
+contains the following hardware:
+
+° Main 8088 board, which is ap-
+proximately 5°/4” by 7”, contains
+the 8088 microprocessor, 256K of
+memory and several other support
+chips.
+
+° Adapter board, about 3” by 2/2”
+
+containing a Z80A processor, two
+other support chips and 13 inches
+of flat 16 conductor cable. The
+connector at the end of this cable
+fits into a receptacle on the 8088
+board during installation.
+
+
+===== PAGE 2 =====
+
+° Power cable assembly.
+
+Plus you get a package of installation
+hardware including:
+
+° Two aluminum  “Z’’-shaped
+mounting brackets with 4-40 nuts
+pressed in place.
+
+° Two 4-40 pan head screws.
+
+° A plastic PC board standoff and a
+metal PC board standoff which
+screws into the plastic one.
+
+The software provided with the sys-
+tem includes a CP/M-80 disk with pro-
+grams to load MS-DOS and to configure
+the RAM Disk, and the MS-DOS version
+2.11 operating system. The MS-DOS
+2.0 manual is provided along with about
+ten pages of notes from SWP on how to
+run their system. CP/M-86 is available
+as an option. Disks containing the
+CP/M-86 system and RAM Disk soft-
+ware are provided. The CP/M-86 man-
+ual provided is the IBM PC version.
+
+Differences:
+Tan vs. Blue Case
+
+Some of the tan case Osborne 1 com-
+ponents are shaped differently than
+their counterparts in the blue case, and
+the Osborne main board mounting ar-
+rangement is also different. In both
+cases, it is necessary to disconnect the
+keyboard cable, undo and pull off the
+brightness and contrast control knobs
+and remove a half dozen or so screws to
+remove the bezel from the front of the
+machine.
+
+One major difference between the
+two Osborne case configurations is the
+way you gain access to the Osborne 1
+main board. The blue case is designed as
+a two piece unit with the split along the
+horizontal center line. By turning the ma-
+chine upside down and unfastening a few
+screws, the bottom of the case can be re-
+moved to reveal the main board. The
+other half of the case remains in place.
+
+To disassemble the tan case, it is nec-
+essary to remove all of the case mount-
+ing screws including those holding the
+carrying handle to the case, and slide the
+computer forward and out of the case.
+
+£5 HIE Ea Serna? Saad? i is
+
+t
+
+Robert J. Thomson
+
+Settage os
+
+Ne
+
+Figure 1.
+Osborne I or Kaypro II computer.
+
+The CO-POWER-88 kit from SWP Microcomputer Products adds an 8088 processor to the
+
+The tan case remains in one piece. Al-
+though the cable assembly of the rear-
+mounted power switch panel is long
+enough to allow the machine to slide
+clear of the case, removal of the few
+screws holding it in place will allow the
+computer to be completely separated
+from the case, greatly simplifying han-
+dling of the unit.
+
+In the blue case, the Osborne main
+board is mounted to “‘I’’-shaped metal
+strips which in turn mount on four posts
+molded into the case. These posts ac-
+cept the screws which hold the two
+halves of the case together. The ‘‘Z”
+brackets provided to mount the 8088
+board are designed to mount on the two
+posts on the A drive side. When mount-
+ed this way, the 8088 board will not in-
+terfere with the Z80 adapter board
+which replaces the Osborne Z80.
+
+In the tan case Osborne, a metal an-
+gle bracket is pop-riveted to the plastic
+chassis providing mounting support for
+the Osborne main board (see figure 2).
+Consequently, while the aluminum “‘Z”
+
+brackets provided by SWP to mount the
+8088 board in the Osborne may work
+fine with the blue case, they need modifi-
+cation and different placement for use
+with the tan case.
+
+This is not a significant problem, but it
+does require modification of the “‘Z”
+brackets. Two holes must be drilled in
+the existing metal angle bracket to ac-
+cept. the ‘‘Z” brackets provided to
+mount the 8088 board, as shown in fig-
+ure 3.
+
+Relocating
+the 8088 Board
+
+Facing the Osborne 1 CRT, the 8088
+board is located on the left side, just un-
+der the A drive and above the main
+board. Since the bezel contains two
+‘“‘disk pockets’? which fit between the
+disk drives and the main board, the
+8088 board has to be installed close to
+the Osborne main board to avoid inter-
+ference with the disk pockets in the bezel
+
+© February 1985 THE PORTABLE Companion #15 (Vol.4.1) 71
+
+
+===== PAGE 3 =====
+
+Robert J. Thomson
+
+Figure 2. Jn the tan case Osborne, a metal angle bracket provides mounting support for the main board.
+
+Robert J. Thomson
+
+Figure 3. For tan case Osbornes you must modify the “‘Z”’ brackets supplied to support the CO-POWER-88
+board. Two holes must be drilled in the existing metal angle bracket shown in figure 2.
+
+during re-assembly.
+
+In tan case machines, these disk
+pockets are tapered more than on the
+blue case models so that the opening is
+larger at the bezel face. This additional
+taper requires that the 8088 board be
+mounted closer to the Osborne main
+
+board than proposed by SWP for the
+blue case machines. Consequently, in
+the tan case Osborne, instead of the
+8088 board being mounted on the ‘‘Z”’
+brackets as instructed by SWP, it is nec-
+essary to relocate it to the under side of
+the brackets and to separate it from the
+
+72 February 1985 THE PORTABLE Companion #15 (Vol. 4.1)
+
+brackets with nylon spacers (approxi-
+mately 1/16th of an inch). The result is
+that the 8088 board is moved closer to
+the Osborne main board by about 1/8th
+of an inch.
+
+Modifying
+the “Z” Brackets
+
+Modification of the aluminum ‘Z”
+brackets required some notching, crop-
+ping and re-drilling to fit the 8088 board
+as close to the outside of the chassis as
+possible, and to lower it somewhat more
+than the blue case installation called for.
+This left sufficient clearance for re-instal-
+lation of the bezel with its larger disk
+pockets.
+
+We did the following to modify the
+“Z” brackets:
+
+1. —_Interchanged the intended place-
+ment of ‘‘Z’’ brackets. That is, the
+“front”? bracket went to the back
+position and the “back” bracket
+went to the front position.
+
+2. Notched the rear ‘‘Z”’ bracket to
+clear the pop rivet which holds the
+Osborne main board mounting
+bracket to the plastic chassis
+frame.
+
+4. Drilled two holes in the Osborne
+main board mounting bracket to
+accept the “‘Z”’ brackets.
+
+5. Used two 6-32 machine screws,
+lock washers and nuts to mount
+the “Z”’ brackets to the Osborne
+chassis.
+
+6. Moved the mounting holes for
+8088 board on the “Z’’ brackets
+outward approximately 1/4’ to
+relieve interference between the
+inboard edge of 8088 board and
+the Z80 adapter board, and
+cropped the bracket to remove
+the existing mounting hole, so as
+to assure no interference with the
+power leads on the 8088 board.
+
+7. Placed nylon washers (spacers)
+between the board and “‘Z”’ brack-
+ets and mounted the board on the
+side of the “‘Z”’ brackets closest to
+
+
+===== PAGE 4 =====
+
+the Osborne board. This required
+that the front bracket be notched
+to accept the 8088 board.
+
+8. Installed the nylon and metal PC
+board standoffs on the front cor-
+ner of the 8088 board opposite the
+“Z” brackets. The standoffs pro-
+vide spacing and support from the
+Osborne mother board.
+
+The installation after these modifica-
+tions is shown in figure 4.
+
+Moving the
+Power Supply Bracket
+
+In my installation, the 8088 board
+stuck out about 3/32” beyond the front
+of the plastic chassis to which all
+Osborne components are mounted,
+even when the 8088 board was butted
+against the power supply mounting
+bracket at the rear of the space. Normal-
+ly, the bezel mounts flush against this
+plastic chassis, so unless corrected, the
+8088 board would prevent proper flush
+replacement of the bezel on my tan case
+machine. The fix for this problem was
+simple, although before proceeding with
+it some thought was given to the conse-
+quences.
+
+The solution is to remove the
+Osborne power supply from its mount-
+ing bracket (by removing four screws),
+as shown in figure 2, and to simply bend
+the mounting bracket and the two
+mounting posts toward the back about
+
+placement Z80 with the circuitry, inter-
+facing cable and connector to connect it
+to the 8088 board. The installation of
+this small board is a simple operation.
+The most difficult part is removing the
+existing Z80.
+
+If it is a tight fit, it takes some persis-
+
+—s
+
+~~ ceewewet 2
+
+Power Adapter Cable
+
+My Osborne has the double density
+and 80 column (SCREENPAC) upgrades
+which were performed at the Osborne
+factory. SWP’s installation instructions
+note that they have color coded the pow-
+
+a Se ee ae ae a. ee sh
+
+Robert J. Thomson
+
+ee ete
+
+Figure 4. The resulting installation after modifying the brackets.
+
+tent and careful prying, taking special
+care not to put stress into the PC board.
+The adapter board simply plugs into the
+Z80 receptacle. You must make sure, of
+course, that the new Z80 is oriented in
+the same way as the one it is replacing.
+That is, Pin 1 on the new one is where
+
+The installation is straightforward, requiring no soldering,
+but the board must be installed inside the case, and you
+must disassemble your Osborne.
+
+1/8”, sufficient to move the front edge
+of the 8088 board back until it is flush
+with the front edge of the tan case
+Osborne’s plastic chassis. After this op-
+eration, re-installation of the power sup-
+ply was achieved with no problems.
+
+Installation of
+the Z80 Adapter Board
+
+The Z80 adapter board holds the re-
+
+Pin 1 on the old one was.
+
+There is a 13 inch long ribbon cable to
+join the adapter board to the 8088
+board. A connector on one end plugs
+into a DIP socket on the Z80 adapter
+board. The connector on the opposite
+end plugs into a DIP socket on the 8088
+board. Again, its orientation is impor-
+tant, but SWP’s instructions are clear
+and no problems were encountered in
+this part of the installation. The installed
+Z80 Adapter Board is shown in figure 3.
+
+er adapter cable to match the (blue case)
+installation which they used as their
+model. The color coding matches the up-
+graded tan case Osborne exactly, so
+there was no problem with it.
+
+Installation of the power adapter cord
+involves the simple removal of an exist-
+ing plug from a receptacle on the power
+supply, replacing it with the one pro-
+vided and plugging the original plug into
+the adapter cable. The other end of the
+cable has two differently-sized spade
+(FASTON) connectors which can be at-
+tached to the 8088 board only one way.
+Thus, bringing power to the 8088 is sim-
+ple and requires no soldering.
+
+If you had an upgrade other than the
+one Osborne installed, there may be
+some difference in the power adapter ca-
+ble arrangement. However, there are
+only two wires involved. One is 5 volts
+DC and the other is ground. The 5 volt
+line goes to the smaller of the two spade
+(FASTON) connectors. If you are the
+least bit technically inclined, you should
+be able to determine which is which.
+
+© February 1985 THE PORTABLE Companion #15 (Vol.4.1) 73
+
+
+===== PAGE 5 =====
+
+Putting It Together
+
+After re-assembly of the power sup-
+ply, the 8088 board was fastened to the
+modified “‘Z’ brackets as described
+above, and the PC board standoffs at-
+tached to the opposite front corner of
+the board. With the Z80 Adapter Board
+installed the Osborne main board was
+brought into position to be re-mounted
+on the chassis. The excess length of the
+ribbon cable, between the Z80 adapter
+board and the 8088 board, was taken up
+by folding it over as the boards are
+brought together during installation.
+The completed installation is shown in
+figure 4.
+
+Re-assembly of the computer was un-
+eventful. It is easier to get the Osborne 1
+back into the tan case if you turn it up-
+side down before sliding it back into
+place. The power switch panel is re-in-
+stalled first. Then, the power cable as-
+sembly is carefully fed into the space
+under B Drive as the computer is slid
+into the case. The screws holding the
+case to the handle assembly, the chassis
+mounting screws and the front bezel
+screws were replaced and the the ma-
+chine was plugged in.
+
+The Smoke Test
+
+When the power was turned on the
+system ran OK, performing all the ad-
+vertised functions. After running for fif-
+teen or twenty minutes, the Osborne
+screen went blank and the machine did
+not respond to commands. Turning the
+power switch off and on again did not re-
+sult in the Osborne’s familiar flash of
+disk drive lights and the sign-on “‘beep.”’
+The fuse on the power switch panel was
+OK. We disassembled the computer to
+check the fuse on the power supply. It
+was OK, too. While the machine was dis-
+assembled, we plugged it in. Lo! It came
+alive properly. Everything worked!
+
+Tentative conclusion: The system
+runs hotter than it did without CO-POW-
+ER-88 and activates a thermal protec-
+tion device in the Osborne 1 (or
+overheats something until it goes out of
+tolerance) and shuts the system down.
+After a few minutes, the system cools
+enough to begin working again. Cooling
+the system with a fan yields a reliable
+
+working system. A simple $10 desk fan
+blowing on the front of the machine suf-
+fices. However, the addition of a fan to
+the case would also do the job. The SWP
+instructions state that a fan may be re-
+quired. In my experience, one is re-
+quired.
+
+How hot is hot? The 8088 chip runs
+hot to the touch. Surface temperature
+was measured with a probe and found to
+be around 50 degrees C (122 degrees
+F). Apparently this affects the operation
+of some component to cause a
+shutdown. However, as noted, you can
+re-establish reliable operation simply by
+using a small cooling fan.
+
+Running MS-DOS
+on the Osborne 1
+
+Loading MS-DOS is simple. SWP pro-
+vides an MS-DOS ‘‘Load”’ disk which
+contains CP/M-80 software which in-
+structs CO-POWER-88 to load the MS-
+DOS system. A screen message tells you
+to select either Drive A or Drive Bas the
+drive in which MS-DOS will be loaded.
+The ‘‘Load’’ disk is removed and a disk
+in MS-DOS format containing at least
+the MS-DOS file COMMAND.COM is
+placed in the drive to be selected. Upon
+keying in the drive selection, MS-DOS
+loads.
+
+When first loaded, it asks for the date
+and time. If you enter the date, every file
+you create in this session will carry that
+date when placed in the disk directory.
+Once the system is loaded, you can re-
+move the MS-DOS system disk, and load
+application programs and data disks
+from drives A and B.
+
+When exiting from an MS-DOS appli-
+cation program, the system will expect
+to find the file COMMAND.COM to re-
+activate MS-DOS. If you copy this file
+onto the disk in the drive from which the
+system was booted, you will save a bit of
+disk swapping.
+
+Two disks are provided by SWP. One
+is a CP/M-80 disk containing
+MSDOS.COM, which is the MS-DOS
+“Load” file, and RAMDISK.COM. The
+RAMDISK.COM file is used to configure
+the CO-POWER-88 as a disk emulator
+for use with CP/M-80 programs.
+
+The other is an MS-DOS System &
+Utilities disk containing the MS-DOS
+
+74 — February 1985 THE PORTABLE Companion #15 (Vol. 4.1)
+
+command processor file
+COMMAND.COM and standard MS-
+DOS utility files. SWP has added a file
+called Z80.EXE which will exit MS-DOS
+and return to CP/M-80.
+
+Before proceeding to run an MS-DOS
+program, I formatted some blank disks
+in MS-DOS format running the MS-DOS
+utility program FORMAT.COM. Then
+by loading an MS-DOS version of a pro-
+gram in Drive A anda blank disk in Drive
+B, for data files, I was all set to check out
+operation of the Osborne 1 in the 16-bit
+world,
+
+CP/M 80 MultiPlan
+Files Run in MS-DOS
+
+I have a CP/M-80 version of
+MultiPlan for my Osborne 1. An aggra-
+vation with the Osborne version is that it
+is set up to display only 52 columns on
+the screen, even when you have the 80
+column capability.
+
+I installed the MS-DOS version of
+MultiPlan on the Osborne with CO-
+POWER-88. It runs fine with a full 80
+column display. I did not take time to in-
+stall the underline, familiar to Osborne
+owners of MultiPlan or SuperCalc, as
+the cell marking cursor. Instead, the
+cursor is marked with square brackets.
+In the MS-DOS version, the cursor mark-
+ing brackets do not occupy the same po-
+sition as the end characters in the cell,
+thus obliterating them as they do in
+some CP/M 80 versions I have seen.
+
+Why, you may ask, do I want an MS-
+DOS version of MultiPlan when I already
+have a CP/M-80 version? The answer is
+that in MS-DOS I have 256K of memory
+available to me, while in CP/M-80 I have
+only 64K. This can make a tremendous
+difference in operation, since it allows at
+least four times as much data to be put
+into the spreadsheet before encounter-
+ing the dreaded MEMORY FULL message —-
+and I can display 80 columns of the
+spreadsheet.
+
+I have just had time to run a few sim-
+ple tests on MS-DOS, using MultiPlan as
+the example. I have found that the a
+MultiPlan spreadsheet created on my
+Osborne in the CP/M-80 version and
+copied to an MS-DOS formatted disk
+(using the format translating program
+Uniform) can be loaded and run in the
+
+
+===== PAGE 6 =====
+
+MS-DOS version of MultiPlan. When I
+tried to go the other way, from MS-DOS
+to CP/M 80, it did not work. I got the
+message that the file is “not in
+spreadsheet format.”
+
+As mentioned above I have copied
+the MS-DOS file COMMAND.COM to
+my MultiPlan ‘‘program”’ disk so that |
+can exit the spreadsheet and return to
+MS-DOS with no disk swapping.
+
+Running the RAM Disk
+
+I have done little more than copy the
+distribution disks for MS-DOS and
+CP/M-86 and, of course, run the RAM
+Disk. This is very simple. Both the MS-
+DOS ‘‘Load”’ disk and the CP/M-86
+software distributed by SWP contain the
+RAM Disk software.
+
+The RAM Disk is activated by typing
+RAMDISK 5 and answering questions
+about what to ‘‘name’”’ it, whether or not
+to “clear” its directory (you normally
+type Y, for yes), and a couple of ques-
+tions about the choice of its location in
+memory. If you choose the default value
+with a Return, it loads just below the
+
+CCP (Console Command Processor por-
+tion of CP/M).
+
+You can configure the RAM Disk to
+any drive letter (from A to P) you want.
+It provides 252K of formatted space. If
+you choose to name it Drive A, then the
+two existing floppy disk drives become B
+and C and the system tracks are copied
+to the RAM Disk. Any subsequent
+“warm boot”’ (Control-C) reads the sys-
+tem from the RAM Disk.
+
+If you name it ‘‘Drive B” then, exist-
+ing drive A remains A, and former drive
+B becomes drive C.
+
+If you name the RAM Disk Drive A,
+the system tracks are automatically cop-
+ied to the RAM Disk so that ‘“‘warm
+boots’’ can be performed directly when
+you type Control-C with no mechanical
+running of either of the floppy drives.
+
+We ran WordStar® from the RAM
+Disk with good results. With WordStar
+and the text file both on the RAM Disk,
+execution speed was somewhat im-
+proved. For example, scrolling from the
+beginning to the end of a 65K text file
+was reduced from 45 seconds on a flop-
+py disk drive to 10 seconds on the RAM
+
+Disk. The real payoff in time saving
+should come, however, in data transfers
+where there is a lot of input/output and
+disk read/write operations.
+
+The RAM Disk is useful for running
+any CP/M-80 application program.
+dBASE II® operations, for example,
+would be improved. It also makes it
+much easier to copy a disk with a two-
+drive Osborne, using the Ram Disk as
+drive A.
+
+All things considered, the CO-POW-
+ER-88 board is worth the price. It does
+turn your Osborne 1 into an MS-DOS or
+CP/M-86 computer, while keeping its
+CP/M-80 personality, making your com-
+puter suitable for running both 8-bit and
+16-bit programs. It may be just what you
+need to keep your feet in both the 8-bit
+
+and the 16-bit worlds.
+E =)
+
+CO-POWER:88 is a trademark of SWP Microcomputer Products,
+Inc. Osborne 1 and SCREENPAC are trademarks of Osborne Com-
+puter Corporation. MS-DOS and MultiPlan are trademarks of
+Microsoft Corporation. CP/M is a registered trademark of Digital
+Research Corp. Kaypro Il is a trademark of Kaypro Corporation
+WordStar is a registered trademark of Micro Pro International.
+dBASE II is a trademark of Ashton Tate
+
+WE PLAN FOR THE FUTURE...
+
+* NEW DOUBLE SIDED
+EXECS NOW AVAILABLE
+
+* COMPATIBLE WITH:
+OCC-1, OCC-4 (VIXEN)
+TRANTOR HARD DISK
+DRIVE C: RAM DISK
+
+IN CANADA PHONE
+(604) 596-6631
+
+DOUBLE SIDED
+* EXECUTIVE *
+
+WE LEARN FROM THE PAST...
+
+uture
+
+UPGRADE
+. $595 __
+
+& INSTALLED et/34,
+
+(415) 724-3868
+
+stems
+
+NOW AVAILABLE AT SELECTED DEALERS
+
+THE 29SBORNIE APPROVED ACCESSORY
+
+TRADEMARKS: OSBORNE — OSBORNE COMPUTER CORPORATION; TRANTOR — TRANTOR SYSTEMS LTD.; DRIVE C: — DRIVE C:
+
+* 390K PER DISKETTE
+
+* 9 MONTH WARRANTY
+
+* SOFTWARE AND
+RETURN SHIPMENT
+
+* CALL FOR APPOINTMENT
+OR NEAREST DEALER
+
+DEALER PRICES MAY BE
+SLIGHTLY HIGHER
+
+© February 1985 THE PORTABLE Companion #15 (Vol.4.1) 75
+

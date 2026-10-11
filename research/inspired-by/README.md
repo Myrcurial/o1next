@@ -35,3 +35,23 @@ other paths, and they're worth studying for what they solved well.
 
 If more adjacent projects turn up (other O1 mods, interposer-class
 projects), add them here with a one-line "what we take from it".
+
+## Osmosis Computer — direct prior art for the interposer (#73)
+
+Osmosis's 1983 **80-column board** is the closest thing in the archive to what
+this project is building, because of how it attaches: the Z80 is pulled from its
+socket, plugged into the board's 40-way header, and the board is plugged into the
+socket the Z80 came from. **A board that takes the CPU's socket and drives the
+bus** is precisely the interposer shape (#11/#12).
+
+What we take from it:
+
+| Osmosis | Borrowed lesson |
+|---|---|
+| Z80 socket piggyback | The mechanical and electrical approach for the interposer — the same trick, 40 years earlier, with a 40-pin header instead of a PCB edge |
+| Supplied monitor ROM | A personality can ship its own ROM rather than only observing the stock one |
+| `ESC 8` / `ESC 5` width switching | A control interface users can reach from BASIC — a reminder that a personality's *interface* matters as much as its function |
+| Its dBASE patch | Same three bytes as Nuevo's — the application-patch problem is inherent to 80 columns, not to any one board |
+
+Full comparison, with quotations from both vendors' material:
+`docs/o1-upgrade-boards.md`.

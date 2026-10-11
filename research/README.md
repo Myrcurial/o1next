@@ -72,6 +72,24 @@ References for the virtual Epson MX-80 printer personality (#19).
 The ScreenPac is the mechanical/electrical template for the interposer and
 for the video-output (HDMI) personality (#24, #9 photos).
 
+## technical-articles/ — extracts from Osborne-era magazines
+
+**Only the pages that matter are kept, cut from the original and OCR'd.** The
+full issues are not in the repo: they are 50–60 MB scans each, they are on the
+Internet Archive (<https://archive.org/details/theportablecompanion>) and on the
+maintainer's own backup, and keeping whole magazines for a few pages of schematics
+is not worth the repo weight. Each extract names the issue and the pages it was
+cut from, so it can be checked against the original.
+
+| Extract | What it is | Cut from |
+|---|---|---|
+| `TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf` (3.3 MB, 6 pp) | "**Reverse Video and a Faster Serial Port**" by **Thom Hogan** — changing the underline cursor to a reversed-video one, and pushing the serial port to **9600 baud**, with the schematic changes. Relevant to #24 (video) and #21 (serial/modem). Worth noting the author: the same Thom Hogan whose `AUTOCPM.ASM` is the source of the site wordmark (#97). | *The Portable Companion* #13, June/July 1984 — PDF pp. 26–31 |
+| `TPC-Issue15-1985-pp72-77-16bit-msdos-and-cpm-for-your-o1.pdf` (4.9 MB, 6 pp) | "**16-Bit MS-DOS & CP/M For Your Osborne One!**" by **Robert J. Thomson** — the **Co-Power-88**: an 8088 processor, MS-DOS / CP/M-86 / CP/M, and a 256K memory disk under regular CP/M, with the installation. Directly relevant to #23/#26 and the CoPower-88 work in `research/copower88/`. | *The Portable Companion* #15, January/February 1985 — PDF pp. 72–77 |
+
+Page numbers are the **PDF** page numbers in the archive.org scans; both issues
+print their own numbers two lower (`PDF = printed + 2`), so issue 13's article
+runs over printed pages 24–29.
+
 ## copower88/ — SWP CoPower-88 (Z80-coprocessor board being reverse-engineered)
 
 | Path | What it is | Sourced from |
