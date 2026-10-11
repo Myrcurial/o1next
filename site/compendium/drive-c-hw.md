@@ -343,9 +343,18 @@ raw drivers, so autodetection aborts there and never reaches the one that would
 have accepted the image. `-T raw` names that driver (`dc_posix`, the "Raw file
 driver") instead of asking for a guess; `-T logical` works equally well.
 `mkfs.cpm` needs no flag because it opens the file directly and never consults
-libdsk. A reinstall does not change this, and neither does an upgrade: upstream
-is at 1.5.22 and `imd_readto()` is unmodified there. It is an upstream bug, not a
-local repair.
+libdsk.
+
+**This is a 1.4.2-only bug, and it is already fixed upstream.** libdsk **1.5.22**
+carries the same over-read in `imd_readto()` but reports it as `DSK_ERR_NOTME`,
+so the probe falls through to the raw driver instead of stopping. Measured
+against this image with both builds: 1.4.2's `dsk_open(…, NULL, …)` fails with
+`ENOENT`, a 1.5.22 build returns *no error*, and `-T imd` answers "Disc rejected
+by driver" rather than the bogus `ENOENT`. Homebrew ships **1.4.2** — upstream's
+*stable* release; 1.5.x is the development line — which is why the flag is what
+makes `cpmtools` usable here. The upstream ask is therefore a **backport** into
+the 1.4.x line, not a new fix: [`tools/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/README.md) has the recipe, and **#157** is
+the report.
 
 ## 5. Coexistence: the pass-through printer, and address 0
 
