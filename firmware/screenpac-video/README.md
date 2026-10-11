@@ -75,3 +75,19 @@ electrically" story is documented even though we don't replicate it.
 - ScreenPac register emulation + renderer
 - Font-ROM init reader
 - Validation vs. `research/screenpac/2F00040_service_2ndEd_1983.pdf`
+
+## Monitor character: white or green (#24)
+
+The interposer drives a modern display, so it can present the machine's screen in
+either of the two colours an Osborne 1 actually had:
+
+- **white on black** — the standard through production, and the default;
+- **green on black** — the very late run, after Chapter 11.
+
+This is a display option rather than a hardware one: the same video snoop feeds
+either palette, so the switch belongs in the personality's configuration (and in
+the web UI), not in the font or in the char-gen ROM. The bitmap is identical
+either way, which is why the font tooling needs no knowledge of it at all.
+
+The project blog makes the same choice for the same reason: it is white on black,
+with the green noted as the late-production option.

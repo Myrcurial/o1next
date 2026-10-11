@@ -211,3 +211,27 @@ set `KICAD_CLI` if it is not on PATH. Standard library only.
 - RT-60A.TD0 (bitsavers) is a DAMAGED dump: 27 no-id sectors ignored
   by SAMdisk, most tracks fragmentary; filesystem extraction fails.
   Needs a re-dump (see #7).
+
+## Osborne graphics art (`o1art.py`)
+
+Renders an image as Osborne 1 graphics characters — the AUTOCPM technique. The
+original boot logo (`AUTOCPM.ASM`, 10/12/81, Thom Hogan) is a picture drawn in the
+machine's own 0x00-0x1F glyph set, a half-block/quarter/diagonal set that gives
+four bits of picture per character cell. The loader enables it with `sui 65`:
+subtract 65 from every byte so ASCII letters index the glyphs.
+
+```
+tools/o1art.py IMAGE OUTDIR [--name NAME] [--cells 104]
+```
+
+For every cell it picks the ROM glyph that matches that cell's 2x2 sub-pattern
+with least pixel error, so nothing is drawn by hand and the diagonals are used
+where they help. Two artifacts: `NAME.art.txt`, the art as ASCII `db` lines (the
+*source*, assembler-ready, the same form as AUTOCPM) and `NAME.png`, the art
+rendered with the ROM's glyphs.
+
+The site's masthead is generated this way: `site/assets/o1nextgen-wordmark.svg`
+(traced from the Osborne Computer Corporation logotype) goes in, and
+`site/assets/o1nextgen-logo.png` plus its `.art.txt` come out.
+
+Needs `sips` for non-SVG input and `qlmanage` for SVG — both macOS built-ins.

@@ -12,7 +12,10 @@
 
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="{{ '/' | relative_url }}">{% include logo.svg %}</a>
+    <a class="brand" href="{{ '/' | relative_url }}">
+      <img src="{{ '/assets/o1nextgen-logo.png' | relative_url }}"
+           alt="{{ site.title | escape }}" width="1664" height="240">
+    </a>
     <nav class="site-nav" aria-label="Site">
       <a href="{{ '/' | relative_url }}">Posts</a>
       <a href="{{ site.repository }}">Code &amp; research</a>

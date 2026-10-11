@@ -72,3 +72,30 @@ layouts cannot be built locally. Two ways to see a change before pushing:
 
 Also planned: write-ups of the hardware modifications made to two of
 the author's three Osborne machines (one extensive).
+
+### The masthead graphic is generated, not drawn
+
+`assets/o1nextgen-logo.png` is the wordmark rendered in the machine's own graphics
+characters by `tools/o1art.py`, using the same technique as the original Osborne
+boot logo. Its input is `assets/o1nextgen-wordmark.svg` (the logotype-derived
+wordmark) and its `.art.txt` beside it is the assembler-ready form, the same shape
+as AUTOCPM's — so the o1ng could print it at boot.
+
+Regenerate both with:
+
+```
+tools/o1art.py site/assets/o1nextgen-wordmark.svg site/assets \
+    --name o1nextgen-logo --cells 104
+```
+
+### White on black, and the green option
+
+The middle of the page is white on black, because that is what an Osborne 1
+actually looked like; the masthead and footer are the blue panel and the grey case.
+Green-on-black was a very late production option and is *not* used here — it is a
+monitor choice, and the video personality offers both (#24,
+`firmware/screenpac-video/README.md`).
+
+Only the middle scrolls: the header is pinned to the top of the window and the
+footer to the bottom, with `flex` on `body` and `overflow-y: auto` on
+`.page-content`.
