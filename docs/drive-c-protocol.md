@@ -142,17 +142,54 @@ n    = (DE >> 9) & 0FFh          ; high bits of the record address
 h2   = f(n) | ((DE & 1) << 7)    ; sent second
 ```
 
-where `f(n)` is the sector/size nibble the box wants:
+where `f(n)` is the bank/size nibble the box wants. **`f(n)` is computed, not
+looked up**, and the code is short enough to quote — the installed routine at
+`0x0702`:
+
+```
+    ld a,(051Ah)      ; 051Ah holds (DE&1)+1
+    rrca
+    and 80h
+    ld b,a            ; b = (DE&1) << 7
+    ld a,(0519h)      ; 0519h holds n
+    cp 3
+    jr c,+8
+    sub 3
+    rlca
+    rlca
+    or 3
+    jr +2
+    or 0ch
+    or b              ; h2 = f(n) | ((DE&1)<<7)
+```
+
+so
 
 | `n` | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|---|
-| `f(n)` low nibble | `Ch` | `Dh` | `Eh` | `3h` | `7h` | `Bh` | `Fh` |
+| `f(n)` | `0Ch` | `0Ch` | `0Ch` | `03h` | `07h` | `0Bh` | `0Fh` |
 
-So the pair `(h1, h2)` is a **bijective encoding of `DE`**: `h1` is the low eight
-bits of `DE>>1`, bit 7 of `h2` is `DE&1`, and the low nibble of `h2` carries
-`DE>>9` through the table above. `DE` is the CP/M record address in 128-byte
-units, so the box's own unit is **256 bytes** (`DE>>1`), with `DE&1` selecting
-the 128-byte half.
+`h1` and `n` are not computed in the frame routine at all. The caller
+(`0x0124–0x015F`) shifts `DE` right by one and stores the **whole 16-bit result
+at `0x0518`** — `ld (0518h),hl` — so `0x0518` receives `(DE>>1)&0FFh` = `h1`
+while `0x0519` receives `(DE>>1)>>8` = `n`. That is the cleanest confirmation
+that `h1` and `n` are the low and high parts of *one* address, not two
+independent fields.
+
+So `(h1, h2)` encodes `DE>>1`: `h1` is its low eight bits, and its high bits ride
+in the low nibble of `h2` through `f`. `DE` is the CP/M record address in
+128-byte units, and the DPB says **`SPT = 2`** (§8) — so `DE>>1` is the **track**
+and `DE&1` is the sector within it. The box's unit is a **256-byte track**, and
+bit 7 of `h2` is the sector.
+
+> **Correction, 2026-10-11.** An earlier revision of this doc gave `f(n)` as
+> `Ch, Dh, Eh, 3h, 7h, Bh, Fh` and called the encoding *bijective*. That table was
+> inferred, not measured, and it is wrong for `n = 1, 2`: the installed code
+> yields `0Ch` for **every** `n < 3`. The trace agrees — across 163 frames of a
+> boot-then-`PIP` run, `h2` took only `0Ch` and `8Ch`, never `Dh` or `Eh`. The
+> consequence is not cosmetic: with `f` constant over `n = 0…2`, `(h1, h2)` no
+> longer distinguishes those three banks. §10 records that as the open question
+> it is.
 
 Measured examples from the trace: the boot-time format writes `h1 = 00h…0Fh`
 with `h2 = 8Ch` (→ `DE = 1,3,5,…,31`) and `h1 = 00h…0Fh` with `h2 = 0Ch`
@@ -202,26 +239,135 @@ This is the normative summary. A box that satisfies it will run `DCL.COM`,
 8. **Survive the frame boundary.** Each frame is self-contained: init, header,
    data, teardown. A replacement may be stateless across frames.
 
-## 8. Capacity, the DPB, and how `C:` appears
+## 8. Capacity — the DPB, the ceiling, and how `C:` appears
 
 The box itself is a block store; the *filesystem* is CP/M's, and the geometry
-CP/M uses for `C:` comes from the **DPB the installer patches into the CBIOS**
-when `DCL` runs. That is the one piece of the picture this spec does not yet
-pin down (it is `DCL.COM`'s BIOS patch, not the transport), and it is the only
-thing a replacement has to get *right* rather than merely *obey*.
+CP/M uses for `C:` comes from the **DPB that `DCL.COM` installs into the CBIOS**.
+That DPB is now in hand, and it is not a guess.
 
-What the trace does show is the **format**, and it is a strong hint: at boot the
-software writes `0xE5` (CP/M's blank byte) across two regions —
+### 8.1 The DPB
+
+`DCL.COM` is a .COM loaded at `0x100`, and its payload is relocated on install by
+`-0x1000` (the internal `JP 0757h` is the loop's own body at file `0x1757h`). At
+**file `0x142F` = installed `0x052F`** sits a bare 15-byte CP/M 2.2 DPB, and the
+payload's own pointer table names it (installed `0x0529` holds `2Fh 05h`):
+
+```
+file 0x142F:  02 00 04 0F 01 BF 00 7F 00 C0 00 00 00 00 00
+```
+
+| Field | Bytes | Value | Meaning |
+|---|---|---|---|
+| `SPT` | `02 00` | 2 | 128-byte records per track |
+| `BSH` | `04` | 4 | block shift → 2 KiB blocks |
+| `BLM` | `0F` | 15 | block mask (2 KiB − 1) |
+| `EXM` | `01` | 1 | extent mask for `BLS = 2048` |
+| `DSM` | `BF 00` | 191 | 192 blocks × 2 KiB = **384 KiB** |
+| `DRM` | `7F 00` | 127 | **128** directory entries |
+| `AL0` | `C0` | `1100 0000b` | 2 blocks reserved for the directory |
+| `AL1` | `00` | 0 | — |
+| `CKS` | `00 00` | 0 | no directory checking (fixed media) |
+| `OFF` | `00 00` | 0 | no reserved tracks |
+
+**Every field matches the vendor's own 384K column** in the manual (§8.2), which
+is what makes this a reading rather than a guess. The `AL0` check is the nice
+one: `C0h` = the top two bits of the allocation vector = 2 blocks × 2 KiB =
+**4096 bytes** of directory, exactly the "Directory Space: 4096 bytes" the manual
+prints for the 384K unit.
+
+### 8.2 The manual's own table — and the 192K unit
+
+*Drive C User Manual*, §7-3 "Drive C SOFTWARE SPECIFICATIONS", printed p. 134 =
+PDF p. 142. The OCR in the archive mangles the column alignment, so this is read
+off a 300 dpi render. The three rows in the middle are **centred across the two
+RAM-disk columns**, i.e. shared by the 192K *and* the 384K unit, and the TurboPac
+column has its own values:
+
+| CP/M parameter | 192K unit | 384K unit | TurboPac |
+|---|---|---|---|
+| Useful storage capacity | 187 KB | 376 KB | 10, 20 or 33 MB |
+| Block size | 1K | 2K | 8K (can be modified) |
+| Directory entries | 64 | 128 | 512 per logical drive |
+| Directory space | 2048 bytes | 4096 bytes | 16384 bytes per drive |
+| Logical sectors | 1536 | 3072 | varies with block size & capacity |
+| Reserved tracks | **0** (both) | | 612, landing area |
+| Logical sectors/track | **2** (both) | | 32 |
+| Bytes per sector | **128** (both) | | 256 |
+| TPA RAM used | 1152 B | 1152 B | 3172 B |
+
+Two independent confirmations fall out: **`SPT = 2`** matches the DPB exactly, and
+`1536 × 128 = 192 KiB` / `3072 × 128 = 384 KiB` match the two capacities.
+
+**The 192K unit's DPB is derived, not found** — the archive holds the 384K unit's
+disk, and no literal `SPT=2, BSH=3, BLM=7, EXM=0, DSM=191, DRM=63, AL0=C0h` exists
+in any of the extracted files. It follows from the manual's column and the same
+arithmetic (192 × 1 KiB = 192 KiB; a 2048-byte directory is 2 × 1 KiB blocks):
+
+| Field | 192K (derived) | 384K (found) |
+|---|---|---|
+| `SPT` | 2 | 2 |
+| `BSH`/`BLM`/`EXM` | 3 / 7 / 0 | 4 / 15 / 1 |
+| `DSM` | **191** | **191** |
+| `DRM` | 63 | 127 |
+| `AL0` | `C0h` | `C0h` |
+
+Note that **`DSM` is 191 in both** — the two units hold the same *number* of
+blocks, just bigger ones. That is the design signature of the whole product.
+
+### 8.3 The ceiling
+
+Three separate limits apply, and the smallest one wins:
+
+| Limit | Where it comes from | Value |
+|---|---|---|
+| **The protocol** | `f(n)` is four bits: `((n-3)<<2)\|3` has to stay inside the nibble, so `n ≤ 6` | **1792 tracks × 256 B = 448 KiB** |
+| The DPB | `DSM` is 16 bits, so up to 65535 blocks | 65535 × 16 KiB ≈ 1 GiB |
+| CP/M 2.2 | drive letters `A:`–`P:` | 16 drives |
+
+The protocol bound is the interesting one, because it is the *host's own code*
+that imposes it: at `n = 7` the shift pushes bit 4 into the byte, the box's
+four-bit latch sees `03h`, and the frame collides with `n = 3`. So the shipped
+driver can address **at most 448 KiB**, and the largest unit the vendor sold
+(384 KiB) uses tracks `0…1535`, i.e. `n = 0…5` — the driver's `n = 6` branch is
+already headroom.
+
+**A replacement may therefore present up to 448 KiB** and still be drivable by
+the unmodified 1983 software. Anything larger needs a new driver, which is
+outside what #84 is for.
+
+### 8.4 Drive letters, and what TurboPac actually is
+
+- **`C:` is one drive and its letter is renamable.** `DCN.COM` ("DCN version
+  2.07", shipped on the disk) backs the `DCN x` command, and the manual warns that
+  `COPY` requires the unit to be named `C:` while it runs. The DCL-era command is
+  `DC1 A` (install and name it `A`); the older one was `DRIVEC A: C:`, which named
+  the unit *and* the left floppy in one go. So the unit can take any of the 16
+  CP/M drive letters — **the limit is CP/M's, not the device's.**
+- **TurboPac is not a bigger RAM disk — it is the *hard-disk controller*.** The
+  manual is explicit, and it corrects a reasonable assumption:
+
+  > TurboPac software turns your Drive C into a hi-speed **Cache Buffer** for the
+  > Trantor hard disk. […] The 192K TurboPac system uses all of Drive C as a
+  > Cache Buffer. The 384K TurboPac system partitions Drive C into a 256K Cache
+  > Buffer and a 128K Fixed Print Buffer. **The hard disk attaches to the Drive C
+  > PRINTER/HARD DISK/8088 port** and no mechanical modifications are necessary.
+
+  So the Drive C unit is **also the host adapter for the Trantor Winchester**: the
+  hard disk plugs into the Drive C's own pass-through connector, not into the O1.
+  Two consequences: the pass-through connector in §2 is the *controller path* and
+  not merely a duplicated printer port; and **a device that implements this
+  protocol is not by itself a TurboPac** — that needs the hard-disk side too,
+  which is a separate question (and one that overlaps #8).
+
+### 8.5 What the trace shows about the format
+
+At boot the software writes `0xE5` (CP/M's blank byte) across two regions —
 `h1 = 00h…0Fh, h2 = 8Ch` and `h1 = 00h…0Fh, h2 = 0Ch`, i.e. `DE = 0…31` — then
 **reads each block back** to verify. Two regions, 16 blocks each, 128 bytes per
-block: that is 4 KiB, which is the *directory and boot area*, not the whole
-disk. So the format is incremental and continues as the disk is used, and the
-address space is paged by `DE` (§5), not by a flat block number.
-
-The capacities the vendor sold (192 K, 384 K) and the `DE` range the nibble table
-supports (`n = 0…6` → `DE < 3584` → 448 K) are consistent with a paged RAM
-address space, which is what a replacement should implement: **`DE` is the
-address, and the size is whatever the DPB says.**
+block: 4 KiB, which is the *directory and boot area*, not the whole disk. The
+format is therefore incremental and continues as the disk is used. A later pass
+of writes touches `h1 = 18h, 19h, 20h, 28h` — the directory region again, at `DE`
+around `0x30–0x50` — which is `DCL` installing itself.
 
 ## 9. Validation — the spec, run against the software
 
@@ -262,15 +408,30 @@ taps. Treat the box model as a validation aid for short runs, not a harness.
 
 ## 10. What is still open
 
-1. **The DPB and the BIOS patch** (§8) — how many records `C:` has, and where
-   `DCL.COM` hooks it in. This is what makes a replacement a *disk* rather than
-   a *block store*, and it is the next unit of work for #84.
-2. **The box's internals.** What the `f(n)` nibble means to the original hardware
-   (§5), whether it is a hardware counter or an address decode, and whether the
-   two format regions are directory + boot area or something else. Not needed to
-   *obey* the protocol, but it would explain the design.
-3. **The print-buffer path** (`PRN.TST`, `DCU`) and how spooling shares the same
-   port with the pass-through printer connector.
+1. **The DPB — closed** (§8.1). It is `DCL.COM` file `0x142F`, installed
+   `0x052F`, and it decodes field for field against the manual. What remains is
+   *mechanical* rather than unknown: the payload's pointer table lists the DPB,
+   the transfer buffer (`0x055A`) and two further addresses (`0x053F`, `0x0558`)
+   with no obvious DPH among them, so **the DPH is presumably built at install
+   time** rather than stored. That only matters if we ever want to re-create
+   `DCL.COM`, which we do not.
+2. **How the box resolves banks 0–2.** `f(n)` is `0Ch` for `n = 0, 1, 2` (§5), so
+   `(h1, h2)` is *identical* for tracks 0, 256 and 512. Either the box ignores
+   `n` below 3 — in which case the first 192 KiB aliases three ways and a 384 KiB
+   unit could not work — or the nibble is not a bank select and the real bank
+   comes from something not yet identified. This is now the sharpest question in
+   the document. It is testable (write across the whole 384 KiB, read back) and
+   it cannot be settled from software alone: the trace never reaches `n ≥ 1`,
+   because the boot-time format and `DCL`'s own install only touch tracks 0–40.
+   **It does not block a reproduction** — a box that treats `f` exactly as the
+   driver does behaves identically whatever `f` turns out to mean.
+3. **The print-buffer path** (`PRN.TST`, `DCU`) and how spooling shares the port
+   with the pass-through printer connector. One thing is clear from the manual —
+   the buffer lives in the *unit's* memory ("Dynamic Buffer Capacity: Up to the
+   maximum space available on the Drive C unit"), and `DCL.COM` carries the
+   string `Not enough space for fixed print buffer` — so a **fixed** buffer very
+   likely shrinks `DSM`. The DPB in §8.1 is the no-buffer case. Not established,
+   and only matters if a reproduction offers a print buffer.
 4. **`DFD.SPR`'s command layer** — the resident CCP-style driver that calls the
    transport. Its committed listing is a linear sweep through zero blocks and is
    not usable; a code-aware disassembly would name the operations (§5's `DE` is
@@ -285,7 +446,15 @@ taps. Treat the box model as a validation aid for short runs, not a harness.
   §2.
 - `research/drive_c/disasm/dcl.asm` — `z80dasm` of `dcl.com`; §3 and §5 are read
   from it (the resident block is file `0x1600–0x17BE`, installed `0x0600–0x07BE`).
+  **The committed listing misaligns across the payload**: the installed code has
+  to be read as bytes at file offset − `0x1000`, not from the disassembly, which
+  is how §5's `f(n)` and §8.1's DPB were found.
+- `research/osborne1/modem/o1techman-interface-extract.pdf` — Technical Manual
+  chapter 4, including §4.1.2's **P3 pinout**; transcribed in
+  `docs/o1-ieee488-port.md` §6. Image-only scan: OCR it, do not `pdftotext` it.
 - `research/drive_c/Drive_C_Users_Manual.ocr.txt` — the vendor's manual (OCR).
+  §7-2 and §7-3 are transcribed in `docs/drive-c-design.md` §2.2 and §8.2; the
+  OCR loses the spec table's column alignment, so read those pages from the PDF.
 - `docs/o1-ieee488-port.md` — the port's device-level behaviour and the ROM's
   eight drivers.
 - `tools/research/drive-c-trace.lua`, `tools/research/drive-c-box.lua` — the
