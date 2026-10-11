@@ -234,6 +234,14 @@ These are the known-good boot images the validation matrix (#29) needs.
 | `Nuevo_Electronics_DD_Upgrade_Manual.pdf` (13 MB) | DD upgrade manual | [bitsavers `bits/Osborne/Osborne1/`](https://bitsavers.org/bits/Osborne/Osborne1/) (13 810 755 B, exact match) |
 | `Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt` (919 lines) | OCR of the manual — the BIOS 1.4→1.5 difference list (DPBs for IBM/Xerox/DEC removed, 80-column presence check, jump table at `E100h`), the 380K double-sided claim and the single/double-density system-track rules, all quoted in `docs/dd-upgrade-formats.md` | derived in-project with `tools/ocr_pdf.sh … 300` |
 | `OS1NUEVO.IMD` | `Osborne 1 with DD and 80 col mods` boot disk, re-imaged 2026-10-10 with Disk-Utilities | derived in-project |
+| `photos/nuevo-80-column-board.jpg` | **80-column board, `REV. D`, serial 4348** — the first hardware view of the product. Its own **NEC D780C-1** (Z80), a Nuevo **`SY6545A-1`** CRTC, 2 × `SRM2016C25` SRAM, a socketed **`CHARACTER GENERATOR`** ROM dated **6-29-84**, a 12.288 MHz oscillator, and the optional `BAUD` generator. Devices, and what they imply, in `docs/o1-upgrade-boards.md` §"The Nuevo boards themselves" (#73, #24) | **Mike Loewen**, private Facebook group, 2024-10-14 — [post](https://www.facebook.com/groups/690000664701397/posts/2260585240976257/) |
+| `photos/nuevo-double-density-board.jpg` | **DD board, serial 20011** — `DAL DENS` silk, a 34-pin IDC header with a `STD DRIVE` jumper, and a discrete write-precompensation/separator chain (`74LS195A`, `SN74LS14N` ×2, `SN74LS00N` ×2, `SN74LS02N`) plus a 16-pin `9216`-family device (U1). Same analysis as above | same post |
+| `photos/nuevo-80-column-and-double-density-boards.jpg` | Both boards in one frame — the shot the 2024-10-14 post is built around | same post |
+
+The photographs are **third-party** (Mike Loewen, a private group) rather than
+in-project like `pictures/`, and they are the only hardware views of either
+Nuevo product — there is no Nuevo schematic in the archive. Neither board bears
+on Drive C: both are host-side (video, and floppy encoding).
 
 > **Removed 2026-10-10: `NUEVO151.BIN`.** It was a byte-identical duplicate of
 > `tools/emulator-setup/roms/monrom-rev1.51-12.ud11` — same 4096 bytes, SHA-256

@@ -14,7 +14,7 @@ mutually exclusive.
 
 The same decision now applies across the project — the SFF board carries **HDMI
 only** and no composite circuitry at all (`hardware/o1ng/README.md`). The display
-*character* (white, green, or the amber plasma mode) is a rendering choice in the
+*character* (white, green or amber — see "Monitor character") is a rendering choice in the
 personality's configuration rather than a hardware one; see "Monitor character"
 below.
 
@@ -87,18 +87,37 @@ electrically" story is documented even though we don't replicate it.
 - Font-ROM init reader
 - Validation vs. `research/screenpac/2F00040_service_2ndEd_1983.pdf`
 
-## Monitor character: white or green (#24)
+## Monitor character: white, green or amber (#24)
 
 The interposer drives a modern display, so it can present the machine's screen in
-either of the two colours an Osborne 1 actually had:
+the colours the Osborne portables actually had:
 
-- **white on black** — the standard through production, and the default;
-- **green on black** — the very late run, after Chapter 11.
+- **white on black** — the standard through Osborne 1 production, and the default;
+- **green on black** — the very late Osborne 1 run, after Chapter 11;
+- **amber on black** — the **Osborne Executive**'s screen, 7-inch, 80 × 24.
 
 This is a display option rather than a hardware one: the same video snoop feeds
-either palette, so the switch belongs in the personality's configuration (and in
-the web UI), not in the font or in the char-gen ROM. The bitmap is identical
-either way, which is why the font tooling needs no knowledge of it at all.
+any palette, so the switch belongs in the personality's configuration (and in the
+web UI), not in the font or in the char-gen ROM. The bitmap is identical either
+way, which is why the font tooling needs no knowledge of it at all.
+
+Two things to keep straight about the amber one, because they are easy to
+conflate:
+
+- **It is a CRT, so amber is a fourth phosphor, not a fourth technology.** The
+  Executive's display is a 7-inch amber-phosphor CRT: RICM records it as a
+  "7-inch 80 character × 24 line amber monochrome CRT", the Centre for Computing
+  History as a "7-inch amber phosphor screen", and the 1983 *Creative Computing*
+  review as "a 7" amber display" — which also lists the front panel's **external
+  video** and **composite video** connectors. Same geometry, same glyphs,
+  different colour: it belongs in the white/green family.
+- **A gas-plasma panel is not a palette in that family.** It is a different
+  display technology — emissive cells, hard-edged pixels, no phosphor bloom or
+  decay, a different gamma — so rendering one needs its own path rather than a
+  tint of the CRT model. This note is deliberately not naming the machine or
+  panel that implies: that is still to be recorded. (The HDMI section above used
+  to read "the amber plasma mode", which conflated the Executive's amber CRT with
+  plasma; fixed 2026-10-11.)
 
 The project blog makes the same choice for the same reason: it is white on black,
 with the green noted as the late-production option.
