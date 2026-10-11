@@ -78,8 +78,8 @@ up a second, unrelated one. Confirmed from their own strings:
 | Controller | its own; `Enter disk controller address (` | Adaptec ACB-4000; `Enter starting port address in hex`, `must be on a 4 port boundary` |
 | Utilities | `BOOTHD`, `LOADBIOS`, `HARDBIOS.HEX`, `MOVCPM10/5/F`, `DISKEDIT`, `DISKTEST`, `RESTORE`, `SAVEFILE` | `MD10.COM`, `MD20.COM`, `HARD.COM`, `HARDBIOS.SPR`, `HARDBDOS.SPR`, `HARDCCP.SPR`, `HD00/HD04BIOS.SPR`, `PREP.COM`, `PORTCHNG.COM`, `DRIVETBL.DAT` |
 
-So the three ways to get more storage than 2 × 182 KB are the **ACT hard disk**,
-the **Media Distributing/Adaptec hard disk**, and **Drive C** (IEEE-488). Both
+So the three routes **represented in the archive** are the **ACT hard disk**, the
+**Media Distributing/Adaptec hard disk**, and **Drive C** (IEEE-488). Both
 hard disks use a *port-relocatable* controller — which matters, because the O1's
 I/O decode is sloppy, so "4 port boundary" is the same two-address-line decode the
 rest of the machine uses.
