@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "The interposer and its virtual peripherals"
-subtitle: "The project &middot; design"
+subtitle: "The project · design"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 

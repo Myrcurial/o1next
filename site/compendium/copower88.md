@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "CoPower-88: the host protocol"
-subtitle: "Peripherals and storage &middot; partially solved"
+subtitle: "Peripherals and storage · partially solved"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 

@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "The machines: a photographic survey"
-subtitle: "Appendices &middot; reference"
+subtitle: "Appendices · reference"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 

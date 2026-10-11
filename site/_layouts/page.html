@@ -1,6 +1,12 @@
 ---
 layout: default
 ---
+{%- comment -%}
+  The title and subtitle are escaped because they are plain text.  `draft` is
+  NOT escaped: it is allowed to carry inline markup, and the Compendium's
+  landing page uses <em> in it deliberately.  Anything generated into the
+  subtitle must therefore be plain text -- see tools/build_book.py.
+{%- endcomment -%}
 <article class="page">
   <header class="page-header">
     <h1 class="page-title">{{ page.title | escape }}</h1>
