@@ -30,7 +30,7 @@ needed.
 | `OCC1_1A2011-00_Schem_RevE.ocr.txt` | OCR text layer for the above (per the convention below), generated 2026-10-10 at 400 dpi. Good enough to grep for component references; **not** reliable for pin-level detail — read sheets visually with `tools/schematic_render.sh`. | — |
 | `keyboard/osborne_keyboard_pinout.html` + `keyboard/PROVENANCE.md` | Verbatim capture of the pinouts.ru Osborne 1 keyboard page: P4 pinout (incl. pin 19 = +12V via J6+R21) and the full key matrix map. Used by #45/#47. | [pinouts.ru](https://old.pinouts.ru/InputCables/osborne_keyboard_pinout.shtml), captured 2026-10-08 (provenance in the folder) |
 | `floppy-adapter/` (README, LICENSE, `.sch`, `.kicad_pcb`, PROVENANCE.md) | Snapshot of WayneVisser's Osborne1FloppyAdapter KiCad project — passive Gotek adapter documenting the O1's "Shugart-like" floppy interface (power over the cable's unused pins). Used by #20/#49. | [github.com/WayneVisser/Osborne1FloppyAdapter](https://github.com/WayneVisser/Osborne1FloppyAdapter), captured 2026-10-09 (provenance in the folder) |
-| `modem/o1techman-interface-extract.pdf` (1 MB, 10 pp) | Chapter 4 "Osborne 1 Interface Design" extract of the O1 Technical Manual: §4.1 IEEE-488 (P3), §4.2 RS-232 (P2), **§4.3 MODEM (P1)**. Authoritative source for the MODEM DE-9P pinout — **TTL levels, not RS-232** — incl. pin 4 MSB, pin 5 CTS, pin 8 MCB, pin 9 RI, pin 7 +12V via 22Ω. Used by #56 (and #21/#12). | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1techman.pdf), captured 2026-10-09 |
+| `modem/o1techman-interface-extract.pdf` (1 MB, 10 pp) | Chapter 4 "Osborne 1 Interface Design" extract of the O1 Technical Manual: §4.1 IEEE-488 (P3), §4.2 RS-232 (P2), **§4.3 MODEM (P1)**. Authoritative source for the MODEM DE-9P pinout — **TTL levels, not RS-232** — incl. pin 4 MSB, pin 5 CTS, pin 8 MCB, pin 9 RI, pin 7 +12V via 22Ω. Used by #56 (and #21/#12). **Also the P3 (IEEE-488) pinout**: §4.1.2's 26-pin edge table, §4.1.1's signal directions and §4.1.5's Centronics re-mapping, transcribed in `docs/o1-ieee488-port.md` §6 (#84). Image-only scan — OCR it, `pdftotext` returns nothing. | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1techman.pdf), captured 2026-10-09 |
 | `o1doubledensityusersguide.pdf` (2.2 MB, 15 pp) | *Osborne 1 Double Density User Manual*. The DD option's own manual, and the primary source for what it actually does: it is a **multi-density** option that recognises six formats, not just a denser one. §"formats automatically recognized" is quoted in `docs/dd-upgrade-formats.md` (#95). Image-only scan; OCR'd 2026-10-10 at 300 dpi as `o1doubledensityusersguide.ocr.txt`. | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1doubledensityusersguide.pdf), supplied by the maintainer 2026-10-10 |
 
 Basis for `docs/o1-memory-io-map.md` (#40) and
@@ -168,11 +168,25 @@ Basis for #3/#4/#5 (CoPower-88 protocol analysis). The board's own 8088 ROM is
 
 | Path | What it is | Sourced from |
 |---|---|---|
-| `Drive_C_Users_Manual.pdf` | Drive C user manual (IEEE-488 virtual disk drive) | [bitsavers `bits/Osborne/Osborne1/Drive_C/`](https://bitsavers.org/bits/Osborne/Osborne1/Drive_C/) (upstream name `Drive_C_-_Users_Manual.pdf`) |
+| `Drive_C_Users_Manual.pdf` | Drive C user manual (IEEE-488 virtual disk drive), **second edition June 1984** | [bitsavers `bits/Osborne/Osborne1/Drive_C/`](https://bitsavers.org/bits/Osborne/Osborne1/Drive_C/) (upstream name `Drive_C_-_Users_Manual.pdf`) |
+| `Drive_C_Executive_Users_Manual.pdf` | **Drive C user manual for Osborne Executive computers** — the same product on the other host: identical hardware appendix, `ECL`/`ECN`/`ECU` software under CP/M+ instead of `DCL`/`DCN`/`DCU` under CP/M 2.2, and **no `DFD.SPR`**. First edition July 1984, second printing 9/84; cover stamped PRELIMINARY, running headers "final draft". 111 pp, 12 MB, image-only (150 dpi grayscale re-encode — see the note below). Analysis: `docs/drive-c-executive.md` (#84, #6, #145) | **Jim Rayburn**, private Facebook group, posted 2024-01-06 — posts [.../2063148960719887](https://www.facebook.com/groups/690000664701397/posts/2063148960719887/) and [.../2023247321376718](https://www.facebook.com/groups/690000664701397/posts/2023247321376718/); supplied to the maintainer as `Executive_DriveC.pdf`, 2026-10-11 |
+| `Drive_C_Executive_Users_Manual.ocr.txt` | OCR text layer for the above — 300 dpi `tesseract`, per the convention below | Derived in-project, 2026-10-11 |
 | `DRIVE_C.IMD` | ImageDisk image of the Drive C utility disk (label comment `Drive C for the Osborne 1 computer`) | same folder — **not** imaged in-project; corrected 2026-10-10 |
 | `Drive_C_disk_label.jpg` | Photo of the physical disk label | same folder (15 044 B, byte-identical) — **not** a project photo; corrected 2026-10-10 |
 | `extracted/` | Files extracted from `DRIVE_C.IMD` by the project pipeline (#2) | Derived in-project |
 | `disasm/` | `dcl.asm` + `dfd.asm` — z80dasm listings of the installer and the resident driver, for the protocol work (#6). Regenerate with the exact command in `docs/drive-c-protocol.md` §Disassembling | Derived in-project |
+
+**A note on the Executive manual's size.** The owner supplied a 300 dpi scan,
+42.33 MB — larger than any other single file in this tree. It is committed as a
+**150 dpi re-encode** instead (12.13 MB), the same resolution as the Drive C
+manual above: the document is a typewritten mono manual, and the page images
+carry **no colour at all** — every pixel is neutral grey, checked across all
+111 pages — so the extra resolution bought nothing but file size. All **111
+pages** and the page geometry are preserved. The **300 dpi text layer** was
+taken from the owner's original before the re-encode and sits beside the PDF as
+`Drive_C_Executive_Users_Manual.ocr.txt`, so no text was lost. It is recorded as
+a re-encode rather than as the owner's original, so the provenance stays
+honest: the file here is **not** byte-for-byte what Jim Rayburn posted.
 
 ## rtc/ — RT-60A real-time clock (#7)
 
@@ -220,6 +234,14 @@ These are the known-good boot images the validation matrix (#29) needs.
 | `Nuevo_Electronics_DD_Upgrade_Manual.pdf` (13 MB) | DD upgrade manual | [bitsavers `bits/Osborne/Osborne1/`](https://bitsavers.org/bits/Osborne/Osborne1/) (13 810 755 B, exact match) |
 | `Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt` (919 lines) | OCR of the manual — the BIOS 1.4→1.5 difference list (DPBs for IBM/Xerox/DEC removed, 80-column presence check, jump table at `E100h`), the 380K double-sided claim and the single/double-density system-track rules, all quoted in `docs/dd-upgrade-formats.md` | derived in-project with `tools/ocr_pdf.sh … 300` |
 | `OS1NUEVO.IMD` | `Osborne 1 with DD and 80 col mods` boot disk, re-imaged 2026-10-10 with Disk-Utilities | derived in-project |
+| `photos/nuevo-80-column-board.jpg` | **80-column board, `REV. D`, serial 4348** — the first hardware view of the product. Its own **NEC D780C-1** (Z80), a Nuevo **`SY6545A-1`** CRTC, 2 × `SRM2016C25` SRAM, a socketed **`CHARACTER GENERATOR`** ROM dated **6-29-84**, a 12.288 MHz oscillator, and the optional `BAUD` generator. Devices, and what they imply, in `docs/o1-upgrade-boards.md` §"The Nuevo boards themselves" (#73, #24) | **Mike Loewen**, private Facebook group, 2024-10-14 — [post](https://www.facebook.com/groups/690000664701397/posts/2260585240976257/) |
+| `photos/nuevo-double-density-board.jpg` | **DD board, serial 20011** — `DAL DENS` silk, a 34-pin IDC header with a `STD DRIVE` jumper, and a discrete write-precompensation/separator chain (`74LS195A`, `SN74LS14N` ×2, `SN74LS00N` ×2, `SN74LS02N`) plus a 16-pin `9216`-family device (U1). Same analysis as above | same post |
+| `photos/nuevo-80-column-and-double-density-boards.jpg` | Both boards in one frame — the shot the 2024-10-14 post is built around | same post |
+
+The photographs are **third-party** (Mike Loewen, a private group) rather than
+in-project like `pictures/`, and they are the only hardware views of either
+Nuevo product — there is no Nuevo schematic in the archive. Neither board bears
+on Drive C: both are host-side (video, and floppy encoding).
 
 > **Removed 2026-10-10: `NUEVO151.BIN`.** It was a byte-identical duplicate of
 > `tools/emulator-setup/roms/monrom-rev1.51-12.ud11` — same 4096 bytes, SHA-256

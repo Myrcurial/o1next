@@ -57,6 +57,18 @@ scratch programs, "figuring it out" notebooks/scripts.
   not call `os.exit()`** — MAME only flushes a modified image on a clean
   shutdown, so `os.exit()` silently discards guest writes. See
   `docs/dd-upgrade-formats.md`.
+- **`drive-c-trace.lua`** — write taps on the O1's IEEE-488 PIA (`2900–2903`),
+  logging every access while the real Drive C software runs. Written for #6; it
+  is how the Drive C frame was *measured* rather than only read out of the
+  disassembly (`docs/drive-c-protocol.md`). Write taps only, which is why it is
+  stable — see the next entry.
+- **`drive-c-box.lua`** — a **model of the Drive C box** built from that spec:
+  decodes the port-B frame states, reconstructs the record address, stores
+  128-byte blocks and answers reads. With it present the 1983 loader completes
+  and PIP writes to `C:`. Two MAME gotchas are baked into it: a read tap that
+  returns a value **segfaults MAME's Lua layer** on a longer run (a constant is
+  fine), and re-fetching a space handle after taps are installed does too. Use it
+  for short validation runs, not as a harness.
 - **`mame-lua-probe.lua`** — what MAME's Lua API exposes inside a *running*
   machine, and how the O1's bank latch actually behaves (it does not persist).
   Written for #64 while working out how to check `docs/o1-memory-io-map.md`
