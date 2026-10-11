@@ -145,10 +145,25 @@ full set in [`tools/emulator-setup/roms/`](https://github.com/Myrcurial/o1nextge
 ### Rompath layouts
 
 MAME looks for machine ROMs in `<rompath>/<machine>.zip` or
-`<rompath>/<machine>/`. Loose files sitting directly in the rompath root are
-**not** searched — the "loose files work too" convenience in `o1prsnt` and in
-[`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh) comes from the wrapper creating a temporary
-`<rompath>/osborne1` symlink. Keep that in mind if you invoke `mame` by hand.
+`<rompath>/<machine>/`, **and it will also fall back to a loose file in the
+rompath root** when a required ROM is missing but a file with the right CRC is
+present. Measured, both ways:
+
+```
+$ mame osborne1nv -verifyroms -rompath tools/emulator-setup/roms
+romset osborne1nv [osborne1] is good          # loose 7a3007-00.ud15 satisfies
+                                              # character_generator_6-29-84.14 by CRC
+$ # the same files in a plain <rompath>/osborne1/ directory:
+osborne1nv  : character_generator_6-29-84.14 (2048 bytes) - NOT FOUND (osborne1)
+```
+
+So the CRC fallback works for **loose-root files and for files inside a zip**,
+but **not** for files inside a romset *directory*. The wrapper's temporary
+`<rompath>/osborne1` symlink (used when the rompath has no `osborne1.zip`) turns
+a working loose rompath into a failing directory — which is why
+[`tools/emulator-setup/roms`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/emulator-setup/roms) keeps `osborne1.zip` alongside the loose files. This
+matters when substituting a third-party ROM: build a **zip**, see §5.
+
 
 ## 4. Boot disks: what actually boots on which machine
 
@@ -308,32 +323,45 @@ disk-analyse in.hfe out.imd
 MAME cannot be told about a BIOS that is not in its ROM definitions, but it
 *will* load a file whose bytes do not match the expected hash — it warns and
 carries on. So a third-party monitor ROM is run by presenting it under one of
-the stock BIOS filenames:
+the stock BIOS filenames. Build a **romset zip**, not a plain directory:
 
 ```bash
-mkdir -p /tmp/ozromset/osborne1
-cp tools/emulator-setup/roms/*.ud11 tools/emulator-setup/roms/*.ud15 \
-   tools/emulator-setup/roms/*.ua15 /tmp/ozromset/osborne1/
-cp research/roms/OZROM-1E/OZROM_1E.BIN /tmp/ozromset/osborne1/3a10082-00rev-e.ud11
+mkdir -p /tmp/ozbuild/osborne1 && cd /tmp/ozbuild/osborne1
+cp <repo>/tools/emulator-setup/roms/*.ud11 \
+   <repo>/tools/emulator-setup/roms/*.ud15 \
+   <repo>/tools/emulator-setup/roms/*.ua15 .
+cp <repo>/research/roms/OZROM-1E/OZROM_1E.BIN 3a10082-00rev-e.ud11
+cp 7a3007-00.ud15 character_generator_6-29-84.14    # see note below
+mkdir -p /tmp/ozset && zip -q -X /tmp/ozset/osborne1.zip *
 
-O1_ROMPATH=/tmp/ozromset tools/research/mame-boot-probe.sh \
+O1_ROMPATH=/tmp/ozset tools/research/mame-boot-probe.sh \
     osborne1 tools/emulator-setup/floppies/52-blank.imd 120 /tmp/ozrom.png
 ```
 
-**OZROM 1E boots and runs.** Measured:
+**Why a zip and not `mkdir .../osborne1`.** The simpler directory recipe boots
+`osborne1` and `osborne1sp`, but **fails on `osborne1nv`**: that machine needs
+`character_generator_6-29-84.14`, which MAME satisfies by CRC fallback from
+`7a3007-00.ud15` only when the files are loose in the rompath root or inside a
+zip — *not* when they sit in an `osborne1/` directory. Copying the chargen under
+its own name (it is byte-identical, `o1-rom-variants.md`) makes the fallback
+deterministic for all three. Verified: `mame osborne1nv -verifyroms -rompath
+/tmp/ozset` reports *good*.
+
+**OZROM 1E boots and runs on all three machines.** Measured:
 
 ```
-SCREEN: 416x240  (52 columns, 24 rows)
-r05|                   OZROM 1E #00187
-r07|              (c) 1984 Micro Management
-r12|        Slip disk in drive and press RETURN.
-...
-PROMPT: true          <- boots CP/M off the utility disk to A>
+osborne1    416x240  (52 columns)  ->  A>
+osborne1sp  832x240  (104 columns) ->  A>
+osborne1nv  640x240  (80 columns)  ->  A>
+banner: OZROM 1E #00187 / (c) 1984 Micro Management
 ```
 
-Screenshot: [`docs/mame-screens/ozrom-1e-52col.png`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mame-screens/ozrom-1e-52col.png). MAME prints *"the machine
-might not run correctly"* because the ROM hash is not the one it expects — that
-warning is the point, not a problem.
+MAME prints *"the machine might not run correctly"* because the ROM hash is not
+the one it expects — that warning is the point, not a problem. **The full OZROM
+treatment — memory map, ROM jump table, keytable, column switch, clock, memory
+tester — is now [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md) (#81)**, which supersedes the summary that
+used to live here.
+
 
 **Why this matters to us.** OZROM 1E is not a ROM swap with a nicer font; per its
 manual ([`research/roms/OZROM-1E/OZROM_1E_Manual.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E_Manual.pdf), Micro Management, Manual
@@ -462,10 +490,11 @@ SDL_VIDEODRIVER=dummy mame osborne1nv -flop1 IMAGE -video none -sound none \
    A small disassembly job against the CBIOS in the system tracks.
 4. **ROM 1.3 is undumped** and we hold its source disk — see
    [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md).
-5. **OZROM 1E as a tool (#81).** It boots (§5) and offers a software
-   52/80/104-column switch, a chip-level memory tester, a redefinable keyboard
-   and a documented ROM jump table — all of which bear on #24, #29, #45 and #20.
-   Tracked separately so it does not get lost in the emulation guide.
+5. **OZROM 1E as a tool (#81).** It boots on all three machines (§5) and its
+   manual is now indexed in **[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md)** — memory map, ROM jump table,
+   keytable, the 52/80/104-column switch, the clock and the memory tester. The one
+   measurement still missing is driving the ctrl-shift column keys from the
+   harness (`ozrom-1e.md` §7/§9).
 
 ## 8. Sources
 

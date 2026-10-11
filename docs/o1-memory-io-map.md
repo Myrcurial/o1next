@@ -201,6 +201,44 @@ manual's description of the upgrade as an IC-harness board soldered over the mai
 logic (`2F00040` §6.12, the source used by `firmware/screenpac-video/`). Extract:
 `research/technical-articles/TPC-Issue15-1985-pp32-block-cursor-with-screenpac.pdf`.
 
+### 2b. The monitor RAM and the system clock (#7, #81)
+
+The top of bank 1 RAM (`EF00–EFFF`, 256 bytes) is the **monitor RAM**: the ROM's
+own storage, above the CP/M TPA. The CBIOS RAM map (`occram25.asm`) and the ROM's
+absolute equates (`rom144.asm`) agree on its layout, and it contains the
+machine's **system clock**:
+
+| Address | Cell | Meaning |
+|---|---|---|
+| `EF00` | `TEM` | boot-routine scratch |
+| `EF08` | `ROMRAM` | ROM/RAM flag |
+| `EF60` | `ESCH` | ESC-holding flag |
+| `EF61` / `EF62` | `PIAAD` / `PIABD` | last PIA-A / PIA-B data |
+| `EF63` / `EF64` / `EF65` | `IDAY` / `IMONTH` / `IYR` | calendar date, binary |
+| **`EF66`** | **`HOURS`** | hours, 2-digit BCD |
+| **`EF67`** | **`MINS`** | minutes, 2-digit BCD |
+| **`EF68`** | **`SECS`** | seconds, 2-digit BCD |
+| **`EF69`** | **`SEC6`** | sixtieths, 2-digit BCD |
+| `EF6A` | `DACTVE` | disk-active countdown |
+| `EF6B` | `BELCNT` | bell countdown |
+| `EF6C` | `LLIMIT` | max columns in a logical line |
+| `EF6E` | `LDTRK` | last track used on the non-selected drive |
+| `EF6F–EF70` | `IESTK` | saved stack pointer |
+| `EFD0` | `SAVTYP` | disk type (density + sector size) |
+| `EFD1` | `RWCMD` | sectors to read/write |
+| `EFEF` | `VRTOFF` | last vertical offset |
+| **`EFF0–EFFF`** | **`INTBL`** | 8-word IM 2 interrupt vector table |
+
+**`HOURS`–`SEC6` is a real clock.** The stock ROM's 60 Hz interrupt handler
+(`GKEY`) calls `UPTIM`, which increments `SEC6`, `SECS`, `MINS` and `HOURS` in
+BCD with a 24-hour wrap. It starts at midnight on every boot, nothing sets it and
+nothing displays it in a stock machine — but OZROM 1E documents the same four
+cells and adds a setter, a display and an alarm. The `EFF0` vector table is where
+the two clock products hook: `INTBL+(4*2)` = `EFF8` is the keyboard-interrupt
+vector the RT-60A's `CLOCK.COM` replaces, while OZROM calls its own hook at
+`EFF2`. See `docs/rt60a-analysis.md` ("The third shape") and `docs/ozrom-1e.md`.
+
+
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
 
 All onboard peripherals are **memory-mapped**, reached through the bank-2

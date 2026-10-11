@@ -38,6 +38,19 @@ scratch programs, "figuring it out" notebooks/scripts.
   52/80/104-column result and the screenshots in `docs/mame-screens/`. It is the
   self-contained counterpart to `o1prsnt`'s `o1harness.lua` (which adds keyboard
   typing and `wait_for` helpers — use that one for real scripted tests).
+- **`imdmake.py`** — the *writer* half of `imdinfo.py`: emits a blank Osborne 1
+  disk in ImageDisk form (`--dd` = 250 kbit MFM 40×5×1024, `--sd` = 250 kbit FM
+  40×10×256, filled `0xE5`). Written for #95, which needed blank disks to copy
+  onto. Two things worth knowing: the file **must** begin with an `IMD 1.x:` line
+  or `disk-analyse` rejects it, and `imdinfo.py` (the reader) validates the
+  output.
+- **`o1disk-copy.lua` + `o1disk-copy.sh`** — the keyboard-injecting counterpart
+  to the boot probe: boot `-flop1`, put another image in `-flop2`, wait for `A>`,
+  type a CP/M command (e.g. `PIP B:=A:MBASIC.COM`) and report the screen. Written
+  for #95 to move content on and off a second disk and read it back. **It must
+  not call `os.exit()`** — MAME only flushes a modified image on a clean
+  shutdown, so `os.exit()` silently discards guest writes. See
+  `docs/dd-upgrade-formats.md`.
 - **`mame-lua-probe.lua`** — what MAME's Lua API exposes inside a *running*
   machine, and how the O1's bank latch actually behaves (it does not persist).
   Written for #64 while working out how to check `docs/o1-memory-io-map.md`
