@@ -1,6 +1,9 @@
 # Research gaps — status review
 
-**Last reviewed:** 2026-10-11, after the *Portable Companion* extract batches
+**Last reviewed:** 2026-10-11 (later pass), after #95 was answered from the OCC
+CBIOS source, #7's clock ABI was written as a contract, #81's OZROM index was
+built, and #6's `DFD.SPR` blocker was re-characterised. Previous review
+2026-10-11, after the *Portable Companion* extract batches
 (#73), the issue triage that re-scoped this doc's subject list, and the Phase-0
 sub-issue tree (§F). Previous review 2026-10-10, after the archive drop (#71),
 the ROM-source indexing (#72) and the MAME work (#79).
@@ -34,10 +37,22 @@ status.
 
 1. **#39** — the identity of the three target machines (user action; blocks gap 12).
 2. **Drive C's command set** — blocks #6/#22, and therefore the standalone Drive C
-   reproduction (#84, `hardware/drive-c/`).
+   reproduction (#84, `hardware/drive-c/`). *Refined 2026-10-11:* the blocker is
+   now a **code-aware disassembly of `DFD.SPR`** — the committed listing is a
+   linear sweep through the file's zero blocks and its call targets are spurious
+   (`drive-c-protocol.md`).
 3. **The hard-disk controller decision (#8)** — two products are characterised;
    pick the one worth emulating before any personality code is written.
-4. **The RT-60A ABI (#7)** — decide the contract, then implement it in #18.
+4. ~~**The RT-60A ABI (#7)** — decide the contract, then implement it in #18.~~
+   **Done 2026-10-11.** The ABI is written as a contract in `rt60a-analysis.md`
+   (pointer block, sentinel/invalidation rules) and #18 implements it. The
+   hardware handshake is retired as a known unknown.
+5. ~~**Does the DD upgrade read foreign formats? (#95)**~~ **Solved 2026-10-11
+   from the OCC CBIOS source**: a DPB + sector-skew table (`occbio95.asm`) whose
+   capacities match the manual's list exactly, selected by a monitor-ROM density
+   probe. `dd-upgrade-formats.md`; Osborne SD confirmed end-to-end in MAME.
+6. ~~**OZROM 1E as tooling (#81)**~~ **Solved 2026-10-11**: `ozrom-1e.md` indexes
+   the manual and measures it on all three machines.
 
 Everything else is either done, or is research that can proceed in parallel.
 **#79 is closed and no longer blocking**: the decision taken is not to chase the
@@ -248,10 +263,12 @@ Ordered by what blocks what:
 
 1. **#39** — machine identities, board revisions and ROM markings (user action;
    unblocks gap 12 — the issue lists the three things actually worth reading).
-2. **Finish Drive C's command set** from `DCL`/`DFD.SPR` (unblocks #6, #22, #84).
+2. **Finish Drive C's command set** from `DCL`/`DFD.SPR` (unblocks #6, #22, #84)
+   — now scoped to a **code-aware `DFD.SPR` disassembly** plus DCL's patch loop.
 3. **Decide the hard-disk controller** (#8): characterise both, pick one to
    emulate, and correct `occ1-harddisk-analysis.md`'s port claim.
-4. **Write the RT-60A ABI contract** (#7), then implement it in #18.
+4. ~~**Write the RT-60A ABI contract** (#7), then implement it in #18.~~ **Written
+   2026-10-11** (`rt60a-analysis.md`); #18 implements it.
 5. **#73** — the DD halves of the Nuevo and Osmosis boards.
 
 The book (#75) is **no longer gated on all of this**: it is a rolling build whose

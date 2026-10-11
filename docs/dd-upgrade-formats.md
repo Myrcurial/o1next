@@ -41,15 +41,59 @@ and names the formats that were *anticipated* rather than shipped: TRS-80
 Model I and III CP/M, and Zenith/Heath double density, "most likely in our user
 magazine, The Portable Companion".
 
-## Why the ROM is part of the answer
+## Why the ROM is part of the answer — and the answer
 
 The upgrade is described as coming with the **1.4 ROM**, and the recognition is
-a property of the computer rather than of the drive electronics — so the format
-table should be in the 1.4/1.44 BIOS rather than in the add-on board. The 1.44
-BIOS source is in the repo (`research/source-code/BIOS-144-source/rom144.asm`,
-with the overlay modules `occbio*.asm`), which makes the comparison against a
-1.3 source the next step: a table of geometries in 1.44 that 1.3 lacks is the
-mechanism, and it would settle #95 without any hardware.
+a property of the computer rather than of the drive electronics. The 1.44 BIOS
+source and the overlay CBIOS modules are in the repo
+(`research/source-code/BIOS-144-source/`), and reading them settles #95 without
+hardware. The mechanism is **two cooperating parts, and neither is the monitor
+ROM alone**:
+
+1. **The monitor ROM senses the disk.** `SENDEN` (jump-table entry `0130`,
+   `SENSE_DISK_DENSITY`) tries both densities and issues a WD179x **READ
+   ADDRESS** (`RADR`) on track 0. The address mark the controller finds *is* the
+   disk's geometry: it yields the density (FM/MFM), the sector length and the
+   sectors per track. There is no format table in the monitor ROM — the geometry
+   comes off the disk. `SAVTYP` is set to a code of `density (bit 0) | sector
+   length (bits 2–3)`, where the length field is `0`=128, `1`=256, `2`=512,
+   `3`=1024 bytes.
+2. **The DD CBIOS carries the DPB table.** `occbio95.asm` defines a table of
+   Disk Parameter Blocks, and `occbio45.asm` (`GDEN`) converts the sensed
+   physical sector count into a count of 128-byte *logical* sectors
+   (×1/×2/×4/×8 for 128/256/512/1024) and searches the table for the entry whose
+   sectors-per-track **and** type code both match. On a match it installs that
+   DPB and its sector-skew translation table.
+
+**The table is the smoking gun** (`occbio95.asm` / `occbio15.asm`, the names are
+the manufacturer's own):
+
+| Entry | Type code | Sectors/track | Block | Dir | boottrk | `DSM` formula | = capacity | Manual's figure |
+|---|---|---|---|---|---|---|---|---|
+| **Osborne DD** (`DSKD1`) | `0Ch` = MFM, 1024 B | 40 (=8×5) | 1 K | 64 | 3 | `((40−3)*8*5)/8` = 185 | 185 K | 182 k |
+| **Osborne SD** (`DSKS1`) | `5` = FM, 256 B | 20 (=2×10) | 2 K | 64 | 3 | `((40−3)*2*10)/16` = 46 | 46 blk × 2 K = 92 K | 92 k |
+| **Xerox** (`XEROX`) | `1` = FM, 128 B | 18 (=1×18) | 1 K | 32 | 3 | `((40−3)*1*18)/8` = 83 | 83 K | 80 k |
+| **IBM** (`IBM`) | `8` = MFM, 512 B | 32 (=4×8) | 1 K | 64 | 1 | `((40−1)*4*8)/8` = 156 | 156 K | 156 k |
+| **DEC** (`DEC`) | `8` = MFM, 512 B | 36 (=4×9) | 1 K | 64 | 2 | `((40−2)*4*9)/8` = 171 | 171 K | 171 k |
+
+`NUMDPB = 5`. **The capacities match the manual's list exactly** — IBM 156 k and
+DEC 171 k to the kilobyte — which is what makes this the answer rather than a
+guess. The manual lists **six** formats and the table has **five** entries
+because **Cromemco shares the Xerox geometry** (both 5.25" single-density,
+80 k), so one DPB serves both names.
+
+Each entry also carries a **sector-skew translation table** (`XTAB` in
+`occbio95.asm`): Osborne DD is 1:1, Osborne SD is 2-to-1, Xerox is 5-to-1, IBM
+is 1:1, DEC is 2-to-1. "Mostly DPB + FDC parameter tables", as #30's text put
+it — confirmed, and the *skew* is the part that would be missed by a
+geometry-only description.
+
+So the DD upgrade's multi-format claim is a **CBIOS DPB+skew table selected by a
+monitor-ROM density/sector probe** — recognition in the computer, exactly as the
+manual says, with the *filesystem* parameters living on the diskette's own CBIOS
+rather than in the ROM. That also explains the G2 answer (#30): a "G2 format set"
+is more entries in the same table.
+
 
 ## What this means for the project
 
@@ -207,7 +251,77 @@ management code. **The DD upgrade is not memory-neutral**, which matters for
 anything that assumes a fixed TPA base, and it is the kind of third-party
 consequence the DD documentation itself does not mention (#95).
 
-## Sources
+## The acceptance test, run in MAME (#95)
+
+The manual's claim is a capability, and the capability is testable without
+hardware because the recognition is in the computer. The test: **boot ROM 1.4+ with
+a DD CBIOS, put a disk in drive B, move files on and off it, and read the result
+back byte-for-byte.**
+
+### Tooling
+
+Two small stdlib helpers were added for this (`tools/research/`):
+
+- **`imdmake.py`** — writes a blank Osborne 1 disk in ImageDisk form (the writer
+  half of `imdinfo.py`): `--dd` = 250 kbit MFM, 40×5×1024; `--sd` = 250 kbit FM,
+  40×10×256, filled with `0xE5`. It emits the `IMD 1.x:` version line first,
+  because `disk-analyse` refuses a file that does not start with one.
+- **`o1disk-copy.sh` + `o1disk-copy.lua`** — boot a disk in `-flop1`, put another
+  in `-flop2`, wait for `A>`, type a CP/M command, and report the screen. It is
+  the keyboard-injecting counterpart to `mame-boot-probe.sh`.
+
+### Results (measured)
+
+| Test | Command | Result |
+|---|---|---|
+| **ROM 1.4+ boots DD** | `mame osborne1 -bios ver14/ver143/ver144` on `52-blank.imd` | **all three boot to `A>`** |
+| **Content onto B:** | `PIP B:=A:MBASIC.COM` | B: image gains `MBASIC.COM`, **byte-identical** to A:'s (24320 B) |
+| **Content off B:** | `PIP A:BACK.COM=B:MBASIC.COM` | A: image gains `BACK.COM`, **byte-identical** — full round trip |
+| **Foreign density read** | DD system in A:, **Osborne SD** disk in B:, `DIR B:` | **lists B:'s files** — the DD CBIOS auto-recognised the single-density disk |
+
+The last row is the important one for this issue: it exercises the real
+mechanism end to end. The monitor ROM's `SENDEN` read the SD disk's address
+marks (FM, 256-byte sectors, 20/track), the DD CBIOS matched `DPBS1`, and `DIR`
+read a foreign-density directory. **Osborne SD is one of the manual's six
+formats, confirmed on the emulated machine.**
+
+### A MAME gotcha worth writing down
+
+**`os.exit(0)` in the Lua script silently discards guest disk writes.** MAME
+flushes a modified image when the device is torn down at a *clean* shutdown;
+`os.exit()` skips that. A `SAVE 1 HELLO.TXT` under `os.exit()` left the image
+byte-identical; the same command with the script simply ending (MAME running on
+to `-seconds_to_run`) persisted. `o1disk-copy.lua` therefore does **not** call
+`os.exit()` — the opposite of `mame-boot-probe.lua`, which only reads.
+
+### What the test does *not* yet cover
+
+- **The other four formats** (Xerox 820, Cromemco, IBM CP/M-86, DEC VT-180) —
+  we hold no images for them, so the DPB-table proof above stands on the source
+  rather than on a run. The way to close it is to synthesise an image per DPB
+  entry with `imdmake.py` (or `disk-analyse`) and `DIR` it; that is the next
+  unit of work, and it is cheap now that the geometries are known.
+- **Real hardware** — see below.
+
+## IMD → HFE for the real machine
+
+`disk-analyse` converts both ways, and the round trip is lossless on the raw
+sector data:
+
+```bash
+disk-analyse blank-dd.imd blank-dd.hfe      # write to a Gotek/HxC
+disk-analyse blank-dd.hfe blank-dd-back.imd # read it back
+tools/research/imdinfo.py --raw a.raw blank-dd.imd
+tools/research/imdinfo.py --raw b.raw blank-dd-back.imd
+cmp a.raw b.raw                             # identical
+```
+
+Measured: a `--dd` blank and the `52-blank.imd` system disk both convert to HFE
+(2 039 296 bytes each), and IMD→HFE→IMD reproduces the raw sector image exactly.
+`disk-analyse`'s HFE output is what a hardware floppy emulator wants, so the
+images built and validated above are directly testable on a real Osborne 1.
+
+
 
 - `research/osborne1/o1doubledensityusersguide.pdf` — *Osborne 1 Double Density
   User Manual* (15 pages, image-only; OCR'd per the convention in

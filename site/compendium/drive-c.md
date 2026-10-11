@@ -87,6 +87,43 @@ that drives it** (its own command table is DIR/ERA/HELP/REN/SAVE/TYPE/USER). How
 DFD.SPR reaches the transport is the next thing to establish, because it makes no
 direct PIA references — so it must be a patched vector or a relocation DCL
 performs at install time.
+### DFD.SPR's layout, and why the committed listing misleads (#6)
+
+[`research/drive_c/disasm/dfd.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/disasm/dfd.asm) is a `z80dasm` linear sweep from `0x100` over the
+whole 2560-byte file. Reading the file's own structure (a raw byte scan — the
+disassembly alone hides this) shows two large **zero-filled regions**, file
+offsets `0x003–0x0FF` (253 bytes) and `0x10C–0x17B` (112 bytes), plus a
+header/jump area and the command table:
+
+| File offset (= address − `0x100`) | Contents |
+|---|---|
+| `0x000–0x002` | `00 C6 07` — SPR header |
+| `0x003–0x0FF` | **zeros** (253 bytes) |
+| `0x100–0x10B` | `JP 0103h` / `JP 00FFh` + `STAT` |
+| `0x10C–0x17B` | **zeros** (112 bytes) |
+| `0x183` / `0x18B` | `COM` / `$$$ … SUB` |
+| `0x1CC` | **command table**: `DIR ERA HELP REN SAVE TYPE USER` |
+| `0x1F0` | command **vector table** (`0591h 0525h 0647h 0666h`) |
+| `0x1F8` | `=_.:;<>` |
+| `0x2A3` | `NO FILE` |
+
+Because the sweep starts at `0x100` and walks straight through those zero blocks,
+its `call sub_01aah` / `sub_01b1h` / `sub_01f5h` / `sub_020fh` … targets all land
+**inside the zeros** and are spurious — they are not entry points. So question 1
+below cannot be answered from this listing; it needs a disassembly that starts at
+the code region and treats the zero blocks as data.
+
+What *is* established from the bytes:
+
+- DFD.SPR contains **no access to the PIA** `2900–2903h` (no `32 xx 29` stores) —
+  confirming the split above.
+- Its only I/O opcode is the single `OUT (0F1h),A` at `0803`.
+- Its command layer is self-contained in the `0x180–0xB00` region, with a real
+  command table at `0x1CC` and a vector table at `0x1F0` whose entries point
+  *within the file* (`0x591`, `0x525`, `0x647`, `0x666`) — code, not relocation
+  slots.
+
+
 
 ### The manual says it is *not* real GPIB
 
@@ -210,7 +247,12 @@ Extract: [`research/technical-articles/TPC-Issue14-1984-pp43-47-drive-c-loader-a
 
 1. **How DFD.SPR reaches the transport.** It makes no PIA references at all, so
    either DCL patches a vector into it at install time or it calls a fixed
-   relocated entry. This is the next step, because it unlocks the command layer.
+   relocated entry. **The committed listing cannot settle this** — see "DFD.SPR's
+   layout" above: its `call sub_01xx` targets land in zero blocks and are
+   spurious. The next step is therefore a **code-aware disassembly** of DFD.SPR
+   (start at the `0x180` code region, treat the two zero blocks as data), plus a
+   read of DCL.COM's install/patch loop for stores into DFD's workspace. That is
+   the one unlock for the command layer, and for #84.
 2. **What the command bytes mean.** `08h` (address/command), the sector/head byte,
    `88h`/`81h` (the two operations), `09h` (teardown): which is read, which is
    write, and what the box replies on port B bit 6 and on port A. The ROM's own

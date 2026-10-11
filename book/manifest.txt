@@ -21,11 +21,12 @@ mainboard       | Mainboard and the schematic set         | docs/o1-mainboard-sc
 memory-io       | Memory and I/O map                      | docs/o1-memory-io-map.md       | solved
 rom             | ROM and firmware                        | docs/o1-rom-source.md          | solved
 rom-variants    | ROM variants and third-party ROMs       | docs/o1-rom-variants.md        | solved
+ozrom           | OZROM 1E: a third-party monitor ROM     | docs/ozrom-1e.md               | solved
 video           | Video and the character generator       | docs/o1-chargen-graphics.md    | solved
 
 [part] Interfaces
 
-floppy          | The floppy subsystem and its formats    | docs/dd-upgrade-formats.md     | partial
+floppy          | The floppy subsystem and its formats    | docs/dd-upgrade-formats.md     | solved
 floppy-adapter  | The floppy adapter design               | docs/floppy-adapter-design.md  | design
 serial          | Serial and the modem                    | docs/o1-modem-serial.md        | solved
 ieee488         | The IEEE-488 port                       | docs/o1-ieee488-port.md        | solved

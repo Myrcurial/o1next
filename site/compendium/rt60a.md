@@ -5,6 +5,12 @@ subtitle: "Peripherals and storage · partially solved"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
+**Status:** Partially solved, and **the contract below is the deliverable** (#7).
+The hardware handshake stays a *known unknown* (reopen only if an RT-60A unit or
+a good `CLOCK.COM` dump ever turns up); the **memory ABI is settled and is what
+[`firmware/rt60a-rtc/`](https://github.com/Myrcurial/o1nextgen/blob/main/firmware/rt60a-rtc/) implements** (#18). See §"The contract" and §"The third
+shape: the O1's own clock" — read those two before writing any clock code.
+
 Source: research/rtc/RT-60A_Manual.pdf (JG Communications, Tucson AZ).
 The TD0 on bitsavers is a damaged dump (27 bad sectors, extraction
 failed); this doc reconstructs the interface from the manual per
@@ -71,8 +77,67 @@ shown relative to the pointer):
 |  7 | TIMEASCII           | NUL-terminated ASCII time string (chosen format) |
 | 19 (0013)  | DATEASCII   | NUL-terminated date string |
 
-If the pointer word itself contains 0xFF or 0xBB, clock software is
-not running (or CLOCK.COM wasn't executed at last boot).
+## The contract — what an RT-60A-compatible time service must publish (#7)
+
+This is the *specification*, promoted out of the analysis above. It is what
+[`firmware/rt60a-rtc/`](https://github.com/Myrcurial/o1nextgen/blob/main/firmware/rt60a-rtc/) (the resident publisher, #18) and the interposer (#12) must
+agree on. The rule that makes it implementable is the one sentence that decided
+#7: **the RT-60A does not put the time anywhere in memory — `CLOCK.COM` does.**
+The hardware is read-only; the ABI is software. So we build the *publisher*, not
+the *chip*.
+
+**The pointer.** A word at **`0x0040`** holds the address of the block. It is the
+only fixed address; everything else is an offset from the pointer.
+
+**The block** (offsets from the pointer, negative offsets below the pointer):
+
+| Off | Len | Field | Encoding |
+|---|---|---|---|
+| −15 | 1 | `FLAGS` | bit0 phantom display; bit3/4 At-Trap use; bit5 At-Trap on; bit7 software off |
+| −14 | 1 | `TIMEFLAG` | bit0 `0`=12 h / `1`=24 h; bit1 `1`=AM/PM off; bit2 `1`=seconds suppressed |
+| −13 | 7 | `DATE` | `YYMMDD`+DOW, BCD; bit2 of tens-of-days = leap year. **The only always-current date** |
+| −6 | 6 | `TIME` | raw BCD `HHMMSS`, 12-hour; bit2 of the first byte = PM. Straight from the chip |
+| 0 | 1 | `DAY` | binary |
+| 1 | 1 | `MONTH` | binary |
+| 2 | 1 | `YEAR` | binary (`0x53` = 1983) |
+| 3 | 1 | `HOURS` | binary, 24 h, `0` = midnight |
+| 4 | 1 | `MINUTES` | binary |
+| 5 | 1 | `SECONDS` | binary |
+| 6 | 1 | `MEMBUFF` | 60→1 decrementer; sticks at 1 when reads fail |
+| 7 | 12 | `TIMEASCII` | NUL-terminated ASCII time string, chosen format |
+| 19 | 12 | `DATEASCII` | NUL-terminated ASCII date string |
+
+**The cadence.** `CLOCK.COM` hooks the interrupt vector **word at `0xEFF8`** and
+decrements `MEMBUFF` once per 60 Hz tick; at 1 it reads the clock (~1/second),
+translates to binary + ASCII and refills the block, then chains to the handler it
+replaced. `0xEFF8` is the stock ROM's keyboard-interrupt vector:
+`INTBL = 0xEFF0` and the ROM sets `INTBL+(4*2)` (`rom144.asm` line 235) — so the
+vector slot is `INTBL` entry 4, and a replacement publisher must save and chain,
+not simply overwrite.
+
+### Sentinel and invalidation rules (the "no clock" vs "clock stopped" question)
+
+These are the rules a reader must be able to rely on — #7 asked for them
+explicitly, and they are what distinguishes the three states:
+
+| State | How a reader tells | What a reader must do |
+|---|---|---|
+| **No clock software installed** | pointer word at `0x0040` is `0xFF` or `0xBB` | treat time as unavailable; do not POKE `0x0040` yourself |
+| **Clock software installed, reads failing** | pointer is valid but `MEMBUFF` has stuck at 1 for more than ~2 ticks | time is *stale* — show it, do not trust it for stamping |
+| **Clock running** | valid pointer and `MEMBUFF` decrementing | `DAY`…`SECONDS` and `DATE`/`TIME` are current |
+
+`MEMBUFF` is therefore not just a countdown: **it is the health signal.** A
+publisher that cannot read the clock must leave `MEMBUFF` at 1 (the documented
+behaviour) rather than let it run free, so that a reader can distinguish "no
+clock" from "clock stopped". `DATE` at −13 is the one field the manual calls
+always-current even when the clock read is deferred, so it is the field to trust
+when `MEMBUFF` is stuck.
+
+**What this buys.** Any software written against the documented RT-60A ABI —
+`CLOCK.COM`'s consumers, the `@T`/`@D` At Trap, the BDOS file-stamp patches —
+works unchanged against our publisher. What we deliberately do **not** reproduce
+is the undocumented IEEE-488 wake-up handshake, which buys nothing because the
+only thing that speaks it is `CLOCK.COM` itself.
 
 ## Conditions that block clock reads (from HELP)
 
@@ -115,7 +180,112 @@ emulated date must not disturb. `0050H–005BH` is also worth remembering as a
 **free 12-byte scratch block** for the interposer (#12) — see
 [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2.
 
-## Implications for interposer RTC emulation (#21)
+## The third shape: the O1's *own* clock, and what OZROM 1E does with it (#81)
+
+#7's stated worry was "read the OZROM manual before we fix our own ABI, so we do
+not invent a third shape". Reading it — and the OCC source — turned up something
+better than a warning: **the Osborne 1 already has a native software clock, and
+OZROM did not invent an ABI either; it adopted the O1's own reserved cells.**
+There is no third *invention*; there is a third *convention*, and it predates
+both third-party products.
+
+### The machine already ticks a clock — `UPTIM`
+
+The stock ROM's 60 Hz keyboard interrupt handler calls `UPTIM`, which keeps the
+time as BCD and handles the bell and disk-active countdown:
+
+```asm
+GKEY:                       ; rom 1.3 source, BMKEY.ASM
+    CALL UPTIM              ;UPDATE SYSTEM CLOCK
+UPTIM:
+    ;Update time via 60hz interrupt
+    ;  Time is kept as hhmmss (3 locations)
+    ...
+    DEC [hl]                ; HL => SEC6  (sixtieths)
+    RNZ                     ; if not 1 sec transition
+    STO 59,[hl]             ; 60th tick is NOW
+    XOR A                   ; A:=0, CY:=0 for DAA
+    DEC HL                  ; HL => SECS
+    LD A,[hl] ! INC A ! DAA ! STO A,[hl]
+    CMP 60h
+    RC                      ; if not 60 secs
+    STO 0,[hl]
+    DEC HL                  ; HL => MINS
+    ...
+    CMP 25h                 ; 24-hour wrap
+```
+
+Measured two ways, and they agree:
+
+- the increment code walks **`SEC6 → SECS → MINS → HOURS`**, so the cells run
+  downward in address from `SEC6`; and
+- the CBIOS RAM map (`occram25.asm`) places them with
+  `HOURS: DS 6 / MINS=HOURS+1 / SECS=HOURS+2 / SEC6=HOURS+3`, and its
+  `DACTVE = HOURS+4`, `BELCNT = HOURS+5` match the ROM's own absolutes
+  `DACTVE = 0EF6AH`, `BELCNT = 0EF6BH` (`rom144.asm` lines 128–129).
+
+So the addresses are fixed:
+
+| Cell | Address | Meaning |
+|---|---|---|
+| `IDAY` / `IMONTH` / `IYR` | `EF63` / `EF64` / `EF65` | calendar date, binary |
+| `HOURS` | **`EF66`** | hours, 2-digit BCD |
+| `MINS` | **`EF67`** | minutes, 2-digit BCD |
+| `SECS` | **`EF68`** | seconds, 2-digit BCD |
+| `SEC6` | **`EF69`** | sixtieths, 2-digit BCD |
+| `DACTVE` | `EF6A` | disk-active countdown (ticked by the same routine) |
+| `BELCNT` | `EF6B` | bell countdown |
+
+The clock **starts at midnight on every boot** (the ROM clears `EF00–EFEF`),
+nothing in the stock machine *sets* it, and nothing displays it. It is a
+running counter with no reader and no setter — which is precisely why both
+third parties built on top of it rather than beside it.
+
+One caveat, stated honestly: the ROM 1.3 source's `UPTIM` comment says the time
+is "kept in video memory", which is inconsistent with the address map (video is
+`F000`+, the clock is `EF66`+). The addresses are confirmed by two independent
+files, so the comment is stale, not the map. **ROM 1.44's source does not tick
+the clock**: its `GKEY` was rewritten ("fixed bell bug", `rom144.asm` line 16)
+and now handles the bell and `DACTVE` but no longer decrements `SEC6`, and the
+file contains no `SEC6`/`UPTIM` reference at all. So under a 1.44 machine the
+`EF66–EF69` cells are *reserved but not ticked*.
+
+### OZROM 1E adopts those cells and adds the setter, the display and the hook
+
+OZROM's documented memory map (manual Appendix C-5) is the same cells, named:
+
+| OZROM's name | Address | = the O1 cell |
+|---|---|---|
+| Start of system clock — hours, 2-digit BCD | `EF66` | `HOURS` |
+| Minutes, 2-digit BCD | `EF67` | `MINS` |
+| Seconds, 2-digit BCD | `EF68` | `SECS` |
+| Sixtieths of a second, 2-digit BCD | `EF69` | `SEC6` |
+
+and it adds `EFDF` (time-display toggle), `EFE8` (clock position on the first two
+display lines), and its own interrupt hook at **`EFF2–EFF4`** (preset to `RET`,
+`0C9h`) with 192 bytes of interrupt-routine RAM at `FCC0–FD7F`. OZROM's `TIME`
+sets the clock, ctrl-shift-T shows it, and `ALARM`/`TIMER`/`QUIKTIME` ride the
+hook. **So OZROM's "time-of-day clock" is the machine's own `EF66–EF69`, finally
+given a setter and a reader.** Its hook is *not* the RT-60A's `0xEFF8`: it is a
+fixed call OZROM's own `SYSINT` makes with registers already saved, at `EFF2`,
+which is a different `INTBL` slot and a different calling convention. Full map:
+[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md).
+
+### What this means for our ABI (the #7 decision)
+
+Three conventions now, and they do not conflict:
+
+| Convention | Cells | Who reads it |
+|---|---|---|
+| **RT-60A / `CLOCK.COM`** | pointer at `0x0040` → binary `DAY…SECONDS` + ASCII + `MEMBUFF` | software written to the documented RT-60A ABI |
+| **O1 native / OZROM** | fixed BCD `EF66–EF69` (+ `EF63–EF65` date) | OZROM's display/`ALARM`/`TIMER`, and anything that reads the machine's clock cells |
+| *(ours)* | **both**, published together | whichever the software expects |
+
+The cheap, correct move is that our resident publisher **maintains the native
+`EF66–EF69` cells as well as the `0x0040` block**. They are four bytes apart in
+effort and they make our clock visible to OZROM-style readers *and* to RT-60A
+software, without inventing anything. That is the whole of the "third shape"
+question: not a new ABI, but two existing ones kept in step.
 
 - We can emulate the RT-60A faithfully WITHOUT its exact hardware
   handshake: implement the MSM5832 register semantics and the 0x40
