@@ -96,6 +96,37 @@ dedicated 4116. Only `F000–FFFF` is affected.
 |---|---|
 | `F000–FFFF` | Video attribute RAM, 4K×1 (dim attribute = bit 8 of each cell) |
 
+### 2a. Video memory geometry — 128 columns wide, 52 displayed (#97)
+
+The 4 KB at `F000–FFFF` is **32 rows of 128 characters**, of which **24 rows of
+52 characters are displayed at a time**:
+
+> Memory from 0F000 hex to 0FFFF hex is used for the video memory map. That
+> memory is considered to be 32 rows of 128 characters, even though only 24 rows
+> of 52 characters are actually displayed on the monitor screen at a time. The
+> character matrix is 7 × 9 in an 8 × 10 box.
+> — *Osborne 1 Technical Manual*, §5.2 "Video Memory", p. 23
+
+**This is the answer to the "64 vs 52" question in #97.** The screen is a
+*window* onto a buffer 2.5× wider and 1.3× taller than what is shown, and the
+displayed width is a property of the window, not of the memory. That is why the
+same 4 KB shows 52 columns on stock hardware, 80 on Nuevo and 104 with the
+ScreenPac (`mame-emulation.md` §2) — the text layout is the CBIOS's, the window
+is the machine's.
+
+It is also why the scrolling feels different from a terminal's. Holding Ctrl and
+using the arrow keys slides the window over the memory rather than moving the
+memory, which is a register change and not a rewrite of the buffer — the same
+mechanism `mame-emulation.md` §6 calls a ring buffer. A terminal scroll *does*
+move the lines, which is why that stays chunky while the viewport slide is
+smooth. (The Ctrl+arrow slide is a hardware observation, reported on the real
+machine; the geometry above is the manual's.)
+
+**Bit fields** (§5.2, figure): bits 0–6 are the **ASCII character**, **bit 7 is
+the underline attribute**, **bit 8 is dim**. Bits 0–7 are the byte in the video
+RAM proper; bit 8 is the separate 4116 in bank 3. This is why the MAME probe
+masks with `% 128` to read characters (`tools/o1_mame_probe.lua`).
+
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
 
 All onboard peripherals are **memory-mapped**, reached through the bank-2

@@ -1,0 +1,638 @@
+
+===== PAGE 1 =====
+
+Double Density Po =
+— User's Manual 3
+
+COMPUTER CORPORATION
+
+~ rata
+
+
+===== PAGE 2 =====
+
+Double Density
+For the Osborne 1 Computer
+
+(Part No. 3F 00070)
+
+WARNING: Do not proceed using your new
+option until you have completed reading
+the manual. Failure to do so can result in
+damaging your double density master disk-
+ette and losing use of your computer while
+the diskette is replaced.
+
+12/22/82
+
+===== PAGE 3 =====
+
+~
+
+/ | A,r My »
+at WA UP ak |
+
+if a2
+TV Ise.
+
+For the Osborne 1 Computer
+
+WARNING:
+option until you have completed reading
+Failure to do so can result in
+damaging your double density master disk-
+ette and losing use of your computer while
+the diskette is replaced.
+
+the manual.
+
+12/22/82
+
+Double Density
+
+(Part No. 3F 00070)
+
+Do not proceed using your new
+
+===== PAGE 4 =====
+
+Double Density User Manual Page 2
+
+Copyright () 1982 by Osborne Computer Corporation
+All rights reserved.
+
+No portion of this document or the accompanying software may be
+reproduced in any fashion or by any means without the express
+written permission of Osborne Computer Corporation.
+
+All claims made relating to the use of diskettes other than
+Osborne-designed formats are subject to change, and Osborne
+Computer Corporation cannot accept responsibility for copyright
+infringements incurred using the optional formats. In addition,
+Osborne Computer Corporation makes no warranties, implied or
+explicit, pertaining to the ability of the double density option
+to read and write formats other than those designed and
+implemented by Osborne Computer Corporation.
+
+Osborne 1 and CalcAid are trademarks of Osborne Computer
+Corporation. CP/M is a registered trademark of Digital Research.
+Other product names mentioned in this manual are trademarks of
+the producing company.
+
+REV: 12/22/82
+
+===== PAGE 5 =====
+
+Double Density User Manual Page 3
+
+Introduction
+
+Congratulations! You've just purchased the double density disk
+drive option for your Osborne 1 computer.
+
+Your expectations are probably that you will receive twice as
+much storage per diskette than from the single density Osborne 1.
+You'd be right if you thought this, but you'd also be wrong, for
+our double density option is much more than just a doubling of
+the capacity of the disk drives.
+
+A bit of historical perspective is need to tell you about the
+"other" things about our double density disk option provides you.
+
+The first floppy disk drives were sold by IBM and used 8-inch
+diskettes. In IBM nomenclature, these drives formatted diskettes
+in the "3740" format, a process of dividing up the space on the
+diskette into concentric "tracks" of information, each of which
+was, in turn, divided into small blocks, called "sectors."
+
+A number of other manufactures began making disk drives after
+IBM, but most chose to use IBM's method of arranging information
+stored on the diskette. This format is known by a lot of
+different names, but we'll refer to it as "standard 8-inch single
+density."
+
+IBM and others eventually began looking for ways of increasing
+the amount of information stored on a diskette, and a number of
+"8-inch double density" formats appeared. Most of these new
+formats were the inventions of the firms that distributed them.
+The way they claimed compatibility with the rest of the world was
+that their double density implementation was also able to read
+and write the standard 8-inch single density format in addition
+to their double density format.
+
+Meanwhile, a disk drive manufacturer by the name of Shugart
+invented what they called the "minifloppy." Basically, this was
+a smaller version of the 8-inch floppy IBM invented. This
+smaller disk drive used 5 1/4-inch diskettes, the type that are
+in your Osborne 1 computer.
+
+Unlike IBM's disk invention, it seemed that few companies wanted
+to maintain compatibility with Shugart's small floppy. What this
+meant is that almost every manufacturer of computers that used 5
+1/4-inch disk drives stored information on the diskette using
+
+REV: 12/22/82
+
+===== PAGE 6 =====
+
+Double Density User Manual Page 4
+
+different methods. Never mind that the actual diskette was the
+same, you still couldn't take a 5 1/4-inch diskette out of one
+computer and put it into another.
+
+Osborne Computer Corporation, in deciding what format to us e to
+store information on a diskette, found that no two manufacturers
+thought alike, and that there was no commonly accepted 5 1/4-inch
+diskette format.
+
+The stated intention of OCC is to build “standard” computers that
+use "standard" software; with 5 1/4-inch diskettes, the method
+that we used to store information on a diskette could not be
+standardized with that of other manufacturers. The problem is
+not the fault of any one particular manufacturer--rather it is
+the short-sightedness of an entire industry.
+
+To make a long story short, there is a way out of the dilemma.
+As Mohammed is reputed to have said: "If the mountain won't come
+to Mohammed, Mohammed will go to the mountain." In designing our
+double density option, we at OCC decided to attempt to make our
+computer capable of using diskettes from a number of other
+manufacturers.
+
+Thus, you'll find that you didn't just purchase double density,
+you purchased a multi-density disk option. Under the current
+release of double density, the following formats are all
+automatically recognized by the computer.
+
+Osborne 1 single density 92k per diskette
+
+Osborne 1 double density 182k per diskette
+
+Xerox 820 single density 80k per diskette
+
+Cromemco single density 80k per diskette
+
+IBM Personal Computer 156k per diskette
+(CP/M-86 format)
+
+DEC VT-180 171k per diskette
+
+We've made our double density option more flexible than just this
+short list suggests, however. As we become more familiar with
+the formats used by other manufacturers, we will publish the
+methods to use to get our double density option to recognize
+these additional densities, most likely in our user magazine, The
+Portable Companion. It is anticipated that TRS-80 Model I and
+
+Ill CP/M, and Zenith/Heath double density may be supported as
+compatible formats in the future.
+
+We don't want to mislead you, however. There are still disk
+formats that cannot be used in an Osborne 1 computer:
+
+o Any format that uses hard-sectored diskettes
+(North Star, Micropolis, Vector).
+
+o Any format that does not store information in
+
+the traditional block-of-bytes format (Apple,
+NEC).
+
+REV: 12/22/82
+
+===== PAGE 7 =====
+
+Double Density User Manual Page 5
+
+o Any format that attempts to modify the normal
+formatting used by LSI floppy controller chips.
+
+Also, with our limited resources and immense growth, the number
+of additional formats we will be able to directly support has to
+be limited. Users who are experienced in Z80 assembly language
+and are familiar with how CP/M 2.2 accesses disk drives should
+find our implementation easy to reconfigure, however.
+
+In short, while you have purchased increased data storage
+capacity for your Osborne 1 computer, you've purchased a great
+deal of convenience and flexibility, as well. Our only question
+is: why didn't some other computer manufacturer do the same
+thing before we did? We think you can guess the answer.
+
+REV: 12/22/82
+
+===== PAGE 8 =====
+
+Double Density User Manual Page 6
+
+Using Double Density
+Installation
+
+The double density option has been installed in your
+computer. A small board is mounted directly above the main
+logic board of your Osborne 1 and connected to it by a short
+cable. In addition, a new ROM has been installed in your
+computer to replace the single density one.
+
+There are instructions in this manual for converting your
+existing single density Osborne diskettes into the new
+double density format; and for reading and converting
+diskettes from other computers into Osborne double density
+format. The conversion of your existing single density
+disks will apply to you if you have just had your single
+density Osborne 1 upgraded to double density. If you bought
+your Osborne 1 with double density already installed, you
+probably won't have any single density disks that need
+converting, so you can ignore those parts of the
+instructions that refer to conversion from single density.
+
+When you buy your double density Osborne 1, or get it back
+from your dealer after upgrading, you receive this manual
+and diskette. All you need to do to proceed is to read this
+manual, create a copy of your double density diskette, and
+begin using your new option.
+
+Getting Started
+
+The first thing you should do with your new optionis makea
+copy of the diskette we provide. We strongly encourage you
+to use certified double density diskettes now that you have
+double density. All testing of the double density option to
+determine whether it is functioning correctly is done by
+both Osborne Computer Corporation and your dealer using such
+diskettes. If you're on a tight budget, you might try using
+standard diskettes, but we make no claims that the double
+density option performs correctly with uncertified
+diskettes.
+
+Certified diskettes are guaranteed by the manufacturer to be
+compatible with double density systems. Diskettes are
+sometimes sold with the claim that they're "usable" with
+double density systems. This is not the same as certified.
+
+Be sure to fill out the registration card that accompanies
+the double density option; this is the only way that we know
+who you are so we can provide you with information about new
+compatible formats and other information that may make your
+double density option more flexible.
+
+REV: 12/22/82
+
+SS |
+
+===== PAGE 9 =====
+
+Double Density User Manual Page 7
+
+To copy the double density diskette we supply, perform the
+steps that follow.
+
+te
+
+REV:
+
+Turn on the power to your Osborne i. Note that the
+"sign-on" message looks different. If it is not as
+shown, your option was possibly not installed correctly
+(see your dealer if you experience problems):
+
+QSBORNE 1
+
+Rey 1.4 ¢e> 1982 NCC
+
+Insert disk in Drive A and press RETURN. _
+
+Place the double density diskette in the left-hand
+drive, close the door, then press the RETURN key as the
+display on the screen indicates.
+
+CP/M loads into your computer's memory and the HELP
+program appears. Press the ESC key (Escape) to display
+the A> prompt.
+
+Type COPY and press RETURN.
+
+The computer asks whether you wish to format or copy a
+diskette. Press C, for copy. Next, a message on the
+screen instructs you to press A or B to indicate the
+drive containing the diskette to be copied. Press A.
+Now, the system asks you to place the diskette to be
+copied in the lefthand drive and a blank, unformatted
+diskette in the righthand drive. The program prompts
+you to press RETURN to proceed.
+
+OSBORNE OISK UTILITY PROGRAN
+Bey 3.1 tc> 1982 GCC
+
+Select source drive for COPY (A or B>
+or press RETURN for main menu _
+
+12/22/82
+
+===== PAGE 10 =====
+
+Double Density User Manual Page 8
+
+(Note: We have changed the formatting
+messages in the COPY program slightly from
+the one used in the single density
+machines: using asterisks instead of
+"F's" to indicate that a track has
+formatted correctly. The program also
+allows you to select whether you want to
+format diskettes in single density or
+double density. Other than this, the COPY
+program remains the same as the single
+density one provided by Osborne.)
+
+One nice thing about the COPY program is that if you put a
+double density diskette in drive A and select the copy
+option, the diskette created in drive B will be double
+density automatically; if on the other hand you put a
+single density diskette in drive A, the resulting diskette
+in drive B will then be single density.
+
+Once you have created a copy of your double density
+diskette, place the original in a safe place and use the
+copy you made to continue.
+
+We do not provide utilities to format or duplicate the
+alternate diskette formats we can read. You may, however,
+format diskettes with your other computer and then use PIP
+to copy files onto that new diskette using your Osborne 1
+and double density. Remember, when you purchase software you
+normally must sign a license agreement that states you will
+use that software on one machine only. Therefore, while it
+is physically possible to copy programs between machines, it
+may not be legal to do so.
+
+Double Density Files
+Your double density diskette contains a few new or changed
+programs. These programs are:
+
+COPY Copies or formats entire diskettes in either
+single or double density.
+
+SYSGEN Places new CP/M systems on double density or
+single density diskettes.
+
+MOVCPM Creates a different-sized CP/M system.
+
+SETUP Used to choose options of printer type,
+
+function keys, horizontal scrolling, etc. We
+have also added the ability to select which
+device number to use for the ILEEE-488 port,
+and also allow a printer initialization
+string to be entered.
+
+REV: 12/22/82
+
+===== PAGE 11 =====
+
+Double Density User Manual Page 9
+
+SYSGEN and MOVCPM work exactly as they did before.
+Attempting to use SYSGEN or SETUP to place a double density
+CP/M system on a single density diskette, and vice versa,
+results in an error message. And while you can read and
+write Xerox format diskettes, at present no facility for
+formatting or copying such diskettes (other than PIP) is
+supplied.
+
+SETUP works similarly to the way it does under single
+density as described in the Users Reference Guide. The
+IERE-488 device number and the printer initialization string
+options are selected by first pressing A (to specify PRINTER
+setup). The additional IEEE-488 device number option must
+be selected by any user who selects IEEE-488 as the printer
+type; the documentation accompanying your printer should
+tell you which device it expects to be addressed as.
+
+The printer initialization string must be entered in
+hexadecimal notion, with each byte separated by a comma.
+Full instructions on each options appear on the screen when
+they re-selected.
+
+In addition, SETUP also allows you to use the present system
+configuration (stored in memory) and change it. You may
+save your changes to memory (in other words, temporarily),
+by pressing M when prompted for what diskette to save the
+configuration on.
+
+Using Xerox, DEC Cromemco, or IBE CP/M-86 Diskettes
+
+To use an alternate format density diskette in drive B, you
+would first start CP/M on Drive A using one of your Osborne
+double density diskettes with CP/M SYSGENed on it; then put
+your other diskette into drive B. That's all there is to
+it: The double density option will automatically switch
+between double density in Drive A and the other density
+diskette in Drive B. Double density automatically
+recognizes all the densities supported by Osborne Computer
+Corporation.
+
+Due to the limitations of CP/M's need to occasionally
+perform “warm starts," you cannot use an alternate density
+diskette in drive A and write information to it without
+first SYSGENing CP/M onto that diskette. Since the SYSGEN
+operation must be performed on the Osborne 1, the result is
+that the CP/M image written on the diskette will not match
+the CP/M system tracks as supported by the manufacturer of
+the alternate diskette. In short, using our SYSGEN on an
+
+REV: 12/22/82
+
+===== PAGE 12 =====
+
+Double Density User Manual Page 10
+
+alternate format diskette will allow you to perform a warm
+start from that diskette, but then that diskette will not
+warm start properly on your other machine. There is no
+simple method of avoiding this problem: the disk in Drive A
+must have our CP/M SYSGEN on it. This procedure may or may
+not be acceptable to you, depending upon whether you must
+maintain the integrity of the system tracks on that
+diskette.
+
+A note about Cromemco format diskettes: Cromemco diskettes
+have many formats. The Osborne double density option can
+read the original 5 1/4 inch, single-sided, single-density
+Cromemco format.
+
+Using Single Density Diskettes
+
+If you put a diskette created on a single density Osborne 1
+into drive A and start the system, you'll find that it boots
+(starts) correctly. However, you would not be able to use
+double density diskettes in your system as long as you are
+booted in single density.
+
+RULE #1: If you boot in single density, both drives
+are locked in single density and any attempt
+to use other format diskettes results in an
+error message.
+
+If you put a double density diskette in drive A and start
+your system, both single and double density diskettes may be
+used interchangeably (as long as you do not have to restart
+CP/M with a single density diskette in drive A).
+
+RULE #2: If you boot in double density, both drives
+respond to both single and double density
+diskettes.
+
+RULE #3: You may SYSGEN double density CP/M onto a
+single density diskette in order to perform
+warm starts with the single density diskette
+in drive A. In that case you will be booting
+in double density as in Rule 2, above.
+
+Basically, if you want the advantage of booting with double
+density, you must SYSGEN from your double density CP/M onto
+any diskette you wish to warm start with, even an Osborne
+format diskette.
+
+REV: 12/22/82
+
+===== PAGE 13 =====
+
+Double Density User Manual Page 11
+
+Remember, to write to a diskette in drive A that is not
+Osborne double density, you must first SYSGEN that diskette.
+
+Using Double Density
+
+Since double density offers so many advantages over single
+density, if you have single density disk files, you'll want
+to convert them over to all double density. Here's the
+process to use:
+
+1. Start the system using your double density master
+diskette.
+2. For each diskette you wish to create:
+
+a. Use the format option of the COPY program to
+format a new double density diskette in drive
+B.
+
+b. Leave the new double density disk in drive B.
+Put your single density CP/M master diskette
+in drive A and type:
+
+PIP<cr>
+
+PIP displays an asterisk to let you know that
+it is ready to accept commands. Don't worry
+about the fact that you haven't told CP/M
+you're switching formats.
+
+Ce Put the single density diskette you want to
+copy into drive A (the double density blank
+diskette is still in drive B) and type:
+
+B:=A:*.*[V]<cr>
+
+You see the message COPYING... followed by a
+list of the files as they are transferred.
+PIP indicates it is through by displaying an
+asterisk again.
+
+d. When copying is complete, put your double
+density master diskette into drive A and
+press C.
+
+e. Use SYSGEN and SETUP to properly configure
+CP/M on your new diskette.
+
+You may wonder why you can't simply use the COPY program to
+create a double density diskette. The reason is that when
+using COPY, the destination diskette assumes the format of
+the source. If the source diskette is single density, a
+destination diskette which is double density will be changed
+to single density. That's why PIP is needed to make the
+initial copies, because PIP doesn't change formats. Once
+
+REV: 12/22/82
+
+
+===== PAGE 14 =====
+
+Double Density User Manual
+
+Page 12
+
+you have a double density diskette, you can use the COPY
+program to duplicate it.
+
+If you purchase Osborne Approved Software, you might want to
+create “special” related-program diskettes. Some possible
+combinations are:
+
+WordStar and Spellguard
+
+WordStar, Math*, Enumerate, Documate, and Footnote
+WordStar and Grammatik
+
+WordStar and Thesaurus
+
+DataStar and SuperSort
+
+MBASIC and BASCOM
+
+SuperCale and any CalcAid (tm)
+
+Differences?
+
+Other than has been already described, there are virtually
+no differences in operation of an Osborne 1 equipped with
+double density as opposed to a single density Osborne 1.
+Your programs and data should work exactly as before--you'll
+just have more storage space to put them in.
+
+As with single density, however, do be sure to keep track of
+how much space you have remaining on a diskette. You
+shouldn't have as many Disk Full errors as before, but they
+can still be aggravating if you aren't expecting them.
+
+Technical Specifications
+
+Here are the technical differences among the formats
+supported by the Osborne double density option:
+
+Single Double Xerox IBM
+
+Density Density Cromemco CP/M-86 DEC
+tracks per diskette 40 40 40 40 40
+sectors per track 10 5 16 8 9
+bytes per sector 256 1025 128 512 512
+totaldiskette capacity 102K 204K 80K 160K 180K
+reserved tracks 5 3 3 1 2
+directory track 3 J 3 1 2
+data storage capacity 92K 184K 74K 156K 171K
+CCP starting location OCFOOh OCBOOh
+BIOS starting location OE500h OE100h
+sector skew factor 2 1 5 1 2
+
+Note: The double density TPA has been reduced by 1K.
+
+REV: 12/22/82
+
+
+===== PAGE 15 =====
+
+———
+—
+
+f
+
+—s
+
+=SSBORNE-
+See: aS a
+
+COMPUTER CORPORATION
+& 26538 Danti Court, Hayward, California Phone: (415) 887-8080 TWX: (910) 383-2021 ig

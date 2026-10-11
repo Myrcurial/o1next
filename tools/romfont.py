@@ -30,11 +30,19 @@ What it emits
 Each glyph is built from one rectangle per horizontal run of set pixels, so the
 outlines are exact rather than traced.
 
-What it deliberately does *not* emit
-------------------------------------
-The 0x00-0x1F graphics set (the box-drawing and block characters) is left out.
-It is Osborne's own encoding, not Unicode, and mapping it would be a guess --
-see docs/o1-rom-variants.md for what is known about the font.
+What it deliberately does *not* emit (yet)
+-------------------------------------------
+The 0x00-0x1F graphics set is not in the shipped font.  It is Osborne's own
+encoding, not Unicode, so each glyph has to be *identified* rather than assumed
+-- see #97, and `--glyph-sheet` below, which exists to make that identification
+checkable.
+
+One thing is already clear from looking at them, and it changes what the
+candidates are: the set is **block graphics**, not the Unicode box-drawing line
+set.  It is quadrants, halves, staircases, triangles, a circle, a cross and a
+hatch -- which is why the manual's own section is titled "5.5 BLOCK GRAPHICS"
+(*Osborne 1 Technical Manual* p. 25).  So the things to compare against are
+Block Elements (U+2580-259F) and Geometric Shapes, not U+2500-257F.
 
 Verification
 ------------
@@ -274,6 +282,49 @@ def write_specimen(path, bitmaps, scale=3, pad=6):
             put(x, top + (ROWS - 1) * scale + scale - 1, (200, 200, 200))
     write_png(path, width, height, grid)
 
+GRAPHICS_FIRST, GRAPHICS_LAST = 0x00, 0x1F
+GRAPHICS_EXTRA = (0x7F,)          # the hatch/checkerboard glyph
+
+
+def write_glyph_sheet(path, bitmaps, scale=5, cols=6, pad=12):
+    """Every graphics glyph, each labelled with its code, for mapping by eye.
+
+    The labels are drawn from the ROM's own glyphs, so the sheet is rendered
+    entirely by the machine's font -- including the digits of the codes.
+    """
+    codes = list(range(GRAPHICS_FIRST, GRAPHICS_LAST + 1)) + list(GRAPHICS_EXTRA)
+    cell_w = COLS * scale + pad
+    cell_h = ROWS * scale + pad + ROWS * 2
+    rows_n = (len(codes) + cols - 1) // cols
+    width, height = cols * cell_w + pad, rows_n * cell_h + pad
+    grid = [[(255, 255, 255)] * width for _ in range(height)]
+
+    def blit(glyph_rows, x, y, s):
+        for r in range(ROWS):
+            for c in range(COLS):
+                if (glyph_rows[r] >> (7 - c)) & 1:
+                    for dy in range(s):
+                        for dx in range(s):
+                            px, py = x + c * s + dx, y + r * s + dy
+                            if 0 <= px < width and 0 <= py < height:
+                                grid[py][px] = (0, 0, 0)
+
+    def label(text, x, y, s=2):
+        for i, ch in enumerate(text):
+            glyph_rows = bitmaps.get(ord(ch))
+            if glyph_rows:
+                blit(glyph_rows, x + i * (COLS * s + 2), y, s)
+
+    for i, code in enumerate(codes):
+        cx = pad + (i % cols) * cell_w
+        cy = pad + (i // cols) * cell_h
+        blit(bitmaps[code], cx, cy, scale)
+        label("%02X" % code, cx, cy + ROWS * scale + pad // 2)
+
+    write_png(path, width, height, grid)
+    return codes
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(
         description="Build the web font from the Osborne 1 character generator.")
@@ -285,6 +336,9 @@ def main(argv=None):
                     help="verify the committed files are up to date (CI mode)")
     ap.add_argument("--specimen", metavar="FILE.png",
                     help="also render a specimen sheet, for a human to look at")
+    ap.add_argument("--glyph-sheet", metavar="FILE.png",
+                    help="render the 0x00-0x1F graphics set + 0x7F, labelled, "
+                         "so the Unicode mapping can be checked by eye (#97)")
     args = ap.parse_args(argv)
 
     rom = Path(args.rom)
@@ -304,6 +358,10 @@ def main(argv=None):
     if args.specimen:
         write_specimen(args.specimen, bitmaps)
         print("wrote " + args.specimen)
+
+    if args.glyph_sheet:
+        codes = write_glyph_sheet(args.glyph_sheet, bitmaps)
+        print("wrote %s (%d graphics glyphs)" % (args.glyph_sheet, len(codes)))
 
     from io import BytesIO
     out = Path(args.outdir)
