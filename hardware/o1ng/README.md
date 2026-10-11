@@ -3,7 +3,7 @@
 A new PCB built from currently-available components that runs the actual
 Osborne 1 ROMs and (nearly) all original software — with a Cherry MX
 mechanical keyboard, the interposer's floppy/modem/printer/storage
-personalities onboard, and composite video out (HDMI optional).
+personalities onboard, and **HDMI video out**.
 
 Tracks: #49 (feasibility + build), #52 (case + power research),
 #53 (concept render: `docs/design/o1ng-lunchbox-concept.*`).
@@ -19,7 +19,7 @@ AHCT to the original NMOS part).
 | Block | Approach | Difficulty |
 |---|---|---|
 | CPU + RAM + ROM | Z84C00 (new), 64 KB SRAM (replaces 16× 4116 DRAM + refresh), 27C128/Flash BIOS | Trivial |
-| Video | Char-gen + CRTC-class logic; composite out, HDMI option (interposer video personality reusable) | Moderate |
+| Video | Char-gen + CRTC-class logic; **HDMI out only** — the RP2350 drives it, and the SFF board carries **no composite driver circuitry at all** (interposer video personality reusable) | Moderate |
 | Floppy | 360K half-height drive + onboard DD data separator (enables PC 360K MFM reads → FATCOPY, #51) | Moderate |
 | I/O (serial/GPIB/RTC) | 6850 ACIA, IEEE-488, RTC — interposer personalities onboard | Moderate |
 | Keyboard | Cherry MX matrix; O1-compatible scan encoding | Low–moderate |
@@ -64,6 +64,41 @@ of them becomes the O1NG.
    least the boot diskette, so the machine boots "factory" images with
    no SD/USB inserted; removable media remains the bulk store.
 
+## SFF board I/O complement (settled 2026-10-11)
+
+The SFF board's connector set is decided, and it is deliberately **not** the
+original machine's complement: what is kept is kept because period hardware and
+software need it, and what is dropped is dropped because a personality replaces it.
+
+| Function | Connector | Note |
+|---|---|---|
+| Serial | **DB-25 (P2)** | The RS-232C port, 6850 ACIA-driven, pinout per `docs/o1-modem-serial.md` |
+| IEEE-488 | **Edge connector (P3)** | The GPIB / Drive C bus, as on the original |
+| Keyboard | **24-position (P4)** | The original keyboard interface, so a real O1 keyboard can be used |
+| Video | **HDMI out** | Adjacent to the **RESET** and **TURBO** buttons |
+| Storage | **SD / microSD slot** | The bulk removable store |
+| Expansion | **USB-A #1** | **Fixed function**: memory expansion, the same role as the SD/microSD slot |
+| Keyboard (USB) | **USB-A #2** | **Fixed function**: the USB keyboard |
+
+The two USB-A ports are **fixed function** on purpose — neither is a
+general-purpose host, so neither needs a hub, a driver stack, or a negotiation
+story.
+
+### Video: HDMI in, and nothing else
+
+- **8" 1024×768 HDMI internal panel**, plus an **external HDMI port**. This is
+  possible because the **RP2350 drives HDMI** directly and because that panel size
+  and resolution are readily available off the shelf.
+- **There is no composite driver circuitry on the SFF board.** The discrete
+  analogue chain the LFF board faithfully reproduces is simply not carried here,
+  so this board has no composite output to offer at all.
+
+### Deliberately absent
+
+- **The MODEM port (P1) is not carried.** P1 is a TTL tap onto the same 6850 ACIA
+  the RS-232 port uses, and the modem is now a **firmware personality** — so the
+  physical port has nothing left to do. The DB-25 RS-232 port stays.
+
 ## The O1NG
 
 **The O1NG is the SFF board with the rest of the machine wrapped around it** —
@@ -74,13 +109,14 @@ in 1985 and is do-able by a hobbyist today.
 
 Concretely: the **Dolch / Compaq Portable III idiom in O1A blue/grey industrial
 design**, with the "keyboard seals the unit" aesthetic retained. ~8 cm thick: SFF
-board + 8" 4:3 LCD (composite/HDMI in) + 18650 pack, detachable flip-up keyboard.
-Optional rear "backpack" for a physical 5.25" half-height drive.
+board + **8" 1024×768 (4:3) HDMI panel** + 18650 pack, detachable flip-up
+keyboard. Optional rear "backpack" for a physical 5.25" half-height drive.
 
 ## Open questions
 
 - Final video pipeline choice (discrete TTL vs small FPGA helper).
-- LCD panel + input board sourcing for the O1NG.
+- LCD panel **part selection** for the O1NG — the target is a stock 8" 1024×768
+  HDMI panel, which is the easy part; mounting it is the work.
 - Chassis fabrication route (sheet metal vs printed) for the O1NG.
 - Which interposer personalities are *onboard* vs *optional modules*.
 

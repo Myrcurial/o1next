@@ -63,8 +63,8 @@ Downstream of all of it:
   replacement for a real **OCC1 or OCC1A** chassis (the restoration path), and an
   **SFF board**, fully integrated and deliberately *not* a 1:1 swap. **The O1NG is
   the SFF board with the rest of the machine wrapped around it** — a ~8 cm thick
-  portable in O1A blue/grey with an 8" 4:3 LCD and USB-C PD / 18650 power; the C64
-  Ultimate "Crystal" idea applied to an Osborne. `hardware/o1ng/`
+  portable in O1A blue/grey with an 8" 1024×768 HDMI panel and USB-C PD / 18650
+  power; the C64 Ultimate "Crystal" idea applied to an Osborne. `hardware/o1ng/`
 - **Osborne-side software** — MOUNT.COM (#27), FATCOPY (#51), the CoPower-88
   driver (#26) and an updated boot disk (#28): `software/README.md`.
 
