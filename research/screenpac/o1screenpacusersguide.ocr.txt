@@ -418,3 +418,284 @@ format.
 
 ===== PAGE 13 =====
 
+Selecting Screen Size
+
+Screen Size (Item C) on the configuration screen shows the
+system's current format. In the configuration screen above, the
+logical screen size is 128 characters. The physical screen size
+is 52 characters. What do these screen sizes mean?
+
+Logical screen size refers to the number of characters you can
+enter on a line without automatically inserting a carriage
+return. Logical screen size can range from 1 up to a maximum of
+128 characters.
+
+Physical screen size refers to the number of columns actually
+displayed on your screen. With SCREEN-PAC, this will be 52, 80,
+or 104.
+
+While the configuration screen is displayed, press C. You'll be
+given a list of screen options in response:
+
+OSBORNE 1 Configuration Progran Rey 2.6
+
+CURRENT SCREEN SIZE
+128 LOGICAL
+
+52 PHYSICAL
+
+LOBICAL PHYSICAL
+A 2 D0 S2
+B 128 E 80
+
+Beek 2 F 164
+
+Press “A-F” to select screen size
+or RETURN to return to main menu _
+
+Logical screen sizes are listed in the left column. Physical
+screen sizes are listed on the right.
+
+We strongly recommend you use 128 as logical screen size. To
+prevent scrambled screen displays, logical screen size should NOT
+be less than physical screen size.
+
+===== PAGE 14 =====
+
+For physical screen size, SCREEN-PAC gives you a choice of 52,
+80, or 104 columns. The number of columns you choose to display
+can vary with the application. You might find 80 columns
+convenient for many uses, but 104 preferable for worksheets such
+
+as SuperCalc's.
+
+To select screen size:
+
+1. Press the letter corresponding to the number of columns
+you wish to use. Do this for both physical and logical
+
+screen size if necessary.
+
+2. Press RETURN. The Osborne will display your choice on the
+
+configuration screen.
+
+Configuration Notes:
+
+If you're setting up SuperCalc, turn OFF the Auto Horizontal
+
+Scroll (Item D on the configuration screen).
+
+If you're setting up WordStar, turn OFF the Auto Horizontal
+Scroll and set the Arrow keys to "WordStar" (Item F on the
+
+configuration screen).
+
+The remaining settings on the configuration screen (printer,
+baud rate, function keys) generally needn't change from what
+
+you've used previously.
+
+The screen size and configuration need to be recorded on your
+applications diskette. When you've completed your choices from
+the configuration screen, press RETURN. You'll see this message:
+
+OSBORNE 1 Configuration Progran Rev 2.6
+
+Select destination diskette (A or B)
+or press “MM” to save in memory
+or RETURH to exit
+
+Press B to designate the diskette in drive B as Destination.
+press RETURN.
+
+Then
+
+The Osborne writes the new configuration onto the applications
+diskette. The CP/M prompt A> will appear when the process is
+
+complete.
+
+10
+
+
+===== PAGE 15 =====
+
+You've now configured the applications diskette to display the
+number of columns specified.
+
+Reformatting Files
+
+You may wish to reformat your work files to conform to changes in
+screen size. You could, for example, expand 52 column WordStar
+text to 80 columns or 80 column SuperCalec sheets to 104.
+
+Here are formatting techniques for WordStar and SuperCalc. The
+particular formatting routines for other applications programs
+remain applicable with SCREEN-PAC.
+
+WordStar
+
+WordStar uses “0 (control 0) and “B (control B) formatting
+commands. You can quickly reformat a file this way:
+
+1. Use “OR to specify the right margin of the display.
+2. Set Hyphen Help OFF (“*OH).
+3. Position the cursor at the beginning of the text (*QR).
+
+4. Type the command “QQ*B.
+Your file will be reformatted to display up to the right margin.
+
+WordStar has a default value of 66 text columns, the standard
+width of a printed page. This means that files normally display
+in 66 columns after you've saved them on diskette. By using
+WordStar's INSTALL program, you can change the default value to
+automatically get a wider display.
+
+The INSTALL utility is explained in Appendix 1, "Modifying
+WordStar," of the Osborne User's Reference Guide. To set a new
+default value for screen width go through the installation menus
+until you reach the message:
+
+You may modify any location described in the listing
+at the end of the User Manual or the Customization Notes.
+
+The locations to change for screen width are WID: and INITRM:
+
+11
+
+===== PAGE 16 =====
+
+The following table shows hex values to specify at these
+locations and the corresponding changes in WordStar:
+
+WordStar
+Hex Ruler Line Flag Line
+WID: 64 100
+INITRM: 50 80
+SuperCalc
+
+Reformat SuperCale files by using the INSTALLS utility included
+on the SuperCalc diskette. To access this file, enter /Q at the
+SuperCalc command line, then press Y(es). This displays the CP/M
+prompt A>.
+
+When the A> prompt appears, type INSTALLS and press RETURN.
+You'll see this screen in response:
+
+ADdinstalts
+
+SuperCato(te) Install Progran
+Version £.85
+
+This program will let wodif:
+the SuperCale(tm> file'en 0 isk.
+Do you wish tea proceed (Y¥ 1
+
+Press Y to proceed with reformatting. SuperCalc asks the name of
+the file you're modifying. Type SC and press RETURN. Then follow
+the instructions on screen to specify the new screen width.
+
+In SuperCale Version 1.05, you can reformat and save 52-column
+worksheet files for a wider display. This requires you to load
+each file by specifying the range of cells to be displayed.
+
+Enter the load command /L followed by the file name. Then press
+P(art). Specify the upper leftmost cell on your worksheet as the
+beginning of the range, the lower rightmost cell as the end, and
+again the upper leftmost for worksheet positioning on screen.
+
+For example, to display the SuperCalc worksheet, "BALANCE.CAL,"
+in expanded format, enter the instructions:
+
+/L(oad), Balance, P(art), A1:025,A1
+
+12
+
+===== PAGE 17 =====
+
+This will display the sample worksheet from column A through 0
+and row 1 through 25. A block of cells up to 104 columns wide can
+be displayed this way.
+
+ADDITIONAL SCREEN-PAC FEATURES
+
+Besides expanding the Osborne's data display, SCREEN-PAC has
+preset video contrast in 80 and 104 column format. This means you
+don't need to use the contrast control on the front of the
+Osborne.
+
+In these same formats, SCREEN-PAC provides horizontal scrolling
+by 32 column blocks. This allows quick cursor movement across the
+screen when necessary.
+
+SCREEN-PAC also gives you capability to change screen size
+by using the RUN command in an MBASIC program. Switching the
+screen display involves two steps:
+
+1. At BIOS location E1A5H, POKE or store
+O for 52 columns
+
+1 for 104 columns
+
+3 for 80 columns.
+
+2. CALL BIOS location E4E5H.
+
+This procedure uses the BIOS to write to location 2400H in Bank
+2. This location is also flagged. With SCREEN-PAC installed,
+reading 2400H (Bank 2) returns data bit 2 LOW. Without SCREEN-
+PAC, this bit is read HIGH. This feature allows different screen
+responses and menus depending on whether the Osborne is fitted
+with SCREEN-PAC.
+
+13
+
+===== PAGE 18 =====
+
+cut
+
+VIDEO ADAPTOR REQUEST
+
+If you're using SCREEN-PAC with an Osborne 12" video monitor,
+please return this card. Osborne Computer Corporation will mail
+a SCREEN-PAC video adaptor directly to you free of charge.
+
+This adaptor is for use ONLY with the Osborne 12” monitor.
+
+Name
+
+Address
+
+Telephone
+
+Serial Number of your Osborne
+
+
+===== PAGE 19 =====
+
+3Y3H
+dWVLS
+XlddV
+
+a aa = SO es SES
+
+33H FidVIS
+
+gyaoddng [eotuyoey, OVd-NAGUHOS
+
+GySp6 “vO ‘paemkey
+yanop tTyueqd gfsg9z
+uotyeiodi0og aszaqgyndmog eur0gsgo
+
+*NLLV
+
+Ver re
+
+===== PAGE 20 =====
+
+23SBORNE
+
+COMPUTER CORPORATION
+26538 Danti Court, Hayward, California Phone: (415) 887-8080 TWX: (910) 383-2021
+
