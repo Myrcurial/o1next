@@ -51,7 +51,7 @@ Everything else is either done, or is research that can proceed in parallel.
 | 4 | CoPower-88 monitor ROM dump | **Superseded** | The SWP co-processor ROM is **in the repo**: `research/roms/swp-p88.rom`, 8088 code, from Maslin's archive. The board and interposer are common across hosts; only the driver varies | #3, #4, #5, #70 | Confirm the residual doorbell/IRQ semantics *from that ROM* rather than by inference |
 | 5 | Power budget | **Solved** | Decision taken: the interposer gets its own 5 VDC feed near the Z80 socket, sized for Pico 2 W bursts (~300 mA+) | #12 | — |
 | 6 | CoPower-88 protocol | **Partially** | `copower88-protocol.md` (Kaypro↔Zorba driver diff), `copower88-schematics.md` (SWP 611-0003), plus the 8088 ROM | #3, #4, #5, #23 | Doorbell/IRQ semantics; the 611-0003 sheet-4 comparator reference value; consolidate into one authoritative spec |
-| 7 | Drive C IEEE-488 protocol | **Partially** | `drive-c-protocol.md`; `DRIVE_C.IMD` extracted and disassembled (`research/drive_c/disasm/`); the ROM's IEEE-488 implementation gives the PIA programming, the GPIB command bytes and the "always ready" stub behaviour (`o1-rom-source.md`); and the **byte transport is now read from `DCL`** — PIA init, the 128-byte strobed transfer, the operation bytes `88h`/`81h`, port B bit 6 as the device status input. The transport is in `DCL`, **not** `DFD.SPR` (which makes no PIA references at all) | #6, #22, #84 | How `DFD.SPR` reaches the transport; the meaning of the command/address bytes; capacity reporting. The manual settles one thing: real GPIB protocol is *not* supported on the Drive C connector |
+| 7 | Drive C IEEE-488 protocol | **Partially** | `drive-c-protocol.md`; `DRIVE_C.IMD` extracted and disassembled (`research/drive_c/disasm/`); the ROM's IEEE-488 implementation gives the PIA programming, the GPIB command bytes and the "always ready" stub behaviour (`o1-rom-source.md`); and the **byte transport is now read from `DCL`** — PIA init, the 128-byte strobed transfer, the operation bytes `88h`/`81h`, port B bit 6 as the device status input. The transport is in `DCL`, **not** `DFD.SPR` (which makes no PIA references at all); and the **port's own semantics are now documented from the vendor's side** — `o1-ieee488-port.md` (Companion #8): **eight** low-level ROM drivers, **15** devices on the bus (**8** if parallel poll is used), the machine's own address is **0**, and the driver table is the eight 3-byte jumps at **`013F–0156`** | #6, #22, #84 | How `DFD.SPR` reaches the transport; the meaning of the command/address bytes; capacity reporting. The manual settles one thing: real GPIB protocol is *not* supported on the Drive C connector |
 | 8 | RT-60A register map | **Partially** | `rt60a-analysis.md`, reconstructed from the manual | #7, #18 | A read against a real unit — or a re-dump; the bitsavers TD0 is a damaged dump (27 no-id sectors) |
 | 9 | OCC1 hard disk | **Partially** | `occ1-harddisk-analysis.md`; **and the archive drop showed there are two distinct products, not one** (see §B1) | #8 | The controller command sets, the default port, and a re-check of the doc's `0x2A00`/`0x2C01` claim — those are the ACIA and video PIA addresses, so something there is misread |
 | 10 | 6850 ACIA location for the WiFi modem | **Solved** | `o1-memory-io-map.md` §3: `2A00`/`2A01`, UC4 — confirmed independently by the ROM source | #21 | — |
@@ -65,7 +65,7 @@ Everything else is either done, or is research that can proceed in parallel.
 
 ## B. Questions that appeared since the original review
 
-### B1. There are **two** hard-disk products, not one — three storage routes in total
+### B1. Hard-disk products — two in the archive, and seven routes advertised in total
 
 The original gap 9 assumed a single OCC1 hard disk. The archive drop (#71) turned
 up a second, unrelated one. Confirmed from their own strings:
@@ -78,14 +78,61 @@ up a second, unrelated one. Confirmed from their own strings:
 | Controller | its own; `Enter disk controller address (` | Adaptec ACB-4000; `Enter starting port address in hex`, `must be on a 4 port boundary` |
 | Utilities | `BOOTHD`, `LOADBIOS`, `HARDBIOS.HEX`, `MOVCPM10/5/F`, `DISKEDIT`, `DISKTEST`, `RESTORE`, `SAVEFILE` | `MD10.COM`, `MD20.COM`, `HARD.COM`, `HARDBIOS.SPR`, `HARDBDOS.SPR`, `HARDCCP.SPR`, `HD00/HD04BIOS.SPR`, `PREP.COM`, `PORTCHNG.COM`, `DRIVETBL.DAT` |
 
-So the three ways to get more storage than 2 × 182 KB are the **ACT hard disk**,
-the **Media Distributing/Adaptec hard disk**, and **Drive C** (IEEE-488). Both
+So the three routes **represented in the archive** are the **ACT hard disk**, the
+**Media Distributing/Adaptec hard disk**, and **Drive C** (IEEE-488). Both
 hard disks use a *port-relocatable* controller — which matters, because the O1's
 I/O decode is sloppy, so "4 port boundary" is the same two-address-line decode the
 rest of the machine uses.
 
-Drive C is the only one of the three buildable without unobtainable hardware —
-see #84.
+**Four more routes appear only in the magazine archive**, with no software or media
+of ours behind them — recorded because a survey of "what storage existed" is
+incomplete without them, and because none is buildable from what we hold:
+
+- **Corvus hard disks**, reached through a link program — `CLINK2`, built from
+  `CLINK2K2.ASM` and assembled by the owner with `ASM.COM` and `LOAD.COM`. *The
+  Portable Companion* #11 (October 1983), PDF p. 54 = printed p. 52, "**Doubling
+  hard disk memory**" by Bob Gras (reprinted from the OSUG newsletter, Anchorage),
+  is a patch for exactly that program, needed because DD leaves less memory for
+  it (`docs/dd-upgrade-formats.md`). No Corvus software or media held.
+- **Osmosis OSMOS 7**, advertised as "Winchester disks … 5¼, 10½, 15¾ & 21 MByte
+  units - a 42 Megabyte max capacity", $2475–$3650 — on the same page as the
+  OSMOS 5 80-column board, which itself "**includes a Hard Disk interface for
+  future plug-in expansion**" (`docs/o1-upgrade-boards.md`). No media held.
+- **Trantor TSL-5 / TSL-10** — *The Portable Companion* #5 (February/March 1983),
+  PDF p. 28: "unpack your disk, **plug it into the IEEE port**, run a simple 5
+  minute installation procedure", 5 MB $2995 / 10 MB $3395, supplied with BIOS,
+  back-up and retrieve utilities and cable
+  (`research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf`).
+  This is the line `docs/drive-c-protocol.md` records the Drive C vendor as
+  reselling at a discount; the advertisement is what pins its interface to the
+  **IEEE bus**. No media held.
+- **Helix** (Micro Computers of New Orleans) — *The Portable Companion* #5,
+  PDF p. 98, "**Winchesters Now Available For The Osborne 1**", 5/10/15 MB at
+  $2500/$3000/$3500, a "**Z-80 adaptor** card [that] leaves external ports free"
+  and a ribbon cable that "disconnects for portability"
+  (`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`).
+  No media held.
+
+**One of the two archived products now has a name.** The Mega-byte Inc.
+advertisement in *The Portable Companion* #5 (PDF p. 25) sells the **MD-10** —
+10 MB formatted for $2295, "20 and 44 megabyte Winchesters also available" — and
+its footnote reads *"MD-10 is a registered trademark of **Media Distributing**."*
+That is the same Media Distributing whose September-1983 disk sits in
+`research/adaptec/`, and that disk ships `MD10.COM`/`MD20.COM`, matching the 10
+and 20 MB models. So the archive's "Media Distributing / Adaptec" entry **is the
+MD-10**, with an Adaptec ACB-4000 controller inside
+(`docs/occ1-harddisk-analysis.md`). The ad also fixes the *architecture*: the
+MD-10 "does not tie up existing OSBORNE ports" and is "significantly faster than
+other winchester subsystems **which use the IEEE port**" — i.e. it is **not** an
+IEEE-488 device, unlike Trantor, Drive C and the RT-60A. Taken with the ACT
+unit's Z80-socket interposer and Helix's "Z-80 adaptor card", that is a pattern
+worth recording for #84: **several vendors reached the Osborne 1's storage
+through the CPU socket or a port of their own, not through IEEE.**
+
+So the honest count is **seven** advertised storage routes beyond the floppies —
+ACT, Media Distributing/Adaptec (**the MD-10**), Drive C, Corvus, OSMOS 7,
+Trantor TSL-5/TSL-10 and Helix — of which only **Drive C** is buildable from what
+this project holds (#84).
 
 ### B2. Character-generator ROM variants — closed
 
@@ -125,6 +172,7 @@ constrains any 2.0 ROM (#83).
 | Item | Issue | State |
 |---|---|---|
 | Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | Material archived; write-up outstanding |
+| Advent Products' **Osbaud** baud-rate generator (#21) | #21 | The four connection points are decoded from the review + schematic (6850 pins 4/12, 74LS32 and 74LS04 pin 7); the internal crystal/divider topology is **not** known — needs the instruction sheet or a photo. `o1-modem-serial.md` |
 | Archive provenance TODOs (2 items) | #74 | Needs the user's memory |
 | `cpmtools` misreads Kaypro DSDD images | #35 | Low priority — `tools/cpmfs.py` replaces it; the upstream fix is a courtesy |
 | G2 multi-format diskette read/write | #30 | Open design work |

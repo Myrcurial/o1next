@@ -1,0 +1,119 @@
+
+===== PAGE 1 =====
+
+userGroups
+
+Adding a software printer spooler
+
+John Dilday
+
+Editor's note: this tip is written for the advanced and
+experienced Osborne user
+
+My copy of WordStar 2.26 now contains a software printer
+spooler capability. This feature allows smooth and simulta-
+neous editing and printing of WordStar files. Activating it
+requires that the ‘‘printer busy” connection be active and
+a subroutine added. Printer busy is part of a standard
+Centronics type printer connection.
+
+Before activating this feature,-do some simultaneous
+printing and editing by calling “KP during an edit. Note
+that editing stops completely when the printer demands
+control from the processor.
+
+Use INSTALL to complete modifications on a copy of
+your WordStar:
+
+old new
+
+location value value description
+0718 00 FF -HAVSBY busy routine flag
+O71A 00 c3 JMP -unconditional jump
+071B B7 EO to unused space in WS
+071C co 02 user patch areas at 02E0
+02E0 00 cD CALL -call subroutine at
+02E1 00 2D E52D for single density
+02E2 00 E5
+02E3 00 A7 ANA -test for busy = FF
+02E4 00 co RNZ -cond ret if not 00
+02E5 00 3F CMC -comp carry flag to = 0
+02E6 00 cg RET -ret from subroutine
+
+For double density computers, the call address should
+be at E13. This address is at 2D lower address byte and
+the upper address byte is found at location 0002 of your
+system memory. You may look at 00@2 with INSTALL; this
+value must not be changed. The new byte at location Q@2E2
+should be the same as the byte at location 0002 of system
+memory,
+
+This routine assumes the printer status routine at loca-
+tion 2D leaves the accumulator = Qifthe printer is not
+busy. In some versions of CP/M this printer status flag is
+reversed; the byte at location @2F4 may have to be
+changed from C@ to CB.
+
+October 1983
+
+52 THE PORTABLE Companion
+
+—TIETT Mar rine Case Vi wurTuvtar, SS seers
+
+Locations Q7IA and @7IC should be the entry address
+in the WordStar user patch area located at 02E0 to 035C
+of your system. Check this area to locate the beginning
+address of seven consecutive unused bytes. This is the
+address to use Q/IB lower address byte and Q7IC upper
+address byte. The bytes at @/IC and Q7IB will now be
+()2EQ if this is your first patch to the user patch area.
+
+The subroutine was composed by Ted Warn. Inspiration
+and encouragement came from Erwin Winz. Both are
+
+members of R.O.C.C.
+
+Reprinted from the June issue of R.O.C.C. PILE, the news-
+letter of the Raleigh Osborne Computer Club of North
+Carolina.
+
+CESS EER
+
+Doubling hard disk memory
+Bob Gras
+
+If you had a single-density Osborne computer, but now
+have a double-density and are using the Corvus hard disk
+drives, this one is for you.
+
+In the CLINK2K2.ASM file (that is used to produce your
+CLINK2 program to link you to the Corvus drive), there is a
+place where the CLINK2 program needs to know a mem-
+ory offset from CP/M. With the new double density system,
+more memory is required for managing the Osborne
+floppy drives, so this value has to be reset to accommodate
+the double density version of the Osborne. Look for a sec-
+tion in CLINK2K2.ASM that looks like this:
+
+IF ABOVE ;
+7BEGINNING ADDRESS OF CLINK2 *
+FREE EQU (MSIZE*1024) -CLK2SZ
+ENDIF
+IF NOT (ABOVE) ;
+DELTA EQU 500H 3; OFFSET FROM STANDARD CP/M *
+
+When you find this (it is in the first couple of pages), just
+type a 900H in place of the 500H. Save the finished new
+version, then assemble and link the new version. This pro-
+gram will now work with the double density machines.
+
+Not familiar with assembling and linking? So who is?
+You'll need your CP/M system or utility disk with a copy of
+ASM.COM and with a copy of LOAD.COM. Then get your
+Osborne manual and follow the instructions for assembly
+and linking given on pages 253 through 255 in the version
+dated ‘‘Rev: 2/28/82.” If you have a different manual, you
+may have to dig around a bit.
+
+Reprinted from the OSUG newsletter, Anchorage, Alaska.
+Oo

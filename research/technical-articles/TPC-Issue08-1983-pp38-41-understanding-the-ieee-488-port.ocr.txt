@@ -1,0 +1,321 @@
+
+===== PAGE 1 =====
+
+Understanding the
+IEEE-488 port
+
+Scientific interfacing with
+the Osborne 1
+
+Wayne Kogachi
+Shahriar Kianersi
+
+36 THE PORTABLE Companion
+
+July 1983
+
+Editor's note—This is an advanced article intended for
+the engineering and scientific community—or well-
+versed computer hobbyist. If you're looking for infor-
+mation on intelligent control and interaction with any
+IEEE interfaced device (e.g. audio analyzer, digital
+multimeter, quartz thermometer, counteritimer, etc.) this
+article is for you. Also, read Kelly Smith's joystick arti-
+cle, “Interfacing External Devices,” in this issue.
+
+The authors point out that any number of languages
+can be used to contro! the IEEE-488, and not just
+MBASIC as profiled in this article. The principles and
+concepts are the same. —bb
+
+The dramatic growth of computer technology brought
+forth the need for certain standards, some of which
+were in the field of interfaces. Not everybody is an
+electronics engineer who can build an interface, so
+standardization takes the worry out of connecting
+devices to computers.
+
+The IEEE-488 is one of the more widely-used inter-
+faces; it has been published in many languages and is
+used throughout the world. Over 100 manufacturers
+use it as the interface for their products, especially in
+science applications.
+
+The combination of a computer and scientific equip-
+ment can be used for such purposes as long-term
+monitoring, interaction with devices that would other-
+wise not be possible due to fast response times, moni-
+toring more than one device at a time and handling
+
+===== PAGE 2 =====
+
+‘Stephen Osborn
+
+TMM
+
+massive amounts of data, All this can be accomplished
+
+through the IEEE port.
+Table of Talker and Listener
+
+Capabilities of the Osborne IEEE port
+
+Perhaps one of the most valuable features of an
+\EEE-488 port is its ability to serve more than one de-
+vice on the data bus. The IEEE-488 port can call up to D :
+15 different devices at one time on the data bus. (From ' - 2
+a software point of view, the figure is 29 different de- ie
+vices; however, due to practical hardware limitations
+only 15 devices are allowed.) :
+
+Osborne's IEEE-488 port has eight low-level “driv-
+ers," which reside in the ROM and take care of all the
+IEEE-488 interfacing requirements. These routines are
+documented in the User's Guide in the IEEE-488 imple-
+mentation chapter. One may invoke any of the routines
+simply by calling them and passing the proper param- 19
+eters through preassigned registers. One may also y : -
+receive messages through assigned registers.
+
+eecae
+
+1. Control Out
+By loading the C register with the proper code
+you can clear the interface (IFC), and/or set or ; :
+reset the REN line.
+
+Table 1
+2. Status In:
+
+Periodically calling this routine will return a value
+
+July 1983 THE PORTABLE Companion 37
+
+===== PAGE 3 =====
+
+in the A register, acknowledging if a device is
+requesting service.
+
+3. Go To Stand By:
+This will allow other devices on the data bus to
+take contrdl
+
+4. Take Control:
+Placing the right code in the C register will let the
+controller take over the data bus, either synchro-
+nously or asynchronously. The error messages, if
+any, will be returned through the A register.
+
+5. Output Interface Messages:
+The message byte (i.e. the talker or listener ad-
+dress) should be loaded in the C register. Error
+messages, if any, will return through the A
+register.
+
+6. Output Device Messages:
+The data byte (for instance, the code to a volt-
+meter to set it up for particular state) should be
+loaded in the C register. The end-of-message (or
+message string) should be acknowledged by
+placing a code in the B register. Error messages,
+if any, are returned through the A register.
+
+7. Input Device Messages:
+The data byte (for instance, the data that is mea-
+sured by a voltmeter) is returned through the A
+register. The error message, if any, is returned
+through the L register.
+
+8. Input Parallel Poll:
+The devices that are capable of “parallel poll” will
+respond by pulling low a preassigned data line
+so that some kind of code is returned which will
+correspond to a particular device. If this routine is
+used, only eight devices can sit on the data bus
+(one data bit line for each device)
+
+The interface operates at the TTL logic level. After
+configuring the pin connection for the IEEE standard,
+‘one can simply connect the Osborne to any IEEE com-
+patible device. The Osborne's IC chip driver for this
+interface is a Motorola 6821.
+
+The Osborne 1 is capable of all three device defini-
+tions: Talker, Listener and Controller. The way to oper-
+ate the data bus is to announce the Talker first and then
+the Listener. Right after this bus management, the Con-
+troller will let go of the bus and allow the two devices
+that now are assigned to the specific duty to take care
+of the communication (see Table 1 on previous page).
+
+The Controller can announce itself as either the
+
+38 THE PORTABLE Companion
+
+July 1983
+
+Talker or Listener. It is recommended that the process
+of the Controller periodically taking over the bus be
+done “synchronously” rather than “asynchronously.”
+This subject is also covered in the User's Guide.
+
+As mentioned earlier, the routines in the ROM are
+capable of detecting a number of different errors and
+acknowledging them through proper registers. Some
+of these errors are:
+
+‘© Time Out error. A non-fatal error, which simply allows
+a 100 microsecond grace period of time for the de-
+vice to respond. Alternately, you can call the device
+repetitively to allow for slow devices to respond.
+
+© No Device Present error. Either the port is not
+hooked up to any device, or all the devices sitting on
+the data bus are turned off.
+
+© Not taking the data after agreeing to take the data.
+
+Before we go any further, it is worth mentioning that if
+only a printer/plotter is being used on the port there is
+no need to go through these routines. Using the SETUP
+program, make sure that the right protocol is chosen
+(Printers protocols, |EEE-488 compatible) and that the
+IEEE address port matches the device number. The lat-
+ter can be simply accomplished with BIOS 1.4. With
+BIOS 1.3 and earlier versions there is a patch that is
+provided in the Technical Tips section of this issue.
+Double density computers (1.4 BIOS) have a menu-
+driven device address patcher.
+
+MBASIC IEEE Routine
+
+The following example is a routine written in MBASIC
+that communicates with a device on the IEEE port. Part
+of its routine is to poke a small assembly language rou-
+tine high in the RAM. In fact, if you have a BIOS 1.3 or
+earlier version, you should move the CP/M down 1K.
+
+The way these two programs interact with each other
+is as follows: The MBASIC routine decides which one of
+the IEEE drivers it wants and what parameter should be
+passed on through which register. It then puts all that in
+formation in locations that are commonly shared by the
+two routines, so every time that you call the assembly
+language routine, the control is relinquished to the IEEE
+drivers. After performing its duty, control is returned
+back to the MBASIC routine with returned parameters in
+proper variables.
+
+The “Control Codes” should be in capital letters.
+Some manufacturers enforce that; otherwise an error
+message will be returned. One last point: the Osborne 1
+address port is zero, so no other device with that ad-
+dress port can sit on the data bus.
+
+Wayne Kogachi is a software engineer with Osborne
+Computer Corporation. Shahriar Kianersi, also with
+OCC, is a system support specialist. 2
+
+===== PAGE 4 =====
+
+IEEE-488 Interface Program
+
+130 | Por pewo wins aw TEEE-488 COMPATIBLE DEVICE
+550 ‘+ mecrw mann +7
+Saf
+
+537" us sopine “ounsons" cam CONTAIN 2HE MESSAGE (oR
+Eke seugaGe aeine) wiLeu “MISE BE OUTPUT ThrovaH
+
+54H oursmages
+535 Gosue S010
+346 Font 20 10
+Se Bein 2002
+551 Qgevautinporsras)so9\ "nop UP SAWPLE Fon AVERAGING.
+
+B54 goeao/s smnawrtowoen= toe
+559 ourerns=”
+
+p+ of ame maim psccnan +7
+
+2005 POKE CREGY,ASC(*"):CALL IEEE¢(OIN8) ‘TALKER ADDA (OSBORNE ADOR=00)
+
+2o0e Pore EREGKIASE(*C*:eALL TEE
+
+CALL, IEEEDIOINA) | “WAKE UNIVERSAL OMLIS TEN
+EALLIEEEe(oLME) “TALKER ADDR {OE¥ICE AODR-28)
+VIeRLL IEEEG{OIM) "LISTENER ADDN [O51 ADORSOO)
+
+‘ye pROCHDURE INETIALIENTION ROUTINE */
+
+sn960
+
+wporsrns-srmnncs(255," *)
+
+wo rurtrataennton +/
+
+{7 END PORE ASSEMBLY LANGUAGE */
+
+30t0 Lastan(oursoes) =F Le=0 rE RETURN
+Sno oee Entice, asccnscuns oUTSTRG TAMU)
+
+38%” PEREL pees (cow
+Souo |e PuexcaRect|s0-tHEn soso
+Sous + Tu" CADGe" ENS (ASC(RIGHTS (OUPSPRS,LA-18)1)
+
+Sais 4
+
+3aose
+300%
+
+FoGu ovrrur srsine */
+
+PROCEDURE 20 ENPUT FROM TEEP-498 */
+
+INPUT OATA INTO INFUTSORS UNTIL LAST OATA READ
+
+‘CALL sere (10m)
+ap eubeCLiwcn SL hin 5550
+
+4b BEER (anu) +13" Hin S560 ELSE IF PeEK|ARECH)
+furunennss mruTsoRs cing (PEEK {ARECA))
+Preeiuness) Oeora 20mm 5550,
+
+1 RSSENBLY LANGUAGE TITERFACE ND REGISTER SUPPER AREA */
+{Thao iow nvone Above epyn, suis RovTime 15 CALLED BY BASIC
+
+30080 nen ence nan, cx01,6H09, 5H2E, SHOP, 5H78, SHAT, SHCA, EHDA, MED, ABLE, 4800
+
+3000 Sara ente,cnos,cH29;cn05 ame, cH6F,
+
+Sotto gata saavensovaned;cnes;snea,0o,enoo,anoo,awoocenao
+
+else
+
+/* END ASSEMBLY LANGUAGE ONTA */
+
+Lines 30000-30140 contain the assembly language interface
+routine and buffer area in the form of MBASIC data state-
+
+ment:
+
+'s. The source code for this routine is listed below:
+
+PREESPACE: 200
+
+raves t=
+(oRe6, ERG ARE BYTE LOCATIONS WHICH ARE POKED KITH INPUT VALUES
+
+ALL TREE (Cowrnorours)
+
+REGISTER VALUES UPON RETURN TO MBRSIC .
+
+onseon BEGINNING OF 272 BYTES OF UNUSED SPACE
+vou aim seONCRTON 70 8 RES
+
+wor Bsa
+
+Ste’ ane SSAVE RETURN REGISTERS
+
+July 1983 THE PORTABLECompanion = 39
+

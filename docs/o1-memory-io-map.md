@@ -76,6 +76,13 @@ The 64 KB address space is overlaid by **three banks**, selected by the
 | `4000–EFFF` | RAM — CP/M TPA, BDOS/CCP, BIOS live here |
 | `F000–FFFF` | Video RAM low 8 bits (128 cols × 32 rows char data) |
 
+**Page zero.** CP/M owns `0000–00FF` while a program runs, but the *Osborne 1
+User's Guide* "Memory Allocation" chart (p. R-243) marks **`0050H–005BH` — 12
+bytes — as "not used"**, and at least one published program relied on that: the
+date facility in *The Portable Companion* #7 keeps the system date there in both
+binary and ASCII form (`docs/rt60a-analysis.md`). Treat it as documented free
+scratch space — worth remembering for the interposer (#12).
+
 ### Bank 2 — BIOS ROM + memory-mapped I/O ("shadow mode")
 Selected when `ROM MODE*` is active (low). Only `0000–3FFF` is affected;
 `4000–FFFF` still reads bank 1 RAM.
@@ -178,6 +185,22 @@ reproduce a cursor the machine makes outside video RAM, and the block cursor is
 the variant OCC's own engineer preferred. Extract:
 `research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`.
 
+**And it works with the SCREEN-PAC fitted, leaving the board in place.** Hogan's
+version is for a stock machine. A reader's fix, printed in *The Portable
+Companion* #15 (Jan/Feb 1985, letters, PDF p. 32), makes the block cursor work on
+a machine with the **SCREEN-PAC 80** installed — *"and it can be carried out
+without removing the piggy-back board containing the Screen-Pac 80
+electronics"*. What changes is **where** the logic is: the modification is done
+on the *upgrade board's* own chips — **U2 (74HC00)** and **U23 (74HC74)** — not
+the main board's, and the letter warns in capitals that *"THESE PINS ARE NOT THE
+SAME ONES LISTED IN THOM HOGAN'S ARTICLE!"*.
+
+That the SCREEN-PAC carries a 74HC00 and a 74HC74 of its own is useful in itself:
+the cursor logic is **duplicated on the piggy-back board**, which fits the service
+manual's description of the upgrade as an IC-harness board soldered over the main
+logic (`2F00040` §6.12, the source used by `firmware/screenpac-video/`). Extract:
+`research/technical-articles/TPC-Issue15-1985-pp32-block-cursor-with-screenpac.pdf`.
+
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
 
 All onboard peripherals are **memory-mapped**, reached through the bank-2
@@ -211,6 +234,39 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
     than 1200/4800") and pins 3, 7 and 10 lifted. Figure 3 in the article has the
     detail. Extract:
     `research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`.
+- **Pin level, from the schematic** (sheet 7/9 of 9, read at 600–1200 dpi): the
+  ACIA's **RxCLK (pin 3) and TxCLK (pin 4) are strapped together** on the board
+  and driven by **UC3's `QD` (pin 11)**. UC3 is a **74LS161 preset-load
+  counter** — `RCO` (pin 15) is inverted by **UB3 (74LS04)** into `/LD` (pin 9)
+  — so the count length comes from the preset pads rather than being a power of
+  two; that is where the ÷13 of the stock 19.2 kHz clock lives. Pin numbers as
+  drawn: `RXDATA` 2, `RxCLK` 3, `TxCLK` 4, `/RTS` 5, `TXDATA` 6, `/IRQ` 7,
+  `CS2` 8, `/CS1` 9, `CS0` 10, `RS` 11, `R/W` 13, `E` 14, `D7…D0` 15–22,
+  `/DCD` 23, `/CTS` 24 (Vcc/Vss, pins 12/1, are not drawn on the symbol).
+- **The factory's own 9600/2400 modification is documented**, which the archive
+  had only from inside OCC: *Osborne 1 Technical Manual* **Figure 4.4 "Baud Rate
+  Hardware Modification", p. 22** (PDF page 36 — the manual's printed-page
+  offset of **+14** holds here too, see `docs/o1-chargen-graphics.md`). It draws
+  the LS161/LS163 at **C3** with **pin 2** moved between a *"FOR 9600/2400
+  BAUD"* pad and a *"FOR 4800/1200 BAUD"* pad, jumpers **J2** and **J3**,
+  **J1** marked **"DON'T CARE"**, and the caption box
+  `300/1200 NO MOD - J1 IN` / `600/2400 NO MOD - J1 OUT` /
+  `1200/4800 MOD W/O PIN 2 (J1 = X)` / `2400/9600 MOD W/PIN 2 (J1 = X)`,
+  bracketed *"**SPEED SELECTED W/IN 6850**"*. That is the same modification
+  Hogan describes from inside OCC in #13 — the 6850 choosing within each pair
+  (÷64/÷16). It is also the "method shown on page 22 in the Technical Manual"
+  that *The Portable Companion* #8 points a would-be 80-column terminal user at
+  (see `docs/o1-modem-serial.md`).
+- **A fifth route, and a third-party one:** Advent Products' **Osbaud**
+  (1983, $59.95, 16 DIP-switch rates) is soldered to the ACIA's own clock and
+  supply pins and replaces the clock net outright — see
+  `docs/o1-modem-serial.md`.
+- **The ACIA's control-register init byte is in the BIOS at `1FE9H`.** The
+  vendor's own "Programming the serial port" patch (*The Portable Companion* #7,
+  June 1983, PDF pp. 56–57) rewrites `1FE9H`/`1FEAH` to move off the 8-N-1
+  default, with a table of 6850 control codes (`55H` = 8-N-1 @1200). A second
+  handle on the ACIA besides the port pair — see `docs/o1-modem-serial.md`
+  §"Framing".
 - Modem status (DTE): MSB (pin 4), MCB (pin 8), RI (pin 9); BIOS `LISTST`
   at `0E12D` returns `0FFH`/`00H`.
 - **IRQ0** = ACIA interrupt (one of three IRQ sources; see §5).

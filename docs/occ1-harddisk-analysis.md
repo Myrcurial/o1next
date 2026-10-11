@@ -17,7 +17,7 @@ into the Osborne's Z80 socket.
 The archive drop (#71) added a **second, unrelated** Osborne 1 hard-disk product,
 so "the OCC1 hard disk" is a family, not a single thing:
 
-| | ACT (this doc) | Media Distributing / Adaptec |
+| | ACT (this doc) | Media Distributing / Adaptec (**the MD-10**) |
 |---|---|---|
 | Source | `research/harddisk/OCC1_HARDDISK.IMD` | `research/adaptec/*.img` |
 | Vendor string | `AUSTRALIAN COMPUTER & TELECOMMUNICATIONS  COPYRIGHT (C) 1982` | `Copyright (c) September 1983, Media Distributing` |
@@ -25,6 +25,23 @@ so "the OCC1 hard disk" is a family, not a single thing:
 | Controller | its own; prompts `Enter disk controller address (` | Adaptec ACB-4000; prompts `Enter starting port address in hex` / `must be on a 4 port boundary` |
 | BIOS | `HARDBIOS.HEX`, overlaid by `LOADBIOS.COM` | `HARDBIOS.SPR`, `HARDBDOS.SPR`, `HARDCCP.SPR`, `HD00BIOS.SPR`, `HD04BIOS.SPR` |
 | Other utilities | `MOVCPM10/5/F`, `DISKEDIT`, `DISKTEST`, `RESTORE`, `SAVEFILE` | `MD10.COM`, `MD20.COM`, `PREP.COM`, `DRIVETBL.DAT`, `PORTCHNG.COM` |
+
+**The second product is identified: it is the Mega-byte MD-10.** Mega-byte Inc.'s
+advertisement in *The Portable Companion* #5 (February/March 1983, PDF p. 25;
+`research/technical-articles/TPC-Issue05-1983-pp25-mega-byte-md10-hard-disk-ad.pdf`)
+sells the **MD-10** — 10 MB formatted for $2295, "20 and 44 megabyte Winchesters
+also available" — and its footnote reads *"MD-10 is a registered trademark of
+**Media Distributing**."* The disk in `research/adaptec/` is copyright Media
+Distributing (September 1983) and ships `MD10.COM`/`MD20.COM`, matching the 10
+and 20 MB models, so the "Adaptec" disk is **MD-10 software**. Two details from
+the ad bear on the interface question below: the MD-10 "does not tie up existing
+OSBORNE ports" and is "significantly faster than other winchester subsystems
+**which use the IEEE port**" — so it is **not** an IEEE-488 device, consistent
+with a controller that claims its own addresses (hence `PORTCHNG.COM`) rather
+than borrowing the serial/video ports. Its own parts list — "drive controller,
+case, power supply, cabling, **Z-80 interface**" — points at the same class of
+host attachment as the ACT unit: a **Z80-socket or dedicated-port** design, not
+the IEEE bus.
 
 Both are **port-relocatable** controllers: the ACT disk asks for a "disk
 controller address", the Adaptec disk for a "starting port address … on a 4 port

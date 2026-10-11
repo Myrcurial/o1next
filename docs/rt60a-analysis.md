@@ -82,6 +82,34 @@ not running (or CLOCK.COM wasn't executed at last boot).
 UCNSTA JMP → 0DD06H, INCON JMP → 0DD09H, third JMP → 0DD0CH
 (SD: 0E106H/0E109H/0E10CH; original DD values 0E506H/0E509H/0E50CH).
 
+## Prior art: a *software* date facility, before the RT-60A (#18, #28)
+
+Before any clock hardware, the machine's users kept the date in **page zero**.
+"**Dating your computer — a system's date facility**" by **Walter B. Novinger**,
+*The Portable Companion* #7 (June 1983, PDF pp. 50–51 = printed 48–49; extract
+`research/technical-articles/TPC-Issue07-1983-pp50-51-dating-your-computer-date-in-memory.pdf`),
+describes a three-part scheme:
+
+- **`DATE.BAS`** prompts `MMDDYY` at boot, validates month/day/year, and pokes the
+  date into **`0050H–005BH`** — a **12-byte block the *Osborne 1 User's Guide*
+  "Memory Allocation" chart (p. R-243) marks "not used"**. It is written twice
+  over so a reader can take either form: **binary** (`POKE 80,D`, `POKE 81,M`,
+  `POKE 91,Y`) and an **ASCII month name** at `82H`–`8AH`. `DATE.BAS` then `NEW`s
+  itself, leaving BASIC pristine.
+- **`GETDATE`** is a BASIC subroutine that reads the block back (`PEEK(80)` …
+  `PEEK(91)`) — no machine code, no `CALL`/`USR`.
+- **`AUTOST.COM`** is modified (per the User's Guide ch. 8 listing) so boot runs
+  `MBASIC DATE`: `LXI B,10` → `LXI B,13` (command longer than 8 characters, so
+  `length + 2`) and the command string becomes `'MBASIC DATE',0`.
+
+The buffer survives a **warm start (RESET) and diskette swaps** but **not
+power-off** — the same "no hardware, so it dies with the power" limitation the
+RT-60A exists to fix. That is why it is the right prior art for #18: it is what a
+user did *before* buying a clock, and it fixes the **page-zero ABI** that any
+emulated date must not disturb. `0050H–005BH` is also worth remembering as a
+**free 12-byte scratch block** for the interposer (#12) — see
+`docs/o1-memory-io-map.md` §2.
+
 ## Implications for interposer RTC emulation (#21)
 
 - We can emulate the RT-60A faithfully WITHOUT its exact hardware

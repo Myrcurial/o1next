@@ -1,0 +1,149 @@
+
+===== PAGE 1 =====
+
+Programming
+the serial port
+
+Modifying the serial port
+for scientific test devices
+
+June 1983
+
+his article explains how to modify the serial port’s
+data word length, stop bits, and parity setting.
+
+Changing the Osborne 1’s default specification of
+8-bit data word, 1 stop bit and no parity is useful when
+interfacing to certain scientific test devices that have
+limitations in their interfacing options. These steps are
+simple and will take only a few minutes to perform.
+
+The change permanently modifies the operating
+system (BIOS) with a new default value for the serial
+port. When you boot with the modified diskette, the
+modification is loaded.
+
+To begin, you will need a formatted diskette in the B
+drive, and the following CP/M utilities on an otherwise
+blank diskette, with system tracks, in the A drive:
+
+1. DDT.COM
+2. SYSGEN.COM
+3. MOVCPM.COM
+
+Note: This modification is for the ‘1.3’ BIOS. If you have
+a late model Osborne, or have the double density option
+installed, you may have a ‘‘1.4’’ BIOS. See Figure 1 for
+details.
+
+If you have a 1.3 BIOS use MOVCPM 6@ and
+CMP66.COM as indicated below; else, substitute
+MOVCPM 59 * and CPM59.COM in the case of a 1.4
+BIOS.
+
+A>MOVCPM 69 *
+
+CONSTRUCTING 69K CP/M VERS 2.2
+READY FOR “‘SYSGEN” OR
+
+“SAVE 39 CPM69.COM”
+
+A>SAVE 39 CPM6G.COM
+
+A>DDT CPM69.COM
+
+DDT VERS 2.2
+
+NEXT PC
+
+2800 0190
+
+-S1FE9
+
+1FE955 xx (xx is the code you are inserting.
+1FEA 80 . Refer to Figure 1 for a table
+-7C of 6859 control codes.)
+A>SYSGEN
+
+Operating System Generation Program
+OSBORNE COMPUTER SYSTEM ONE
+
+SOURCE drive (A or B) <er> (reads from memory)
+
+DESTINATION (A,B or RETURN to exit) B
+Put DESTINATION diskette in B, then press RETURN
+<er>
+
+DESTINATION (A,B OR RETURN TO EXIT) <er>
+
+The diskette in the B drive is now modified with the
+serial control code you specified.
+
+System Technical Support Group,Osborne Computer
+Corporation r=)
+
+===== PAGE 2 =====
+
+WHICH BIOS DO YOU HAVE?
+
+If you don’t know the answer to that question, do the
+following in order to find out which BIOS you are
+working with.
+
+Boot up your utility system and then:
+
+A>DDT
+
+DDT VERS 2.2
+
+-DA900
+
+0900 C3 $3 E5 (etc)...
+9098 (etc.)
+
+$009 C3 $3 E1 (etc)...
+9008 (etc.)
+
+You should see something like one of the above. If in the
+
+third location following the 490 there is an E5, you
+
+have a 1.3 BIOS; if there is an E1, then you have a 1.4
+
+BIOS.
+
+Figure 1
+
+TABLE OF 6850 CONTROL CODES
+
+data bit parity stop bit baud rate xx Hex
+
+L even a 1200 41
+if odd 2 1200 45
+if even 1 1200 49
+af odd | 1200 4D
+8 none 2 1200 51
+8 none 1 1200 55
+8 even 1 1200 59
+8 odd 1 1200 5D
+data bit parity stop bit baud rate xx Hex
+"¢ even 2. 300 42
+uA odd 2 300 46
+7 even 1 300 4A
+(i odd 1 300 4E
+8 none 2 300 52
++38 none 1 300 56
+8 even 1 300 5A
+8 odd 1 300 5E
+
+The arrows point to the standard default settings. For
+further information on other codes, consult the
+Motorola 6850 specification sheet supplied in the
+Osborne 1 Technical Manual.
+
+Figure 2
+
+“CEREAL INTERFACE
+@avr
+
+June 1983 THE PORTABLE Companion 55

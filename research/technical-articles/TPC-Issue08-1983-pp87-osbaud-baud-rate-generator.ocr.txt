@@ -1,0 +1,178 @@
+
+===== PAGE 1 =====
+
+diskette, and pray. For those who
+want to try their hands at being a
+consultant, here’s what you need to
+know to save your files. Disk
+Doctor will ask you whether you
+want to recover files by sector or by
+group. By making a print-out of
+DDT, and studying it carefully, the
+necessary numbers can be decided.
+(Refer to “Disk Snooping,” in the
+Dec/Jan issue, page 50, for a
+detailed explanation.)
+
+About the only thing Disk
+Doctor doesn’t do is save the file
+you've got hovering in memory
+when you can’t write it to the
+diskette because of a bad sector. So
+far, I don’t know of anything that
+will. (See editor's note.) Following,
+is a brief summary of the program's
+features:
+
+Ward A Assign bad groups to
+Morgue
+
+Ward B_ Transplant sectors or
+groups to recovery
+disk
+
+Ward C Recover damaged disk
+by copying to another
+
+Ward D Recover erased files
+
+Ward E Directory of
+recoverable erased
+files
+
+Exit X Exit to system
+
+That's Disk Doctor. If you need a
+program with all these capabilities,
+it’s well worth the price. If all you
+need is a straightforward recovery
+program, pass it up. You'll save
+some money.
+
+Cheryl Peterson
+
+See “Save Your ASCII” in the
+April/May issue of the Companion
+for do-it-yourself instructions on
+recovering WordStar memory
+contents. There is also a software
+product called IMAGE put out by
+Tanstaafl (6813 Kettering Circle,
+Fair Oaks, CA 95628) that performs
+WordStar memory recall
+automatically. —bb
+
+Osbaud; a Baud Rate
+Generator
+
+With my Osborne 1, I can up and
+down-load files from mainframes at
+high speed, drive a $10,000 high-
+speed band printer at 19200 baud,
+communicate with a 110 baud
+
+ASR33 Teletype machine, and con-
+nect to a Televideo 920C CRT run-
+ning at 9600 baud for certain ex-
+perimental applications (including
+80-column display).
+
+How! There’s no magic involved—
+Isimply installed Advent Products
+$59.95 “Osbaud” baud rate genera-
+tor and instantly had 16 dip switch
+selectable baud rates.
+
+Osbaud is a small auxilliary circuit
+board that is soldered to the main
+logic board in the area behind the
+serial port. The 16 different rates
+are selected via dip switches through
+small slot cut in the venting grill.
+Asmall metallic self-adhesive chart
+fastens to the keyboard and indi-
+cates the various settings.
+
+Installation of Osbaud is not
+difficult but it does require some
+technical competency. The instruc-
+tions and photos that accompany
+Osbaud are excellent and were
+written assuming first-time access
+to Ozzie’s insides. Advent even
+provides the difficult to find .050”
+allen wrench that removes the
+brightness and control knobs—a
+thoughtful touch. You will need a
+Phillips screwdriver, Xacto knife
+(to cut across a circuit trace), and a
+low wattage soldering iron. I sug-
+
+gest having a dealer perform the
+installation if you're unsure what end
+of the soldering iron gets hot.
+
+Osbaud is soldered to pins 4 and
+12 of the 6850 UART, pin 7 of the
+74LS32, and pin 7 of the 74LS04.
+Caution must be exercised here:
+Osbaud’s posts are not mechanically
+connected to the IC leads. An im-
+properly soldered joint may break
+away if the main logic board is
+flexed, or the Osbaud circuit board
+has pressure applied to it.
+
+Osbaud is a carefully designed
+and constructed package. It does not
+hinder any part of the computer's
+electronics and it can be used with
+double density, 80-column display,
+or modem options. Nevertheless,
+please note that installing any
+product that alters the original
+design of the computer voids your
+warranty.
+
+Osbaud is available from:
+
+Advent Products, Inc.
+965 N. Main St
+Orange, CA 92667
+(714) 997-0800
+
+It comes with both blue/gray, black/
+brown case instructions.
+
+Brad Baldwin
+
+Oo
+
+The CRT Connection
+
+Before Osborne’s 80-column SCREEN-PAC was released a popular question
+was, “How do I connect an external CRT as.a remote terminal in order
+to have a 80-column 12” display?” Here’s one way:
+
+© Sct your computer for 9600 baud using Osbaud or the method shown
+on page 22 in the Technical Manual.
+
+© Connect a standard serial cable between the terminal and your computer.
+This cable is all that is required:
+1-
+
+© Change the CRT’s dip switches for:
+1 start bit
+1 stop bit
+8 data bits
+no parity
+full duplex
+© Assign devices with STAT CON: = CRT:
+
+The end result is a 80-column, 9600 baud refreshed, block cursor screen.
+
+Note that these procedures are untested with terminals other than
+Televideo.
+
+duly 1983
+

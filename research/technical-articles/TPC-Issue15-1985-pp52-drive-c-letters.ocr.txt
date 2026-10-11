@@ -1,0 +1,185 @@
+
+===== PAGE 1 =====
+
+Letters continued from page 30
+
+I’ve been using my 384K unit for one
+month and it’s turned my single density
+Osborne 1 into a totally new machine.
+
+Look here, it takes six seconds to go
+from the editing no file menu in
+WordStar to the dot prompt in dBASE
+II. Before I had Drive C: I had to boot up
+a new disk every time I wanted to edit a
+program. That was minutes waiting
+while the Osborne booted up different
+files. Now all I have to do is boot
+WordStar and then test the program
+with the R option. You run the program
+and then exit directly to WordStar. To
+step back and forth is now easy instead
+of a hassle.
+
+Now all I have to do is boot the disks
+and run with it. I don’t have to be con-
+stantly making disk accesses. I had to
+shell out $250 to Xerox for an exchange
+disk drive two months ago. Now my disk
+drives get 90% less wear and I do 90%
+more work.
+
+Martin Kilgore
+South Pasadena, CA
+
+Krantz Responds:
+Drive C Review Stands
+
+Your revived Portable Companion is
+certainly a source of surprises, at least to
+me. Your April/May issue reprinted my
+review of Drive C:, which I had nearly
+forgotten about. Your June/July issue’s
+letters contained three attacks on the re-
+view.
+
+One of the advantages to writing fora
+user group newsletter is that one knows
+the degree to which the reader will
+“read between the lines.” In the case of
+TCOG, the readers take the material at
+face value, which is the way I write.
+
+I find it interesting that both of the
+readers who responded are doing pre-
+cisely what I said the unit would be good
+at — disk intensive operations for large
+parts of the day. This is ‘grossly inaccu-
+rate’?
+
+We have passed the Drive C: around
+among many of the TCOG members,
+and it’s not very hard to persuade an
+average user to give up the unit for the
+next person. I personally lost interest
+when Drive C: passed out Q&A flyers
+
+comparing Drive C: to CO-POWER-88.
+From that flyer you’d have thought the
+CO-POWER was the biggest rip-off of all
+time. It would have been just as useful
+for Zilog to compare the Z-80 chip to
+WordStar, or for a lamp manufacturer to
+beat up on a microwave oven because
+the oven light was hard to use as a read-
+ing lamp. Personally, I won’t buy items
+marketed in that fashion.
+
+I still stand by what I wrote — Drive
+C: is not a good buy for the average user.
+
+Donald G. Krantz
+Minneapolis, MN
+
+Viva Archaic!
+
+While I am relatively new to the use of
+personal computers in business (two
+years this December), I fully agree with
+your editorial regarding our ‘‘archaic”’
+operating system. It will be a long time
+before any of the 16-bit systems achieve
+the level of support that CP/M enjoys.
+And if IBM proceeds with their plan for a
+proprietary operating system, such sup-
+port may never materialize. OCC’s
+reentry into the market is a significant
+achievement, and the Vixen is an im-
+pressive, affordable CP/M-based PC. |
+truly hope that our fickle marketplace
+gives it the attention that it deserves.
+
+David W. Aukamp
+Dunedin, FL
+
+Faster? Better?
+
+Just received the Nov/Dec issue of
+The Portable Companion and was inter-
+ested in the article on speeding up
+WordStar by William D Esteb (‘‘Faster
+Than a Shooting WordStar’’, p. 64).
+
+Iam sick of waiting for the garbage to
+parade past, like most WS users, so I
+jumped at the chance to do something
+about it. The change was simple to im-
+plement and the article easy to under-
+stand, and it took less than a minute to
+make the changes.
+
+Unfortunately, after a successful first
+bootup, the screen went bonkers when |
+copied some files to another disk and
+
+50 = ©February 1985 THE PORTABLE Companion #15 (Vol. 4.1)
+
+tried to re-enter WordStar. I played
+around with a few things, trying to un-
+derstand what was happening, and
+came to the conclusion that if NSWEEP
+is used to move the files, something hap-
+pens to the WS.COM file and it can’t be
+used again. I don’t know enough about
+what’s happening to do a fix, but I like
+the changed WordStar and can’t do with-
+out NSWEEP. What do I do now? Mr.
+Esteb, is there a solution to this?
+
+Ron Brown
+Delhi, NY
+
+I was somewhat dismayed with
+“Faster than a Shooting WordStar”’ by
+William D Esteb (Nov/Dec issue, p. 64).
+I think that it was well written for a nov-
+ice such as me; it went step by step and
+was beautifully illustrated with expected
+displays. He forgot at least one thing
+though, and that was an “impact state-
+ment.’’ He failed to tell me what I would
+have to give up if I changed all the sug-
+gested memory addresses to 01.
+
+The initial messages whizzed by —
+good, that’s what I wanted. But I found
+that WordStar no longer waited for my
+second command character when I was
+in the Help Level 2. If I wanted “QC to go
+to the end of a file, WordStar would im-
+mediately display the help menu before I
+moved my finger to the C after typing the
+“0.
+I find that using the Help Level 2 is
+more desirable to me than saving time at
+the beginning of a writing session. So, I
+needed to either return all the addresses
+to the original values or change one of
+the addresses. But, I had no idea which
+memory address affected the Help Lev-
+el 2. After experimenting, I found that
+memory address 02D1H (WordStar
+2.26) and memory address 02B1H
+(WordStar 3.30) were ones I was after. I
+returned them to their original state and
+left the other addresses as 01.
+
+Carl T. Webster
+Des Moines, IA
+
+MBASIC to WordStar
+
+The article “Print By Numbers”’ in
+
+Continued on page 56
+

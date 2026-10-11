@@ -1,0 +1,751 @@
+
+===== PAGE 1 =====
+
+Review of New
+Drive C: Loader
+& Archive Programs
+
+Larry Walker
+
+D-«: C: came on the market in
+the summer of 1983 as the an-
+
+swer to the prayer of some of us who
+were frustrated by the slowness of the
+Osborne 1 in doing searches in long files,
+whether in WordStar, dBASE _ II,
+SuperCalc or Personal Pearl. Here was
+a product, we were told, that would look
+like a disk drive to the Osborne 1 but
+would act with the speed of random ac-
+cess memory (RAM).
+
+Drive C: was available in two sizes,
+192K and 384K. I bought the 384K ver-
+sion because I wanted to load WordStar
+and Spellguard (with its 50,000 word
+dictionary) into the Drive C: and still
+have enough room for writing and
+editing long documents. (WordStar
+works best when the maximum docu-
+ment length is no more than one third of
+the space remaining on the working
+disk.)
+
+I received my unit in early September
+1983 and easily got it up and running. It
+came with a single floppy disk, which in-
+cluded loading and archiving programs,
+as well as a 17-page User’s Manual.
+
+Much has been written in user group
+newsletters (some of which has been re-
+printed in the Portable Companion —
+see April/May 1984 issue, review by
+Don Kranz, and commenting letters in
+July 1984 issue) about the inadequacies
+of the software and the manual. The
+
+folks at Drive C: have heard their cus-
+tomers and developed new programs to
+load the Drive C: and archive and re-
+trieve its contents, and written a sub-
+stantial user’s manual to assist them in
+making the most of their hardware.
+
+The new software/manual package
+is being furnished without additional
+charge to customers who bought their
+Drive C: units after December 31, 1983.
+The new package is also available for
+$39.00 to customers who bought before
+that date.
+
+This review will be concerned only
+with the new software and manual and
+whether they meet their stated goal of
+making Drive C: easy to use.
+
+For readers who neither own nor
+have access to a Drive C: unit, a brief de-
+scription is in order. On the Osborne 1,
+the unit is mounted in the pocket below
+the right disk drive. It has two cables
+emerging from its front panel: the longer
+one attaches to the IEEE 488 connector
+on the left side of the Osborne 1, the
+shorter to the External Video port imme-
+diately below the Drive C:. Both of these
+connectors on the Osborne 1 are dupli-
+cated on the panel of the Drive C: so you
+can connect your Centronics printer ca-
+ble and shorting plug to it rather than the
+Osborne 1.
+
+The Drive C: has its own external vid-
+eo jack, so no adapter is needed. In op-
+eration, once the Drive C: is loaded (i.e.,
+activated with the loader software), it
+acts precisely like a third disk drive with
+the following exceptions: it has no mov-
+ing parts and thus makes no noise; it
+works much faster; its memory is vola-
+tile, i.e., its contents are lost when power
+is removed; files to be worked on and
+programs to be used by Drive C: must be
+
+© Nov/Dec 1984 THE PORTABLE Companion #14 (Vol. 3.3)
+
+copied into it before it can do any work;
+you cannot use COPY.COM to copy a
+disk into Drive C:; when work has been
+completed, it may be saved to floppy
+disk for permanent storage.
+
+A number of programs are included
+in the supplied software. I will quickly
+summarize these now but explore them
+further in connection with the review of
+the manual.
+
+DCL.COM is the Loader program
+that makes the Drive C: unit accessible.
+It also allows activation of the print buff-
+er feature. When the buffer is activated,
+DCL copies DCU.COM, a utility pro-
+gram that controls the use of the buffer,
+into Drive C:. DCL _ replaces
+DRIVEC.COM, the former Loader.
+
+DCA.COM is the Archive-Retrieve
+program that allows you to save all or
+any portion of the files contained in the
+Drive C: unit onto one or more disks and
+rapidly retrieve them at a later time.
+This replaces both DCARCH.COM and
+DCRET.COM.
+
+NOTE:
+
+The original Archiver was called
+DCARCH.BAS and required the user to
+load MBASIC before use. This is the ver-
+sion | received; it was very slow. It was
+replaced after a few months with
+DCARCH.COM, a compiled version of
+the former program that was a little
+faster but contained bugs that arose
+when it was called upon to close files.
+Thus, some owners stopped using it
+altogether.
+
+DCQ.COM, DCQINS.COM,
+DCQ.DAT and DCQAUT.COM consti-
+tute the QuickPac package of programs.
+DCQ.COM is the quick-load program
+that allows you to store a series of com-
+mands in SUBMIT fashion to load Drive
+C:, name it, copy the contents of a disk
+(or disks) into it, select a print buffer op-
+tion, and run a program at the end of the
+process.
+
+The options chosen for DCQ to run
+are selected by running DCQINS, a
+menu-driven Install program, which
+
+44
+
+===== PAGE 2 =====
+
+userGroups
+
+saves your choices to disk in the form of
+an ASCII file called DCQ.DAT. (An ini-
+tial version of this file is included to get
+you started. Run the Install program to
+change any of the options to suit
+yourself.)
+
+Starting up is made automatic by
+changing the name of the supplied
+DCQAUT to AUTOST.COM. A substi-
+tute console command processor (CCP),
+DFD.SPR is designed to make Drive C:
+work better and is automatically loaded.
+Finally a print test file, PRN.TST, is in-
+cluded.
+
+The manual runs almost 150 pages,
+including index, and explains the oper-
+ation of each of these programs and
+teaches you how to use them in an inte-
+gral tutorial section.
+
+Features
+
+The first chapter of the manual pre-
+views its contents and sets forth the sym-
+bols used throughout. For example, it
+tries to avoid the confusion that is bound
+to arise between the name of the unit
+and the logical name of the drive that has
+been assigned the name ‘“‘C”’ by calling
+the former ‘‘Drive C” and the latter
+‘drive C:”. In reading the manual and
+especially in working through the tutori-
+al, great care should be taken to observe
+this distinction.
+
+The chapter closes with a brief de-
+scription of the features of the Drive C:
+system, which include: higher speed;
+greater storage capacity; larger maxi-
+mum file size; ability to designate either
+of the floppy disk drives or the Drive C:
+unit as drive A (and to assign ‘‘B” or ““C”’
+to either of the other two); ability to save
+the entire contents of the Drive C: unit
+onto one or more disks and retrieve
+them quickly from the disk(s) through its
+Archive-Retrieve program; a print buffer
+capability that uses either a fixed or vari-
+able portion of the Drive C: unit’s mem-
+ory; an automatic rapid-loading system
+known as ‘“‘QuickPac’’; and the ability to
+use the Drive C: as a cache buffer/print
+buffer with a Trantor hard disk, which
+
+42
+
+may be purchased through Drive C: at a
+discounted price. (I didn’t have a
+Trantor unit available to me so I was un-
+able to review this feature.)
+
+Getting Started
+
+The second chapter presents detailed
+instructions for mechanical installation
+of the Drive C: unit in your Osborne 1
+and proper hookup of cables as well as
+trouble-shooting procedures to follow in
+case the installation does not work as it
+was supposed to.
+
+It is very important that these instruc-
+tions be followed to the letter (although
+they are not at all difficult to follow). You
+are then instructed to prepare a working
+copy of the Drive C: software disk (the
+‘user disk’’) and to place the CP/M sys-
+tem tracks on it through the SYSGEN
+program.
+
+Next comes the printer installation
+section of the chapter. Some users have
+had trouble in the past that was trace-
+able to either printer cables that did not
+meet OCC’s specifications or printers
+such as my Daisywriter 2000 that look
+“funny” to the Drive C: unit. This sec-
+tion allows you to determine whether
+your cable is properly wired and ex-
+plains how to modify it if it is not. The
+“fix” for using the Daisywriter is either
+to have the cable disconnected or to
+have the printer turned ON whenever
+the Drive C: is in use. (If the printer is
+connected but OFF, the Loader will not
+work and the Osborne 1 will crash.)
+
+At the end of the installation proce-
+dures, PRN.TST is sent to the printer; it
+will print a proper test pattern when
+printer installation is proper. I believe
+that many cries for help will be averted if
+the user carefully follows this chapter,
+step by step.
+
+Methods of Use
+The third chapter briefly tells how to
+
+use the loader software in QuickPac
+and/or manual modes to best suit your
+
+needs. This chapter will only be mean-
+ingful to those already familiar with the
+use of the Drive C:. Others would be bet-
+ter advised to read it after the sixth
+chapter.
+
+CP/M Tutorial
+
+The fourth chapter is devoted to a
+short tutorial on some of the simple
+CP/M commands and error messages.
+This is directed at users who have no
+working knowledge of CP/M’s PIP,
+XDIR, REN, and ERA commands, be-
+cause these commands are used heavily
+in the following chapters.
+
+Many users will be able to skip this,
+but if you are a novice you would be well
+advised to take the few minutes required
+to work your way through this chapter.
+
+Drive C: Tutorial
+
+We finally get to the meat of the man-
+ual in the fifth and sixth chapters, which
+take the user, step by step, through all of
+Drive C:’s features. In the course of this
+tutorial you prepare a blank floppy
+“demo disk” and, in conjunction with
+the ‘‘user disk’’ you prepared in chapter
+two, learn to use the various CP/M com-
+mands and the Drive C: software to: in-
+stall Drive C: and give it logical name A,
+B or C; move files into and out of the
+Drive C: unit (WordStar is used for dem-
+onstration purposes); restart use of the
+Drive C: unit after pressing the reset but-
+ton (which does not destroy the contents
+of the unit; only turning off the computer
+does that); erase all files contained in the
+unit (by using the DCU E command); and
+use the print buffer and observe it in ac-
+tion (the buffer allows you to use the
+computer while the buffer drives the
+printer).
+
+Chapter 5 is a well-presented walk-
+through of all of these features. It is a far
+cry from the three pages of the original
+manual devoted to the subject matter
+(although the original software did not
+provide the user with print buffer capa-
+
+© Nov/Dec 1984 THE PORTABLE Companion #14 (Vol. 3.3)
+
+
+===== PAGE 3 =====
+
+userGroups
+
+bility, which constitutes half of the con-
+tent of this chapter).
+
+The new software is much easier to
+use than the prior version. Where, for
+example, you had to type DRIVEC A: C: 5
+to activate Drive C: and name it logical A
+and the left floppy logical C, you now
+have only to type DCL A>.
+
+Also, you can now rename the Drive
+C: unit at any time by typing the com-
+mand DCN x> at the CP/M prompt,
+where x is the new logical name of the
+Drive C: unit. (The DCN.COM file is
+automatically generated and loaded into
+Drive C: when the loader program is
+run.)
+
+The print buffer software is also load-
+ed at the time the loader program is run.
+Using the above example, if DCL A is fol-
+lowed by any of the numbers, 16, 32, 48,
+64, 80, 96, 112, or 128 in the forrn DCL A
+16 5, 16K (or whatever K) of the Drive
+
+C:’s memory is set aside as a print buffer
+and is unavailable as a program
+processer. Choosing the letter P instead
+of one of those numbers makes available
+for print buffer service all otherwise un-
+used memory (the dynamic buffer op-
+tion), in which case, dumping the
+contents of the buffer into the printer
+automatically releases this memory
+space for program processing. Any oth-
+er number or letter will be ignored and
+no buffer will be installed.
+
+Finally, the buffer utility program
+(DCU.COM) is loaded into the Drive C:
+unit whenever the print buffer is in-
+stalled. When DCU 5 is typed, this pro-
+gram presents a menu offering a number
+of options for controlling the buffer: you
+can stop and restart the buffer-to-printer
+dump, clear the buffer, determine the
+space available for the dynamic buffer,
+or even cause the files in the Drive C: to
+
+be compressed to make greater space
+available for the dynamic buffer.
+
+It should be noted that none of these
+controls are likely to be available if you
+already have a buffer (outboard or built
+into the printer) between your Osborne 1
+and your printer, unless your file is larger
+than the buffer, because the Drive C: will
+probably dump its contents into the buff-
+er faster than you can move to give it a
+command. You might just want to sell
+your buffer; it would reduce the cost of
+your Drive C:.
+
+QuickPac Tutorial
+
+This constitutes the first part of the
+sixth chapter. As mentioned earlier, the
+QuickPac package of programs is de-
+signed to allow the user to start the
+Loader automatically and copy the de-
+
+O
+
+SBORNE
+
+TM
+
+SALES AND SERVICE
+
+MISSION PEAK SYSTEMS,INCis a fully Authorized
+Dealer for Osborne Computer Corporation, but
+that is only the begining of our story. Mission Peak
+Systems, Inc. has been repairing Osborne products
+at a reasonable price with a speedy turn around for
+over three years! That's right, Mission Peak
+Systems, Inc. is staffed completely with ex-
+Osborne Field Service employees who have been
+repairing and servicing Osborne’s for three years.
+The employees of Mission Peak Systems know
+more about Osbornes and Osborne related pro-
+ducts than anyone in the world! This is not the end
+of our story. We have established a network of
+Osborne dealers and service depots nationwide
+
+that will repair your Osborne, under warranty if
+purchased from Mission Peak, so you can travel
+with out fear of a breakdown.
+
+Besides service and repair we offer:
+
+@ Osborne 1 and Executive computer, new and used, with
+a 90-day warranty
+
+@ Upgrades, (80 column, double density, hard disks, ram
+disks, etc.)
+
+@ Accessories, (cables, modems, software, etc.)
+
+Extended warranties (90 day and 12 months; subject to
+prior inspection)
+
+OUR STORY IS NEVER ENDING!
+
+MISSION PE/\K SYSTEMS
+
+3514 Arden Road, Hayward, California 94545 (415) 887-0756
+
+© Nov/Dec 1984 THE PORTABLE Companion #14 (Vol. 3.3)
+
+43
+
+===== PAGE 4 =====
+
+yserGroups
+
+sired files into the Drive C: unit as quick-
+ly as possible. There are several ways of
+doing this, two of them are faster and
+more automatic than the others.
+
+When running the Install program
+you are first asked if you want to copy
+any disks to Drive C:. If you answer Y,
+you are given the option of copying all
+the files from the left, right or both flop-
+py drives to Drive C:. This copying pro-
+cedure uses the PIP command, which is
+a relatively slow file-copying program.
+
+If you answer N to the copy question,
+you can instead automatically retrieve
+previously archived sets of files from one
+or two disks. This is done by utilizing the
+feature that allows you, at the end of the
+Install procedure, to designate a pro-
+gram to be run. If you designate DCAR B 5
+as the desired program, QuickPac will
+run the Archive-Retrieve program in the
+Retrieve mode and look to drive B: (the
+right floppy drive) for the archived
+disk(s). (The above assumes you have
+chosen logical drive A: as the name of
+the Drive C: unit. The DCA command
+would differ if another name were
+chosen.)
+
+The retrieve program is very fast,
+copying WSMSGS.OVR, a 34K file, to
+Drive C: in just 10 seconds. Compare
+that to PIP, which takes 17 seconds. My
+set of WordStar/Spellguard related files
+totaling 272K loads in 115 seconds. Sin-
+gle density owners will find that the pro-
+cess would take a little longer due to the
+need to change disks twice.
+
+As stated earlier, the Install program
+asks you a number of questions besides
+those relating to copying files and run-
+ning programs. For example, it asks you
+what logical name you want to give to
+Drive C:; it asks whether you want to in-
+stall the print buffer and if so what size;
+and it asks on which drive you want to
+store the DCQ.DAT file.
+
+The only question asked by Install
+that might give trouble is the name of the
+drive on which you want to store the file
+DCQ.DAT. Remember, this is the file
+which stores your answers to all the
+questions asked by the Install program.
+The drive you choose should be the one
+
+44
+
+with the Drive C: user’s disk, as it is then
+named (at the time you are running the
+Install program). If you are running the
+Install program without having first load-
+ed Drive C:, the left floppy is still drive
+A: and your answer should be A.
+
+On the other hand, if you have al-
+ready loaded Drive C: and are running
+the Install program to modify your load
+routine, your user disk is probably not on
+drive A: anymore. (This assumes that
+you have named Drive C: something oth-
+er than C.)
+
+If you give the wrong answer,
+QuickPac will look to the wrong disk for
+the DCQ.DAT file. If it finds no such file
+on that disk, it will give you the cryptic
+error message DCQ.DAT?. If it finds a file of
+that name on the wrong disk, it will
+doubtless be the wrong version of this
+file and QuickPac will not do the things
+you want it to. This error can be a pain to
+track down, but the manual provides
+trouble-shooting procedures.
+
+Sometimes when you are working
+with Drive C: you will need to use your
+Osborne 1 for another task. As men-
+tioned earlier, you can push the reset
+button without losing Drive C:’s con-
+tents. (For safety’s sake, remember to
+save and back up your work before
+pushing the button.) When you want to
+return to your original project, it is a sim-
+ple matter to insert your user disk and
+start QuickPac again. If you have been
+using the copy option, the Loader will
+not try to copy files that are already
+contained in Drive C:.
+
+On the other hand, if you have chosen
+to run DCA to retrieve archived files as
+part of your QuickPac routine, the DCA
+program will insist on retrieving your
+files again. A good way to avoid this is to
+have another ‘“‘continue’”’ user’s disk,
+which, instead of running DCARB > at the
+end of the quick-load procedure, runs,
+for example, a program like XDIR.
+
+Archive Tutorial
+
+The rest of the sixth chapter is devot-
+ed almost entirely to the archiving to and
+
+the retrieving from disk of files stored in
+Drive C:. The tutorial demonstrates
+three procedures for saving files to flop-
+py disk: using the ““cOpy’’ command
+from the WordStar no file menu (similar
+saving procedures are available in the
+other applications programs, such as
+Supercalc and dBase II); using PIP, com-
+plete with CP/M “wildcard”
+designators; and using DCA.COM.
+
+When I am working in WordStar and
+periodically save my work with a Con-
+trol-KD command, I also back it up to flop-
+py disk using the ‘“cOpy”’ command. At
+other times I find the convenience of PIP
+and its wildcard capabilities to be
+preferable.
+
+The Archive program is best when
+the same group of files will be used again
+and again, because I don’t have to copy
+anything to disk except files that have
+been changed permanently. (Incidental-
+ly, much of the pain of disk-changing with
+Personal Pearl can be avoided by
+archiving a set of disks containing all the
+programs required to add or edit data,
+produce reports, and sort the data, to-
+taling 256K. Using Drive C: with Pearl
+speeds up the sorting and report pro-
+duction process substantially.)
+
+Convenience of storage using the Ar-
+chive program is enhanced by the menu,
+which allows you quickly to select (and
+unselect) files to store, display a directo-
+ry of all files in Drive C:, and list the files
+already selected for storage.
+
+The program also has built-in safety
+features to prevent saving files onto
+disks that are not blank by warning you
+of this fact and displaying a directory of
+the files on the disk in question. It then
+asks you twice whether you really want
+to erase all those files before starting to
+store files to that disk.
+
+When archiving, all the files are
+stored contiguously as one file on the
+disk. These files are only accessible
+through the Retrieve program. If you
+look at a directory of the disk it will show
+filename.AR1 only. (You assign the file-
+name by answering the appropriate
+question on the Archive menu.) If you
+are loading files that take up more than
+
+© Nov/Dec 1984 THE PORTABLE Companion #14 (Vol. 3.3)
+
+===== PAGE 5 =====
+
+yserGroups
+
+one disk of space, the program instructs
+you when to change disks, and it assigns
+the second disk the name filename. AR2.
+
+I am told by Dave Price, the CEO of
+Drive C:, that the speed of the retrieval
+process already commented on is direct-
+ly attributable to the method of data
+storage, but he didn’t get more specific
+than that; and it’s just as well consider-
+ing my lack of technical knowledge of
+computers.
+
+From the above, it may be seen that
+the Archive-Retrieve program is easy to
+use and an efficient method of storing
+files to disk. In my view it is one of the
+best features of the new software. It
+stands head and shoulders above the for-
+mer software.
+
+BackPac
+
+The folks at Drive C: have developed
+
+a battery pack that installs within the
+keyboard enclosure and keeps the mem-
+ory of the Drive C: unit active for 8-10
+hours after the power goes off, deliber-
+ately or through power failure. I am told
+that the manual for this unit is being writ-
+ten and the product will not be released
+until it is completed. Target price is
+around $150. I hope to review this prod-
+uct when it is available.
+
+Conclusion °
+
+The new software greatly enhances
+the use of an already fine piece of hard-
+ware. It should enable even the tyro to
+make very good use of the Drive C:
+RAM-disk. Its developers are to be con-
+gratulated. Also, it is important to note
+that the people at Drive C: are truly
+dedicated to making the Osborne 1 and
+Osborne Executive computers more
+
+valuable to their owners. The support
+they give to their customers is, in my ex-
+perience, unprecedented. In fact, but for
+this high level of support, the new
+software /manual might have been avail-
+able weeks if not months earlier. Drive
+C: is available from Drive C:, 1690 65th
+Street, Emeryville, CA 94608.
+5 =)
+Larry Walker is a member of East
+Bay FOG. This article was reprinted
+from FOGHORN (First Osborne Group,
+Daly City, CA), 9/84.
+
+_ Commx-Pac:
+A Smart Terminal
+Program for Osborne
+and CP/M Computers
+
+Alan R. Bechtold
+Continued on page 62
+
+visa, Aa
+en
+
+=
+
+(415)
+724-3868
+
+ATTENTION:
+EXECUTIVE OWNERS
+
+ARE YOU SUFFERING FROM DISKETTE OVERBITE?
+ARE YOU BESIEGED BY CHRONIC LACK OF DISK SPACE?
+HAS LACK OF ABILITY TO CHANGE OR ADD A FIELD TO YOUR dBASE
+FILE GIVEN YOU A NERVOUS SYSTEM CRASH?
+
+TRY A LITTLE PREVENTIVE MEDICINE:
+
+LET US UPGRADE YOUR SYSTEM TO
+DOUBLE SIDED DRIVES —
+
+ONLY
+$595
+
+* 400K PER DISKETTE INCLUDES
+* SSDD COMPATIBLE * RETURN SHIPMENT
+* % ACCESS TIME * SOFTWARE
+
+* BY APPOINTMENT uture ystems * 9 MONTH WARRANTY
+
+SSBORNE APPROVED UPGRADE
+
+OSBORNE IS A TRADEMARK OF OSBORNE COMPUTER CORPORATION
+
+© Nov/Dec 1984 THE PORTABLE Companion #14 (Vol. 3.3) 45

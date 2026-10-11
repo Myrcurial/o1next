@@ -1,0 +1,171 @@
+
+===== PAGE 1 =====
+
+system disk or the ones currently in use in memory.
+
+When the settings appear on the screen, select the
+programmable function keys by typing E. Then, for each func-
+tion key number from zero to nine, type the number and then
+the definition shown below:
+
+0:“0R52 5 (Set the right margin at 52 columns.)
+“0H (Turn off the hyphen help.)
+
+When you are finished defining these function keys, press
+Return to go back to the settings menu, then Return again to go
+to the save menu. Insert the WordStar disk in the B: drive, and
+type B to save the modified SETUP configuration to the B:
+drive.
+
+That’s it! Now your WordStar disk can be used by novices
+following the instructions presented above. I hope this article
+helps you or your trainees become more productive with
+WordStar. Oo
+
+Diane Paige Thompson, Ph.D., is a professor at the North-
+ern Virginia Community College.
+
+“JHO (Turn the Help level to off.)
+
+“0J (Turn off the right margin justification.)
+4:°KB (Start a block of text to be moved.)
+2:°KK (End a block of text to be moved.)
+3:AKV (Move the block of text.)
+4:4B (Reform a paragraph.)
+
+5: KD (Exit and save text.)
+6:02 (Read ahead.)
+
+7:A- (Delete to left of cursor.)
+8:°6 (Delete at cursor.)
+
+9:4W (Read back.)
+
+Letters continued from page 26
+
+Metal Messages
+From The Oracle
+
+We appreciate the favorable and gen-
+erally accurate coverage of our bulletin
+board system in the June/July 1984 is-
+sue of The Portable Companion. |
+would, however, like to make a few cor-
+rections.
+
+First, Tim Gary is the sole author of
+the bulletin board system, although he
+and I are joint authors of the accompany-
+ing documentation.
+
+Secondly, the name of the product is
+now Metal Message System, and that
+name is a trademark of our company,
+Delphi Data Systems.
+
+Thank you again for the review and
+for your fine publication.
+
+Byron McKay
+Mountain View, CA
+
+Reverse Video &
+Block Cursor Fix
+
+Many thanks for bringing The Porta-
+ble Companion back to life and provid-
+ing us with excellent information. My
+son, James H. Lovell, and I were delight-
+ed with Thom Hogan’s [article about
+having a] block cursor, but a bit disap-
+pointed to find it only functioned on 52
+
+columns (June/July 1984 issue, p. 24).
+
+I noticed letters from John A. Hansen
+and Jerry Boyce in the November issue,
+which I just received, indicating interest
+in getting help on the subject.
+
+Never fear. James H. Lovell to the
+rescue!
+
+He has found a “‘fix’’ so that the block
+cursor operates with Screen-Pac 80 and
+it can be carried out without removing
+the piggy-back board containing the
+Screen-Pac 80 electronics.
+
+NOTE! Be careful of static. The HC
+type chip is a high speed CMOS.
+
+1. Following Thom Hogan’s excellent
+drawings in the July 1984 issue of The
+Portable Companion, pages 25 and 26,
+note the following changes:
+
+2. The 74LS86 chip, is piggy-backed
+to chip U2 on the upgrade board. U2 isa
+74HCOO chip and is the second chip
+from the left rear corner of the upgrade
+board. From the 74LS86 chip, cut off
+pins 1, 2, 3, 4, 5, 6, 11, 12, and 13.
+NOTE: THESE PINS ARE NOT THE
+SAME ONES LISTED IN THOM HO.-
+GAN’S ARTICLE!
+
+3. Carefully cut pin 8 of U2
+(74HCOO) at the board and on the chip.
+
+4. Place chip 74LS86 on top of U2
+(74HCOO) so that pin 7 of the pigay-
+back contacts pin 7 of U2. Solder these
+two pins.
+
+5. Connect pin 8 of the piggy-back
+74LS86 to the board where pin 8 of U2
+was cut. You may be able to urge pin 8
+into the board by applying heat (solder
+
+30 ©February 1985 THE PORTABLE Companion #15 (Vol. 4.1)
+
+iron) to the board where pin 8 of U2 was
+connected.
+
+6. Solder pins 9, 10 and 14 of
+74LS86 to pins 9, 10 and 14 of U2
+(74HCOO). In summary, pins 7, 9, 10
+and 14 of 74LS86 are soldered to pins
+7,9, 10 and 14 of 74HCOO and pin 8 of
+74LS86 replaces pin 8 of 74HCOO.
+
+7. Remove pin 1 of U23, 74HC74,
+from the board either by softening the
+solder or cutting it at the board. U23 is
+the fourth chip from the right end of the
+board on the front edge and is immedi-
+ately to the right of the cable header for
+the flat cable originating on the main log-
+ic board. Lift pin 1 away from the board.
+Solder to it a short length of wire-wrap
+wire, or other suitably insulated wire
+from which the insulations on the ends
+have been stripped. Carry the free end
+of this wire over the top of U23 and sol-
+der it to pin 14 of U23.
+
+8. That’s it. After assembling the
+computer, you should have a _ block
+cursor in reverse video that functions
+with the Screen-Pac 80 upgrade.
+
+James S. Lovell
+Charleston, WV
+
+Drive C: Review
+
+The review of the Drive C: unit in the
+April issue by Don Krantz is out to lunch.
+
+Continued on page 50
+

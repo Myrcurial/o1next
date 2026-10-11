@@ -50,7 +50,7 @@ has no block title; its function is read off the circuit).
 | 7 | 1A2011 4/9 | **RAM** array, address multiplex/buffer, **character generator ROM and its serialiser** | **UA15 = 2716** char-gen ROM and **UA14 = 74166** pixel serialiser (§4a), **UA18 = 74LS273** character latch (drives UA15 `A0–A6`), UA17/UA18 and the UA23–UA48 array (2114/2112 static RAMs per sheet 1's parts list), UE13–UE15 (74LS244), UE16–UE18 (74LS153), UD16 (74LS374) |
 | 8 | 1A2011 5/9 | **VIDEO**: PIA, scan counters, video timing, brightness/contrast | **UC15 = 6821**, **UD17/UD18 = 74LS161** scan-line counters (preset from PIA `PB0–PB3`, outputs `SCAN0–SCAN3` → UA15 on sheet 4/9), UC16–UC21 (74166/74165), UA11–UA13, UB14/UB15 (74LS161), UE20–UE24 (7406), R40 (brightness), R44 (contrast). **UA14, UA15 and UA18 are on sheet 4/9, not here** — §4a. The rest of this row is still the first pass (§3) |
 | 9 | 1A2011 6/9 | IEEE-488 interface (P3): PIA + open-collector bus drivers | **UC7 = 6821**, UD1 (74LS30), UD5 (74LS32), UD6/UD8–UD11 (7406), UE6/UE10 (74LS04), RN7/RN11–RN16 (3.3 K pull-ups) |
-| 10 | 1A2011 7/9 | **SERIAL I/O**: ACIA + RS-232 level shifting, modem and CRT connectors | **UC4 = 6850**, UC14 (6551), UD1, UE1 (555), UE2 (1488), UE3 (1489), P1 (MODEM), P2 (9"/12" RS-232 CRT) |
+| 10 | 1A2011 7/9 | **SERIAL I/O**: ACIA + RS-232 level shifting, modem and CRT connectors | **UC4 = 6850**, **UC3 = 74LS161 baud divider at C3**, **UB3 = 74LS04**, UD4 (LM3900 ×3, modem status comparators) — §4b; UC14 (6551), UD1, UE1 (555), UE2 (1488), UE3 (1489), P1 (MODEM), P2 (9"/12" RS-232 CRT) |
 | 11 | 1A2011 8/9 | **KEYBOARD**: row/column matrix, column drivers | UE12 (81LS95), UE13/UE14 (74LS05), RN10 (1.5 K), P4 (KEYBOARD) |
 | 12 | 1A2011 9/9 | **DISC CONTROLLER** + the 34-pin floppy header | **UB7 = MB8877**, U7, U8, U9, U10 (7408/7406), U15 (74LS161), UD6 (74LS74), RN2 (150 Ω terminator), **P8** |
 
@@ -206,6 +206,58 @@ those pins freely, but it cannot tristate the ROM to inject its own font
 without intercepting pins 18 and 20 between socket and ROM. Any future
 "supply your own font" mode needs that interception, and the pin-21 strap held
 at +5 V (the socket is wired 2732-style, so a 4 KiB part would fit physically).
+
+## 4b. Extracted: the ACIA's clock and the baud divider (sheet 7 of 9)
+
+Read from sheet 7 of 9 (PDF page 10) at 600–1200 dpi, prompted by two sources
+that describe the same modification from opposite ends — *The Portable
+Companion* #13 (Hogan, from inside OCC) and the Technical Manual's own Figure
+4.4.
+
+**The 6850 (UC4) pin numbers as drawn.** The symbol omits Vcc/Vss (pins 12 and
+1), which is this schematic's house style — every symbol drops its power pins:
+
+| Pin | Signal | Pin | Signal | Pin | Signal | Pin | Signal |
+|---|---|---|---|---|---|---|---|
+| 2 | RXDATA | 5 | RTS | 8 | CS2 | 11 | RS |
+| 3 | RX (clock) | 6 | TXDATA | 9 | CS1 | 13 | R/W |
+| 4 | TX (clock) | 7 | IRQ | 10 | CS0 | 14 | E |
+| 23 | DCD | 24 | CTS | 15–22 | D7…D0 | 12 / 1 | Vcc / Vss |
+
+**The clock is strapped.** Pins **3 and 4 are wired together** under a bracket
+labelled `CLK` — the ACIA runs both halves from one clock — and that net is
+driven by **UC3's `QD` (pin 11)**.
+
+**UC3 is a preset-load counter, not a plain divider.** It is a 74LS161 at board
+position **C3**, clocked (`CK`, pin 2) from a `4USEC`/`2USEC` tap off the video
+counter through jumper **J1**, with **`RCO` (pin 15) inverted by UB3 (74LS04)
+into `/LD` (pin 9)** — the classic preset-load ÷N. `/CLR` (pin 1) is tied to
++5 V and the preset inputs carry the divisor as solder-select pads. So the stock
+19.2 kHz ACIA clock is `(250 or 500 kHz) ÷ 13`, and the 6850's own ÷16/÷64 gives
+300/1200 — or 600/2400 with J1 out.
+
+**It agrees with the Technical Manual pin for pin.** Figure 4.4, "Baud Rate
+Hardware Modification" (manual p. 22 = **PDF page 36**; the manual's +14 offset
+holds, `docs/o1-chargen-graphics.md`), draws the same LS161/LS163 at C3 and
+documents the factory's faster-rate modification: **pin 2 moved** between a
+*"FOR 9600/2400 BAUD"* and a *"FOR 4800/1200 BAUD"* pad, jumpers **J2** and
+**J3**, **J1** marked **"DON'T CARE"**, and the caption box
+
+```
+300/1200 NO MOD - J1 IN
+600/2400 NO MOD - J1 OUT
+1200/4800 MOD W/O PIN 2 (J1 = X)
+2400/9600 MOD W/PIN 2 (J1 = X)
+```
+
+bracketed *"SPEED SELECTED W/IN 6850"*. The consequence for the serial work is
+in `docs/o1-modem-serial.md`; the register-level view is in
+`docs/o1-memory-io-map.md` §"6850 ACIA detail".
+
+The same corner of the board is also where a third-party product attaches:
+Advent Products' **Osbaud** solders to the ACIA's clock and supply pins (4 and
+12) and two ground pins, and substitutes the clock outright —
+`docs/o1-modem-serial.md`.
 
 ## 5. Extracted: the P8 34-pin floppy connector — and a correction
 
@@ -468,8 +520,9 @@ mode this whole exercise exists to avoid.
 - **Sheet 4 (1A2011 1/9) parts list.** That sheet carries the board's
   REF/DESCRIPTION table. It is partly legible in the scan and is the fastest
   route to a full IC inventory.
-- **Per-sheet component inventories** for sheets 4, 5, 7 and 8, which §2 lists
-  only from a first pass — see the part-number caution in §3.
+- **Per-sheet component inventories** for sheets 4, 5 and 8, which §2 lists
+  only from a first pass — see the part-number caution in §3. (Sheet 7's serial
+  area is now read at pin level — §4b.)
 - **The wait-state generator (sheet 2/9)** as a captured, simulatable model
   (§8).
 - **A net-level extraction** of the whole board — not achievable from this scan

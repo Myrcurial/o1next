@@ -62,6 +62,7 @@ gap review (`research-gaps.md`) and the issues can be cross-checked quickly:
 | `copower88-schematics.md` | Walkthrough of SWP drawing 611-0003 (4 sheets) | #5 | Solved |
 | `rt60a-analysis.md` | RT-60A register map, reconstructed from the manual | #7, #18 | Partially solved — needs a read against real hardware |
 | `o1-modem-serial.md` | MODEM (P1) and RS-232 (P2) interfaces, 6850 ACIA | #21, #56 | Solved |
+| `o1-ieee488-port.md` | The IEEE-488 (GPIB) port: device-level behaviour, the eight ROM drivers, and a worked joystick interface on the data lines | #22, #84, #19 | Solved |
 | `floppy-adapter-design.md` | Switchable Gotek / physical-drive daughter card | #20, #62 | Design |
 | `interposer-survey.md` | Prior art: open-source Z80 bus interposers, sniffers, ICEs | #11, #17 | Survey |
 | `virtual-peripherals-block-diagram.md` | Bus and address-space allocation for the virtual peripherals | #12, #16 | Design |

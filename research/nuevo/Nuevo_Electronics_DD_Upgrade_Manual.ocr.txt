@@ -1,0 +1,919 @@
+
+===== PAGE 1 =====
+
+Seger
+
+Dtercmpinicree
+
+THE
+
+ail,
+s(:
+
+DOUBLE DENS ITY UPGRADE
+
+for the Osborne One Computer
+
+INSTALLATION & OPERATING INSTRUCTIONS
+
+NUEVO ELECTRONICS CORPORATION
+P.O. Box 209, Richmond, Texas 77469
+(713) 341-6001
+(c) 1984
+All Rights Reserved
+
+===== PAGE 2 =====
+
+WARRANTY STATEMENT
+
+NUEVO ELECTRONICS CORPORATION HEREBY DISCLAIMS ALL
+WARRANTIES, EXPRESSED OR IMPLIED, INCLUDING THE IMPLIED
+WARRANTY OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE, EXCEPT AS HEREAFTER PROVIDED. Nuevo Electronics
+Corporation warrants hardware products of its manufacture to
+be free of defects in materials and workmanship for a period
+of ninety (90) days from the date of purchase. For the
+original purchaser only, Nuevo will repair or replace, at its
+sole option, products that fail substantially to perform to
+published specifications within the ninety (90) day period,
+provided that such product is returned prepaid to the point
+of manufacture in Richmond, Texas. This warranty does not
+apply if the product has been abused or modified or serviced
+by unauthorized technicians. Static electricity damage
+resulting from improper handling is specifically excluded
+from this warranty. Nuevo shall not be liable for incidental
+or consequential damages and in no case shall Nuevo's
+liability exceed the original purchase cost of the defective
+product.
+
+For a period of ninety (90) days from the date of purchase,
+Nuevo will design, code, check out, document, and deliver
+promptly any amendments or alterations to software products
+of its manufacture when such action may be required to
+correct errors present in the software product at the time of
+purchase, which errors substantially affect performance of
+the software product in accordance with published
+specifications therefor. This warranty is contingent upon
+the purchaser advising Nuevo in writing of such errors within
+ninety (90) days from the date of purchase and upon the
+purchaser cooperating with Nuevo as reasonably necessary to
+identify the source of such errors.
+
+Rev. 8-84
+
+we
+
+===== PAGE 3 =====
+
+TABLE OF CONTENTS
+
+CAUTION NOTICE. ____P
+INTRODUCTION _ _ __ Pp
+BEFORE INSTALLING THE DOUBLE DENSITY UPGRADE... P
+INSTALLATION. | __. P
+REASSEMBLY____ _ _ P+
+AFTER THE DOUBLE DENSITY UPGRADE IS INSTALLED... P,
+NOW THAT I'VE GOT DOUBLE DENSITY... __ P.
+WHAT IF I WANT TO REPLACE MY DRIVES? P,
+APPENDIX A, NEWSETUP.COM oe P.
+APPENDIX B, BIOS VERSION 1.5 0 P.
+DIAGRAM 1, O-1 MAIN BOARD a — P.
+DIAGRAM 2, DOUBLE DENSITY UPGRADE BOARD ___ P,
+Rev
+
+10
+ll
+13
+15
+16
+17
+18
+19
+
+===== PAGE 4 =====
+
+Ge KK KH KKH IK RIK EK IK HK EH EK HHH HK EH KK KKH
+
+A NOTE OF CAUTION!
+
+THE INTEGRATED CIRCUITS USED IN COMPUTERS SUCH AS THE OSBORNE
+ONE ARE EXTREMELY SENSITIVE TO STATIC ELECTRICITY. THEY CAN
+BE DAMAGED OR DESTROYED VERY EASILY IF PROPER PRECAUTIONS ARE
+NOT TAKEN TO ELIMINATE THE GENERATION OF STATIC CHARGES.
+NYLON OR POLYESTER CLOTHING AND FLOOR CARPETING ARE SOME OF
+THE PRIME CULPRITS IN THE GENERATION OF STATIC ELECTRICITY.
+IF AT ALL POSSIBLE, WORK IN AN UNCARPETED ROOM AND WEAR
+CLOTHING MADE OF NATURAL FIBER, PREFERABLY COTTON, WHILE
+INSTALLING THE 80 COLUMN UPGRADE TO MINIMIZE THE CHANCE OF
+DAMAGING YOUR COMPUTER FROM STATIC ELECTRICITY. WHEN THE
+COMPUTER IS OPENED UP, DO NOT WALK UP TO IT FROM A CARPETED
+AREA AND TOUCH ANY PART OF THE CIRCUIT BOARD OR OTHER SUB -
+ASSEMBLIES WITHIN THE CASE WITHOUT ALLOWING TIME FOR STATIC
+
+CHARGES TO DISSIPATE.
+
+HK KH HH KH HK HH KH HH KEE KEKE KK EEK KEKE EH KH EHH HK KH HERE KEK HE EK EK KKK
+
+
+===== PAGE 5 =====
+
+INTRODUCT ION
+The Double Density Upgrade by Nuevo Electronics was designed
+to convert single density Osborne One computers to double
+density. The result is a computer that is functionally identical
+to the factory-version double density O-1. The minimum file size
+for the Double Density Upgrade is 1K, as is the factory version.
+
+In addition, the Double Density Upgrade is capable of
+utilizing standard (non-Osborne) disk drives by simply using the
+alternate "Standard Drives" connector on the Upgrade board along
+with a separate disk drive power cable.
+
+The Double Density Upgrade is itself upgradeable to double-
+sided double density, offering a storage capacity of 380K per
+disk drive.
+
+BEFORE INSTALLING THE DOUBLE DENSITY UPGRADE...
+Attention should be given to the current condition of your
+disk drives. If the drive speed or alignment is off a bit you
+may have little or no problems with single density operation.
+Double density operation is not always so forgiving. If you have
+good reason to suspect that drive speeds or alignment are not in
+correct adjustment then have your computer serviced before
+installation of the Double Density Upgrade. Symptoms of
+possible alignment or speed problems include the following:
+1) BDOS errors that occur more often than "rarely".
+2) Disks that work well in one drive but not the other.
+3) Disks that work well with your computer but don't work
+well in a different computer, or vice versa.
+4) Original disks,or for that matter any "older" disks,
+that once worked in your computer but now seem less
+willing.
+
+Included on the disk that is supplied with the Double
+Density Upgrade is a program called DISK. This is a menu-driven
+diagnostic program that will give you a numerical! value for your
+current drive speeds.
+
+Make a copy of the Nuevo-supplied disk and set the original
+aside.
+
+Now put into Drive A one of your system disks that has the
+arrow keys configured for CP/M, not WordStar. Put the copy of
+the Nuevo disk in Drive B. Boot on Drive A. When you have the
+CP/M prompt enter
+
+B:DISK <RETURN>
+
+and simply follow the instructions to check the drive speeds for
+both drives. The "correct" answer is 200msec. If your actual
+drive speed is between 198msec and 202msec then you're in goad
+shape. However, if the speeds are less than 196msec or higher
+than 204msec then you must have your drives adjusted. Take your
+computer to a qualified technician for speed adjustment and an
+alignment check. (Although most users are probably capable of
+making the speed adjustments themselves, a problem on drive
+speeds could well indicate a problem with alignment, too. Most
+users are not capable of performing a proper disk alignment
+procedure, )
+
+===== PAGE 6 =====
+
+If you're OK to this point there's just one final thing to
+do before getting to the actual installation...
+
+The BIOS on your disks' system tracks is for single density
+only. We must now install a BIOS that will handle both single
+and double density.
+
+NOTE: IF YOU HAVE ALREADY INSTALLED NUEVO'S 80 COLUMN
+UPGRADE, OR THE OCC SCREEN-PAC, IT IS NOT NECESSARY TO CONDUCT
+THIS PROCEDURE. YOU ALREADY HAVE A DOUBLE DENSITY BIOS! IF YOU
+ARE INSTALLING BOTH THE 80 COLUMN UPGRADE AND THE DOUBLE DENSITY
+UPGRADE AT THE SAME TIME THEN FOLLOW THE BIOS INSTALLATION
+INSTRUCTIONS FOR THE 80 COLUMN UPGRADE ONLY. DISREGARD THE BIOS
+INSTALLATION FOR THE DOUBLE DENSITY UPGRADE.
+
+Double density BIOS installation is accomplished as follows:
+Place in Drive A one of your system disks that contains the
+following programs:
+
+SYSGEN.COM
+
+MOVCPM. COM
+
+DDT .COM
+
+SUBMIT .COM
+
+XSUB .COM
+
+Place in Drive B a copy (not write-protected) of the Nuevo-
+supplied disk.
+
+Boot the computer on Drive A and when you have the CP/M
+prompt enter
+SYSGEN
+and press <RETURN>.
+
+When asked for the "Source" drive enter
+A
+and press <RETURN>.
+
+When asked for the "Destination" drive enter
+B
+and press <RETURN>.
+
+Press <RETURND again to exit the SYSGEN program.
+
+Now swap disks, placing the disk from Drive A into Drive B
+and the disk from Drive B into Drive A.
+
+Enter
+‘Cc
+
+From the CP/M prompt enter
+B:SUBMIT SYS -DDEN
+and press <RETURN>.
+
+Automatic processing will now occur. When the disk drives
+stop and the CP/M prompt reappears enter
+B:SYSGEN
+and press <RETURN>.
+When the program asks for a "Source" drive
+DO NOT ENTER AN Y LETTER
+Enter only a <RETURN>.
+
+
+===== PAGE 7 =====
+
+When asked for a "Destination" drive enter
+A
+and press <RETURND.
+
+The program will again ask for a "Destination" drive or for
+a <RETURN> to exit. At this time you should press the RESET
+button and stop. label the disk in Drive A "Install! OD BIOS", Do
+not attempt any operation whatsoever with it at this time. Wait
+until the Double Density Upgrade has been installed.
+
+Now it's time for the good part, the actual installation of
+your Double Density Upgrade board.
+
+INS TALLAT ION
+
+STEP 1
+The first thing that you need to do is provide yourself with
+a clean, uncluttered workspace of sufficient size to accomodate
+your Osborne One in unassembled form. As a general rule, you
+should allow yourself twice as much space as you think you will
+need!
+
+Unplug the computer from the wal! outlet and, for blue case
+models, remove the power cord. Disconnect the keyboard by
+pushing aside the retaining latches and pulling out on the
+connector. Also disconnect any accessories that may be plugged
+into the front panel. Remove these from the immediate work area.
+Note: If a Comm-Pac modem is installed it is only necessary to
+unplug the bottom (MODEM) connection. Leave the Comm-Pac
+installed in the disk storage slot.
+
+Remove the knobs on the "BRT" and "CONTR" controls. If your
+computer has a brown case it will be necessary to loosen (not
+remove) the set screws first with a .050 hex wrench. For blue
+case computers simply pull the knobs off. They will likely be
+snug. Now put these knobs in a secure place, a jar or some other
+container, so that they'll be around when it's time to put things
+back together.
+
+Now refer to Figure 1 if you have a blue case O-1 or to
+Figure 1A if you have a brown case model.
+
+For Blue Case Models: There are six Phillips head screws
+securing the front panel to the computer. Loosen all six screws
+and carefully slide the front panel off.
+
+For Brown Case Models: There are seven Phillips head screws
+securing the front panel to the computer. Loosen ail seven
+screws and carefully slide the front panel off.
+
+Again, put the screws in a secure location for later
+retrieval. Remove the computer's front panel from the immediate
+work area . You won't be needing it for a while.
+
+===== PAGE 8 =====
+
+REMOVE SCREWS INDICATED BY ARROWS
+
+FIGURE 1
+(Blue Case Only)
+
+REMOVE SCREWS INDICATED BY ARROWS
+
+FIGURE 1A
+(Brown Case Only)
+
+Rev. 8-84
+
+
+===== PAGE 9 =====
+
+STEP: +2
+
+For Blue Case Models: Carefully turn the computer
+upside down, keeping the front of the machine facing you.
+Loosen but do not remove the five Phillips screws securing
+the case bottom. Lift the case bottom away from the
+computer. Don't tip it or the screws will fall out! Set it
+aside, leaving the screws inside the recesses.
+
+For Brown Case Models: On the back of the instrument
+there are two screws located on either side of the carrying
+handle. Remove these screws and tape them together so that
+they aren't later confused with the similar but shorter front
+panel screws. At the front of the unit there are four more
+screws that secure the chassis to the instrument case. Two
+are midway up the case, one is on the left side and another
+is on the right. Two more are at the bottom, again one on
+the left and another on the right. Refer to Figure 2.
+Remove these last four screws and carefully slide the chassis
+out of the case. If the chassis resists removal, the wires
+from the power pane! at the back of the case are likely the
+cause. In some cases it will be necessary to remove the
+screws securing the power panel to allow enough slack for
+removal of the chassis. When the chassis is removed, turn it
+over to an upside down position. Keep the front of the
+chassis facing you.
+
+FIGURE 2
+(Brown Case Only)
+
+Rev. 8-84
+
+
+===== PAGE 10 =====
+
+Before going any further take the packaging material that
+came with the Upgrade board and lay it on your work surface near
+the computer. This is an anti-static material that will reduce
+the chance of static damage to your computer board.
+
+The printed circuit board is secured to "H" shaped mounting
+brackets at either end of the board. These mounting brackets are
+in turn secured to posts on the main internal frame. Remove the
+board with its brackets by taking out the four Phillips screws
+at the posts. There should be a ring terminal ground wire
+between the screw and the bracket on the left rear post and
+possibly another ground wire to the immediate right held by a
+screw that secures the main board to the bracket. See Figure 3.
+If this second ground wire connection exists remove it, too, at
+this time. (With some computers there will be no ground wires at
+all. Don't worry about it.)
+
+H [Eo
+é
+
+ye
+& BESS SS.
+
+FIGURE 3
+
+Now fold back the board as per Figure 4. Disconnect the
+power supply cable, the CRT monitor cable and the disk drive
+cable.
+
+The main board should now be totally disconnected.
+Carefully place it on the packing material, component side up.
+
+Rev. 8-84
+
+
+===== PAGE 11 =====
+
+"\
+v Ps)
+Ng ' w
+W?
+
+CRT MONITOR CABLE
+
+DISK DRIVE CABLE
+POWER SUPPLY CABLE
+
+FIGURE 4
+
+STEP 3
+Go back and read again the caution regarding integrated
+circuit handling printed at the front of this manual.
+
+NOTE: THE NEXT TWO PARAGRAPHS SHOULD BE OMITTED IF YOU HAVE
+ALREADY INSTALLED NUEVO'S 80 COLUMN UPGRADE OR THE OCC SCREEN-
+PAC!
+
+Locate the Monitor PROM on the main board at grid position
+D-12. Refer to Diagram 1 on P. 18. With a small slotted
+screwdriver gently pry one end of the PROM up from its socket
+about 1/8 inch or so. (Be certain that you place the screwdriver
+between the PROM and its socket. DO NOT attempt to pry the
+socket from the printed circuit board!) Try to avoid touching
+the IC pins to the extent possible. Now pry up the other end
+slightly higher than the first. Continue working at alternate
+ends A LITTLE AT A TIME until the PROM is free of its socket.
+Hopefully you will manage to extract the IC without bending any
+of the pins. However, if pins are bent lay the PROM, pins down,
+on aluminum foil before attempting to straighten them. Wrap this
+PROM in aluminum foil and save it.
+
+Replace it with the PROM supplied by Nuevo. The IC should be
+oriented such that the notch at one end is aligned with the notch
+in the socket. Be certain that ALL pins of the PROM are
+correctly aligned within the socket before applying insertion
+pressure. It's a good idea to just barely insert the IC and then
+sight between the IC and it's socket to verify that all pins are
+in place. If the pins are bent it's very easy for one or more of
+them to "curl under" when you apply insertion pressure. If this
+happens it's difficult to detect after the IC is in place. Once
+you're satisfied with the pin alignment, insert the IC into the
+socket by applying equal pressure with your thumbs at both ends
+of the PROM.
+
+Rev. 8-84
+
+
+===== PAGE 12 =====
+
+10
+
+Referring to Figure 5 for proper orientation, plug the
+Double Density Upgrade board into the disk drive connector on the
+O-1 main board. Confirm proper seating by looking at the
+
+connection from all angles.
+
+aj
+»
+*
+*
+%
+*
+*
+
+eeeese0eeee®
+8886 F007 28088
+
+FIGURE 5
+
+Now locate the two jumpers (small plastic caps) installed at
+"34" and "J5" on the main board at grid position B-10,11. Remove
+these two jumpers. Refer to Diagram 1 on P. 18 if necessary.
+
+The ribbon cable from the Double Density Upgrade should now
+be plugged into the exposed pins at these jumper locations. Note
+that the ribbon cable connector is keyed to prevent an improper
+
+installation.
+The last step is simple but VERY important. A jumper must
+
+be installed across the two pins at position "J3", grid location
+B-6,7. Refer again to Diagraml. If the jumper here is absent,
+install one of the jumpers that you removed from "J4" and "J5".
+
+Installation is now complete!
+
+REAS SEMBLY
+
+Now refer to Figure 5 again. To reinstall the main printed
+circuit board, stand it on end at the back of the computer as was
+done during disassembly. Reconnect the power supply and CRT
+cables as they were originally. Now plug the disk drive cable
+into the Double Density Upgrade connector labeled "Osborne
+
+Drive".
+
+Now position the board over the mounting posts and reinstall
+the four mounting screws, being sure to replace the ring-terminal
+ground wire(s), if any, that you disconnected. Do not tighten
+down on the screws until all four have been installed.
+
+Rev. 8-84
+
+
+===== PAGE 13 =====
+
+EEE EEE
+
+11
+
+For Blue Case Models: With the O-1 still in an inverted
+position, carefully put the bottom cover back in place, taking
+care to insure that the handle assembly and power cord/door
+assembly are in their proper slots. MAKE CERTAIN THAT THESE
+THREE COMPONENTS ARE PROPERLY POSITIONED AND SEATED BEFORE
+ATTEMPTING TO REINSTALL THE FIVE BOTTOM SCREWS. Once this stage
+of reassembly is complete, turn the O-1l over to its upright
+position.
+
+For Brown Case Models: Turn the chassis over to its upright
+position. Carefully slide the chassis back into the case,
+Reinstall the four screws at the front of the unit. When these
+are secure reinstall the two screws that goon either side of the
+carrying handle. Resecure the power panel if it was removed.
+
+Make sure that the two latches for the keyboard connector
+are in the closed position and then carefully slide the front
+panel into position. Once you're satisfied with the fit, install
+the screws that secure the front panel! to the computer. Again,
+do not tighten until all the screws have been installed.
+
+AFTER THE DOUBLE DENSITY UPGRADE IS INSTALLED...
+
+Reconnect the keyboard and the power cable and then turn on
+your Osborne One. (NOTE : When you first turn power on you
+should hear that familiar short "beep" that indicates "all's
+well", If the beep is continuous turn the computer off
+immediately and recheck your installation procedure. You
+probably installed the new PROM incorrectly!)
+
+With the hardware installation completed, it's time to
+address the software installation.
+
+The software part of the Double Density Upgrade installation
+consists of transferring the double density BIOS (from the
+"Install DD BIOS" disk, via SYSGEN) to your system disks and then
+updating three utility programs (COPY, SETUP & SYSGEN).
+
+NOTE:- IF YOU'VE PREVIOUSLY INSTALLED NUEVO'S 80 COLUMN
+UPGRADE THIS PROCEDURE IS NOT NECESSARY, YOU'VE ALREADY
+PERFORMED IT! THE SAME APPLIES IF YOU HAVE THE OCC SCREEN-PAC.
+IF EITHER OF THESE 80 COLUMN BOARDS IS INSTALLED SKIP TO THE
+BEGINNING OF THE NEXT SECTION.
+
+Let's take the SYSGENING and utility file replacements
+separately.
+First, the SYSGENING....
+
+Experience has shown that a good bit of confusion and
+misunderstanding exists about what SYSGEN.COM is and how it
+works. A little explanation now may save a lot of confusion
+later.
+
+===== PAGE 14 =====
+
+12
+
+Comparing SYSGEN.COM and COPY.COM is often helpful. Both
+are copy programs. COPY.COM produces exact copies of the entire
+Source disk. SYSGEN.COM produces exact copies of the system
+tracks of the Source disk.
+
+By running SYSGEN.COM, any and all information contained on
+the systemtracks of the Source disk is copied to the Destination
+disk. If system track data already resides on the Destination
+disk it will be completely overwritten by the system track data
+from the Source disk.
+
+The information that you install using SETUP.COM is stored
+on the system tracks. (So is ZCPR, if you're using this
+replacement for the CCP.) THIS INFORMATION WILL BE OVERWRITTEN
+BY THE DATA FROM THE SOURCE DISK WHEN SYSGEN IS RUN!
+
+So..., before actually SYSGENING your disks you should make
+certain that you know how SETUP is configured for your various
+disks. If it's different from the way it's configured on your
+"Install DD BIOS" disk and you're not all that versed with your
+computer's operation, it may prove time consuming to later get it
+back the way you really want it.
+
+Chances are that SETUP is not installed the same way on all
+of your disks. The arrow keys are likely configured for WordStar
+on your WordStar disk but probably for CP/M on your other disks.
+Some parameters, Like those for the printer, are probably the
+same on all of your disks. If you have any doubt, check each and
+every system disk in your inventory and make a record of how
+
+SETUP is configured.
+
+If you are using ZCPR, install it at this time on the
+"Install DD BIOS" disk. This will save having to install it
+later on each disk individually after they've been SYSGENED from
+the "Install OD BIOS" disk. (If you don't know whether or not
+you're using ZCPR it's probably safe to assume that you are not.
+ZCPR is public domain software, written specifically for the 2-80
+microprocessor, that replaces the CCP portion of CP/M.)
+
+Also, if SETUP is configured the same on all of your disks
+you should run NEWSETUP on the "Install DD BIOS" disk, configure
+it accordingly, and, again, save yourself the effort of
+reinstalling it individually on your disks after they have been
+SYSGENED. (Refer to Appendix A, P.16, for notes on the use of
+NEWSETUP . OOM)
+
+With this background and explanation out of the way, let's
+get to SYSGENING your disks to install the new BIOS!
+
+Insert the "Install DD BIOS" disk in Drive A, and from the
+CP/M prompt enter
+SYSGEN
+and press <RETURN>
+
+Follow the instructions on the screen and put backups, or
+copies, of your present disks in Drive B, one at a time until all
+of your disks have been "SYSGENED". (Even data disks can be
+"SYSCENED", Since the first three tracks of a disk are reserved
+for the CP/M system it "costs" nothing to make all disks "system"
+disks.)
+
+After SYSGENING your disks run the program NEWSETUP.OOM, i f
+necessary, to individually reinstall these disks with the
+parameter values the way you had them prior to SYSGENING.
+
+
+===== PAGE 15 =====
+
+L3
+
+Next you should replace the three utility programs COPY,
+SETUP and SYSGEN.
+
+The monitor ROM that you replaced during the Double Density
+Upgrade installation is an enhancement of Rev. 1.44, the latest
+factory version. Older versions of COPY, SETUP, and SYSGEN are
+not compatible with the newer BIOS. The disk that came with your
+Upgrade contains the newer versions of these three files that are
+compatible.
+
+Using PIP or some other file transfer program, replace all
+of your existing files named COPY, SETUP and SYSGEN with the
+newer versions named COPY, NEWSETUP and SYSGEN that are on the
+"Install DD BIOS" disk. In the case of COPY and SYSGEN it is not
+necessary to erase the older versions first. The newer files
+will simply overwrite the older files of the same name.
+
+It will also be necessary to delete from your working disks
+all copies of MOVCPM.COM and replace them with MOVE-CPM.COM. The
+reason for this is that MOVCPM contains a record of the BIOS.
+The file MOVCPM.COM contains a record of your old (unmodified)
+BIOS. The file MOVE-CPM.COM contains a record of the newly
+installed BIOS. The BIOS record in the file that allows you to
+"move" CP/M must match the BIOS of the disk on which this file is
+"moving" CP/M. The reason for the file name change is only to
+distinguish the new from the old. (The file MOVE-CPM is not on
+the disk provided by Nuevo. It will appear on the "Install DD
+BIOS" disk AFTER performing the BIOS installation procedure.)
+
+If you have other accessories such as the JG Communications
+clock, the Drive C ramdisk or the Trantor hard disk then you must
+reinstall that device per manufacturer's instructions after your
+
+replaced by MOVE-CPM.COM.
+
+NOW THAT I'VE GOT DOUBLE DENSITY, WHAT DO I DO WITH IT?
+
+At this point you now have a full-function double density
+Osborne One computer. It will continue to read single density
+disks as before, but the important thing is that you're also set
+for double density. You need not try to tell the computer which
+type of disk you're using. Tt will figure that out all by
+itself.
+
+You're probably wondering what you should do with your
+current inventory of single-density disks. Well, you don't have
+to do anything with them. In fact, if the disks themselves are a
+single-density grade, it is rather strongly recommended that you
+leave them "as is",
+
+But you no doubt are quite anxious to get those other files
+on your favorite disks that just didn't have the room for them
+before. Here's how to do it...
+
+===== PAGE 16 =====
+
+14
+
+Use the COPY program to format anew disk. The programwill
+ask you whether you want to "copy" or "format", the same as it
+always did. Now, after the disk to be formatted is placed in the
+appropriate drive and a <cer> is entered, it will ask if you want
+S(ingle) or D(ouble) density formatting. Tell the program you
+want D(ouble). You may notice that an * replaces the former F
+under the track number as the disk is being formatted. Aside
+from this, the new COPY program works pretty much like the old
+one did.
+
+Now place in Drive A one of your single density disks that
+you want to convert to double density. (If you've been following
+the steps thus far this disk will have been "sysgened" with the
+new system BIOS and if COPY, SETUP or SYSGEN are on the disk they
+will be the newer versions of these files.) The disk you just
+formatted in double density should be in Drive B. Using PIP or
+some other file transfer program, transfer all of the files to
+the disk in Drive B. DO NOT attempt to "copy" the Drive A disk
+to Drive B. To do so would just wipe out the double density
+formatting and give you an exact replica of the "copied" disk,
+single density formatting and all.
+
+The above procedure is equally valid for converting either
+system disks or data disks to double density. The only
+difference is that "system" disks must be "SYSGENED" following
+the file transfer routines. File transfer programs DO NOT
+transfer system tracks. Only COPY and SYSGEN can accomplish
+this. For reasons just discussed, the COPY program is
+inappropriate for this procedure.
+
+You may very well want to continue using your single density
+program disks as they are now but store data files on a double
+density disk. No problem. Simply format a disk for double
+density and write the files that you will create onto this disk.
+
+IF YOU HAVE OPERATIONAL PROBLEMS...
+
+they will most likely be due to improper drive alignment.
+The classic symptoms of alignment problems are read and/or write
+errors on the higher track numbers during COPY and FORMAT
+operations.
+
+In some cases the COPY problems may persist even after the
+drives are realigned. If so, it will be necessary to format a
+disk and individually transfer the files to the newly formatted
+disk. This disk, then, should COPY properly.
+
+
+===== PAGE 17 =====
+
+15
+WHAT IF I WANT TO REPLACE MY DRIVES?
+
+If your Osborne drives have been acting up and they defy
+repair, you may be considering replacing them. Standard,
+commercially available drives are handled quite nicely by the
+Double Density Upgrade. If you're considering a replacement of
+your drives we strongly suggest you consider going with
+"standard" (non-factory) drives that use conventional signal and
+power connections. They will almost certainly be less expensive
+and probably easier to have serviced.
+
+Standard full-height drives will readily fit inside the O-1
+computer. You can even use the disk drive ribbon cable that's
+used with the Osborne drives. You will need to add a separate
+power cable, daisy chained with three connectors. Two of the
+connectors plug into each of the disk drives. The third
+connector plugs into the socket labeled "P4" on the Double
+Density Upgrade board. This power cable is available from Nuevo
+at nominal cost. The power cable voltages from the Double Density
+Upgrade are labeled on Diagram 2. The user should confirm that
+these voltages properly match the replacement disk drive voltages
+when the power cable is plugged in.
+
+Disk drive replacement must be done in matched pairs. You
+cannot have one Osborne drive and one "standard" drive.
+
+If you have any questions on drive replacements, please
+contact the factory.
+
+You may have noticed a "WRITE PRE COMP" jumper on the Double
+Density Upgrade. Some manufacturers of standard drives may
+recommend using write precompensation. If so, install a jumper
+across these two pins. If you're using the Osborne drives that
+came with your computer, leave the jumper pins as they are.
+
+Rev. 8-84
+
+===== PAGE 18 =====
+
+16
+APPENDIX A
+
+NOTES ON THE FILE NEWSETUP.COM
+
+NEWSETUP.COM was written primarily for Nuevo's 80 Column
+Upgrade to enable users to readily install their choice of 9
+different cursor possibilities. Some features, however, are also
+useable on the Double Density Upgrade.
+
+NEWSETUP allows you to enable or disable an autostart
+
+command. Most of you are familiar with the WordStar and
+SuperCalc disks that were configured by OCC to autostart on their
+respective disks. By using NEWSETUP you can now name any other
+
+COM file that you may want to autostart. File names so entered
+must be in caps.
+
+If you want to retain the factory method of autostarting
+WordStar and SuperCale then you should run the NEWSETUP program,
+enable the autostart feature, and specify AUTOST.COM as the file
+to be autostarted.
+
+NEWSETUP allows you to select from 16 different baud rate
+values compared to the 2 values available in the older SETUP.COM.
+However, unless the Baud Rate Generator option of the 80 Column
+Upgrade is installed, any value selected besides 300 baud will in
+fact install 1200 baud. Selecting 300 baud always installs 300
+baud.
+
+
+===== PAGE 19 =====
+
+a
+
+17
+APPENDIX B
+
+NOTES ON THE NEW BIOS
+
+The new BIOS (wetre calling it Version 1.5) that you
+installed with the Double Density Upgrade is significantly
+different from Version 1.4, the most recent factory version.
+NEWSETUP.COM required significant changes to implement its
+capabilities. It should be stressed that Versions 1.4 and 1.5
+are functionally compatible except for the programs SETUP.COM and
+NEWSETUP.COM. For those of you that are interested, the
+following are the differences between the two BIOS versions:
+
+1) The "59K" portion of the sign-on message in BIOS Version 1.5
+has been deleted since it can be misleading if the CCP/BDOS/BIOS
+system has been relocated with MOVCPM,
+
+2) For BIOS Version 1.5 the disk parameter blocks for IBM, Xerox
+and DEC formats have been removed to provide space for code to
+allow auto configuration at boot time via NEWSETUP.COM. Space
+remains for two more DPB's to be inserted.
+
+3) The autostart command space allotment in BIOS Version 1.5
+permits 8 character names. Version 1.4 allowed only 7
+characters,
+
+4) BIOS Version 1.5 checks for the presence of the Nuevo 80
+Column Upgrade. If not present, the configuration routine for
+the 80 Column Upgrade will be skipped. Thus, the Version 1.5
+BIOS will boot and run correctly on machines that don't have the
+Nuevo 80 Column Upgrade.
+
+5) The "Unformatted disk in Drive..." message has been deleted
+from Version 1.5. The message "Can't recognize disk in Drive..."
+is retained and is used for all ‘unrecognizable disk' errors.
+
+6) The jump table configuration and the jump table start
+address (E100h) is the same in BIOS Version 1.5 as in BIOS
+Version 1.4.
+
+===== PAGE 20 =====
+
+18
+
+Double Density
+
+Upgrade plugs
+in here
+
+Remove two jumpers here
+
+A jumper must be
+in place here
+
+Sys
+Eee
+HEE
+
+SEES
+
+vice
+
+EOS LOT
+
+ACINGING &
+
+¥
+
+Remove and
+
+replace with PROM provided
+
+Monitor PROM.
+
+DIAGRAM 1
+
+
+===== PAGE 21 =====
+
+19
+
+2 WHOVId
+
+Bny{d BurAkay 370N »
+
+SSAILIp paepueys 10}
+10}93uUU09 281 qed BAIIG
+
+SOALIP a9uIOgsSO 104
+
+10}9auUUOD 2a[ged BAlIG e ue «|.
+SOA a \
+19
+
+puno
+punody
+S}[OA ZT+
+(ATuo saAtip pisepuejs)
+10}99uUU09 a[qead 13M0q
+
