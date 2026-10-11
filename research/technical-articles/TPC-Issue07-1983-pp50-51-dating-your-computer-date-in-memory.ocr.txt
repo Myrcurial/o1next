@@ -1,0 +1,306 @@
+
+===== PAGE 1 =====
+
+DATING
+YOUR
+COMPUTER
+
+a_systems_date_facility
+
+Walter B. Novinger
+
+lo! DATE PROGRAM
+
+20 ' The date placed by this routine remains
+30° intact after a warm start (RESET button)
+40° as well as any diskette swaps (RESET state-
+so' ment in MBASIC or “C from CP/M).
+
+60 *
+
+70° The date is poked to locations @856-605B
+80°
+
+160 DATA “January “,"Pebruary ","March “,"April ","May “,"June"
+118 DATA “July ",“August ","September ","October ","November *
+126 DATA “December 7
+
+130 OPTION BASE 1:DIM M$(12):FOR I=l TO 12:READ M$(I):NEXT
+
+146 PRINT: INPUT “Enter today's date as MMDDYY";DT$
+
+150 M=VAL(LEFT$(DT$,2)):IF M<l OR M>12 THEN 1498
+
+16@ D=VAL(MID$(DT$,3,2)):IF D<l OR D>3l THEN 149
+
+17@ Y=VAL(RIGHT$(DT$,2)):IF Y¥<82 OR Y>85 THEN 149
+
+180 POKE 80,D:POKE 81,M
+
+198 FOR I=1 TO 9:POKE 81+1,ASC(MID$(M$(M),I,1)) :NEXT
+
+200 POKE 91,Y
+
+210 PRINT:PRINT "Page zero date buffer initialized. If you turn"
+226 PRINT “the computer off, you must re-run DATE to"
+
+230 PRINT “re-initialize the date."
+
+249 PRINT:PRINT "DATE removed from memory -- BASIC is ready"
+
+250 NEW "Deletes program leaving BASIC ready for user's input
+254 '
+
+255 ' Warning -- Line #258 deletes the program.
+
+256 ' Add in after the program is checked out
+
+257 ' for keystroke errors, or first SAVE to disk.
+
+Figure 1
+
+48 THE PORTABLE Companion — June 1983
+
+hile developing a
+business program for
+the-Osborne-,. it
+
+became apparent that | would need
+a facility to store the current date in
+a-place-accessible to-any_program
+running under MBASIC. Ideally,
+such storage would be unmodified
+by-CP/M,-MBASI/C-or-any-user-pro-
+gram. In addition, the means of
+accessing the date should require
+no-machine-language-programming
+and CALLs or USRs from BAS/C
+programs. My ultimate goal was to
+produce.a-_program that_would
+request the current date when
+MBASIC was booted, and a simple
+subroutine for.accessing-the date.
+stored at boot time from within any
+BASIC module.
+
+This-article describes three
+elements of the Osborne date facil-
+ity as | have implemented it: 1)
+The.DATE-program.that_requests.
+and stores the date; 2) the GET-
+DATE subroutine to access the
+date;_and._finally.3) AUTOST.COM
+modifications to make the date set-
+ting process ‘‘automatic’’ when
+MBASIC.is.booted.
+
+DATE.BAS (Figure 1 )
+
+The first decision-was to-deter-
+mine the location in which to store
+the date. After perusing the
+Osborne User's Guide, | stumbled
+upon a chart labeled ‘‘Memory
+Allocation”’ in the section covering
+assembly language-(page-R-243-in
+my manual). Here, in locations
+0050H-O005BH, | found what | was
+looking for—a-block-indicated-as
+“not used.”’ This 12-byte block was
+just what | needed to store dates in
+two-formats:
+
+After | found the buffer | needed,
+writing DATE was easy. | stored the
+date in- both numeric-and-ASGII-for-
+mats since the program that later
+fetches the date with GETDATE has
+its-choice-of formats without-having
+to duplicate DATE’s logic.
+
+The code of DATE is straight-
+forward and should cause Osborne
+users little difficulty. Note, however,
+that DATE deletes itself after storing
+the date. This facilitates the auto-
+loading feature by leaving MBAS/C
+
+===== PAGE 2 =====
+
+in a pristine state; exactly where
+the user expects it to be, ready to
+accept-_program_input.__
+
+GETDATE.BAS ( Figure 2)
+
+This.subroutine-is-used_within
+BASIC programs to access the date
+stored by DATE. Execution of a
+GOSUB.200.in-a_program_results.in
+four variables being initialized with
+the date information. DAY, MONTH
+and_YEAR.contain.the respective
+date components in numeric for-
+mat. These would be useful, for
+instance, in placing.a date ina file
+record (using the LSET statement
+to create a two-byte file record
+field). The string DT$ is set to the
+date in the form “12 May 1982”—
+useful for labeling listings and the
+like. Note that this string is returned
+with one leading space (like
+BASIC’s STR$ function) and no
+trailing space.
+
+AUTOST.ASM (Figure 3)
+
+Implementation.of the set-date-
+at-boot facility required that the
+AUTOST.COM program resident on
+the-MBASIC-diskette-be modified.
+Fortunately, the User’s Guide pro-
+vides instructions for doing exactly
+this (if-you-can follow the rather
+cryptic comments). In Chapter 8,
+“CP/M Revisited,” there is a
+discussion. of CP/M’s ASM.and
+LOAD programs; included with the
+discussion is a listing of the
+AUTOST.ASM source. The text
+which is stored beginning at label
+FILENAME is placed in the CP/M
+command buffer by the subroutine
+labeled AGAIN. When the PCHL
+instruction at address 0138H is
+executed, CP/M-will use this text.as
+a command to be executed. As you
+can see from the listing in Figure 3,
+this command will be MBASIC
+DATE. Note that this text must be
+followed by at least one zero-byte
+to terminate the command (see
+listing comments). MBASIC then
+loads and executes the file
+DATE.BAS, our DATE program.
+Obviously, DATE.BAS must be resi-
+dent on the MBASIC booting
+diskette-in-Drive-A.
+
+The second major modification
+
+lt GETDATE Subroutine sample
+2° Date is stored in DTS
+
+19 GOSUB 260
+
+20 PRINT CHRS$(26)
+
+30 PRINT SPACE$(15) ;DT$
+
+49 ' Insert your program here.
+
+50 PRINT:PRINT "This is a test.":PRINT
+
+6@ END
+
+200 DAY=PEEK(86) :DT$=STR$(DAY)+" “:MONTH=PEEK(81) :1=82
+218 WHILE C$<>" " AND I<91:C$=CHR$ (PEEK (I) ) :DTS=DT$+C$:I=I+1:WEND
+228 YEAR=PEEK (91) :DT$=DT$+"19"+RIGHTS (STR$ (YEAR) ,2)
+
+230 RETURN
+
+Figure 2
+
+AUTOST.ASM Modifications
+
+Copy the AUTOST.ASM program (version 1) exactly as
+it appears in the Osborne User's Guide in Chapter 8
+except for the following modifications.
+
+Step 1
+Change this line LXI B,10
+to LXxI B,13
+
+This sets the character counter.
+
+;set counter
+#set counter
+
+The command string (MBASIC
+
+DATE) was longer than 8 characters so LXI B,length becomes
+
+LXI B,length+2.
+
+Step 2
+Change the command line to:
+
+FILENAME: DB
+
+length of
+command
+
+command
+string
+
+Step 3
+Finally, add a few message lines.
+for maximum of 8 lines of code:
+
+11,'MBASIC DATE',0,8,0,0
+
+There is room
+
+ENDMES: DB CR,LF,LF,LF,9,'Loading MBASIC to initialize date',CR,LF,LF
+DB 9,'When requested, enter today',39,'s date',CR,LF
+DB 9,'in the format shown in the prompt',CR,LF,'$'
+
+Figure 3
+
+involves.the-message that AUTOST
+displays after printing the Osborne
+logo. This message is stored begin-
+ning-atabel.—ENDMES.and is
+displayed (in subroutine PRINT) by
+a BDOS routine. This routine merrily
+prints.characters.until-it-encour-
+ages a $; thus, the last character of
+the ENDMES message is the dollar
+sign.
+
+When you have used WordStar
+(in non-document mode) to enter
+AUTOST.ASM. and make the
+modifications described, assemble
+and load the resulting program. |
+
+June 1983
+
+suggest that you do this on.a
+scratch diskette (to avoid clobber-
+ing anything useful).
+
+The inclusion of the system date
+facility has made business program-
+ming on the Osborne much more
+professional-looking as well.as
+easier to write. The AUSTOST facil-
+ity provided with the Osborne is
+extremely handy; taken together
+with the documentation and the
+source code listing, the user has the
+beginnings.of.a powerful customiza-
+tion facility.
+
+E =)
+
+THE PORTABLE Companion 49
+
+<
+
+eS aS
+
+5 NE gel en eT A
+
+oe

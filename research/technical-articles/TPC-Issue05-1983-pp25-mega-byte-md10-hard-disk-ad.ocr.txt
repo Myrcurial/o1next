@@ -1,0 +1,66 @@
+
+[HAND TRANSCRIPTION, not tesseract output. tesseract returns only the folio
+from this page: the headline and body are set in display faces over a tinted
+screen, which the engine cannot segment. Transcribed by eye from the page image
+at 400 dpi, 2026-10-10, per research/README.md §"How these extracts are made".
+Verify against the PDF before quoting.]
+
+===== PAGE 1 =====
+
+February/March 1983  THE PORTABLE COMPANION  23
+
+AT LAST AN AFFORDABLE 10 MEGABYTE WINCHESTER FOR THE OSBORNE 1(TM)
+(OR OTHER Z-80 SYSTEMS)
+
+MD-10  10 MEGABYTE (FORMATTED)  5 1/4" HARD DISK
+$2295
+
+AFFORDABLE 20 AND 44 MEGABYTE WINCHESTERS ALSO AVAILABLE
+
+For this unbelievable price your winchester will be delivered completely
+assembled and tested, with drive controller, case, power supply, cabling,
+Z-80 interface and the best disk controller software on the market.
+
+  * The MD-10 allows you to retain your OSBORNE's portability. You simply unplug
+    the winchester and the OSBORNE works exactly as before.
+  * The unique and simple interfacing system does not tie up existing OSBORNE
+    ports.
+  * Significantly faster than other winchester subsystems which use the IEEE
+    port.
+  * CP/M drivers require minimum memory overhead (less than 2K). Other systems
+    require as much as 6K.
+  * The MD-10 can read or write a 64K file in less than four (4) seconds.
+  * Both software and hardware installation is quick and simple.
+  * A network system is available which can support up to sixteen (16) OSBORNE's
+    from one MD-10 or larger disk subsystem.
+  * Up to eight (8) 44 megabyte disk subsystems can be interfaced to one
+    OSBORNE.
+  * Software supports 36 different user areas per MD-10.
+  * Backing up hard disk files is simple with the special software which is
+    provided with all MD-10 subsystems.
+  * With a single hard disk installation, the MD-10 10 subsystem becomes units A
+    and B with the standard drives being designated E and F. If a second MD-10
+    is installed later it becomes units C and D.
+  * MD-10 or larger systems will interface with any Z-80 computer (CCS,
+    APPLECP/M, ZENITH/HEATH, NORTHSTAR, GODBOUT, XEROX 820, Z80/5100, ALSPA, or
+    TRS-80 MOD II) using CP/M, OASIS or other system.
+
+FULL SIX-MONTH WARRANTY EXTENDED TO A YEAR!
+
+TO ORDER OR FOR MORE INFORMATION:
+(801) 257-7033 or mail to MEGA-BYTE INC.
+RT. 3 Box 36, Tremonton, Utah 84337
+
+TERMS: Cashiers Check, VISA, M/C or COD.
+Shipping charges added to all orders.
+
+NAME ____   TITLE ____
+COMPANY ____   ADDRESS ____
+CITY ____   STATE ____   ZIP ____
+TEL ____
+
+[logo] MEGA-BYTE
+
+Footnote: "CP/M is a registered trademark of Digital Research. OASIS is a
+proprietary product of Phase One Systems, Inc. Z-80 is a trademark of Zilog;
+MD-10 is a registered trademark of Media Distributing."
