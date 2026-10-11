@@ -303,7 +303,7 @@ tree, **closed issues included**, so each one renders a progress bar:
 |---|---|---|
 | **#1** — Phase 0: research & reverse engineering | 22 | 17 |
 | **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 0 |
-| **#16** — Phase 2: firmware personalities | 11 | 1 (#86) |
+| **#16** — Phase 2: firmware personalities | 12 | 1 (#86) |
 | **#25** — Phase 3: Osborne-side software | 4 | 0 |
 | **#29** — Phase 4: on-hardware validation | 0 | — |
 | **#49** — Phase 5: the reproduction | 3 (#52, #125, #128) | 0 |

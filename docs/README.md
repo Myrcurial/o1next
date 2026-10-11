@@ -70,6 +70,7 @@ gap review (`research-gaps.md`) and the issues can be cross-checked quickly:
 | `floppy-adapter-design.md` | Switchable Gotek / physical-drive daughter card | #20, #62 | Design |
 | `interposer-survey.md` | Prior art: open-source Z80 bus interposers, sniffers, ICEs | #11, #17 | Solved — the survey is as complete as it will get; the materials are all in hand |
 | `virtual-peripherals-block-diagram.md` | Bus and address-space allocation for the virtual peripherals | #12, #16 | Design |
+| `mailbox-protocol.md` | The interposer's host↔firmware mailbox: the port pair, the command/reply framing, and the listing `MOUNT.COM` needs | #155, #27, #20, #18 | Design — a proposal; nothing is built |
 | `photo-survey.md` | Index of the project's own machine photographs | #9, #39 | Reference |
 | `research-gaps.md` | **The status review**: every gap, where it stands, what is left | #1 | Living document |
 

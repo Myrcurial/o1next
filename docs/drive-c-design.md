@@ -309,10 +309,11 @@ wrong one here.
   `DCLOADED.SYS` / `DRIVEC.SYS` are hidden system files, so an archive of the
   *files* (`.LBR`, `.ARK`, `.ZIP`) will not do — the image must round-trip whole.
 - **The mount is #20/#27's business, not the box's.** The transfer is Pico-side,
-  FAT32 → record store, triggered over the **mailbox port**; `MOUNT.COM` only
-  selects which blob. The box never parses FAT32, and nothing in §7's contract
-  changes. This is also what makes "persistent Drive C" (#20) fall out for free:
-  flash holds the records, and §4.1 says the loader will not re-format them.
+  FAT32 → record store, triggered over the **mailbox port**
+  (`docs/mailbox-protocol.md`, #155); `MOUNT.COM` only selects which blob. The
+  box never parses FAT32, and nothing in §7's contract changes. This is also what
+  makes "persistent Drive C" (#20) fall out for free: flash holds the records, and
+  §4.1 says the loader will not re-format them.
 
 **The write path is verified too.** The DPB above was first read off the read
 side; the whole round trip now passes through `cpmtools` as well, on an image
