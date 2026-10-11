@@ -103,23 +103,23 @@ message. A modal is the opposite: it blocks, it expires, and it produces nothing
 - `research/pictures/` photos of the physical boards are **primary sources**,
   taken in-project — never treat them as replaceable stock images.
 - Issue labels: `research`, `pre-hardware`, `hardware`, `firmware`,
-  `software`, `hardware-gated`, `documentation`, `misc`. Phase flow: Phase 0
-  research → Phase 1 hardware (KiCad) → Phase 2 Pico 2 W firmware → Phase 3
-  Osborne-side software → Phase 4 on-hardware validation → Phase 5 modern-parts
-  reproduction → **Phase Ω delivery**. Don't start `hardware-gated` work in
-  software sessions.
+  `software`, `hardware-gated`, `documentation`, `deliverable`, `misc`. Phase
+  flow: Phase 0 research → Phase 1 hardware (KiCad) → Phase 2 Pico 2 W firmware
+  → Phase 3 Osborne-side software → Phase 4 on-hardware validation → Phase 5
+  modern-parts reproduction → **Phase Ω delivery**. Don't start `hardware-gated`
+  work in software sessions.
 - **`research` means the work *is* investigation.** It is not for issues whose
   *output* is a consolidation of research already done, a decision record, or
   documentation assembled from it — those are outcomes. The book (#75) is the
   worked example: it is "a consolidation pass, not a research pass", so it
   carries `documentation` alone.
-- **Phases 0–5 produce *work*; Phase Ω produces *deliverables*.** A **package**
-  is a thing somebody else could build, flash, run or read — normally hardware +
-  firmware (+ software). Packages hang off the Phase Ω parent (#133), one per
-  shippable artifact, and each declares what "finished" means for it.
-  **Outcomes never sit in a research tree**: that is why the book is a package
-  and not Phase 0 work, and why pulling it out moved Phase 0's bar from 15/23 to
-  15/22.
+- **Phases 0–5 produce *work*; Phase Ω produces *deliverables*.** A
+  **deliverable** is a thing somebody else could build, flash, run or read —
+  normally hardware + firmware (+ software). Deliverables carry the
+  `deliverable` label and hang off the Phase Ω parent (#133), one per shippable
+  artifact, and each declares what "finished" means for it. **Outcomes never sit
+  in a research tree**: that is why the book is a deliverable and not Phase 0
+  work, and why pulling it out moved Phase 0's bar from 15/23 to 15/22.
 
 ## Before declaring done
 
