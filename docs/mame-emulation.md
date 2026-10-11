@@ -63,6 +63,36 @@ The distinction matters: the SCREEN-PAC is modelled as *hardware only* (the
 replacement monitor ROM. That is independent evidence that the two 80-column
 upgrades are different designs — see #73 and `docs/o1-rom-variants.md`.
 
+### The SCREEN-PAC has three modes, and MAME models one of them
+
+The measured 104 columns is the SCREEN-PAC's *default*, not its only width. Its
+own user guide gives the full set, and all of them are selectable **by the stock
+BIOS**:
+
+> SCREEN-PAC has preset video contrast in **80 and 104 column format** … In
+> these same formats, SCREEN-PAC provides **horizontal scrolling by 32 column
+> blocks** … At BIOS location **E1A5H**, POKE or store **0 for 52 columns / 1 for
+> 104 columns / 3 for 80 columns**. CALL BIOS location **E4E5H**.
+> — *Osborne 1 SCREEN-PAC User Guide*, p. 13 (PDF p. 17)
+
+So 52 / 80 / 104 are three widths of **one window** (`o1-memory-io-map.md` §2a),
+and the stock ROM already contains the routine that switches between them —
+which is why "no ROM differences at all" is the right description of
+`osborne1sp`. MAME models the 104-column window; the **80-column mode should be
+reachable by poking `E1A5H` = 3 and calling `E4E5H`**, which is worth testing
+precisely because it is the other documented mode and the one nobody quotes.
+
+**Presence flag.** The same page records how software detects the upgrade with
+no ROM change:
+
+> reading 2400H (Bank 2) returns data **bit 2 LOW**. Without SCREEN-PAC, this bit
+> is read HIGH. This feature allows different screen responses and menus
+> depending on whether the Osborne is fitted with SCREEN-PAC.
+
+`2400H` in bank 2 sits inside the memory-mapped I/O window and was not in the
+map until now: it is a read-only presence bit, not a register
+(`o1-memory-io-map.md` §3).
+
 ## 3. ROM requirements
 
 Every ROM either machine needs, with the CRC32 MAME asserts against. Full

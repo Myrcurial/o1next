@@ -61,12 +61,13 @@ convention above; source of the TurboPac details used by
 
 References for the virtual Epson MX-80 printer personality (#19).
 
-## screenpac/ — OCC ScreenPac (80-column upgrade)
+## screenpac/ — OCC ScreenPac (80- and 104-column upgrade)
 
 | File | What it is | Sourced from |
 |---|---|---|
 | `2F00040_service_2ndEd_1983.pdf` (12 MB) | Osborne Field Service Manual, 2nd Edition, 1983. Covers the ScreenPac upgrade (Z80 + char-gen socket taps, dual-port video RAM). §6.12 documents the ScreenPac IC-harness fly-lead solder connections (used by `firmware/screenpac-video/`). | [bitsavers](https://bitsavers.trailing-edge.com/pdf/osborne/2F00040-00_Service2ndEdition_1983.pdf) |
 | `2F00040_service_2ndEd_1983.ocr.txt` | OCR text layer (per the convention above), generated 2026-10-09 | — |
+| `o1screenpacusersguide.pdf` (2.3 MB, 20 pp) | *Osborne 1 SCREEN-PAC User Guide*. **The primary source for what the upgrade does**, and it is more than a wider window: p. 13 (PDF p. 17) gives the three software-selectable widths (52 / 80 / 104), horizontal scrolling in **32-column blocks**, and the **presence flag at `2400H` bank 2** that lets software detect the board. Quoted in `docs/mame-emulation.md` §2 and `docs/o1-memory-io-map.md` §2a/§3 (#73, #24). | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1screenpacusersguide.pdf), supplied by the maintainer 2026-10-10 |
 
 The ScreenPac is the mechanical/electrical template for the interposer and
 for the video-output (HDMI) personality (#24, #9 photos).

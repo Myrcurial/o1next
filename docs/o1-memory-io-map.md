@@ -127,6 +127,18 @@ the underline attribute**, **bit 8 is dim**. Bits 0–7 are the byte in the vide
 RAM proper; bit 8 is the separate 4116 in bank 3. This is why the MAME probe
 masks with `% 128` to read characters (`tools/o1_mame_probe.lua`).
 
+**The window width is software-selectable.** The SCREEN-PAC user guide (p. 13)
+gives the mechanism, and it is in the stock BIOS rather than on the board:
+
+> At BIOS location **E1A5H**, POKE or store **0 for 52 columns / 1 for 104
+> columns / 3 for 80 columns**. CALL BIOS location **E4E5H**. … In these same
+> formats, SCREEN-PAC provides **horizontal scrolling by 32 column blocks**.
+
+So 52, 80 and 104 are three widths of one window onto the same 128×32 buffer,
+and the 32-column blocks are why the slide lands on round numbers. Without the
+SCREEN-PAC only 52 is available, because the wider windows need the board's
+dual-port video RAM — the ROM contains the routine either way.
+
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
 
 All onboard peripherals are **memory-mapped**, reached through the bank-2
@@ -139,6 +151,7 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
 | `2900–2903` | IEEE-488 PIA | MC6821 (**UC7**) | 2900 PA data/dir, 2901 PA ctrl, 2902 PB data/dir, 2903 PB ctrl |
 | `2A00–2A01` | Serial / modem ACIA | MC6850 (**UC4**) | 2A00 status(R)/control(W), 2A01 RX(R)/TX(W) |
 | `2C00–2C03` | Video PIA | MC6821 (**UC15**) | scroll/offset latches, bell, brightness, dim control |
+| `2400` (read) | SCREEN-PAC presence | — | **bit 2 LOW = SCREEN-PAC fitted**, HIGH = stock machine (user guide p. 13). Read-only status bit, not a register |
 
 ### 6850 ACIA detail (#21 modem, gap #10)
 - Base `2A00`: read = status, write = control. `2A01`: read = RX, write = TX.
