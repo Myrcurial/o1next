@@ -73,7 +73,7 @@ gap review (`research-gaps.md`) and the issues can be cross-checked quickly:
 
 | Path | Holds |
 |---|---|
-| `design/` | Generated artefacts — the "lunchbox" concept PDF/SVG (#52) |
+| `design/` | Generated artefacts — the O1NG concept PDF/SVG (#52) |
 | `mame-screens/` | Evidence screenshots from MAME runs, referenced by `mame-emulation.md` |
 
 ## Adding a doc

@@ -9,10 +9,18 @@ Tracks **#49** (Phase 5). Source: `hardware/o1ng/`.
 
 ## What it is
 
-The other half of the O1 Next Generation: instead of a 1:1 replacement board that
-keeps the original architecture, a **fully integrated board** in the "small form
-factor" build — everything the [interposer]({{ '/hardware/interposer/' |
-relative_url }}) does, designed in rather than plugged in.
+The **SFF board** — the foundation of the O1 Next Generation. A **fully integrated
+board**: everything the [interposer]({{ '/hardware/interposer/' | relative_url }})
+does, designed in as firmware rather than plugged in.
+
+**It is not a 1:1 swap, and it does not try to be.** The
+[LFF board]({{ '/hardware/lff-replacement/' | relative_url }}) is the board that
+drops into a real chassis. This one can go into a real chassis **or** into any
+other design — up to the end user. Nothing about it is constrained by a 1982
+footprint.
+
+**The [O1NG]({{ '/hardware/o1ng-complete/' | relative_url }}) is this board with
+the rest of the machine wrapped around it.**
 
 ## Why build it at all, if the interposer exists
 

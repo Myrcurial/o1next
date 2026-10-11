@@ -58,7 +58,7 @@ before Rev A schematic (#13).
 media.** SD/USB (via the front-panel pod) is the bulk store, but the
 interposer should carry enough onboard flash to hold a **built-in
 library — at minimum the boot diskette** — so the machine is useful
-with no card or stick inserted (and the o1ng lunchbox can boot
+with no card or stick inserted (and the O1NG can boot
 "factory" images out of the box).
 
 - Option A: SPI NOR flash (W25Q-class, 16–64 MB) — trivially enough for

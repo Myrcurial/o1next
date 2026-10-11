@@ -59,9 +59,12 @@ current budget is deferred to `hardware/wifi-modem-module/README.md`.
 Downstream of all of it:
 
 - **O1 Next Generation (#49, #52)** — modern-parts Osborne 1 reproduction running
-  original ROMs and software, in two form factors: a 1:1 mainboard replacement
-  for a stock chassis, and a ~8 cm thick "lunchbox" portable (O1A blue/grey
-  industrial design, 8" 4:3 LCD, USB-C PD / 18650 power). `hardware/o1ng/`
+  original ROMs and software. **Two boards:** an **LFF board**, a 1:1 mainboard
+  replacement for a real **OCC1 or OCC1A** chassis (the restoration path), and an
+  **SFF board**, fully integrated and deliberately *not* a 1:1 swap. **The O1NG is
+  the SFF board with the rest of the machine wrapped around it** — a ~8 cm thick
+  portable in O1A blue/grey with an 8" 4:3 LCD and USB-C PD / 18650 power; the C64
+  Ultimate "Crystal" idea applied to an Osborne. `hardware/o1ng/`
 - **Osborne-side software** — MOUNT.COM (#27), FATCOPY (#51), the CoPower-88
   driver (#26) and an updated boot disk (#28): `software/README.md`.
 
