@@ -96,6 +96,72 @@ dedicated 4116. Only `F000–FFFF` is affected.
 |---|---|
 | `F000–FFFF` | Video attribute RAM, 4K×1 (dim attribute = bit 8 of each cell) |
 
+### 2a. Video memory geometry — 128 columns wide, 52 displayed (#97)
+
+The 4 KB at `F000–FFFF` is **32 rows of 128 characters**, of which **24 rows of
+52 characters are displayed at a time**:
+
+> Memory from 0F000 hex to 0FFFF hex is used for the video memory map. That
+> memory is considered to be 32 rows of 128 characters, even though only 24 rows
+> of 52 characters are actually displayed on the monitor screen at a time. The
+> character matrix is 7 × 9 in an 8 × 10 box.
+> — *Osborne 1 Technical Manual*, §5.2 "Video Memory", p. 23
+
+**This is the answer to the "64 vs 52" question in #97.** The screen is a
+*window* onto a buffer 2.5× wider and 1.3× taller than what is shown, and the
+displayed width is a property of the window, not of the memory. That is why the
+same 4 KB shows 52 columns on stock hardware, 80 on Nuevo and 104 with the
+ScreenPac (`mame-emulation.md` §2) — the text layout is the CBIOS's, the window
+is the machine's.
+
+It is also why the scrolling feels different from a terminal's. Holding Ctrl and
+using the arrow keys slides the window over the memory rather than moving the
+memory, which is a register change and not a rewrite of the buffer — the same
+mechanism `mame-emulation.md` §6 calls a ring buffer. A terminal scroll *does*
+move the lines, which is why that stays chunky while the viewport slide is
+smooth. (The Ctrl+arrow slide is a hardware observation, reported on the real
+machine; the geometry above is the manual's.)
+
+**Bit fields** (§5.2, figure): bits 0–6 are the **ASCII character**, **bit 7 is
+the underline attribute**, **bit 8 is dim**. Bits 0–7 are the byte in the video
+RAM proper; bit 8 is the separate 4116 in bank 3. This is why the MAME probe
+masks with `% 128` to read characters (`tools/o1_mame_probe.lua`).
+
+**The window width is software-selectable.** The SCREEN-PAC user guide (p. 13)
+gives the mechanism, and it is in the stock BIOS rather than on the board:
+
+> At BIOS location **E1A5H**, POKE or store **0 for 52 columns / 1 for 104
+> columns / 3 for 80 columns**. CALL BIOS location **E4E5H**. … In these same
+> formats, SCREEN-PAC provides **horizontal scrolling by 32 column blocks**.
+
+So 52, 80 and 104 are three widths of one window onto the same 128×32 buffer,
+and the 32-column blocks are why the slide lands on round numbers. Without the
+SCREEN-PAC only 52 is available, because the wider windows need the board's
+dual-port video RAM — the ROM contains the routine either way.
+
+**Logical width is not physical width — this is what "64 vs 52" turns on.** The
+SCREEN-PAC guide (p. 13) separates the two, and it is the piece the technical
+manual's geometry leaves implicit:
+
+> **Logical screen size** refers to the number of characters you can enter on a
+> line without automatically inserting a carriage return. Logical screen size can
+> range from 1 up to a **maximum of 128 characters**.
+>
+> **Physical screen size** refers to the number of columns actually displayed on
+> your screen. With SCREEN-PAC, this will be 52, 80, or 104.
+> — *Osborne 1 SCREEN-PAC User Guide*, p. 13
+
+So a program's line width is a **software** choice up to 128 — the width of the
+video memory row — while the window is 52, 80 or 104. A drawing 64 columns wide
+is a *logical* line of 64 characters: it fits the row, and the window slides over
+it. The guide also warns against the obvious mistake, which is worth knowing
+before writing anything that sets a width: "logical screen size should NOT be
+less than physical screen size", or the display scrambles.
+
+The width is set from the configuration screen (Item C, "Screen Size", in the
+Osborne 1 Configuration Program) or from software by poking `E1A5H` and calling
+`E4E5H` as above. Both do the same thing.
+
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
 
 All onboard peripherals are **memory-mapped**, reached through the bank-2
@@ -108,6 +174,7 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
 | `2900–2903` | IEEE-488 PIA | MC6821 (**UC7**) | 2900 PA data/dir, 2901 PA ctrl, 2902 PB data/dir, 2903 PB ctrl |
 | `2A00–2A01` | Serial / modem ACIA | MC6850 (**UC4**) | 2A00 status(R)/control(W), 2A01 RX(R)/TX(W) |
 | `2C00–2C03` | Video PIA | MC6821 (**UC15**) | scroll/offset latches, bell, brightness, dim control |
+| `2400` (read) | SCREEN-PAC presence | — | **bit 2 LOW = SCREEN-PAC fitted**, HIGH = stock machine (user guide p. 13). Read-only status bit, not a register |
 
 ### 6850 ACIA detail (#21 modem, gap #10)
 - Base `2A00`: read = status, write = control. `2A01`: read = RX, write = TX.

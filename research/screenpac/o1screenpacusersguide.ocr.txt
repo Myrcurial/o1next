@@ -1,0 +1,701 @@
+
+===== PAGE 1 =====
+
+SCREEN-PAC™
+User’s Guide —
+
+
+===== PAGE 2 =====
+
+OSBORNE SCREEN-PACtm™
+
+USER'S GUIDE
+
+Manual Revision 1.1
+
+Osborne Computer Corporation
+
+Hayward, California
+
+
+===== PAGE 3 =====
+
+Copyright (c) 1983 Osborne Computer Corporation. All rights
+reserved worldwide. No part of this publication may be
+reproduced, transmitted, transcribed, stored in a retrieval
+system, or translated into any human or computer language, in any
+form or by any means, without the express written permission of
+Osborne Computer Corporation, 26538 Danti Court, Hayward, CA.
+94545 USA.
+
+Osborne Computer Corporation makes no representations or
+warranties regarding the contents hereof and specifically
+disclaims any implied warranty of merchantibility or fitness for
+any particular purpose. Osborne Computer Corporation also
+reserves the right to revise this publication and to otherwise
+change the product described without obligation to notify any
+person or organization of such revision or change.
+
+SCREEN-PACt™ and Extended Utility Diskette*™ are trademarks of
+Osborne Computer Corporation.
+
+This Manual written by Joseph Caggiano.
+
+Part No. 2F00154-02
+
+
+===== PAGE 4 =====
+
+CONTENTS
+
+Introduction
+
+User Registration
+
+Extended Utility Diskette
+
+Using an External Video Monitor
+
+Osborne 12" Monitors
+
+Preparing Applications Diskettes
+1. SYSGEN
+2. SETUP
+
+Selecting Screen Size
+
+Configuration Notes
+
+Reformatting Files
+WordStar
+
+SuperCalc
+
+Additional SCREEN-PAC Features
+
+10
+
+11
+11
+
+142
+
+13
+
+
+===== PAGE 5 =====
+
+Introduction
+
+SCREEN-PACt™ gives you new flexibility to configure the Osborne 1's
+video screen. In addition to the 52 column format originally
+provided by the Osborne, you can now select an 80 or 104 column
+video display. This means increased efficiency and convenience
+with more data on screen and less horizontal scrolling. You can
+also change screen size as needed to meet your requirements.
+
+The worksheets below show how the expanded screen gives you
+access to more data.
+
+ii E i
+this is ‘ Senple eases borkehest
+
+it
+2}
+3 Jan Feb Mar
+4HIASSETS ssa
+Sifiect.s Re 1868 1656 1102.5 1157.625
+§iCash 360 568 $25 §61.25
+sreneete Go es9@ 262.5 65.625 289.9963
+re fiss 1S5@ 1912.5 1693.125 1998.281
+LLILIABILITIES
+1Ztfeot.s Pa 1809 916.6667 846.2778 778.2546
+13'Storage C 58 58 58 5e
+i4{Labor 168 185 118.25 115.7625
+sepeeerrare 5a $2.5 55.125 57,88125
+dati Lia 1200 1124.167 1655.653 993.8994
+19{MIBT 358 688.3333 637.4722 1064%.383
+28iDep, Allo 180 168 198 1808
+> Al TL Text="This is 8 Sample SuperCale Wor
+eure ae 9 Memory: 22 Last Col/Row:025 ? for HELP
+
+52 Column SuperCalc Screen
+
+iH '
+hiro baal er Ret
+Se ee er |
+Siltect.s Receivable 008,08 1950.08 1962.58 1157.63 1215.51 1270.00 1PW.18 147,18
+SiCash eR ee es Bee eRe
+25,8 SSD EAL LS SLE
+
+$5.08 (08S. Sh SS
+100.00 105.08 1025 HS.76 ELE MTL I WT
+DA: eee ee | eB
+
+i.
+ea ate HOO TIDE? GES SOG. S589 RE OL
+
+seen tee
+
+NTatal bssets
+
+i
+
+AULIMILITIES
+
+$2ifieet.s Pagable 1008.08 S1G.57 OLR 7725 OT LU S82 9.
+13iStorage Costs
+
+{Labor
+
+1Silaterials
+
+$9008 TA08 606.33 SRT AT 1004.35 ISON 1918.89 198895 1020
+‘ope waar 106,08 100.68 180.05 108.08 108.00 100,09 108.08 108,08
+
+104 Column SuperCale Screen
+
+
+===== PAGE 6 =====
+
+Your Osborne Dealer has installed a new video socket next to the
+BATTERY connector on the front of the computer. You'll use this
+socket to connect an external video monitor to your Osborne.
+
+SCREEN-PAC also includes the Osborne Extended Utility Diskette™™
+which lets you set up your software for 52, 80, or 104 column
+display.
+
+User Registration
+
+Before using SCREEN-PAC, please complete the User Registration
+Card and the CP/M Software License Agreement.
+
+Users of Osborne 12" video monitors should also complete the
+Video Adaptor Request card and return it to Osborne Computer
+Corporation.
+
+Extended Utility Diskette*™
+
+The Extended Utility Diskette includes CP/M files needed to
+change screen size. The diskette has these files:
+
+AUTOST.COM
+COPY.COM 3.2
+MOVCPM.COM
+SETUP.COM 2.6
+SYSGEN.COM 2.1
+XDIR.COM 3.5
+
+We recommend you copy the Extended Utility Diskette as security
+against loss or damage to the original.
+
+Store the original diskette in a safe place. Use the copy to
+select the screen sizes you need.
+
+
+===== PAGE 7 =====
+
+Using an External Video Monitor
+
+This section concerns external video monitors other than the
+Osborne 12 inch. If you're using an Osborne 12 inch monitor,
+please go on to the next section of this Manual.
+
+The new video socket on the front of your Osborne is called an
+"RCA connector." External monitors attach directly to this
+connector without an external adaptor.
+
+To connect an external monitor:
+
+1. Turn the computer OFF.
+
+2. Be sure the "EXT VIDEO" plug originally supplied with your
+Osborne is in place to the left of the RESET button.
+
+3. Plug your external monitor into the RCA connector as shown
+below.
+
+RCA CONNECTOR
+
+2 Ie
+
+MONITOR CABLE
+
+EXTERNAL MONITOR
+
+
+===== PAGE 8 =====
+
+Osborne 12" Video Monitors
+
+Osborne 12" video monitors use a special SCREEN-PAC adaptor and
+cable. Osborne Computer Corporation will provide the adaptor
+directly to owners of these monitors free of charge. Simply
+return the Video Adaptor Request card included with SCREEN-PAC.
+
+The new video socket installed on the front of your Osborne is
+called an "RCA connector.” Connect your Osborne monitor to it
+
+this way:
+1. Turn your computer OFF and remove the “BXT VIDEO" plug to
+the left of the RESET button.
+2. Plug the SCREEN-PAC adaptor into the "EXT VIDEO" socket.
+
+3. Connect the Osborne 12" monitor to the SCREEN-PAC adaptor.
+
+4. Plug the cable on the SCREEN-PAC adaptor into the round RCA
+connector.
+
+RCA CONNECTOR
+
+MONITOR CABLE
+
+SCREEN-PAC ADAPTOR
+
+OSBORNE 12" VIDEO MONITOR
+
+
+===== PAGE 9 =====
+
+Preparing Applications Diskettes
+
+With SCREEN-PAC you can set screen size individually for each of
+your applications diskettes. You may decide, for example, to use
+an 80 column display for WordStar and 104 columns for SuperCalc.
+The CP/M utilities on the Extended Utility Diskette make the
+choice possible.
+
+Selecting screen size is a two-step process. First, use SYSGEN to
+transfer CP/M from the Extended Utility Diskette to the
+particular applications diskette. Then, use SETUP to specify the
+sereen size on the applications diskette.
+
+NOTE: The SETUP program on the Extended Utility Diskette differs
+from previous versions. After preparing your applications
+diskettes, use PIP to copy this program onto each of them. We
+also recommend that you rename this SETUP program to SETUP80 to
+avoid confusion. Chapter 2 of the Osborne User's Reference Guide
+describes PIP and file renaming.
+
+1. SYSGEN
+
+Place a copy of the Extended Utility Diskette in drive A, close
+the drive door, and press RETURN. You'll see this screen after
+the Osborne loads CP/M:
+
+Loading CP/M
+
+Extended Directory version 3.5
+AUTOST .cCOM 2k
+6k
+
+copy . COM
+
+movcrm .COM 12k
+SETUP .COM 6k
+SYSGEN .COM 2k
+XDIR COM 4k
+
+Disk A: 2K blocks i
+ie 92K, 6 Files, Used= 34K, Space= 58K
+
+
+===== PAGE 10 =====
+
+Type SYSGEN after the A> on the above screen. Then press RETURN.
+The system responds with the following screen:
+
+Operating System Generation Progran
+ae OSBORNE COMPUTER SYSTEM OnE
+Rev 2.1 (ce) 1982 OCC
+
+SDURCE drive (A or B) _
+
+Since drive A contains the Extended Utility Diskette, press A to
+designate it as Source drive. Then press RETURN.
+
+The Osborne reads the diskette and asks you to specify the
+Destination drive. The sequence on screen looks like this:
+
+rating System Generation Progran
+ae OSBORNE COMPUTER SYSTEM ONE®
+Rey 2.1 (oc) 1982 OCC
+
+drive (fA or BD AR
+
+diskette in drive fA, then press RETURN
+ysten read successfully.
+
+DESTINATION (A,B or RETURM to exit) _
+
+Press B to designate drive B as Destination.
+
+Select the applications diskette (WordStar, SuperCalc, etc.) to
+which you're transferring CP/M. Place the diskette in drive B,
+close the door, and press RETURN.
+
+—
+
+===== PAGE 11 =====
+
+—————
+
+When CP/M has been transferred, you'll see this screen:
+
+Operating Systen Generation Program
+OSBORNE COMPUTER SYSTEM ONE
+Rev Z.1 {c} 1982 OCC
+
+drive (fi or B) A
+diskette in drive fA, then press RETURN
+ysten read successfully.
+
+«A,B or RETURN to exit) B
+[ry diskette in B, then press RETURN
+ystem copied successfully.
+
+DESTINATION (A,B or RETURN ta exit) _
+
+Press RETURN to exit from SYSGEN and display the CP/M prompt A>.
+
+2. SETUP
+
+After transferring CP/M to the applications diskette, the next
+step in implementing SCREEN-PAC is to specify screen size for
+that diskette. We'll use the SETUP program to do this. The
+Extended Utility Diskette should still be in drive A and your
+applications diskette in drive B.
+
+With the A> prompt on screen, type SETUP. Then press RETURN.
+You'll see this message in response:
+
+OSBORNE 1 Configuration Progran Rev 2.6
+
+Select source diskette for configuration (A or B)
+or press “M" to get source fron menory
+
+
+===== PAGE 12 =====
+
+Since we're configuring the applications diskette in drive B,
+press B. The Osborne responds with this screen:
+
+GSBORNE 1 Configuration Progran Rev 2.6
+
+Put SOURCE diskette in drive B
+then press RETURH_
+
+The applications diskette is already in drive B. Press RETURN to
+display the configuration screen:
+
+OSBORNE 1 Configuratian Progran Rev 2.6
+
+A PRINTER MENU B BAUD RATE
+STANDARD SERIAL 1248
+€ SCREEN SIZE 0 AUTO HORIZONTAL SCROLL
+128 LOGICAL oH
+52 PHYSICAL
+£ FUNCTION KEYS F ARROV KEYS
+mie CP/M
+22
+$3
+74
+5: 5
+: 6
+T2
+8: 8
+9; 9
+
+Press “A=-F" to change values
+or RETURN to exit _
+
+This screen is described in Chapter 2 of the Osborne User's
+Reference Guide. Its functions are retained with SCREEN-PAC. Item
+C, “Sereen Size," now lets you specify 52, 80 or 104 column
+format.
+
+
+===== PAGE 13 =====
+
+Selecting Screen Size
+
+Screen Size (Item C) on the configuration screen shows the
+system's current format. In the configuration screen above, the
+logical screen size is 128 characters. The physical screen size
+is 52 characters. What do these screen sizes mean?
+
+Logical screen size refers to the number of characters you can
+enter on a line without automatically inserting a carriage
+return. Logical screen size can range from 1 up to a maximum of
+128 characters.
+
+Physical screen size refers to the number of columns actually
+displayed on your screen. With SCREEN-PAC, this will be 52, 80,
+or 104.
+
+While the configuration screen is displayed, press C. You'll be
+given a list of screen options in response:
+
+OSBORNE 1 Configuration Progran Rey 2.6
+
+CURRENT SCREEN SIZE
+128 LOGICAL
+
+52 PHYSICAL
+
+LOBICAL PHYSICAL
+A 2 D0 S2
+B 128 E 80
+
+Beek 2 F 164
+
+Press “A-F” to select screen size
+or RETURN to return to main menu _
+
+Logical screen sizes are listed in the left column. Physical
+screen sizes are listed on the right.
+
+We strongly recommend you use 128 as logical screen size. To
+prevent scrambled screen displays, logical screen size should NOT
+be less than physical screen size.
+
+===== PAGE 14 =====
+
+For physical screen size, SCREEN-PAC gives you a choice of 52,
+80, or 104 columns. The number of columns you choose to display
+can vary with the application. You might find 80 columns
+convenient for many uses, but 104 preferable for worksheets such
+
+as SuperCalc's.
+
+To select screen size:
+
+1. Press the letter corresponding to the number of columns
+you wish to use. Do this for both physical and logical
+
+screen size if necessary.
+
+2. Press RETURN. The Osborne will display your choice on the
+
+configuration screen.
+
+Configuration Notes:
+
+If you're setting up SuperCalc, turn OFF the Auto Horizontal
+
+Scroll (Item D on the configuration screen).
+
+If you're setting up WordStar, turn OFF the Auto Horizontal
+Scroll and set the Arrow keys to "WordStar" (Item F on the
+
+configuration screen).
+
+The remaining settings on the configuration screen (printer,
+baud rate, function keys) generally needn't change from what
+
+you've used previously.
+
+The screen size and configuration need to be recorded on your
+applications diskette. When you've completed your choices from
+the configuration screen, press RETURN. You'll see this message:
+
+OSBORNE 1 Configuration Progran Rev 2.6
+
+Select destination diskette (A or B)
+or press “MM” to save in memory
+or RETURH to exit
+
+Press B to designate the diskette in drive B as Destination.
+press RETURN.
+
+Then
+
+The Osborne writes the new configuration onto the applications
+diskette. The CP/M prompt A> will appear when the process is
+
+complete.
+
+10
+
+
+===== PAGE 15 =====
+
+You've now configured the applications diskette to display the
+number of columns specified.
+
+Reformatting Files
+
+You may wish to reformat your work files to conform to changes in
+screen size. You could, for example, expand 52 column WordStar
+text to 80 columns or 80 column SuperCalec sheets to 104.
+
+Here are formatting techniques for WordStar and SuperCalc. The
+particular formatting routines for other applications programs
+remain applicable with SCREEN-PAC.
+
+WordStar
+
+WordStar uses “0 (control 0) and “B (control B) formatting
+commands. You can quickly reformat a file this way:
+
+1. Use “OR to specify the right margin of the display.
+2. Set Hyphen Help OFF (“*OH).
+3. Position the cursor at the beginning of the text (*QR).
+
+4. Type the command “QQ*B.
+Your file will be reformatted to display up to the right margin.
+
+WordStar has a default value of 66 text columns, the standard
+width of a printed page. This means that files normally display
+in 66 columns after you've saved them on diskette. By using
+WordStar's INSTALL program, you can change the default value to
+automatically get a wider display.
+
+The INSTALL utility is explained in Appendix 1, "Modifying
+WordStar," of the Osborne User's Reference Guide. To set a new
+default value for screen width go through the installation menus
+until you reach the message:
+
+You may modify any location described in the listing
+at the end of the User Manual or the Customization Notes.
+
+The locations to change for screen width are WID: and INITRM:
+
+11
+
+===== PAGE 16 =====
+
+The following table shows hex values to specify at these
+locations and the corresponding changes in WordStar:
+
+WordStar
+Hex Ruler Line Flag Line
+WID: 64 100
+INITRM: 50 80
+SuperCalc
+
+Reformat SuperCale files by using the INSTALLS utility included
+on the SuperCalc diskette. To access this file, enter /Q at the
+SuperCalc command line, then press Y(es). This displays the CP/M
+prompt A>.
+
+When the A> prompt appears, type INSTALLS and press RETURN.
+You'll see this screen in response:
+
+ADdinstalts
+
+SuperCato(te) Install Progran
+Version £.85
+
+This program will let wodif:
+the SuperCale(tm> file'en 0 isk.
+Do you wish tea proceed (Y¥ 1
+
+Press Y to proceed with reformatting. SuperCalc asks the name of
+the file you're modifying. Type SC and press RETURN. Then follow
+the instructions on screen to specify the new screen width.
+
+In SuperCale Version 1.05, you can reformat and save 52-column
+worksheet files for a wider display. This requires you to load
+each file by specifying the range of cells to be displayed.
+
+Enter the load command /L followed by the file name. Then press
+P(art). Specify the upper leftmost cell on your worksheet as the
+beginning of the range, the lower rightmost cell as the end, and
+again the upper leftmost for worksheet positioning on screen.
+
+For example, to display the SuperCalc worksheet, "BALANCE.CAL,"
+in expanded format, enter the instructions:
+
+/L(oad), Balance, P(art), A1:025,A1
+
+12
+
+===== PAGE 17 =====
+
+This will display the sample worksheet from column A through 0
+and row 1 through 25. A block of cells up to 104 columns wide can
+be displayed this way.
+
+ADDITIONAL SCREEN-PAC FEATURES
+
+Besides expanding the Osborne's data display, SCREEN-PAC has
+preset video contrast in 80 and 104 column format. This means you
+don't need to use the contrast control on the front of the
+Osborne.
+
+In these same formats, SCREEN-PAC provides horizontal scrolling
+by 32 column blocks. This allows quick cursor movement across the
+screen when necessary.
+
+SCREEN-PAC also gives you capability to change screen size
+by using the RUN command in an MBASIC program. Switching the
+screen display involves two steps:
+
+1. At BIOS location E1A5H, POKE or store
+O for 52 columns
+
+1 for 104 columns
+
+3 for 80 columns.
+
+2. CALL BIOS location E4E5H.
+
+This procedure uses the BIOS to write to location 2400H in Bank
+2. This location is also flagged. With SCREEN-PAC installed,
+reading 2400H (Bank 2) returns data bit 2 LOW. Without SCREEN-
+PAC, this bit is read HIGH. This feature allows different screen
+responses and menus depending on whether the Osborne is fitted
+with SCREEN-PAC.
+
+13
+
+===== PAGE 18 =====
+
+cut
+
+VIDEO ADAPTOR REQUEST
+
+If you're using SCREEN-PAC with an Osborne 12" video monitor,
+please return this card. Osborne Computer Corporation will mail
+a SCREEN-PAC video adaptor directly to you free of charge.
+
+This adaptor is for use ONLY with the Osborne 12” monitor.
+
+Name
+
+Address
+
+Telephone
+
+Serial Number of your Osborne
+
+
+===== PAGE 19 =====
+
+3Y3H
+dWVLS
+XlddV
+
+a aa = SO es SES
+
+33H FidVIS
+
+gyaoddng [eotuyoey, OVd-NAGUHOS
+
+GySp6 “vO ‘paemkey
+yanop tTyueqd gfsg9z
+uotyeiodi0og aszaqgyndmog eur0gsgo
+
+*NLLV
+
+Ver re
+
+===== PAGE 20 =====
+
+23SBORNE
+
+COMPUTER CORPORATION
+26538 Danti Court, Hayward, California Phone: (415) 887-8080 TWX: (910) 383-2021
+
