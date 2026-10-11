@@ -193,7 +193,7 @@ bit 7 of `h2` is the sector.
 > longer distinguishes those three banks. §10 records that as the open question
 > it is.
 
-Measured examples from the trace: the boot-time format writes `h1 = 00h…0Fh`
+Measured examples from the trace: the install-time format writes `h1 = 00h…0Fh`
 with `h2 = 8Ch` (→ `DE = 1,3,5,…,31`) and `h1 = 00h…0Fh` with `h2 = 0Ch`
 (→ `DE = 0,2,4,…,30`); and the first operation is a read at `h1 = E8h`,
 `h2 = 83h` → `DE = 0x7D1`.
@@ -380,13 +380,21 @@ independently. `docs/drive-c-executive.md` §3.
 
 ### 8.5 What the trace shows about the format
 
-At boot the software writes `0xE5` (CP/M's blank byte) across two regions —
+At install the software writes `0xE5` (CP/M's blank byte) across two regions —
 `h1 = 00h…0Fh, h2 = 8Ch` and `h1 = 00h…0Fh, h2 = 0Ch`, i.e. `DE = 0…31` — then
 **reads each block back** to verify. Two regions, 16 blocks each, 128 bytes per
 block: 4 KiB, which is the *directory and boot area*, not the whole disk. The
 format is therefore incremental and continues as the disk is used. A later pass
 of writes touches `h1 = 18h, 19h, 20h, 28h` — the directory region again, at `DE`
 around `0x30–0x50` — which is `DCL` installing itself.
+
+**It happens once, not at every boot.** The vendor's loader is guarded by a marker
+file on the unit: `DCQ T + n` skips its copy when **`DCLOADED.SYS`** is present
+(and creates it when it is not), and `DCL.COM` refuses a second install with
+`Driver is already installed`. A reboot — reset button included — therefore does
+not re-format the unit; forcing a reload means `ERA DCLOADED.SYS`, or `DCU E` to
+erase everything. The reproduction's persistence story rests on this:
+`docs/drive-c-design.md` §4.1.
 
 ## 9. Validation — the spec, run against the software
 
@@ -446,7 +454,7 @@ replacement; the first item below has moved to #84, which is where it belongs.
    comes from something not yet identified. This is now the sharpest question in
    the document. It is testable (write across the whole 384 KiB, read back) and
    it cannot be settled from software alone: the trace never reaches `n ≥ 1`,
-   because the boot-time format and `DCL`'s own install only touch tracks 0–40.
+   because the install-time format and `DCL`'s own install only touch tracks 0–40.
    **It does not block a reproduction** — a box that treats `f` exactly as the
    driver does behaves identically whatever `f` turns out to mean, provided the
    replacement presents 192 KiB or less. It is recorded as a **hardware-gated
