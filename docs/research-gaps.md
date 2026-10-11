@@ -34,7 +34,7 @@ status.
 
 1. **#39** — the identity of the three target machines (user action; blocks gap 12).
 2. **Drive C's command set** — blocks #6/#22, and therefore the standalone Drive C
-   adapter (#84, `hardware/drive-c-adapter/`).
+   reproduction (#84, `hardware/drive-c/`).
 3. **The hard-disk controller decision (#8)** — two products are characterised;
    pick the one worth emulating before any personality code is written.
 4. **The RT-60A ABI (#7)** — decide the contract, then implement it in #18.
@@ -194,7 +194,7 @@ constrains any 2.0 ROM (#83).
 After the 2026-10-11 triage the label means **reverse engineering and
 documentation** again. Five issues left it: **#35** and **#82** (`misc` — upstream
 contributions), **#97** (`misc` — site and font), **#84** (a build, now
-`hardware/drive-c-adapter/`) and **#52** (Phase 5). **#83** was never
+`hardware/drive-c/`) and **#52** (Phase 5). **#83** was never
 research-labelled and has been removed from this table.
 
 | Issue | Title | State | What closes it |
@@ -235,7 +235,7 @@ re-derivable from a source:
   and the recovered logo art. The modern font is split out as **#107**
   (`Osborne1ng.ttf`).
 - **#84 is a build**, filed beside the other standalones (#47, #56) in
-  `hardware/drive-c-adapter/`, not under the interposer.
+  `hardware/drive-c/`, not under the interposer.
 - **#52 belongs to Phase 5** (#49).
 - **The book is ungated.** #75 no longer waits on every research issue; it is a
   rolling build (#108–#115), with Part I and the appendices buildable today.

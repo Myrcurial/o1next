@@ -40,9 +40,9 @@ with no interposer, no BIOS change, and nothing cut:
 - **Severable WiFi modem (#56, #21)** — ESP32 Zimodem fork (telnet + SSH) that
   hangs off the MODEM (P1) port, powers itself from the port, and needs no case
   opened. `hardware/wifi-modem-module/`
-- **Standalone Drive C adapter (#84)** — RP2040 + flash on the IEEE-488 port
+- **Standalone Drive C reproduction (#84)** — RP2040 + flash on the IEEE-488 port
   (P3), powered from the P5 video connector, reproducing the machine's own RAM
-  disk. `hardware/drive-c-adapter/`
+  disk. `hardware/drive-c/`
 
 Each attaches to a port the machine already exposes, and each is reversible. The
 USB keyboard adapter doubles as the matrix-injection firmware for the

@@ -17,7 +17,7 @@ on hardware. Each page says what is actually in hand, not what is planned.
 |---|---|---|
 | [USB keyboard interface]({{ '/hardware/keyboard-interface/' | relative_url }}) | P4 keyboard connector | Reference design defined; spec validation pending |
 | [External WiFi modem]({{ '/hardware/external-modem/' | relative_url }}) | MODEM (P1), DE-9 | Concept; pinout and levels documented |
-| [Drive C adapter]({{ '/hardware/drive-c/' | relative_url }}) | IEEE-488 (P3) + video (P5) | Concept; blocked on the #6 protocol |
+| [Drive C reproduction]({{ '/hardware/drive-c/' | relative_url }}) | IEEE-488 (P3) + video (P5) | Concept; blocked on the #6 protocol |
 | [Floppy adapter]({{ '/hardware/floppy-adapter/' | relative_url }}) | Mainboard floppy header | Rev A schematic captured; ready for routing review |
 | [Bus interposer + control pod]({{ '/hardware/interposer/' | relative_url }}) | Z80 socket, char-gen socket, ribbon to the pod | Rev A engineering-sample schematic generated |
 | [LFF replacement board]({{ '/hardware/lff-replacement/' | relative_url }}) | Replaces the mainboard, 1:1 | Block-level KiCad skeleton |

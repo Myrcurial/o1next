@@ -1,9 +1,14 @@
-# drive-c-adapter — standalone Drive C replacement (IEEE-488)
+# drive-c — a Drive C reproduction (IEEE-488)
 
-**A buildable replacement for the Drive C RAM disk.** Standalone: no interposer,
-no Z80 socket, no reverse-engineering of an undocumented controller. It attaches
-to interfaces the machine already exposes and does the one thing the O1's
-IEEE-488 port was designed for.
+**A Drive C, rebuilt on modern parts.** Standalone: no interposer, no Z80 socket,
+no reverse-engineering of an undocumented controller. It attaches to interfaces
+the machine already exposes and does the one thing the O1's IEEE-488 port was
+designed for.
+
+It is a **reproduction**, not an adapter: the machine sees the same device on the
+same bus speaking the same protocol, so period software drives it unchanged. Look
+closely and you find an RP2040 where the original had a handful of TTL — which is
+the whole point of the exercise.
 
 Tracks: #84 (device), #6 (the protocol it must speak). Sibling of
 `usb-keyboard-adapter/` and `wifi-modem-module/` — same idea: a period device
