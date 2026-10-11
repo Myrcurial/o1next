@@ -69,6 +69,23 @@ The stdlib-only rule for `tools/` is about *shipped* tooling. A host-only or
 build-time tool is a different question — and it is a question worth asking
 rather than engineering around.
 
+## Asking the user — never use the blocking question modal
+
+The interactive question modal (the multiple-choice prompt that blocks the turn)
+**times out after five minutes and returns nothing**. The question is lost, the
+agent has no answer, and the user loses their place mid-read. It is not a usable
+channel.
+
+- **Never use it.** No multiple-choice modals, no other blocking prompt.
+- **Ask in plain prose, in the normal reply.** If a choice is genuinely needed,
+  state the options as a short numbered list in the text.
+- **Never block on an answer.** Do the reversible, in-scope part first, then say
+  plainly what is waiting on the user and why.
+
+This is the second kind of "ask" in this file. The section above is about asking
+for **host tooling**, and it works because the answer arrives as an ordinary
+message. A modal is the opposite: it blocks, it expires, and it produces nothing.
+
 ## Repo layout and house rules
 
 - `research/` is an **intentional in-repo archive** of large binaries (PDF
