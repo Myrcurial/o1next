@@ -87,6 +87,22 @@ driver above**, which independently confirms both the count and the order: the
 the same routine seen in the ROM's high mapping (see §6). The articles name the
 drivers; the ROM fixes their addresses and their order.
 
+Checked in the bytes, in every stock image the project holds — all of them carry
+eight `C3` (`JP`) triples from `013F`, the eighth at `0154`:
+
+| ROM | the first seven entries | 8th entry at `0154` |
+|---|---|---|
+| factory 1.40 (`tools/emulator-setup/roms/rev1.40.ud11`) | `C3 36 09`, `C3 79 09`, `C3 8C 09`, `C3 98 09`, `C3 D8 09`, `C3 FB 09`, `C3 3D 0A` | `C3 99 0A` |
+| factory 1.44 (`research/roms/os1-144.rom`) | `C3 49 09`, `C3 8C 09`, `C3 9F 09`, `C3 AB 09`, `C3 EB 09`, `C3 0E 0A`, `C3 50 0A` | `C3 AC 0A` |
+| Nuevo 1.51 (`tools/emulator-setup/roms/monrom-rev1.51-12.ud11`) | `C3 3D 09`, `C3 80 09`, `C3 93 09`, `C3 9F 09`, `C3 DF 09`, `C3 02 0A`, `C3 44 0A` | `C3 A0 0A` |
+
+**The parallel-poll routine moves between ROM revisions** — `0AAC` in 1.44,
+`0999` in 1.40, `0AA0` in Nuevo's 1.51 — which is exactly why the joystick
+article's source must be assembled at a different origin per monitor version and
+then hand-patched. Same table, different targets: a usable ROM-variant
+signature, and the thing OZROM 1E destroys.
+
+
 ## 3. Errors the drivers report
 
 - **Time Out** — non-fatal: *"a 100 microsecond grace period of time for the
