@@ -11,7 +11,7 @@ no PCB layouts exist yet (Phase 1, issue #11).
 | Folder | Device | Issues | Status |
 |---|---|---|---|
 | `interposer/` | Z80 bus interposer — the core board. **Rev A engineering sample** (`interposer/reva/`, 2-off, SMD): active interposer w/ SMT Z84C00, /BUSRQ bus mastering (memory R/W + code injection), Pico 2 + ESP32-C3, W25Q library flash. Rev 0 passive probe superseded (kept for record) | #11, #12, #13, #15 | Rev A ES schematic generated, ready for KiCad capture review + routing |
-| `front-panel-ui/` | Front panel faceplate & UI pod — SD/USB storage, VGA/HDMI out, OLED, FlashFloppy-style controls, modem LED bank | #14 | Concept |
+| `front-panel-ui/` | Front panel faceplate & UI pod — SD/USB storage, **HDMI out**, OLED, FlashFloppy-style controls, modem LED bank | #14 | Concept |
 | `usb-keyboard-adapter/` | Standalone RP2040 USB-HID → P4 keyboard adapter ("jam a USB keyboard into an O1"); two power variants: internal +12V (J6) or external powered-hub for no-open-case use | #47 | Reference design defined; spec validation pending |
 | `wifi-modem-module/` | Severable WiFi modem (ESP32 Zimodem fork: telnet + SSH, baud buffering) for the MODEM (P1) TTL port; ships with COMM PAC-look case STLs for the left storage pocket | #56, #21, #57 | Concept; P1/DE-9 pinout + levels documented |
 | `drive-c/` | Standalone Drive C reproduction — IEEE-488 on **P3**, RP2040 + flash, powered off the **P5** video shunt (which also yields composite video). No interposer, no Z80 socket; the same firmware doubles as the #22 personality | #84, #6 | Concept; blocked on the #6 command set |

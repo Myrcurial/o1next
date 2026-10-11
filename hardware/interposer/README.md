@@ -94,8 +94,9 @@ with no card or stick inserted (and the O1NG can boot
     address lines with 2 (ADDR_HIT, /WAIT drive).
   - Timing-critical direct set is only: D0–7, /MREQ, /IORQ, /RD, /WR,
     /M1, CLK, DATA_OE/DIR — 13 pins.
-  - **HSTX is fixed to GP12–19** on RP2350 → HDMI there, either/or
-    with VGA on the same range.
+  - **HSTX is fixed to GP12–19** on RP2350 → **HDMI** there. A VGA
+    resistor DAC would need the same range, so the two are mutually
+    exclusive; **HDMI is the choice** and VGA is not pursued.
   - **Status/LED bank moves to the ESP32** (charlieplexed or I²C
     expander); SD on SPI (4-bit SDIO-via-PIO deferred); I²C pair
     reserved for front-panel OLED/encoder/expansion.

@@ -28,7 +28,7 @@ Live response does **not** require direct address pins:
 |---|---|---|
 | GP0–7 | **D0–7** data bus | via 74AHCT245 (bidir) |
 | GP8–11 | **/MREQ, /IORQ, /RD, /WR** | direct, raw edges — cycle framing |
-| GP12–19 | **HSTX → HDMI** | HSTX is fixed to GP12–19 on RP2350; either/or with VGA resistor DAC on the same range (front-panel pod carries the connector) |
+| GP12–19 | **HSTX → HDMI** | HSTX is fixed to GP12–19 on RP2350; a VGA resistor DAC would need the same range, so the two are mutually exclusive — **HDMI is the choice**, VGA not pursued (front-panel pod carries the connector) |
 | GP20 | /M1 | direct (opcode-fetch vs cycle typing) |
 | GP21 | CLK | direct — PIO timing reference |
 | GP22 | **/WAIT drive** | fast OC buffer; the personality enabler |

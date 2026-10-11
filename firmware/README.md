@@ -20,7 +20,7 @@ See `software/` for code that runs on the Osborne itself (CP/M) and
 | `floppy-emulator/` | RP2350 | MFM flux interposer + `.IMD`/`.HFE` image library ("Drive C" RAM disk option) | #20 | Hardest |
 | `drive-c-gpib/` | RP2350 | Drive C IEEE-488 ramdisk/storage device personality, incl. the **TurboPac** variant (Drive C as cache in front of a Trantor hard disk) | #22, #6 | Medium |
 | `occ1-harddisk/` | RP2350 | ACT 1982 Z80-interposer winchester personality — original driver set already in hand, no Osborne-side code needed | #8, #32 | Medium |
-| `screenpac-video/` | RP2350 | SCREEN-PAC 80/104-col video + HDMI/VGA out; char-gen socket tap, reads installed font ROM at init | #24, #44 | Medium-hard |
+| `screenpac-video/` | RP2350 | SCREEN-PAC 80/104-col video + **HDMI out**; char-gen socket tap, reads installed font ROM at init | #24, #44 | Medium-hard |
 | `kvm-console/` | RP2350 + RP2040 | Web KVM: video snoop (reuses screenpac-video) + keyboard matrix injection (reuses keyboard-matrix) | #45 | Medium (composition) |
 | `copower88-shim/` | RP2350 | Virtual CoPower-88: 8088 emulation + host mailbox protocol so SWP software runs without the physical board | #23, #3-#5 | Hardest; sequence last |
 | `web-ui/` | RP2350 | C64 Ultimate-style HTTP interface: image library, modem, printer PDFs, status, control | #16, #27 | Medium |

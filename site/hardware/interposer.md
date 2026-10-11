@@ -59,7 +59,7 @@ CoPower-88 (#23), the SCREEN-PAC video personality (#24) and the web KVM console
 ## The control pod
 
 A ribbon cable to the front-panel pod (`hardware/front-panel-ui/`) carries
-**SD/USB storage, VGA/HDMI out, an OLED, FlashFloppy-style controls, a modem LED
+**SD/USB storage, HDMI out, an OLED, FlashFloppy-style controls, a modem LED
 bank**, and a **second-keyboard USB-A path**.
 
 ## Onboard storage
