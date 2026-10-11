@@ -86,9 +86,34 @@ cut from, so it can be checked against the original.
 | `TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf` (3.3 MB, 6 pp) | "**Reverse Video and a Faster Serial Port**" by **Thom Hogan** — changing the underline cursor to a reversed-video one, and pushing the serial port to **9600 baud**, with the schematic changes. Relevant to #24 (video) and #21 (serial/modem). Worth noting the author: the same Thom Hogan whose `AUTOCPM.ASM` is the source of the site wordmark (#97). | *The Portable Companion* #13, June/July 1984 — PDF pp. 26–31 |
 | `TPC-Issue15-1985-pp72-77-16bit-msdos-and-cpm-for-your-o1.pdf` (4.9 MB, 6 pp) | "**16-Bit MS-DOS & CP/M For Your Osborne One!**" by **Robert J. Thomson** — the **Co-Power-88**: an 8088 processor, MS-DOS / CP/M-86 / CP/M, and a 256K memory disk under regular CP/M, with the installation. Directly relevant to #23/#26 and the CoPower-88 work in `research/copower88/`. | *The Portable Companion* #15, January/February 1985 — PDF pp. 72–77 |
 
-Page numbers are the **PDF** page numbers in the archive.org scans; both issues
-print their own numbers two lower (`PDF = printed + 2`), so issue 13's article
-runs over printed pages 24–29.
+### How these extracts are made
+
+The maintainer reads the issues and hands over the ones worth keeping, giving the
+**PDF page sequence** to cut. The standing workflow:
+
+1. Cut the pages: `pdfseparate -f A -l B ISSUE.pdf /tmp/p%03d.pdf` then
+   `pdfunite /tmp/p*.pdf OUT.pdf`.
+2. OCR the extract with `tools/ocr_pdf.sh OUT.pdf` — adjacent, per the convention
+   above. **Wait for its `Wrote <path>` line before committing**; the file exists
+   while it is still being written.
+3. Add a row below, and write the findings into the `docs/` page they bear on
+   with the extract cited.
+
+Two things to know before cutting pages:
+
+- **Page numbers are PDF pages, not printed pages.** Both issues checked so far
+  print their own numbers two lower (`PDF = printed + 2`), so an article "on page
+  26" is PDF page 26 and printed page 24 — and cutting printed 26 would miss the
+  article's title page. Confirm with `pdftotext -f N -l N -layout ISSUE.pdf - |
+  tail -3`, which prints the page's own folio.
+- **Provenance for every article from *The Portable Companion* is the same
+  collection**: <https://archive.org/details/theportablecompanion>. Rows
+  therefore cite the issue and the page range rather than a per-file URL.
+
+The **full issues are not kept in the repo** — 50–60 MB each, and they live on
+the Internet Archive and on the maintainer's own backup. Only the extracts are
+committed, and they are cut from files outside the repo (the maintainer's
+`~/Documents` tree), never from a copy inside it.
 
 ## copower88/ — SWP CoPower-88 (Z80-coprocessor board being reverse-engineered)
 
