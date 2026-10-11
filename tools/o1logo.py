@@ -36,8 +36,6 @@ STROKE_H = 13                     # horizontals thinner than verticals, as a rou
                                   # letter has it -- and the O's counter is taller
                                   # for it, at the same width
 HATCH, HATCH_T = 8, 2             # full-width rules, every 8 sub-pixels
-HATCH_MID = 25                    # the middle of the three rules the O's counter
-                                  # straddles: the one that carries through a G
 TOP = 4                           # the O's ink starts at sub-row 4
 TRACK = 8                         # letter spacing
 
