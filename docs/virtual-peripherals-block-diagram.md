@@ -211,3 +211,77 @@ flowchart LR
 The interposer first **passively sniffs** each real device to pin its
 protocol (the reverse-engineering phase), then can **emulate** it on the
 same decode so the original software runs against the virtual version.
+
+## 7. Personality selection — the gate, and where each personality stands
+
+**No decisions have been taken here.** This section is the *input* to that
+decision: the rule we apply, what it misses, and the resulting map — recorded so
+the choice is argued once rather than re-derived per personality.
+
+### The current rule, and its gap
+
+`firmware/README.md` states the project rule: *"If we hold the drivers for a piece
+of period hardware, we plan a personality for it."* That is necessary but not
+sufficient — on its own it says nothing about whether a personality can be
+*tested*, whether it collides with another, or whether the fitted ROM still
+supports it.
+
+### The five tests
+
+1. **Driver held?** — the existing rule. A driver means no Osborne-side software
+   work and a known-good test suite.
+2. **Interface reachable?** — Z80 socket, char-gen socket, or a port (P1/P2/P3/P5),
+   without cutting traces.
+3. **Testable?** — is there software we can *run* against it (MAME or hardware)?
+4. **Address-space arbitration** — does it collide with another personality?
+5. **ROM-gated?** — does the fitted ROM still support it? (#86 is closed; the gate
+   is built)
+
+### Stacking is not the constraint — addresses are
+
+Worth stating plainly, because it is easy to get wrong: **virtual interposers
+stack.** The maintainer's own machine carries a real SCREEN-PAC *and* a real
+CoPower-88 at the same time, which is the existence proof — and in the virtual
+case it is easier still, because every personality is firmware rather than a board.
+A personality that would have been a Z80-socket interposer in period (the ACT hard
+disk, the CoPower-88, the TRA video board) is therefore **not** excluded by
+occupancy: the interposer is already in that socket, so it can simply *be* the
+device.
+
+The real constraint is **decode**. Two personalities cannot claim the same
+addresses at once, and the O1's decode is famously loose — the "4 port boundary"
+the hard-disk controllers demand is the same coarse two-line decode the rest of
+the machine uses. So the arbitration question for each candidate is: *which
+addresses does the driver touch, and who else wants them?*
+
+### The map
+
+| Personality | Driver | Interface | Addresses it claims | ROM gate | Tier |
+|---|---|---|---|---|---|
+| `bus-analyzer` | — | Z80 socket | none (passive) | — | **0 — prerequisite for all** |
+| `rt60a-rtc` | ABI documented (#7) | mailbox; **no IEEE handshake** | the `0x0040` block is *software's*, not ours | fine | **1** |
+| `drive-c-gpib` | `DCL`/`DFD.SPR` ✓ | IEEE-488 (P3), PIA `2900–2903` | GPIB **device address** | **not under OZROM** | **1** |
+| `virtual-printer` | ROM IEEE driver ✓ | IEEE-488 (P3) | **device 3** | Centronics survives OZROM | **1** |
+| `floppy-emulator` | — | floppy bus | none (interrupts the Shugart bus) | — | **2** |
+| `screenpac-video` | — | Z80 + UA15 tap | video window + `2400H` bit | — | **2** |
+| `zimodem-fork` | — | P1 (TTL) | ACIA `2A00`/`2A01` | — | **2** |
+| `occ1-harddisk` | `HARD`/`PORTCHNG` ✓ | *virtual* Z80 interposer | a relocatable port window (#8) | ? | **3** |
+| `copower88-shim` | drivers + ROM ✓ | *virtual* Z80 interposer | `0x7E`/`0x7F` | ? | **3 — last** |
+| `kvm-console` | composition | video + keyboard | none | — | **3** |
+
+### The open question that decides the IEEE row
+
+Three personalities want the IEEE-488 port: Drive C, the virtual printer and the
+RT-60A. **GPIB is an addressed bus** — the printer is *device 3* (OZROM's appendix:
+*"IEEE-488 as IOBYTE device 3 now null device"*) — so if Drive C and the RT-60A
+answer different addresses, all three can coexist, and the interposer can
+multiplex because it already sees the PIA at `2900–2903`. **That is a deliverable
+of #6, and it is the difference between "one personality at a time" and
+"coexist".**
+
+### What this section is not
+
+It is not a decision record, and nothing above has been chosen. The tier ordering
+is a proposal for sequencing. The storage question in particular (#8) is still
+open: Drive C is the easiest to build **standalone** (#84), but that is a different
+claim from "the only one worth emulating".
