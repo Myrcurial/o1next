@@ -27,7 +27,13 @@ scratch programs, "figuring it out" notebooks/scripts.
   `disk-analyse`'s on the same image, which is how the parser was validated.
   Finding worth keeping: the `-blank.imd` boot disks are 250 kbps MFM, 40 tracks
   × 5 × 1024-byte sectors, single-sided — and all three differ by exactly two
-  bytes. See `docs/mame-emulation.md` §4. (Note for anyone writing their own:
+  bytes. See `docs/mame-emulation.md` §4. **`--raw` de-skews**: each sector is
+  placed at its *logical* offset, not its position in the file. The two differ
+  whenever the numbering map is rotated, which is normal for single-density
+  Osborne disks (`2,3,…,10,1`) — appending in file order rotates every track by
+  one sector, and a rotated CP/M disk still parses, just into the wrong file
+  list. It cost 8 files on `OZROM.IMD` before anyone noticed (#81). (Note for
+  anyone writing their own:
   IMD has **no** "sector type map" — the type byte belongs to each sector's data
   record, and the optional cylinder/head maps are flagged in bits 7/6 of the
   *head* byte.)

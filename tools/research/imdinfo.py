@@ -17,6 +17,13 @@ WHAT IT FOUND
     exactly two bytes. The Nuevo system disk has the same geometry. Written for
     #70 and #79; see docs/mame-emulation.md section 4.
 
+    `--raw` places each sector at its *logical* position, not its position in
+    the file. Those coincide for most images, but single-density Osborne disks
+    carry a rotated numbering map -- (2,3,...,10,1) -- and appending in file
+    order rotates every track by one sector. That failure is quiet: the
+    rotated image still parses as a CP/M filesystem, just the wrong one.
+    Found on OZROM.IMD, which yielded 12 files instead of 20 (#81).
+
 IMD FORMAT (Dave Dunfield's spec, IMD.TXT section 6 -- public domain)
     Text header line(s), terminated by 0x1A, then track records:
         1 byte  mode            0-5 (0=500k FM ... 5=250k MFM)
@@ -115,20 +122,31 @@ def report(path, raw_out=None):
         cyls.add(cyl); heads.add(head); spt.add(nsect)
         reconstructed += nbytes
         size = SIZES[ssize]
-        for t, chunk in data:
+        # Sectors arrive in *file* order; the numbering map says which logical
+        # sector each one is. Place them by logical number rather than by
+        # arrival order: single-density Osborne disks number (2,3,...,10,1),
+        # so a straight append rotates every track by one sector -- and a
+        # rotated CP/M disk still parses into a plausible but wrong file list,
+        # which is how this was found (OZROM.IMD: 12 files instead of 20).
+        track = bytearray(nsect * size)
+        for k, (t, chunk) in enumerate(data):
             if t in (1, 3, 5, 7):                       # normal data
-                raw += chunk
+                sec = chunk
             elif t in (2, 4, 6, 8) and chunk:           # compressed: one value
-                raw += bytes([chunk[0]]) * size
+                sec = bytes([chunk[0]]) * size
             else:                                       # unavailable
-                raw += b"\xe5" * size
+                sec = b"\xe5" * size
+            logical = (numbering[k] - 1) if k < len(numbering) else k
+            if 0 <= logical < nsect:
+                track[logical * size:(logical + 1) * size] = sec[:size]
+        raw += track
     print(f"  tracks={tracks}  modes={sorted(map(str, modes))}  "
           f"sector sizes={sorted(sizes)}  sectors/track={sorted(spt)}")
     print(f"  cylinders={min(cyls)}-{max(cyls)}  heads={sorted(heads)}  "
           f"reconstructed sector data={reconstructed} bytes")
     if raw_out:
         open(raw_out, "wb").write(bytes(raw))
-        print(f"  wrote {raw_out} ({len(raw)} bytes; sectors in numbering order)")
+        print(f"  wrote {raw_out} ({len(raw)} bytes; sectors in logical order)")
 
 
 if __name__ == "__main__":

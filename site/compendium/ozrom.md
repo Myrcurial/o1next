@@ -9,8 +9,10 @@ draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`.
 machines (measured, §3), its 58-page manual is OCR'd and indexed here (§4–§8),
 and its three engineering features — a software 52/80/104-column switch, a
 chip-level memory tester and a *documented* ROM interface — are available to us
-without hardware. One test is still not run: driving the ctrl-shift column keys
-from the harness (§9).
+without hardware. Its companion **Utilities disk** surfaced in 2026-10 and is
+catalogued in §10 — the directory is complete, the file bodies are partly
+erased. One test is still not run: driving the ctrl-shift column keys from the
+harness (§9).
 
 **Source:** [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN) (4096 bytes) and
 `OZROM_1E_Manual.pdf`, both from BrettHallen's `Osborne_1` repository;
@@ -256,12 +258,160 @@ now catches real read errors.
 - **Reconcile the `EF66–EF69` clock against ROM 1.44**, whose source no longer
   ticks the cells (`rt60a-analysis.md`). Which ROM revision dropped `UPTIM`, and
   did any shipped 1.4x keep it?
+- **Find a complete copy of the Utilities disk** (§10). Ours has an intact
+  directory but 290 of 400 sectors erased, so most file bodies are holed. The
+  vendor's own `CRCKLIST.CRC` would verify a replacement immediately.
+
+## 10. The OZROM 1E Utilities disk — the software half (#81)
+
+[`research/roms/OZROM-1E/OZROM_1E_Utilities.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E_Utilities.IMD) is the disk that goes with the
+ROM: the utilities the manual documents, as a customer received them. We had the
+ROM and the manual and not the software, so this is the missing third of the
+package.
+
+It is a **data disk, not a system disk.** It does not boot — the system tracks
+carry a stub whose message is "There is no CP/M system on this disk." You boot
+your own CP/M and put this in drive B, which is why the package shipped as a
+bare set of files.
+
+### 10.1 The directory — complete
+
+Readable in full: 20 files, all in user 0, in creation order, allocation intact.
+Standard single-density O1 geometry (40 cyl × 10 × 256 B FM, 2 KiB blocks,
+3 boot tracks, 64 directory entries).
+
+| File | Bytes | File | Bytes |
+|---|---:|---|---:|
+| `ALARM.COM` | 640 | `OZPATCH.COM` | 3328 |
+| `CLKPATCH.COM` | 640 | `QUIKTIME.COM` | 256 |
+| `CLKPATCH.DOC` | 1792 | `QWERTY.COM` | 1024 |
+| `CRASH.COM` | 256 | `READ.ME` | 1280 |
+| `CRCKLIST.CRC` | 512 | `SET.COM` | 2048 |
+| `DVORAK.COM` | 1024 | `SHOW.COM` | 512 |
+| `DVORAK.DOC` | 1024 | `TD.COM` | 896 |
+| `FK.COM` | 2816 | `TD.DOC` | 1024 |
+| `MEMORIZE.COM` | 1280 | `TIME.COM` | 640 |
+| `MYKEYII.COM` | 640 | `TIMER.COM` | 768 |
+
+The set maps onto the manual's feature list one for one: the column switch
+(`SHOW`), the keyboard remaps (`DVORAK`, `QWERTY`, `MYKEYII`), the clock
+(`TIME`, `TIMER`, `QUIKTIME`, `CLKPATCH`, `ALARM`), the function keys (`FK`,
+`MEMORIZE`), and `OZPATCH` to patch the ROM image itself. Two things it settles
+that the manual only implies:
+
+- **The utilities are separate `.COM` files, not ROM calls.** Nothing here is
+  resident; the ROM supplies the interface and the disk supplies the programs.
+  A reproduction does not need to ship this disk to be OZROM-compatible.
+- **`CRCKLIST.CRC` is a self-check file** — a name/CRC list, so a 1984 owner
+  could verify their copy. It is the vendor's own integrity manifest, and it is
+  the reason to keep hunting for a complete one: the hashes let a good copy be
+  confirmed in seconds.
+
+
+### 10.2 Condition — partial, and that matters
+
+This is a **partially erased disk**. Of its 400 sectors, **110 carry data and 290
+read back as uniform `0xE5`** (the format fill byte), and the erased sectors fall
+*inside* file bodies rather than being confined to free space:
+
+```
+      sec: 1 2 3 4 5 6 7 8 9 10
+  T0   R R . . . . . . . .      boot stub
+  T1   . . . . . . . . . .
+  T2   . . R . . . . . . .      the "no CP/M system" loader
+  T3   R . R . R . . R . R      directory (S1-S8) + data block 1 (S9-S10)
+  T4   R . . R . . . . . .
+  ...
+  T7   R R R R R R R R R R
+  ...
+  T21  R . . . . . . . . .
+  T22  . . . . . . . . . .      free from here to T39
+  ...
+```
+
+The directory and the file *names, sizes and allocation* are therefore
+trustworthy; the file *bodies* mostly are not. `SET.COM` is 100 % present,
+`FK.COM` 93 %, `MEMORIZE.COM` 86 %; `CRASH.COM` is gone entirely, and
+`ALARM.COM`, `QUIKTIME.COM` and `READ.ME` have each lost their first sector.
+
+What survives is still worth reading — `READ.ME` is a real note about the
+rewritten `TIMER` syntax (`TIME TIMER 10.6 WS DOCUMENT.DOC`, and the syntax
+changed at version 2.00), and `CLKPATCH.DOC` explains the blink-rate patch — but
+**nothing here should be treated as a byte-exact copy of a 1984 master.**
+
+The `0xE5` is not an artefact of our reconstruction. The IMD holds 110 normal
+sector records and 290 compressed ones, every compressed record filled with
+`0xE5`, and **no "unreadable sector" records at all** — ImageDisk read those
+sectors and got `0xE5` back. Nor is it a de-skew problem: the erased fraction is
+invariant under rotation, and no block alignment from −1 KiB to +2 KiB produces a
+consistent layout (§10.4).
+
+### 10.3 The boot sector is not vendor code
+
+Track 0 sector 1 holds a stub, and it does not look like anything Micro
+Management shipped:
+
+```
+C3 5C D2   JP 0D25Ch
+...
++20   "PUT THIS ON T0S1"
+...
++80   "THIS IS A TEST OF THE AMERICAN BROADCAST NETWORK"
+```
+
+"PUT THIS ON T0S1" is an instruction addressed to whoever was writing the disk,
+and the Emergency Broadcast System test line is a fill/verification pattern. The
+pair reads like a **placeholder written by whoever produced this image**, not
+product. Two consequences: treat the boot sector as an imaging artefact rather
+than evidence about the product, and expect that this disk cannot be booted to
+check anything — that has to be done by copying the files onto a system disk.
+
+
+### 10.4 A tooling bug this found
+
+`imdinfo.py --raw` appended sectors in the order they appear in the `.imd`, which
+equals logical order only when the numbering map is sorted. Single-density
+Osborne disks are not: they number `(2,3,…,10,1)`, so **every track came out
+rotated by one sector.**
+
+The failure was silent, and that is the part worth remembering. A rotated CP/M
+disk still parses — the directory lands somewhere plausible and `cpmfs.py`
+returns a file list — it is just the *wrong* list. Here it returned 12 files
+instead of 20, with 8 of them carrying another file's blocks. Nothing errors,
+nothing looks malformed, and the output is plausible enough to archive.
+
+Fixed in [`tools/research/imdinfo.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/imdinfo.py); the dump is now byte-identical for sorted
+maps (checked against `DRIVE_C.IMD`) and correct for rotated ones. Two archived
+images turn out to be rotated and were never convertible before the fix:
+[`research/diagnostics/DIAG_2.04.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/diagnostics/DIAG_2.04.IMD) now yields the **15-file Osborne diagnostic
+disk** (`DIAG.COM`, `FILETEST.COM`, `DDBIT.COM`, `SETUP.COM`, `SYSGEN.COM`, …),
+and [`research/source-code/OCCROM.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/OCCROM.IMD) its 77-track FM/MFM disk.
+
+### 10.5 What it changes for #81
+
+Less than the file count suggests, and that is the honest answer: the ROM is the
+deliverable and this is the optional companion disk. What it does give us:
+
+- The **complete and authoritative file list** of the utilities, so a future
+  search knows exactly what to look for — and `CRCKLIST.CRC` supplies the hashes
+  to verify a good copy against.
+- Confirmation that the utilities are **external programs, not ROM entry
+  points**, which bounds the reproduction scope: OZROM compatibility means the
+  ROM's jump table and memory map, not this disk.
+- A second, independent description of the feature set to hold against the
+  manual (§4).
+
+**Still open:** a *complete* copy. Anyone with a working OZROM disk can supply
+one, and `CRCKLIST.CRC` makes verifying it trivial.
 
 ## Sources
 
 - [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN), `OZROM_1E_Manual.pdf`,
   `OZROM_1E_Manual.ocr.txt` — BrettHallen `Osborne_1`, `ROM/`; OCR per the
   [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) convention (300 dpi, `tesseract`).
+- [`research/roms/OZROM-1E/OZROM_1E_Utilities.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E_Utilities.IMD) — the companion utilities disk
+  (§10). Owner-supplied local file, 2026-10-11; source URL not yet recorded.
+  ImageDisk 1.19, label `ozrom`, 40 cyl × 10 × 256 B FM.
 - [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/BIOS-144-source/rom144.asm) and the OCC CBIOS modules
   (`occram25.asm`, `occbio15/45/95.asm`) — the stock interface and RAM map the
   jump table and clock cells are compared against.
