@@ -230,7 +230,115 @@ promised for the next issue. Kelly Smith is with *Wizard of OsZ* and wrote
 (200 lines) and joystick hardware for a nominal fee (P.O. Box 964, Chatsworth,
 CA 91311).
 
-## 6. What this means for o1nextgen
+## 6. The P3 edge connector — the pinout, and what the port actually implements
+
+`docs/drive-c-design.md` §7 listed "the pin-level map of P3" as its first
+unmeasured item. It was never missing: it is in the Technical Manual extract the
+project already archives, §4.1.2 "IEEE-488 Pinouts", and the manual explains why
+the connector is not the standard one:
+
+> Because this port is used for more than just IEEE 488 signals, we've declined
+> to use a standard IEEE connector.
+
+Source: `research/osborne1/modem/o1techman-interface-extract.pdf`, PDF p. 2 =
+printed p. 14 (Figure 4.1.2), and Figure 4.1.1 on PDF p. 1 = printed p. 13 for the
+directions. **The scan has no text layer** — it is EPSON Scan output, so
+`pdftotext` returns nothing and the tables below were read off a 250 dpi render.
+
+The connector is a **26-pin card edge**, read looking at the front of the
+machine, odd pins on one side and even on the other; **pins 25 and 26 are not
+used** ("provided for compatability"). The IEEE column is the standard 24-pin
+IEEE-488 assignment, kept here because it is what a GPIB cable or a GPIB device
+document will name.
+
+| IEEE-488 | **P3** | Signal | PIA line (ROM) | O1 direction |
+|---|---|---|---|---|
+| 1 | **1** | DIO1 | PA0 | bidir |
+| 13 | **2** | DIO5 | PA4 | bidir |
+| 2 | **3** | DIO2 | PA1 | bidir |
+| 14 | **4** | DIO6 | PA5 | bidir |
+| 3 | **5** | DIO3 | PA2 | bidir |
+| 15 | **6** | DIO7 | PA6 | bidir |
+| 4 | **7** | DIO4 | PA3 | bidir |
+| 16 | **8** | DIO8 | PA7 | bidir |
+| 5 | **9** | EOI | PB3 | O1 drives |
+| 17 | **10** | REN | CB2 | O1 drives |
+| 6 | **11** | DAV | PB5 | O1 drives |
+| 12 | **12** | signal ground (DAV) | — | ground |
+| 7 | **13** | NRFD | PB7 | O1 drives |
+| 18 | **14** | signal ground (NRFD) | — | ground |
+| 8 | **15** | NDAC | PB6 | **box may drive** |
+| 19 | **16** | signal ground (NDAC) | — | ground |
+| 9 | **17** | IFC | **CA2** | O1 drives |
+| 20 | **18** | signal ground (IFC) | — | ground |
+| 10 | **19** | SRQ | CA1 | **input** |
+| 21 | **20** | signal ground (SRQ) | — | ground |
+| 11 | **21** | ATN | PB4 | O1 drives |
+| 22 | **22** | signal ground (ATN) | — | ground |
+| 12 | **23** | cable shield + ground | — | ground |
+| 24 | **24** | signal ground (logic) | — | ground |
+| — | **25** | *unused* | — | — |
+| — | **26** | *unused* | — | — |
+
+The PIA column is the ROM's own comment block (`rom144.asm` 2606–2715, quoted in
+`docs/drive-c-protocol.md` §2); the two sources agree line for line, which is
+worth saying because they were derived independently — one is a 1983 manual, the
+other a 1983 ROM listing.
+
+Note what the PIA column does **not** contain: there is no `DAV`, `NRFD`, `NDAC`,
+`EOI` or `IFC` *input*. **The O1 cannot read any of the five handshake/control
+lines it drives.** Only `SRQ` (CA1) and `NDAC` (PB6, and only after `CRB` bit 2
+is cleared) can be read back at all.
+
+### 6.1 The port is not GPIB, and Figure 4.1.1 shows it
+
+Figure 4.1.1 draws each line solid or dashed, and the split is the whole story:
+
+| Drawn | Lines | Meaning |
+|---|---|---|
+| **solid** | `REN` (out), `ATN` (in), `SRQ` (in), `DATA0–7` (bidir) | implemented by the O1 |
+| **dashed** | `IFC`, `NRFD`, `DAV`, `EOI`, `NDAC` | *not implemented* by the ROM's driver set |
+
+The manual says as much in words — *"a subset of the complete IEEE
+specification"*, *"no provision has been made for controlling multiple devices"*
+— but the figure is the useful version, because it names the subset. **The three
+IEEE-488 handshake lines (`DAV`, `NRFD`, `NDAC`) are the ones missing**, which is
+exactly why nothing on this port can do an IEEE-488 three-wire handshake, and why
+every device on it invents its own clock. Drive C: uses `CA2`/`IFC`; the printer
+uses `DAV` as a strobe (`§6.2`).
+
+`ATN` and `SRQ` are drawn as *inputs*, which is odd for a controller and correct
+for this machine: the O1 can only ever be told, not ask.
+
+### 6.2 The same pins, as a Centronics printer port
+
+Figure 4.1.5 (PDF p. 4 = printed p. 16) re-labels the same edge connector for the
+printer personality that `SETUP` selects (`IOBYTE` = `BAT:`, `UR1:`, `UP1:`,
+`LPT:`). It is the same wires, with four of them re-purposed:
+
+| P3 | O1 name | Centronics pin | Centronics name |
+|---|---|---|---|
+| 1 | DIO1 | 2 | data 0 |
+| 2 | DIO5 | 6 | data 4 |
+| 3 | DIO2 | 3 | data 1 |
+| 4 | DIO6 | 7 | data 5 |
+| 5 | DIO3 | 4 | data 2 |
+| 6 | DIO7 | 8 | data 6 |
+| 7 | DIO4 | 5 | data 3 |
+| 8 | DIO8 | 9 | data 7 |
+| 11 | DAV | 1 | **out strobe** |
+| 12 | ground | 19 | ground |
+| 15 | NDAC | 11 | **busy** |
+| 16 | ground | 29 | ground |
+| 19 | SRQ | 13 | **select** |
+
+So `DAV` is the printer strobe, `NDAC` is *busy* and `SRQ` is *select* — and
+`NDAC` is the same line the Drive C transport leaves as an input as its optional
+"ready" (`docs/drive-c-protocol.md` §2, §7). **One pin, two meanings, chosen by
+which personality is installed.** Anything we put on P3 has to be harmless in
+both modes, which is a constraint `docs/drive-c-design.md` §2.3 now carries.
+
+## 7. What this means for o1nextgen
 
 - The port is a **byte-wide parallel port on a 6821**, so a personality can
   implement it as such (`docs/virtual-peripherals-block-diagram.md`), and the
@@ -244,4 +352,9 @@ CA 91311).
   (`docs/drive-c-protocol.md`).
 - The driver table at **`013F–0156`** (eight `JP`s) is a *checkable* signature:
   present in stock ROMs, destroyed in OZROM 1E (`docs/o1-rom-variants.md`).
+- **The pinout is solved** (§6) — it was in the archive all along, in the
+  Technical Manual extract, and the ROM's comment block corroborates it. So
+  `hardware/drive-c/` can be laid out against a documented connector rather than
+  a measured one, and the one remaining electrical unknown on P3 is loading, not
+  mapping.
 
