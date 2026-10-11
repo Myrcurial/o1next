@@ -24,8 +24,19 @@ Guessing this cost half an hour; the driver had it in one line.
 
 What it emits
 -------------
-- ``osborne1-chargen.ttf``   -- the font, ASCII 0x20-0x7E, rectangles only
-- ``osborne1-chargen.woff2`` -- the same, for the web
+A family, one file per display width the machine has, each as ``.ttf`` and
+``.woff2``:
+
+- ``osborne1-52.*``  -- the machine's own cell, 8x10 pixels, at full dot width
+- ``osborne1-80.*``  -- the same glyphs at 65% dot width (52/80)
+- ``osborne1-104.*`` -- the same glyphs at 50% dot width (52/104)
+
+**The physical screen width does not change between modes -- the type gets
+narrower.** So the three faces share height, pixel components and vertical
+metrics, and differ only in horizontal scale: 104 columns fit in the space 52
+occupied. Because the cell is 8 pixels wide and ``SCALE`` is 100 font units per
+pixel, the horizontal dot width is exactly ``100 * 52 / columns`` -- a whole
+number for all three (100, 65, 50), so nothing rounds.
 
 Each glyph is built from one rectangle per horizontal run of set pixels, so the
 outlines are exact rather than traced.
@@ -56,9 +67,10 @@ only; the artifacts are committed.
 
 Usage
 -----
-    tools/romfont.py                       # write the font files
+    tools/romfont.py                       # write the font family
     tools/romfont.py --check               # fail if they are stale (CI)
     tools/romfont.py --specimen /tmp/f.png # also render a specimen sheet
+    tools/romfont.py --glyph-sheet /tmp/g.png   # the graphics set, for #97
 """
 import argparse
 import struct
@@ -77,10 +89,31 @@ OUT_DIR = REPO / "site" / "assets" / "fonts"
 COLS, ROWS = 8, 10      # the character cell, in pixels
 STRIDE = 128            # bytes per row across all characters
 FIRST, LAST = 0x20, 0x7E
-SCALE = 100             # font units per pixel
+SCALE = 100             # font units per pixel, vertically
 UPEM = ROWS * SCALE     # 1000: one cell is exactly one em, so line-height 1.0
 
-FAMILY = "Osborne 1 Char-Gen"
+# The display widths the machine has, and the one the family is measured from.
+COLUMNS = (52, 80, 104)
+BASE_COLUMNS = 52
+
+
+def xscale(columns):
+    """Font units per pixel *horizontally*, for a given display width.
+
+    The screen is a fixed width and the type narrows, so a wider mode means a
+    proportionally thinner dot: 52 columns is the machine's own cell, and the
+    others scale by 52/columns.  With SCALE=100 that is exactly 100, 65 and 50.
+    """
+    per_pixel = SCALE * BASE_COLUMNS / columns
+    if per_pixel != int(per_pixel):
+        raise SystemExit("column count %d does not divide SCALE * %d evenly"
+                         % (columns, BASE_COLUMNS))
+    return int(per_pixel)
+
+
+def family(columns):
+    """The font family name for one display width."""
+    return "Osborne 1 %d" % columns
 
 def decode_rom(data):
     """Return {charcode: [row bytes]} for the row-major-across-chars layout."""
@@ -105,22 +138,23 @@ def runs(byte):
     return out
 
 
-def glyph_from_rows(rows):
+def glyph_from_rows(rows, x):
     """One rectangle per run of set pixels.
 
-    Pixel (col, row) covers x = col*SCALE..(col+1)*SCALE and
+    Pixel (col, row) covers x = col*x..(col+1)*x and
     y = (ROWS-1-row)*SCALE..(ROWS-row)*SCALE: row 0 is the top of the cell and
     the baseline sits one pixel above its bottom, which is where the ROM puts
-    descenders.
+    descenders.  ``x`` is the horizontal dot width -- SCALE for the 52-column
+    face, less for the compressed modes.
     """
     pen = TTGlyphPen(None)
     for r, byte in enumerate(rows):
         y0, y1 = (ROWS - 1 - r) * SCALE, (ROWS - r) * SCALE
         for x0, x1 in runs(byte):
-            pen.moveTo((x0 * SCALE, y0))
-            pen.lineTo((x1 * SCALE, y0))
-            pen.lineTo((x1 * SCALE, y1))
-            pen.lineTo((x0 * SCALE, y1))
+            pen.moveTo((x0 * x, y0))
+            pen.lineTo((x1 * x, y0))
+            pen.lineTo((x1 * x, y1))
+            pen.lineTo((x0 * x, y1))
             pen.closePath()
     return pen.glyph()
 
@@ -130,8 +164,12 @@ def notdef_rows():
     return [0xFF] + [0x81] * (ROWS - 2) + [0xFF]
 
 
-def build_font(rom_data, rom_name, crc):
-    """Build the TTFont.  Returns (font, {charcode: row bytes})."""
+def build_font(rom_data, rom_name, crc, columns=BASE_COLUMNS):
+    """Build the TTFont for one display width.
+
+    Returns (font, {charcode: row bytes}, horizontal dot width).
+    """
+    x = xscale(columns)
     bitmaps = decode_rom(rom_data)
 
     names, cmap = {}, {}
@@ -154,11 +192,11 @@ def build_font(rom_data, rom_name, crc):
     fb.setupGlyphOrder([".notdef"] + [names[c] for c in sorted(names)])
     fb.setupCharacterMap(cmap)
 
-    glyf = {".notdef": glyph_from_rows(notdef_rows())}
-    metrics = {".notdef": (COLS * SCALE, 0)}
+    glyf = {".notdef": glyph_from_rows(notdef_rows(), x)}
+    metrics = {".notdef": (COLS * x, 0)}
     for ch, name in names.items():
-        glyf[name] = glyph_from_rows(bitmaps[ch])
-        metrics[name] = (COLS * SCALE, 0)
+        glyf[name] = glyph_from_rows(bitmaps[ch], x)
+        metrics[name] = (COLS * x, 0)
     fb.setupGlyf(glyf)
     fb.setupHorizontalMetrics(metrics)
     fb.setupHorizontalHeader(ascent=(ROWS - 1) * SCALE, descent=-SCALE)
@@ -169,28 +207,39 @@ def build_font(rom_data, rom_name, crc):
     fixed = 2082844800 + calendar.timegm((2026, 10, 8, 0, 0, 0, 0, 0, 0))
     fb.setupHead(unitsPerEm=UPEM, created=fixed, modified=fixed)
 
+    fam = family(columns)
     fb.setupNameTable({
-        "familyName": FAMILY,
+        "familyName": fam,
         "styleName": "Regular",
-        "uniqueFontIdentifier": "%s; %s %s" % (FAMILY, rom_name, crc),
-        "fullName": FAMILY,
-        "psName": "Osborne1CharGen-Regular",
+        "uniqueFontIdentifier": "%s; %s %s" % (fam, rom_name, crc),
+        "fullName": fam,
+        "psName": "Osborne1-%d-Regular" % columns,
         "version": "Version 1.000",
         "description": ("The Osborne 1 character generator (UA15, 2716): 128 "
                         "characters of 8x10 pixels. Decoded from %s "
                         "(CRC32 %s). ASCII 0x20-0x7E only; the 0x00-0x1F "
-                        "graphics set is Osborne's own encoding, not Unicode."
-                        % (rom_name, crc)),
+                        "graphics set is Osborne's own encoding, not Unicode. "
+                        "This is the %d-column face: the machine's cell at "
+                        "%d%% horizontal dot width, because the screen width "
+                        "is fixed and only the type narrows."
+                        % (rom_name, crc, columns,
+                           round(100 * x / SCALE))),
     })
     fb.setupOS2(sTypoAscender=(ROWS - 1) * SCALE, sTypoDescender=-SCALE,
                 sTypoLineGap=0, usWinAscent=(ROWS - 1) * SCALE,
                 usWinDescent=SCALE, sxHeight=5 * SCALE, sCapHeight=7 * SCALE,
                 achVendID="o1ng")
     fb.setupPost()
-    return fb.font, bitmaps
+    return fb.font, bitmaps, x
 
-def rasterise_glyph(glyph):
-    """Rebuild the 10 row bitmaps from a glyph's rectangles."""
+
+def rasterise_glyph(glyph, x):
+    """Rebuild the 10 row bitmaps from a glyph's rectangles.
+
+    ``x`` is the horizontal dot width the glyph was built at, so the same code
+    verifies every member of the family: a compressed face must still decode
+    back to the identical 8x10 bits, which is the whole point.
+    """
     rows = [0] * ROWS
     coords = glyph.coordinates
     if coords is None:
@@ -204,18 +253,18 @@ def rasterise_glyph(glyph):
         r = ROWS - 1 - (min(ys) // SCALE)
         if not 0 <= r < ROWS:
             return None
-        for c in range(min(xs) // SCALE, max(xs) // SCALE):
+        for c in range(min(xs) // x, max(xs) // x):
             rows[r] |= 1 << (7 - c)
     return rows
 
 
-def verify(font, bitmaps):
+def verify(font, bitmaps, x):
     """Round-trip every glyph and compare with the ROM.  Returns problems."""
     glyf = font["glyf"]
     problems = []
     for ch in range(FIRST, LAST + 1):
         name = UV2AGL.get(ch) or "uni%04X" % ch
-        got = rasterise_glyph(glyf[name])
+        got = rasterise_glyph(glyf[name], x)
         if got != bitmaps[ch]:
             problems.append("U+%04X (%s): outlines do not match the ROM" %
                             (ch, name))
@@ -327,7 +376,7 @@ def write_glyph_sheet(path, bitmaps, scale=5, cols=6, pad=12):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(
-        description="Build the web font from the Osborne 1 character generator.")
+        description="Build the web font family from the Osborne 1 character generator.")
     ap.add_argument("--rom", default=str(DEFAULT_ROM),
                     help="character generator ROM (default: the MAME romset copy)")
     ap.add_argument("--outdir", default=str(OUT_DIR),
@@ -344,17 +393,32 @@ def main(argv=None):
     rom = Path(args.rom)
     data = rom.read_bytes()
     crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
-    font, bitmaps = build_font(data, rom.name, crc)
 
-    problems = verify(font, bitmaps)
-    if problems:
-        for p in problems:
-            print("FAIL " + p)
-        print("refusing to write a font that does not match the ROM")
-        return 1
-    print("verified: all %d glyphs round-trip to the ROM's bits" %
-          (LAST - FIRST + 1))
+    from io import BytesIO
+    artefacts, bitmaps = {}, None
+    for columns in COLUMNS:
+        font, bitmaps, x = build_font(data, rom.name, crc, columns)
 
+        problems = verify(font, bitmaps, x)
+        if problems:
+            for p in problems:
+                print("FAIL %s" % p)
+            print("refusing to write a font that does not match the ROM")
+            return 1
+        print("verified: %d columns at %d%% dot width, all %d glyphs "
+              "round-trip to the ROM's bits"
+              % (columns, round(100 * x / SCALE), LAST - FIRST + 1))
+
+        ttf_bytes = BytesIO()
+        font.save(ttf_bytes)
+        font.flavor = "woff2"
+        woff_bytes = BytesIO()
+        font.save(woff_bytes)
+        artefacts["osborne1-%d.ttf" % columns] = ttf_bytes.getvalue()
+        artefacts["osborne1-%d.woff2" % columns] = woff_bytes.getvalue()
+
+    # The specimen sheet and the glyph sheet describe the ROM, not a display
+    # width, so they are written once from the (identical) bitmaps.
     if args.specimen:
         write_specimen(args.specimen, bitmaps)
         print("wrote " + args.specimen)
@@ -363,15 +427,7 @@ def main(argv=None):
         codes = write_glyph_sheet(args.glyph_sheet, bitmaps)
         print("wrote %s (%d graphics glyphs)" % (args.glyph_sheet, len(codes)))
 
-    from io import BytesIO
     out = Path(args.outdir)
-    ttf_bytes = BytesIO()
-    font.save(ttf_bytes)
-    font.flavor = "woff2"
-    woff_bytes = BytesIO()
-    font.save(woff_bytes)
-    artefacts = {"osborne1-chargen.ttf": ttf_bytes.getvalue(),
-                 "osborne1-chargen.woff2": woff_bytes.getvalue()}
 
     if args.check:
         stale = []
