@@ -28,6 +28,36 @@ speaking the same protocol, so period software drives it unchanged. Look closely
 and you find an RP2040 where the original had a handful of TTL — which is the
 point.
 
+### 1.1 The envelope, from the vendor's own spec sheet
+
+§7-2 of the Drive C manual is a full specification sheet — and the Executive
+manual's §6-2 is the same page with one word changed. These are the numbers a
+reproduction should be measured against:
+
+| | Original (384K unit) |
+|---|---|
+| Dimensions, no cables | 5.6 × 5.9 × 1.0 in (14 × 15 × 2.5 cm) |
+| Weight / shipping weight | 1 lb (0.45 kg) / 3 lb (1.4 kg) |
+| Operating temperature | +5 to +60 °C (+40 to +140 °F) |
+| Storage temperature | −20 to +100 °C |
+| Power | 11–14.5 VDC at 0.3 A max, **2.5 W nominal** |
+| Latency | none — solid state, no moving parts |
+| **Max data throughput** | **55,000 B/s** (445,000 b/s) |
+| Random-sector access | ≈40 µs (software access time) |
+| Load a 32K `.COM` and run it | 1.1 s max (1.0 s on the Executive) |
+| TPA RAM used on the host | 1152 B; +1024 B with the print buffer |
+
+The throughput figure is the one the firmware has to live inside: 55,000 B/s is
+about **4.6 µs per byte sustained**, against a transport that clocks one byte
+per frame. §3.2's timing has to stay within it.
+
+**And one design served two machines.** The Osborne 1 and Executive variants
+differ only in software — the Executive's book describes an `ECL`/`ECN`/`ECU`
+loader for CP/M+ where the Osborne 1 uses `DCL`/`DCN`/`DCU` under CP/M 2.2 —
+while the mechanical, electrical and performance appendices are otherwise word
+for word. So this is **one design, not two**, and a board built to this spec
+serves either host. `docs/drive-c-executive.md` §1.
+
 ## 2. Electrical design
 
 ### 2.1 The bus
@@ -92,7 +122,7 @@ against; the Technical Manual and the ROM agree on it.
 | IFC | **CA2** | **17** | **the byte clock** — one pulse per byte |
 | NDAC | PB6 | **15** | *optional* — the box may drive it high as "ready"; the transport never reads it |
 
-Two consequences a layout has to respect:
+Three consequences a layout has to respect:
 
 - **The data lines are interleaved across the edge** — `DIO1–4` on the odd pins
   `1,3,5,7` and `DIO5–8` on the even pins `2,4,6,8`. That is the card edge's own
@@ -101,6 +131,11 @@ Two consequences a layout has to respect:
   (`o1-ieee488-port.md` §6.2), while pin 11 (`DAV`) is the printer's strobe. A box
   that drives pin 15 has to stay harmless when the machine switches to the
   printer personality.
+- **Pin 13 (`NRFD`) has to stay harmless as well.** The vendor's own printer-cable
+  appendix (`docs/drive-c-executive.md` §6) warns that a cable carrying
+  Centronics pin 12 (Paper Error) to pin 13 "will interfere with normal Drive C
+  operation if connected and MUST be removed" — so the original Drive C was
+  watching pin 13, and a box on the same line must not fight it.
 
 PB1, PB2, PB4, PB5, CA1, CB1 and CB2 are not needed to satisfy the transport —
 though `PB1` and `PB2` are *enables* for the NDAC/NRFD and EOI/DAV drivers, so
@@ -227,10 +262,15 @@ construction: it stays released until it sees its own framing.
 ## 7. What is left
 
 Everything this spec was waiting on has now been answered from material already
-in the archive, so this is a work list rather than a measurement list.
+in the archive, so this is a work list rather than a measurement list. The
+Executive manual comparison (`docs/drive-c-executive.md`) closed two more items
+and confirmed the hardware is a single design for both machines.
 
 1. **Board layout — unblocked.** The P3 pinout is documented (§2.3,
-   `docs/o1-ieee488-port.md` §6) and the power budget is documented (§2.2).
+   `docs/o1-ieee488-port.md` §6) and independently corroborated by the vendor's
+   own printer-cable appendix (`docs/drive-c-executive.md` §6); the power budget
+   is documented (§2.2); and the mechanical, electrical and performance envelope
+   is in §1.1. Nothing on the board is waiting on a measurement.
 2. **Bus loading — the one real electrical unknown.** How much additional load
    (capacitance, pull-up) the O1's bus tolerates before its timings move. The
    honest framing is that this is **probably a non-issue and should be confirmed
@@ -247,11 +287,19 @@ in the archive, so this is a work list rather than a measurement list.
 5. **TurboPac is out of scope for #84.** The unit is also the Trantor hard-disk
    host adapter (`drive-c-protocol.md` §8.4); that half needs the hard-disk side,
    which overlaps #8.
+6. **A print buffer, if we offer one.** The manuals give its capacity and its
+   fixed/dynamic split (`drive-c-executive.md` §5) — including that a fixed
+   buffer is carved out of the RAM disk — but not the spooling *protocol*: how
+   the box interleaves buffer traffic with the pass-through printer connector.
+   Optional feature, not part of the RAM-disk contract.
 
 ## Sources
 
 - `docs/drive-c-protocol.md` — the protocol this implements (the contract), the
   DPB (§8.1) and the capacity ceiling (§8.3).
+- `docs/drive-c-executive.md` — the Executive variant and the manuals' appendices:
+  the envelope (§1.1), the print-buffer budget (§7 item 6) and the printer-cable
+  corroboration of P3 (§2.3).
 - `research/drive_c/Drive_C_Users_Manual.pdf` (OCR at `…ocr.txt`) — §7-2 hardware
   specifications (power, throughput, access time) and §7-3 CP/M parameters. Both
   spec pages are image-only with an OCR that loses the table alignment, so read

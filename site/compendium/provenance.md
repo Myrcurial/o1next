@@ -173,11 +173,25 @@ Basis for #3/#4/#5 (CoPower-88 protocol analysis). The board's own 8088 ROM is
 
 | Path | What it is | Sourced from |
 |---|---|---|
-| `Drive_C_Users_Manual.pdf` | Drive C user manual (IEEE-488 virtual disk drive) | [bitsavers `bits/Osborne/Osborne1/Drive_C/`](https://bitsavers.org/bits/Osborne/Osborne1/Drive_C/) (upstream name `Drive_C_-_Users_Manual.pdf`) |
+| `Drive_C_Users_Manual.pdf` | Drive C user manual (IEEE-488 virtual disk drive), **second edition June 1984** | [bitsavers `bits/Osborne/Osborne1/Drive_C/`](https://bitsavers.org/bits/Osborne/Osborne1/Drive_C/) (upstream name `Drive_C_-_Users_Manual.pdf`) |
+| `Drive_C_Executive_Users_Manual.pdf` | **Drive C user manual for Osborne Executive computers** — the same product on the other host: identical hardware appendix, `ECL`/`ECN`/`ECU` software under CP/M+ instead of `DCL`/`DCN`/`DCU` under CP/M 2.2, and **no `DFD.SPR`**. First edition July 1984, second printing 9/84; cover stamped PRELIMINARY, running headers "final draft". 111 pp, 12 MB, image-only (150 dpi grayscale re-encode — see the note below). Analysis: [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) (#84, #6, #145) | **Jim Rayburn**, private Facebook group, posted 2024-01-06 — posts [.../2063148960719887](https://www.facebook.com/groups/690000664701397/posts/2063148960719887/) and [.../2023247321376718](https://www.facebook.com/groups/690000664701397/posts/2023247321376718/); supplied to the maintainer as `Executive_DriveC.pdf`, 2026-10-11 |
+| `Drive_C_Executive_Users_Manual.ocr.txt` | OCR text layer for the above — 300 dpi `tesseract`, per the convention below | Derived in-project, 2026-10-11 |
 | `DRIVE_C.IMD` | ImageDisk image of the Drive C utility disk (label comment `Drive C for the Osborne 1 computer`) | same folder — **not** imaged in-project; corrected 2026-10-10 |
 | `Drive_C_disk_label.jpg` | Photo of the physical disk label | same folder (15 044 B, byte-identical) — **not** a project photo; corrected 2026-10-10 |
 | `extracted/` | Files extracted from `DRIVE_C.IMD` by the project pipeline (#2) | Derived in-project |
 | `disasm/` | `dcl.asm` + `dfd.asm` — z80dasm listings of the installer and the resident driver, for the protocol work (#6). Regenerate with the exact command in [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) §Disassembling | Derived in-project |
+
+**A note on the Executive manual's size.** The owner supplied a 300 dpi scan,
+42.33 MB — larger than any other single file in this tree. It is committed as a
+**150 dpi re-encode** instead (12.13 MB), the same resolution as the Drive C
+manual above: the document is a typewritten mono manual, and the page images
+carry **no colour at all** — every pixel is neutral grey, checked across all
+111 pages — so the extra resolution bought nothing but file size. All **111
+pages** and the page geometry are preserved. The **300 dpi text layer** was
+taken from the owner's original before the re-encode and sits beside the PDF as
+`Drive_C_Executive_Users_Manual.ocr.txt`, so no text was lost. It is recorded as
+a re-encode rather than as the owner's original, so the provenance stays
+honest: the file here is **not** byte-for-byte what Jim Rayburn posted.
 
 ## rtc/ — RT-60A real-time clock (#7)
 
