@@ -1,7 +1,8 @@
 # Floppy adapter — switchable Gotek / physical-drive daughter card
 
-Design spec for issue **#62**. Tracks the floppy interposer personality (#20)
-and G2 multi-format support (#30). Derived from
+Design spec for issue **#62**. Tracks the floppy interposer personality (#20);
+the disk-format position is settled in `docs/dd-upgrade-formats.md` (#95).
+Derived from
 `research/osborne1/floppy-adapter/` (Wayne Visser passive adapter + provenance),
 Richard Loxley's Osborne Restoration parts 5 and 12–15, and
 `hardware/floppy-adapter/README.md`.
@@ -372,7 +373,8 @@ placeholders** (confirm against the chosen relay's terminal arrangement), and no
 a 4PDT socket).
 
 ## 10. References
-- Issue #62 (this design); feeds #20 (floppy interposer), #30 (G2 multi-format).
+- Issue #62 (this design); feeds #20 (floppy interposer). Disk formats:
+  `docs/dd-upgrade-formats.md` (#95).
 - `research/osborne1/floppy-adapter/` — Wayne Visser passive adapter + PROVENANCE.
 - `research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf` — mainboard schematic.
 - `hardware/floppy-adapter/README.md` — concept summary.

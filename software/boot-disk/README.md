@@ -4,13 +4,15 @@ The distribution vehicle for everything Osborne-side: a bootable O1
 disk image with storage + RTC integration and the project's utilities,
 validated against real media via the extraction pipeline (`tools/`).
 
-Tracks: #28; incorporates G2 multi-format support (#30), FATCOPY (#51),
-MOUNT (#27), Drive C / OCC1 usage docs (#22/#8), RT-60A (#18).
+Tracks: #28; the 1.44 DD CBIOS's DPB/skew table (`docs/dd-upgrade-formats.md`
+— native formats only, #95), FATCOPY (#51), MOUNT (#27), Drive C / OCC1
+usage docs (#22/#8), RT-60A (#18).
 
 ## Contents
 
-- BIOS disk-table updates: G2 multi-format DPB/skew tables
-  (`docs/g2-formats.md` when #30 lands)
+- BIOS disk-table updates: the 1.44 DD CBIOS DPB/skew table as documented
+  in `docs/dd-upgrade-formats.md`. **Foreign-format tables are not
+  included** — the O1 does not need to recognise them (#95)
 - RTC integration for the RT-60A personality (or real RT-60A)
 - Storage drivers: original Drive C / OCC1 hard disk drivers (period
   code, redistributed with provenance notes) + usage docs

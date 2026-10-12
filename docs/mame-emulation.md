@@ -476,8 +476,11 @@ SDL_VIDEODRIVER=dummy mame osborne1nv -flop1 IMAGE -video none -sound none \
 
 ## 7. Open items
 
-1. **#79** — why the Nuevo CBIOS 1.5 hangs (`OS1NUEVO.IMD`). Blocks validating
-   the Nuevo video path (#24) in the emulator.
+1. ~~**#79** — why the Nuevo CBIOS 1.5 hangs (`OS1NUEVO.IMD`)~~ **Closed as not
+   needed.** The Nuevo path is not pursued (§4) and #24 is built from the
+   ScreenPac design plus OZROM's column switch. The hang is recorded rather than
+   chased — and it is not a bad copy: Dunfield's pristine upstream behaves
+   identically.
 2. **The prefix → driver inference** in `tools/check_o1_map.sh` needs revisiting
    (§4): the `52-`/`80-`/`104-` prefix does not determine what a disk can boot.
 3. **Identify the two differing bytes** at offsets 5737 and 5798 in the

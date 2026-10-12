@@ -102,13 +102,28 @@ is more entries in the same table.
 
 ## What this means for the project
 
-- The floppy personalities (#20, #30, #62) cannot be "an Osborne drive": they
-  have to be able to *present* six geometries, which is a larger requirement than
-  the issue assumed.
-- The capacity figures are the acceptance target for the MAME test in #95: each
-  format either reads **and** writes byte-comparably, or is recorded as failing,
-  with the failure attributed to the ROM, the controller model or the image
-  tooling.
+**Decision (2026-10-11): take the manual as written, and do not synthesise the
+four foreign formats.** The claim has two independent sources that agree — the
+manufacturer's own page-4 list, and the CBIOS DPB + skew table whose five rows
+reproduce the manual's capacities field for field — and the mechanism is
+exercised end to end in MAME on the one format we hold media for (Osborne SD, in
+the test below). What a four-format test would add is the four **skew** entries
+and nothing else: a capacity cannot catch a wrong skew, only a `DIR` can. Those
+are skews for formats we are choosing not to serve.
+
+- **The floppy personalities (#20, #62) must not *assume* Osborne geometry — but
+  they do not have to implement six formats either.** A Gotek-class emulator is
+  format-agnostic: an `.HFE` carries the track layout, so replaying it is not the
+  same thing as knowing the format. Format knowledge is only needed to
+  *synthesise* a blank foreign diskette, and that is out of scope.
+- **Foreign media is converted on the modern side, before it is mounted.** The O1
+  never has to recognise anything: read the files out of a foreign image with
+  [`tools/cpmfs.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/cpmfs.py) (it already reads these geometries) and write them into an
+  Osborne-format image with `mkfs.cpm` + `cpmcp -T raw`. That is why the four
+  skew tables do not need verifying.
+- **The G2 (#30) is more rows in the same table — and no rows get written.** #30
+  asked for a G2 format catalogue; the fold into #95 carried the *mechanism*, not
+  the catalogue, and with the decision above the catalogue is not needed either.
 
 ## A second vendor made the same claim, and a bigger one: Nuevo
 
@@ -148,8 +163,11 @@ credible rather than just advertising:
 
 **Consequence for #95 and #30:** the multi-format requirement is not an OCC
 quirk. Two vendors shipped it, with overlapping but different format lists, and
-the O1's own floppy connector carries the signals for both. A floppy personality
-(#20) has to be able to present more geometries than the six in the OCC table.
+the O1's own floppy connector carries the signals for both. That argues for a
+floppy personality (#20) that is **geometry-agnostic** — replay what the image
+says — rather than one that hard-codes a single format. It does *not* argue for
+implementing every format: the images we mount are converted to native
+geometries first, as the decision above records.
 
 ## Nuevo's own BIOS 1.4 → 1.5 list: the formats are **disk parameter blocks**
 
