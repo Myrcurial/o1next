@@ -5,11 +5,16 @@ subtitle: "The project · living document"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Last reviewed:** 2026-10-11 (fourth pass), after **#6 and #7 were closed** — #6
-on its stated deliverable ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md), validated end to end), with
-its residue moved to #84; #7 because the clock ABI *is* its deliverable and #18
-owns the implementation. Phase 0 now reads **17 of 22** — counted from the tree,
-not from memory, because this number had drifted. Previous review
+**Last reviewed:** 2026-10-11 (fifth pass), after **#95 was closed** on the
+decision that the O1 does not need to recognise foreign diskette formats: the
+manufacturer's list and the CBIOS DPB+skew table agree field for field, Osborne
+SD is confirmed end to end in MAME, and foreign media is converted on the modern
+side before it is mounted. Phase 0 now reads **18 of 22** — counted from the
+tree, not from memory, because this number had drifted. Previous review
+2026-10-11 (fourth pass), after **#6 and #7 were closed** — #6 on its stated
+deliverable ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md), validated end to end), with its residue
+moved to #84; #7 because the clock ABI *is* its deliverable and #18 owns the
+implementation. Previous review
 2026-10-11 (third pass), after #6's transport and device contract were measured
 and validated and [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) (#84) became the build spec. Previous
 review 2026-10-11 (later pass), after #95 was answered from the OCC
@@ -63,10 +68,13 @@ status.
    **Done 2026-10-11.** The ABI is written as a contract in `rt60a-analysis.md`
    (pointer block, sentinel/invalidation rules) and #18 implements it. The
    hardware handshake is retired as a known unknown.
-5. ~~**Does the DD upgrade read foreign formats? (#95)**~~ **Solved 2026-10-11
-   from the OCC CBIOS source**: a DPB + sector-skew table (`occbio95.asm`) whose
-   capacities match the manual's list exactly, selected by a monitor-ROM density
-   probe. `dd-upgrade-formats.md`; Osborne SD confirmed end-to-end in MAME.
+5. ~~**Does the DD upgrade read foreign formats? (#95)**~~ **Solved and closed
+   2026-10-11.** The answer is in the OCC CBIOS source — a DPB + sector-skew table
+   (`occbio95.asm`) whose capacities match the manual's list exactly, selected by
+   a monitor-ROM density probe — and Osborne SD is confirmed end-to-end in MAME.
+   The four foreign formats are **taken as written, not synthesised**: they are
+   only needed to read original foreign media *on the O1*, and foreign media is
+   converted on the modern side instead. `dd-upgrade-formats.md`.
 6. ~~**OZROM 1E as tooling (#81)**~~ **Solved 2026-10-11**: `ozrom-1e.md` indexes
    the manual and measures it on all three machines.
 
@@ -91,7 +99,7 @@ OZROM's soft 52/80/104-column switch.
 | 8 | RT-60A register map | **Solved** (as a contract) | `rt60a-analysis.md`, reconstructed from the manual | #7, #18 | **Decision taken 2026-10-11 (#7): implement the ABI, not the hardware.** The manual documents the memory contract (`0x0040` pointer, the block, the `0xEFF8` vector) and does *not* document the IEEE handshake — so faithful-hardware emulation is blocked on a `CLOCK.COM` we cannot read, and buys nothing the ABI does not. Left: ~~promote the map to a contract, then implement it in #18.~~ **The map is promoted to a contract** and #18 implements it — **#7 closed 2026-10-11**. The bitsavers TD0 is still a damaged dump (27 no-id sectors) |
 | 9 | OCC1 hard disk | **Partially** | `occ1-harddisk-analysis.md`; the archive drop showed there are two distinct products, not one; and the Media Distributing one is now **named** — it is the **MD-10** (§B1) | #8 | **Now a decision, not a question** (#8): pick the cheapest controller to emulate — one personality, not two. Left: the command sets, the default port, and a re-check of the doc's `0x2A00`/`0x2C01` claim (those are the ACIA and video PIA addresses, so something there is misread) |
 | 10 | 6850 ACIA location for the WiFi modem | **Solved** | `o1-memory-io-map.md` §3: `2A00`/`2A01`, UC4 — confirmed independently by the ROM source | #21 | — |
-| 11 | Floppy controller, port map, DD changes | **Partially** | Ports `2100–2103` and the full WD179x command set from the ROM source; 1.44 *is* the DD ROM; DD block = 1K; the Nuevo and Osmosis DD boards are documented | #20, #30, #73 | MB8877 vs WD1793 (schematic-level); the DD upgrade's electrical changes |
+| 11 | Floppy controller, port map, DD changes | **Partially** | Ports `2100–2103` and the full WD179x command set from the ROM source; 1.44 *is* the DD ROM; DD block = 1K; the Nuevo and Osmosis DD boards are documented | #20, #95, #73 | MB8877 vs WD1793 (schematic-level); the DD upgrade's electrical changes |
 | 12 | Which three machines, which board revisions | **Open** | — | #39 | **User action**: machine IDs (one is 24187A) and Z80 markings |
 | 13 | A known-good boot disk per machine | **Solved** | Measured 3×3 matrix in `mame-emulation.md` §4: all three `-blank.imd` system disks boot on all three MAME machines; diagnostics disks also archived | #29, #70 | The *Nuevo system* disk (`OS1NUEVO.IMD`) does not boot — #79, closed as not needed — but the gap as stated is met |
 | 14 | Consolidate into per-device protocol specs | **Partially** | Done: `copower88-protocol.md`, `drive-c-protocol.md`, `rt60a-analysis.md`, `o1-rom-source.md`, `o1-rom-variants.md`, `mame-emulation.md` | #75 | Missing: floppy, hard disk, printer/parallel, keyboard. #75 (the book) is the final consolidation |
@@ -211,7 +219,7 @@ constrains any 2.0 ROM (#83).
 | Advent Products' **Osbaud** baud-rate generator (#21) | #21 | The four connection points are decoded from the review + schematic (6850 pins 4/12, 74LS32 and 74LS04 pin 7); the internal crystal/divider topology is **not** known — needs the instruction sheet or a photo. `o1-modem-serial.md` |
 | Archive provenance TODOs (2 items) | #74 | **Closed** |
 | `cpmtools` misreads Kaypro DSDD images | #35 | `misc`. Upstream identified: the primary site is `moria.de` (Michael Haardt, 2.23, **email patch** — no GitHub, no tracker), and the practical PR venue is the unofficial `lipro-cpm4l/cpmtools` fork (3 open PRs, 2.21-based). Closes **when filed**, not when merged |
-| G2 multi-format diskette read/write | #30 | **Closed** — folded into #95 |
+| G2 multi-format diskette read/write | #30 | **Closed** — folded into #95, which is itself closed: the G2 set is more rows in the same DPB+skew table, and no rows get written, because the O1 does not need to recognise foreign formats |
 | Case + power research (the LFF and SFF boards, and the O1NG enclosure) | #52 | **Phase 5** (#49). A design task, not Phase-0 research |
 | Contribute OZROM 1E to MAME (BIOS slot or an `osborne1oz` machine) | #82 | `misc`. The **machine definition may be worth more than the dump**; a physical OZROM 1E is available to read, which would at least give honest provenance |
 | A local Jekyll environment | #106 | `misc`. `site/` has **no `Gemfile`**, so this is partly creating the manifest, not just resolving it |
@@ -230,14 +238,14 @@ research-labelled and has been removed from this table.
 
 | Issue | Title | State | What closes it |
 |---|---|---|---|
-| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 17 of 22 closed |
+| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 18 of 22 closed |
 | #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
 | #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed 2026-10-11** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
 | #73 | Nuevo + Osmosis prior art | Partially | The DD halves of both products, and the board-detection method |
 | #75 | The book | **Ungated** | The pieces in #108–#115 |
 | #81 | OZROM as tooling | Partially | The column-switch mechanism; appendices C-5…C-7 |
-| #95 | DD multi-format (now also the G2, absorbed from #30) | Partially | The MAME test matrix — read **and** write |
+| #95 | DD multi-format (now also the G2, absorbed from #30) | **Closed 2026-10-11** | Taken as written: the manual's list and the CBIOS DPB+skew table agree field for field, and Osborne SD is confirmed end to end in MAME. The four foreign skew tables are deliberately left unverified — the O1 does not need to recognise them, because foreign media is converted on the modern side |
 
 Closed, but still carrying the label — the work that got Phase 0 to where it is:
 **#2, #3, #4, #5, #6, #7, #9, #10, #30, #44, #64, #70, #71, #72, #74, #79**. They are
@@ -306,7 +314,7 @@ tree, **closed issues included**, so each one renders a progress bar:
 
 | Phase parent | Children | Closed |
 |---|---|---|
-| **#1** — Phase 0: research & reverse engineering | 22 | 17 |
+| **#1** — Phase 0: research & reverse engineering | 22 | 18 |
 | **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 0 |
 | **#16** — Phase 2: firmware personalities | 12 | 1 (#86) |
 | **#25** — Phase 3: Osborne-side software | 4 | 0 |
