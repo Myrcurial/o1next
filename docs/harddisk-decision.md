@@ -318,15 +318,15 @@ if a driver turns out to depend on undocumented controller behaviour.
 
 ### 9.4 The sub-issues
 
-| # | Sub-issue | Area | Depends on |
-|---|---|---|---|
-| 1 | **Read the MD-10 DPB and `DRIVETBL.DAT`** — pin the volume sizes and the drive-table fields | `research` | — |
-| 2 | **Archive the ACB-4000 primary sources** (§9.1) | `research` | — |
-| 3 | **The ACB-4000 personality** — SCSI target + `md10`/`reference` shim profiles | `firmware` | 1, 2 |
-| 4 | **Hard-disk volume blob format** — sparse encoding, fill byte, geometry | `tools`/`docs` | 1 |
-| 5 | **MOUNT.COM first-step menu** — personality-aware (floppy / Drive C / hard disk), plus mailbox `KIND=2` and the drive-mapping table | `software`/`docs` | 3, 4 |
-| 6 | **Web-UI functional spec** — the personality registry, image library, status | `docs` | — |
-| 7 | **CoPower-88 coexistence** — BIOS install order and drive-letter policy (#26, #28) | `software` | 3 |
+| # | Sub-issue | Area | Depends on | Filed |
+|---|---|---|---|---|
+| 1 | **Read the MD-10 DPB and `DRIVETBL.DAT`** — pin the volume sizes and the drive-table fields | `research` | — | #178 |
+| 2 | **Archive the ACB-4000 primary sources** (§9.1) — **delivered with this decision** | `research` | — | — |
+| 3 | **The ACB-4000 personality** — SCSI target + `md10`/`reference` shim profiles | `firmware` | 1, 2 | #179 |
+| 4 | **Hard-disk volume blob format** — sparse encoding, fill byte, geometry | `tools`/`docs` | 1 | #180 |
+| 5 | **MOUNT.COM first-step menu** — personality-aware (floppy / Drive C / hard disk), plus mailbox `KIND=2` and the drive-mapping table | `software`/`docs` | 3, 4 | #181 |
+| 6 | **Web-UI functional spec** — the personality registry, image library, status | `docs` | — | #182 |
+| 7 | **CoPower-88 coexistence** — BIOS install order and drive-letter policy (#26, #28) | `software` | 3 | #183 |
 
 ### 9.5 What closes #8
 
