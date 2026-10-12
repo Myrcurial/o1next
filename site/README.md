@@ -107,7 +107,13 @@ LaTeX). Without one the tool says so and writes the HTML pages anyway.
 our tools — so whatever is in the repository is what gets served. That also means
 a document edited in `docs/` needs `tools/build_book.py` re-run before the
 chapter pages are correct; `.github/workflows/generated-artifacts.yml` runs both
-`--check` modes so a stale artifact fails in CI rather than shipping quietly.
+`--check` modes, so a stale *page* fails in CI rather than shipping quietly.
+
+**The PDF is the exception to that check.** `--check` deliberately does not cover
+it — rendering needs `typst`, which the CI runner does not have — so **a stale
+PDF ships silently**. Re-run `tools/build_book.py` whenever `docs/` changes, and
+do not chase the byte-level differences between runs: the PDF embeds a
+timestamp, so two builds of identical sources differ by a few dozen bytes.
 
 ## Planned articles (tracking issue)
 
