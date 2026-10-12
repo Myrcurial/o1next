@@ -361,9 +361,12 @@ alias: all 26 share their description record with another name (the editor's
 #### How we know
 
 **Measured**, in MAME, by running the editor itself. `MD10.COM` will not start
-without an ACB-4000 answering on `30h`–`33h`, so the presence check was stepped
-over with two 3-byte patches — the overlay's init call at `0x0219` and the probe
-at `0x15AF` (`tools/research/md10patch.py`); nothing else was touched. With that,
+without an ACB-4000 answering on `30h`–`33h`, so **three** 3-byte patches were
+applied (`tools/research/md10patch.py`): the overlay's init call at `0x0219`,
+which is what exits the program when nothing answers; the probe at `0x15AF`; and
+the branch at `0x0EE8`, which takes the loaded table to the editor's menu instead
+of its "name not found" path. Nothing else in the program is touched — the
+geometry code, the editor and the file I/O are the vendor's own bytes. With that,
 the editor's own `<L>ist parameters` prints, for `CM5205`:
 
 ```
@@ -433,8 +436,8 @@ Four things were added to `tools/research/` for this, each with a header saying
 what it was for: `o1raw2imd.py` (wrap an archive `.img` for MAME, which will not
 open a bare raw sector image), `o1keys.lua` + `o1keys.sh` (a scripted-keystroke
 harness, with a `peek` directive — that is what made the in-memory table
-checkable), `md10patch.py` (patch a file inside the image, by name; the two
-presence-check patches above) and `drivetbl.py` (dump the table).
+checkable), `md10patch.py` (patch a file inside the image, by name; the three
+patches above) and `drivetbl.py` (dump the table).
 
 ## 8. Coexistence — the A/B→E/F remap and the CoPower-88
 
