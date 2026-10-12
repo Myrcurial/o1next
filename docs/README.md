@@ -61,7 +61,8 @@ gap review (`research-gaps.md`) and the issues can be cross-checked quickly:
 | `drive-c-protocol.md` | Drive C (IEEE-488 RAM disk): the PIA↔bus line map, the host's frame, the two header bytes and the record address, the byte clock, the device contract, **the DPB and the capacity ceiling** | #6, #22, #84, #145 | **Solved** — measured from the disassembly *and* a trace of the real software; the DPB is read out of `DCL.COM` and matches the manual field for field |
 | `drive-c-design.md` | The Drive C reproduction: hardware and firmware spec built on the contract | #84, #6, #22, #145 | Design — **unblocked**: the P3 pinout, the P5 power budget and the DPB all came out of the archive. What is left is layout, firmware and one bus-loading check |
 | `drive-c-executive.md` | The Drive C's **Executive variant** — and what both manuals' appendices actually say: `DFD.SPR` is a replacement CCP, the print-buffer budget, the capacity figures reconciling with the DPB, and the printer connector corroborating P3 | #84, #6, #145 | **Solved** — the Executive manual is a direct port of the Osborne 1 one; the hardware is one design for both machines |
-| `occ1-harddisk-analysis.md` | The Osborne 1 hard-disk products: interface, files, command set | #8 | Partially solved — **more than two** products identified (the ACT unit, the Media Distributing **MD-10**, and the wider seven-route survey in `research-gaps.md` §B1). Controller command sets open, and #8 is now a *decision*: which one to emulate |
+| `occ1-harddisk-analysis.md` | The Osborne 1 hard-disk products: interface, files, command set — and the corrected ACT port claim | #8 | Solved as a decision — the port claim is corrected, and the choice is made in `harddisk-decision.md` |
+| `harddisk-decision.md` | **The decision**: emulate the Adaptec ACB-4000 (the MD-10's controller), and the formal plan — the portable host-adapter design, the size / CP/M 2.2 ceiling, the sparse blob, and CoPower-88 coexistence | #8, #20, #27, #84 | **Decided** — one personality (ACB-4000); plan in §9 |
 | `copower88-protocol.md` | CoPower-88 host protocol from the Kaypro + Zorba drivers | #3, #4, #5, #23 | Partially solved — residual doorbell/IRQ semantics |
 | `copower88-schematics.md` | Walkthrough of SWP drawing 611-0003 (4 sheets) | #5 | Solved |
 | `rt60a-analysis.md` | The RT-60A: the register map **and the ABI contract** (pointer block, sentinel/invalidation rules), plus the O1's own native clock cells and OZROM's shape | #7, #18, #81 | Solved as a contract — the hardware handshake is retired as a known unknown; `firmware/rt60a-rtc/README.md` implements the ABI |
@@ -87,7 +88,8 @@ gap review (`research-gaps.md`) and the issues can be cross-checked quickly:
    a near-duplicate; `docs/` grew one document per *area*, not per question.
 2. **Name it `<device>-<kind>.md`** — `protocol` (the contract a device speaks),
    `analysis` (what we worked out from a source), `design` (what we intend to
-   build), `survey` (prior art). Kebab-case, lower case.
+   build), `decision` (the choice taken, and its plan), `survey` (prior art).
+   Kebab-case, lower case.
 3. **Open with the status line**, then what the doc answers, then the sources.
 4. **Add a row to the table above** in the same PR.
 5. **If it closes a gap**, update `research-gaps.md` in the same PR.

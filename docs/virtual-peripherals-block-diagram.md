@@ -270,7 +270,7 @@ addresses does the driver touch, and who else wants them?*
 | `floppy-emulator` | — | floppy bus | none (interrupts the Shugart bus) | — | **2** |
 | `screenpac-video` | — | Z80 + UA15 tap | video window + `2400H` bit | — | **2** |
 | `zimodem-fork` | — | P1 (TTL) | ACIA `2A00`/`2A01` | — | **2** |
-| `occ1-harddisk` | `HARD`/`PORTCHNG` ✓ | *virtual* Z80 interposer | a relocatable port window (#8) | ? | **3** |
+| `acb4000-scsi` | `HARD`/`PORTCHNG` ✓ | *virtual* Z80 interposer (port block) | a relocatable 4-port window (default `30h`, #8) | ? | **3** |
 | `copower88-shim` | drivers + ROM ✓ | *virtual* Z80 interposer | `0x7E`/`0x7F` | ? | **3 — last** |
 | `kvm-console` | composition | video + keyboard | none | — | **3** |
 
@@ -287,6 +287,8 @@ of #6, and it is the difference between "one personality at a time" and
 ### What this section is not
 
 It is not a decision record, and nothing above has been chosen. The tier ordering
-is a proposal for sequencing. The storage question in particular (#8) is still
-open: Drive C is the easiest to build **standalone** (#84), but that is a different
-claim from "the only one worth emulating".
+is a proposal for sequencing. **One row is now decided:** the storage question
+(#8) resolved to the `acb4000-scsi` personality — emulate the Adaptec ACB-4000,
+not the ACT (`docs/harddisk-decision.md`). Drive C remains the easiest to build
+**standalone** (#84), which is a different claim from "the only one worth
+emulating".
