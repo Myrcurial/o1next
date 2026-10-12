@@ -21,7 +21,8 @@
 #   tools/bootstrap.sh --all        install, then clear the dead /usr/local tools
 #   tools/bootstrap.sh --legacy     only clear the dead /usr/local tools (sudo)
 #   tools/bootstrap.sh --dry-run    say what would happen, do nothing
-#   tools/bootstrap.sh --yes        never prompt (for CI, and for an agent)
+#   tools/bootstrap.sh --yes        never prompt — --legacy prints its rm block
+#                                   instead of asking for a password
 #
 # Exit status: 0 — everything required is present and runnable; 1 — something
 # is missing, dead, or was left for the user.
@@ -47,7 +48,8 @@ tools/bootstrap.sh — bring a host up to what REQUIREMENTS.md requires.
                Opt-in, because it needs a password; --dry-run prints the list.
   --all        --install then --legacy.
   --dry-run    print what would be done and do none of it.
-  --yes        never prompt; assume yes.
+  --yes        never prompt: --legacy prints its rm block instead of asking for
+               a password, which is what CI and an agent need.
   -h, --help   this text.
 
 The venv exists because Python packaging is per-machine pain: Homebrew's Python
@@ -436,11 +438,19 @@ legacy_cleanup() {
 
     rule "legacy relics under /usr/local"
 
-    # sudo needs a terminal.  Without one, print the command rather than hang.
-    if [ "$DRY" != yes ] && [ ! -t 0 ] && ! sudo -n true 2>/dev/null; then
-        say "  sudo needs a password and there is no terminal here; run this by hand:"
-        print_legacy_block
-        return 0
+    # A password prompt needs both a terminal and a person.  Without both, print
+    # the command rather than hang on a prompt nobody is there to answer.
+    if [ "$DRY" != yes ] && ! sudo -n true 2>/dev/null; then
+        if [ "$YES" = yes ]; then
+            say "  --yes: not prompting for sudo.  Run this by hand:"
+            print_legacy_block
+            return 0
+        fi
+        if [ ! -t 0 ]; then
+            say "  no terminal to prompt on.  Run this by hand:"
+            print_legacy_block
+            return 0
+        fi
     fi
 
     for p in $LEGACY_FILES $LEGACY_DIRS; do
