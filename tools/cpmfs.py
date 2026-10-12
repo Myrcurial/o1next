@@ -10,11 +10,22 @@ Usage:
   cpmfs.py image format getall outdir
 
 Formats (raw sector images):
-  osb1sssd  Osborne 1 SD: 40 cyl x 10 sec x 256B FM, boottrk 3, 2K blocks
+  osb1sssd  Osborne 1 SD: 40 cyl x 10 sec x 256B FM, boottrk 3, 2K blocks,
+            skew 2
   kp2x      Kaypro DSDD: 80 logical trk (side-per-track) x 10 sec x 512B,
-            boottrk 1, 1K blocks
+            boottrk 1, 2K blocks
   kpiv      alias for kp2x
   drivec    Drive C RAM disk blob: 1536 trk x 2 sec x 128B, boottrk 0, 2K blocks
+
+`skew` is the format's sector interleave, in the same sense as cpmtools'
+`skew` diskdef field: a raw image stores a track's sectors in *physical*
+order, and `skewtab[logical] = physical` maps the CP/M sector number onto
+it.  The Osborne 1 SD layout interleaves 2:1 -- without it the *directory*
+still reads (every used directory sector happens to land somewhere in block
+0) while every *file body* comes back from sectors that were never written,
+i.e. 0xE5.  That misread is the one that made OZROM's Utilities disk look
+partially erased; see docs/ozrom-1e.md 10.2/10.4 and #170.  Formats whose
+disks are not interleaved leave `skew` at the default of 1 (identity).
 
 CP/M semantics implemented: extents (EXM), record counts, 8/16-bit
 block numbers (chosen by DSM>255), deleted entries skipped, duplicate
@@ -24,7 +35,7 @@ import os
 import sys
 
 FORMATS = {
-    'osb1sssd': dict(seclen=256, sectrk=10, boottrk=3, blocksize=2048, maxdir=64),
+    'osb1sssd': dict(seclen=256, sectrk=10, boottrk=3, blocksize=2048, maxdir=64, skew=2),
     'kp2x':     dict(seclen=512, sectrk=10, boottrk=1, blocksize=2048, maxdir=64),
     # The Drive C RAM disk as a raw blob (384 KiB).  The geometry derives the
     # DPB that DCL.COM installs, field for field -- docs/drive-c-design.md 4.2.
@@ -33,15 +44,32 @@ FORMATS = {
 FORMATS['kpiv'] = FORMATS['kp2x']
 FORMATS['zorba'] = dict(FORMATS['kp2x'], boottrk=2)
 
+def skew_table(skew, sectrk):
+    """cpmtools' skew table (cpmfs.c): skewtab[logical] = physical sector.
+
+    `skew` is the interleave factor; 1 is identity.  Reproduced exactly, so a
+    raw image read here matches `cpmcp -T raw -f <diskdef>` on the same file.
+    """
+    tab = []
+    j = 0
+    for _ in range(sectrk):
+        while j in tab:
+            j = (j + 1) % sectrk
+        tab.append(j)
+        j = (j + skew) % sectrk
+    return tab
+
 class CPM:
     def __init__(self, path, fmt):
         self.d = open(path, 'rb').read()
         f = FORMATS[fmt]
         self.seclen, self.sectrk = f['seclen'], f['sectrk']
-        self.bootoff = f['boottrk'] * self.sectrk * self.seclen
+        self.skewtab = skew_table(f.get('skew', 1), self.sectrk)
+        self.bootsect = f['boottrk'] * self.sectrk
+        self.bootoff = self.bootsect * self.seclen
         self.blocksize, self.maxdir = f['blocksize'], f['maxdir']
         self.diroff = self.bootoff
-        ndirbytes = self.maxdir * 32
+        self.dirblks = (self.maxdir * 32 + self.blocksize - 1) // self.blocksize
         self.datablocks_off = self.diroff  # block 0 = directory block(s)
         # DSM: total data blocks - 1
         dsm = (len(self.d) - self.datablocks_off) // self.blocksize - 1
@@ -52,9 +80,12 @@ class CPM:
         self.entries = self._read_dir()
 
     def _read_dir(self):
+        dirdata = bytearray()
+        for b in range(self.dirblks):
+            dirdata += self.block_bytes(b)
         out = []
         for i in range(self.maxdir):
-            e = self.d[self.diroff + i*32 : self.diroff + i*32 + 32]
+            e = bytes(dirdata[i*32 : i*32 + 32])
             if len(e) < 32 or e[0] > 15:
                 continue
             blocks = []
@@ -69,9 +100,19 @@ class CPM:
                             exlo=e[12], s2=e[14], rc=e[15], blocks=blocks))
         return out
 
+    def sector_bytes(self, logical):
+        """The `logical`th sector of the disk, wherever the skew put it."""
+        track, sec = divmod(logical, self.sectrk)
+        phys = track * self.sectrk + self.skewtab[sec]
+        off = phys * self.seclen
+        return self.d[off:off + self.seclen]
+
     def block_bytes(self, b):
-        off = self.datablocks_off + b * self.blocksize
-        return self.d[off:off + self.blocksize]
+        nsec = self.blocksize // self.seclen
+        out = bytearray()
+        for i in range(nsec):
+            out += self.sector_bytes(self.bootsect + b * nsec + i)
+        return bytes(out)
 
     def files(self):
         """group extents by (user, name, ext)"""
