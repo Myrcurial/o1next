@@ -5,14 +5,17 @@ subtitle: "The machine"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Status:** Solved, as tooling. It boots under MAME on all three Osborne 1
-machines (measured, §3), its 58-page manual is OCR'd and indexed here (§4–§8),
-and its three engineering features — a software 52/80/104-column switch, a
-chip-level memory tester and a *documented* ROM interface — are available to us
-without hardware. Its companion **Utilities disk** surfaced in 2026-10 and is
-catalogued in §10 — the directory is complete, the file bodies are partly
-erased. One test is still not run: driving the ctrl-shift column keys from the
-harness (§9).
+**Status:** Solved, as tooling — and **#81 is closed** on that deliverable. It
+boots under MAME on all three Osborne 1 machines (measured, §3), its 58-page
+manual is OCR'd and indexed here (§4–§8), and its three engineering features — a
+software 52/80/104-column switch, a chip-level memory tester and a *documented*
+ROM interface — are available to us without hardware. The column switch's
+mechanism is now measured from the ROM as well as documented (§7): it drives the
+stock video PIA through the stock ROM's own helper, and OZROM adds no cell of its
+own. Its companion **Utilities disk** surfaced in 2026-10 and is catalogued in §10
+— the directory is complete, the file bodies are partly erased. What is left is
+routed rather than carried: **#167** (drive the column keys from the harness) and
+**#168** (a complete Utilities disk) — §9.
 
 **Source:** [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN) (4096 bytes) and
 `OZROM_1E_Manual.pdf`, both from BrettHallen's `Osborne_1` repository;
@@ -216,7 +219,47 @@ harness to post a *modifier-qualified* keystroke ([`tools/research/mame-boot-pro
 only posts plain characters), and the column keys' effect under MAME depends on
 whether the driver models the width as a PIA-driven horizontal offset or as fixed
 hardware. It is the one open item from #81 that needs code rather than reading —
-see §9.
+routed to **#167**, see §9.
+
+### The mechanism, from the ROM
+
+The switch is **not a new mechanism and it uses no new RAM cell**: it drives the
+video PIA through the *stock* ROM's own helper.
+
+`rom144.asm` defines `H.VIO = 02C00H ; Video memory controls` and
+`PIAAD = 0EF61H`, and carries this routine:
+
+```
+        LDK  A,4+3          ; PIA control: select the data register
+        STO  A,H.VIO+1      ; 2C01 = 7
+        MOV  A,C
+        STO  A,PIAAD        ; 0EF61 - the stock ROM's "last PIA-A data" cell
+        STO  A,H.VIO        ; 2C00 - send data
+        RET
+```
+
+Disassembling `OZROM_1E.BIN` finds **the same routine, unchanged**, at `016F`
+(`ld a,007h / ld (02c01h),a / ld a,c / ld (0ef61h),a / ld (2c00h),a / ret`), and
+OZROM's console path reads the same two registers back at `04EC` and `0BE1`. So
+the column keys compute an offset and hand it to the stock video-PIA write: the
+**register that holds the mode is `2C00`**, with **`EF61` (`PIAAD`)** as the
+cached copy — which is why OZROM's own memory map (Appendix C-5, §5) has no
+column-mode byte in it. There is not one.
+
+Two things this does **not** settle, and they are the honest boundary of the
+finding:
+
+- **Which field** of the `2C00` byte is the horizontal offset. That port also
+  carries the drive-select and density (`DDEN`) lines (`o1-memory-io-map.md` §3),
+  and `rom144.asm`'s own note on `PIAAD` is about **bit 0 = density**. The manual
+  gives the *effect* precisely — control-up-arrow repositions the window to start
+  at column 29, control-down-arrow to column 76, control-`[` homes it — so the
+  values are known even though the bit layout is not.
+- **The dispatch address** for the control-shift codes `0xF0–0xFC`. A linear
+  sweep cannot follow it: `z80dasm` warns about self-modifying code, and the codes
+  are dispatched through a table rather than by direct calls. Locating it is worth
+  doing only if we want to *trace* OZROM's handler; for #24 we need the register
+  and the values, and those are above.
 
 ## 8. The clock, the memory tester, and the error codes
 
@@ -248,19 +291,33 @@ same as `BOOT ERROR` (or a bad system track). Also worth knowing: OZROM **enable
 CRC checking on disk access** where previous ROMs did not, so copy verification
 now catches real read errors.
 
-## 9. What is left from #81
+## 9. What is left, and where it goes
 
-- **Drive the column switch from the harness** (§7) — the one measurement still
-  missing. Needs modifier-aware key injection.
-- **Diff the jump table against `rom144.asm`** entry by entry (§6 vs
-  [`docs/o1-rom-source.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-source.md)). The tables are the same shape; a disagreement would
-  be a finding.
-- **Reconcile the `EF66–EF69` clock against ROM 1.44**, whose source no longer
-  ticks the cells (`rt60a-analysis.md`). Which ROM revision dropped `UPTIM`, and
-  did any shipped 1.4x keep it?
-- **Find a complete copy of the Utilities disk** (§10). Ours has an intact
-  directory but 290 of 400 sectors erased, so most file bodies are holed. The
-  vendor's own `CRCKLIST.CRC` would verify a replacement immediately.
+**#81 is closed on its stated deliverable.** The manual is indexed, the column
+switch is documented *and* its mechanism measured from the ROM (§7), the memory
+tester and the error codes are written down (§8), and the ROM interface is
+recorded — memory map, jump table, keytable, interrupt hook (§5–§6). Four
+residues were left at the close; none of them is work that belongs *here*, so each
+is routed rather than carried:
+
+| Residue | Where it goes |
+|---|---|
+| **Drive the column switch from the harness** (§7) — the one measurement still missing | **#167** — the harness can only post plain characters, so ctrl-arrow and ctrl-shift are inexpressible. That is a tools capability, wanted by #24 as much as by this issue. |
+| **A complete copy of the Utilities disk** (§10) | **#168** — ours has an intact directory but 290 of 400 sectors erased. Someone with a working OZROM disk can supply one, and the vendor's `CRCKLIST.CRC` verifies it. Maintainer/community action. |
+| **Diff the jump table against `rom144.asm`** (§6) | **Done** — see below. |
+| **Reconcile the `EF66–EF69` clock against ROM 1.44** | Not OZROM's question: it is about *which stock revision* dropped `UPTIM`. Recorded in [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md); belongs with #83/#18, not here. |
+
+### The jump-table diff, done
+
+Entry for entry, the manual's Appendix C-6 table (§6) and `rom144.asm`'s vector
+table at `0100`+ describe **the same interface**. Every address matches, including
+the ones where the *names* differ: `0118` is the stock ROM's `JMP RDRV` / `HOME`
+and OZROM's `DRIVE_RESET`; `0112` is the stock ROM's second `JMP LIST` for punch
+output, which OZROM calls `PUNCH`. The only structural differences are the two
+already recorded — **`013F–0156`**, where OZROM removed the IEEE-488 routines so
+that calling them crashes the machine, and **`0136`**, where the stock ROM's `JMP
+ROMJP2` becomes `RET / NOP / NOP`. Two independent descriptions of the same
+interface agreeing is the point of the exercise.
 
 ## 10. The OZROM 1E Utilities disk — the software half (#81)
 
