@@ -159,7 +159,7 @@
  	MAME_DIR .. "src/devices/machine/buffer.cpp",
 --- /dev/null
 +++ b/src/devices/machine/acb4000_host_adapter.h
-@@ -0,0 +1,113 @@
+@@ -0,0 +1,124 @@
 +// license:BSD-3-Clause
 +// copyright-holders:James Arlen
 +/***************************************************************************
@@ -196,6 +196,17 @@
 +        bit 2  04h  one controller on-line -- the presence probe reads this
 +        bit 5  20h  phase -- 1 = command/status/message, 0 = data
 +        bit 6  40h  the current phase is complete, act on it
++
++    Two details of that map are load-bearing, and both were read out of the
++    driver rather than assumed (docs/osborne1ng-machine.md section 4):
++
++      * The status phase asserts PHASE and END but **not** REQ.  The driver's
++        data-out loop writes a byte for every REQ it sees (overlay 0x808d), so
++        a REQ left up while the status byte waits would have it write for ever.
++      * The status byte stays on the data register for two reads.  The routine
++        reads it into B (`in b,(c)`) and then reads the register again to
++        acknowledge; a byte-at-a-time data-in transfer reads it once more,
++        because its loop takes a byte before it notices the phase has changed.
 +
 +    The controller is at SCSI ID 01 (ACB-4000 OEM manual, Appendix A).
 +
@@ -275,7 +286,7 @@
 +#endif // MAME_MACHINE_ACB4000_HOST_ADAPTER_H
 --- /dev/null
 +++ b/src/devices/machine/acb4000_host_adapter.cpp
-@@ -0,0 +1,379 @@
+@@ -0,0 +1,415 @@
 +// license:BSD-3-Clause
 +// copyright-holders:James Arlen
 +/***************************************************************************
@@ -352,7 +363,6 @@
 +
 +#include "machine/t10spc.h"
 +
-+#include <algorithm>
 +#include <iterator>
 +
 +
@@ -516,11 +526,16 @@
 +{
 +	if (xfer::data_in != m_xfer)
 +	{
-+		// status phase: the first read is the status byte, the second is the
-+		// discard the routine does at e2ee
++		// status phase: the status byte stays on the data register until the
++		// driver has taken it twice.  Its routine reads it into B (`in b,(c)`,
++		// l80c4) and then reads the register again to acknowledge (l80cc);
++		// a byte-at-a-time data-in transfer reads it once more, because its
++		// loop takes a byte before it notices the phase has changed (l80b8).
++		// The status has to survive those reads for the check the routine ends
++		// on (`and 002h`) to see the real status and not a stale zero.
 +		if (xfer::status == m_xfer)
 +		{
-+			if (0 == m_buffer_index)
++			if (2 > m_buffer_index)
 +			{
 +				m_buffer_index++;
 +				m_last_read = get_status();
@@ -535,9 +550,17 @@
 +	}
 +
 +	m_last_read = m_buffer[m_buffer_index++];
-+	if (BLOCK_SIZE <= m_buffer_index)
++
++	// A 512-byte block boundary, or the end of a short transfer -- whichever
++	// comes first.  The driver's own loops say which is which: a READ moves 512
++	// bytes per pass (2 x INIR with B = 0) and relies on the phase changing to
++	// stop, while every other opcode -- MODE SENSE, READ CAPACITY, INQUIRY --
++	// moves one byte at a time until the phase changes.  Ending at
++	// min(block, total) satisfies both: the MD-10 issues READ as a whole number
++	// of blocks, and a short transfer ends where the target said it would.
++	if ((BLOCK_SIZE <= m_buffer_index) || (m_transferred + m_buffer_index >= m_total))
 +	{
-+		m_transferred += BLOCK_SIZE;
++		m_transferred += m_buffer_index;
 +		m_buffer_index = 0;
 +		if (m_transferred >= m_total)
 +			begin_status();
@@ -556,11 +579,12 @@
 +		return;
 +
 +	m_buffer[m_buffer_index++] = data;
-+	if (BLOCK_SIZE <= m_buffer_index)
++
++	// ... and the same rule in the other direction (see read_data_byte)
++	if ((BLOCK_SIZE <= m_buffer_index) || (m_transferred + m_buffer_index >= m_total))
 +	{
-+		const int remaining = m_total - m_transferred;
-+		write_data(m_buffer, std::min(BLOCK_SIZE, remaining));
-+		m_transferred += BLOCK_SIZE;
++		write_data(m_buffer, m_buffer_index);
++		m_transferred += m_buffer_index;
 +		m_buffer_index = 0;
 +		if (m_transferred >= m_total)
 +			begin_status();
@@ -577,7 +601,12 @@
 +	if (!m_online)
 +		st &= ~STATUS_ONLINE;
 +
-+	// ... and the card drives the handshake and transfer bits on top of it
++	// ... and the card drives the handshake and transfer bits on top of it.
++	// The status phase deliberately does *not* assert REQ: the driver's
++	// data-out loop writes a byte for every REQ it sees (l808d), so a REQ left
++	// up while the status byte is waiting would have it write for ever.  The
++	// status phase is announced by PHASE + END, which is what both the
++	// block and the byte-at-a-time paths test for (l80a5).
 +	switch (m_xfer)
 +	{
 +	case xfer::idle:      break;
@@ -585,7 +614,7 @@
 +	case xfer::command:   st |= STATUS_REQ | STATUS_PHASE;                break;
 +	case xfer::data_in:   st |= STATUS_REQ | STATUS_END;                  break;
 +	case xfer::data_out:  st |= STATUS_REQ;                               break;
-+	case xfer::status:    st |= STATUS_REQ | STATUS_PHASE | STATUS_END;   break;
++	case xfer::status:    st |= STATUS_PHASE | STATUS_END;                break;
 +	}
 +
 +	return st;
@@ -613,7 +642,15 @@
 +	case 0x00:  // data
 +		switch (m_xfer)
 +		{
-+		case xfer::idle:                                     // the select byte
++		case xfer::idle:
++		case xfer::status:
++			// The select byte can arrive at any time the card is not in the
++			// middle of a command -- including while the previous command's
++			// status byte is still up, which is what the overlay's ID scan does
++			// (it selects, looks, and selects the next candidate without the
++			// status ever being acknowledged).  Dropping it here would leave
++			// the *previous* select byte in place and make every candidate
++			// answer.
 +			m_select = data;
 +			break;
 +		case xfer::command:                                  // one CDB byte
@@ -647,7 +684,17 @@
 +				m_xfer = xfer::selected;
 +		}
 +		else if ((0 == data) && (xfer::selected == m_xfer))
-+			m_xfer = xfer::command;                          // the command phase starts
++		{
++			// The command phase starts here, and it starts *fresh*: the driver
++			// re-selects and re-enters the routine for every command (the
++			// overlay's transaction at 0x8030 / the BIOS's at 0xE285), so a CDB
++			// index left over from the previous command must not be carried into
++			// this one.  Without this the second and later commands send one byte
++			// and the card re-runs the stale CDB (docs/osborne1ng-machine.md).
++			m_cdb_index = 0;
++			m_cdb_length = 0;
++			m_xfer = xfer::command;
++		}
 +		break;
 +
 +	case 0x03:  // control

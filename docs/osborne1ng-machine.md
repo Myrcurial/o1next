@@ -1,18 +1,21 @@
 # `osborne1ng` — the emulated interposer, and the ACB-4000 host adapter (#191)
 
-**Status: partially solved — the machine boots and the card answers.** `osborne1ng`
-is a fourth `osborne1` machine in MAME whose Z80 sits behind a card that decodes
-the full 8-bit I/O address, so the MD-10's host adapter can answer on ports
-`30h`–`33h` — the ports its driver demands and the stock machine cannot reach.
-The drive-table editor that #178 had to *patch around* now runs unpatched; the
-data phase and the low-RAM tables it would build are the next slice (§5).
+**Status: the machine boots, the card answers, and a transfer works.**
+`osborne1ng` is a fourth `osborne1` machine in MAME whose Z80 sits behind a card
+that decodes the full 8-bit I/O address, so the MD-10's host adapter can answer
+on ports `30h`–`33h` — the ports its driver demands and the stock machine cannot
+reach. The drive-table editor that #178 had to *patch around* now runs unpatched,
+`HARD.COM` issues real commands against a mounted drive, and `PREP.COM`'s
+initialize/format flow runs its whole bring-up — four bugs in the card's
+handshake were found and fixed getting there (§3, §4). What is left is the
+low-RAM DPB tables, and §5 has the reason it is not a card problem.
 
 Serves #191; unblocks #178's `peek` and is the emulated half of the personality
 (#179). Reads alongside `docs/acb4000-host-adapter.md` (the protocol and the
 blocker), `docs/acb4000-firmware.md` (the controller) and
 `docs/harddisk-decision.md` §5 (the three layers).
 
-The patch, the apply script and the probe live in
+The patch, the apply script and the two probes live in
 `tools/emulator-setup/mame-osborne1ng/`.
 
 ## 1. Why a new machine rather than a script
@@ -223,6 +226,41 @@ hands over **one status byte**. The status bit map the device drives:
 | `20h` | phase — `1` = command/status, `0` = data |
 | `40h` | the current phase is complete, act on it |
 
+Four details of that handshake are load-bearing, and every one of them came out
+of a *measurement* rather than from the listing — each was a bug that made a
+real program hang (§4 has the runs):
+
+1. **The status phase asserts `20h` and `40h` but *not* `02h`.** The driver's
+   data-out loop writes a byte for every REQ it sees (`CNTLRCOD.OVL` `0x808d`:
+   `outi` then `bit 1,a / jr nz,808dh`), so a REQ left up while the status byte
+   waits has it write for ever. `MODE SELECT` is the command that finds this: it
+   is a data-out transfer, and `PREP.COM` stops dead at it.
+2. **The status byte stays on the data register for two reads.** The routine
+   reads it into `B` (`in b,(c)`) and then reads the register again to
+   acknowledge (`0x80cc`). A *byte-at-a-time* data-in transfer reads it once
+   more, because its loop takes a byte before it notices the phase has changed
+   (`0x80b8`). Handing over one status byte and then a `00` makes the routine's
+   final `and 002h` see a stale zero — the card silently loses its check
+   condition.
+3. **The CDB index resets when the command phase starts.** The driver
+   re-selects and re-enters the routine for *every* command, so a CDB index left
+   over from the previous command must not be carried into the next one. It
+   cannot be seen with a single command: the first command works, and every
+   command after it sends one byte and the card re-runs the *stale* CDB. That is
+   what had `HARD.COM` sitting at *"Waiting for drive to become ready"* — it was
+   issuing a `READ`, and the card kept answering a leftover `TEST UNIT READY`.
+4. **A select byte is accepted whenever the card is not mid-command** — including
+   while the previous command's status byte is still up. The overlay's ID scan
+   selects the next candidate without ever acknowledging the previous status; if
+   that select byte is dropped, the *previous* one stays in the register and
+   every candidate looks on-line (the scan then reports
+   `Addresses of on-line controllers: 0, 1, 2, 3, 4, 5, 6, 7`).
+
+A transfer also ends at the target's length, not only at a 512-byte boundary:
+the driver's READ moves 512 bytes per pass, but every other command moves one
+byte at a time until the phase changes, so a short transfer (`MODE SENSE`'s 36
+bytes, `READ CAPACITY`'s 8) has to end where the target said it would.
+
 The CDB is built at `0x01FA` (the opcode first, so `OUTI` walks it), the data
 buffer pointer is passed in `HL`, and the caller gets `status & 02h` back — `0`
 for good, `2` for check condition. `HARDBIOS.SPR`'s own `BOOT` (file `0x182`)
@@ -251,8 +289,9 @@ of splitting the personality into three layers (`docs/harddisk-decision.md` §5)
 
 Measured on MAME 0.289, macOS, `OSD=mac`, against the tree the patch was cut
 from. The evidence for each row is a headless run; the harnesses are
-`tools/emulator-setup/mame-osborne1ng/o1ng-probe.lua` and the repo's own
-`tools/research/mame-boot-probe.sh`.
+`tools/emulator-setup/mame-osborne1ng/o1ng-probe.lua` (decode and card),
+`tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua` (transfers) and the
+repo's own `tools/research/mame-boot-probe.sh`.
 
 | Check | Result |
 |---|---|
@@ -262,8 +301,90 @@ from. The evidence for each row is a headless run; the harnesses are
 | the card owns `30h`–`33h` | **yes** — writes there do not bank-switch |
 | the presence probe | **yes** — `IN (32h)` → `04h`; after `OUT (32h),00h` → `00h` |
 | the ID scan | **yes** — `PREP.COM` answers at select byte `01h` only |
-| **`PREP.COM` runs unpatched** | **yes** — main menu and drive-table submenu both come up |
-| `HARD.COM` reaches the controller | **yes** — it issues `TEST UNIT READY` (`CDB 00 …`) and gets a status phase back |
+| **`PREP.COM` runs unpatched** | **yes** — main menu, drive-table submenu, and its whole initialize/format flow |
+| `HARD.COM` reaches the controller | **yes** — it issues real commands (`TEST UNIT READY`, then `READ` LBA 5 for 11 blocks — the `CCP`+`BDOS` it boots) |
+| the **data phase**, byte-at-a-time | **yes** — `INQUIRY` 36 B, `MODE SENSE` pages 4 and 3, `READ CAPACITY` 8 B; all status `00` |
+| the **data phase**, 512-byte blocks | **yes** — `READ` of one block returns 512 bytes and the phase ends |
+| the **data-out** phase | **yes** — `MODE SELECT` (22 B) and `SEND DIAGNOSTIC` (4 B) both complete |
+| `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — §5 |
+
+### The data phase, driven at the register level
+
+`o1ng-dataphase.lua` is the check that made all four findings above: it drives
+the card's four registers exactly as the driver's routine does, so a failure is
+the card's and not the driver's. With a drive image mounted — the slot's option
+is **`-hard`** (`-scsi:1:harddisk:image` is *not* a MAME option; the device tree
+path in `-listxml` is `:scsi:1:harddisk:image`, but the command line uses the
+instance's brief name):
+
+```sh
+chdman createhd -o /tmp/md10/hd.chd -c none -chs 321,4,18 -ss 512
+O1NG_LOG=/tmp/o1ng-dataphase.log mame osborne1ng \
+  -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
+  -video none -sound none -nothrottle -seconds_to_run 6 \
+  -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
+```
+
+`321/4/18` is `PYXIS13` — the drive-table entry `MD10.COM` offers a new drive
+(`docs/harddisk-decision.md` §7.2), and the geometry the DPB is built from:
+
+```
+mounted geometry (O1NG_CHS): 321/4/18, 512-byte sectors
+TEST UNIT READY (00)
+  ok   6 CDB bytes sent -- sent 6
+  ok   no data phase -- 0 bytes
+  ok   status GOOD -- 00
+INQUIRY (12)
+  ok   36 bytes, phase ended -- 36 bytes
+  ...
+MODE SENSE (1A), page 4 -- geometry
+  ok   page 4 returned, phase ended -- 24 00 00 08 00 00 5A 47 00 00 02 00 04 16 00 01 41 04 00 00
+  ok   cylinders match the CHD -- 321 vs 321
+  ok   heads match the CHD -- 4 vs 4
+  ok   rotation rate 3600 -- 3600 rpm
+MODE SENSE (1A), page 3 -- format parameters
+  ok   sectors/track match the CHD -- 18 vs 18
+  ok   512 bytes/sector -- 512 bytes
+  ok   soft-sectored -- format 80
+READ CAPACITY (25)
+  ok   8 bytes, phase ended -- 8 bytes
+  ok   last LBA = c*h*s - 1 -- 23112 vs 23112
+  ok   block size 512 -- 512 bytes
+READ (08), LBA 0, 1 block
+  ok   512 bytes, phase ended -- 512 bytes
+  ok   status GOOD -- 00
+22 checks, 0 failed -- DATA PHASE OK
+```
+
+The `MODE SENSE` page-4 bytes are the whole point: `00 01 41` = 321 cylinders,
+`04` = 4 heads — the card reporting the geometry of the drive behind it, which
+is what the MD-10 BIOS's `SELDSK` turns into the DPB.
+
+At the guest level the same thing shows up as `PREP.COM`'s option 1 running its
+whole flow. The commands it issues, in order, are the bring-up the ACB-4000
+manual's §4.4 describes:
+
+| CDB | Command | Phase |
+|---|---|---|
+| `00` | `TEST UNIT READY` | status |
+| `08 00 00 00 02 00` | `READ` LBA 0, 2 blocks | data in, 1024 B |
+| `25` | `READ CAPACITY` | data in, 8 B |
+| `04 1E D9 00 00 00` | `FORMAT` | status |
+| `15 00 00 00 16 00` | `MODE SELECT`, 22 B | **data out** |
+| `1D 00 00 00 04 00` | `SEND DIAGNOSTIC`, 4 B | **data out** |
+| `2F 00 00 …` | `SEARCH DATA EQUAL` (the verify pass) | — |
+
+and the screen reaches `Formatting disk (first pass)...` /
+`Verifying disk (first pass)...` with the drive table's own geometry:
+
+```
+Enter drive address, 0 or 1 <0>: 0
+Disk has unrecognizable format (or none)
+Enter drive name (press RETURN to abort): PYXIS13
+PYXIS13 (RO202): Rodime PLC model RO 202/Ampex model Pyxis 13
+  Cyl=321, Head=4, Reduc=132, Lz=+0, Step=2, Cap=11556K
+```
+
 
 `MD10.COM`'s predecessor in this work was stepped over by
 `tools/research/md10patch.py` precisely because the presence check could not
@@ -291,20 +412,28 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
 
 ## 5. What is not, yet
 
-1. **The data phase has not been exercised end to end.** The card implements
-   it (512-byte blocks, the READ/`INIR` path and the byte-at-a-time path), and
-   `TEST UNIT READY` — which has no data phase — completes, but no `MODE SENSE`,
-   `READ CAPACITY` or `READ` has been driven through it and had its bytes
-   checked.
-2. **`peek 0x055E` / `0x056E` is not reached.** Those are the DPH/DPB tables,
-   and they are built by the MD-10 BIOS's `SELDSK` from the geometry the
-   controller reports. Getting there needs two things this slice does not do:
-   the MD-10 system installed (`HARD.COM`) and booted, and a **drive image
-   mounted in the SCSI slot** — with nothing mounted, `SCSIHD` answers
-   check-condition and `HARD.COM` sits at *"Waiting for drive to become ready"*.
-   The slot's image option is
-   `-scsi:1:harddisk:image` in MAME's device tree; the exact command-line
-   spelling was not pinned down here, and the internal UI works.
+1. **Nothing writes through the card.** `MODE SELECT` and `SEND DIAGNOSTIC` complete
+   their data-out phases, but MAME's `SCSIHD` drops what it is given (`t10sbc.cpp`
+   `case T10SPC_CMD_MODE_SELECT_6: break;`) and its `FORMAT UNIT` is a status-only
+   no-op, so `PREP.COM`'s format leaves the CHD blank and its verify pass —
+   `SEARCH DATA EQUAL` (`2F`), one command per sector — has nothing to compare
+   against (`t10spc`/`t10sbc` have no constant for `2F`, so the card answers with a
+   status phase and no data phase). The card's part of a write is exercised; the
+   *store* is MAME's gap, not the card's.
+2. **`peek 0x055E` / `0x056E` is not reached, and the reason is now measured.**
+   `HARD.COM` is not an installer — it is a **hard-disk boot loader**: it reads
+   LBA 5 for 11 blocks (5632 bytes = `0x1600`, exactly the `CCP`+`BDOS` of the
+   O1 system layout, `docs/acb4000-host-adapter.md` §3) into `0xC200`, patches
+   page zero to point at itself (`JP 0xD803`, the body's own jump table, which is
+   its install entry) and jumps into the buffer. On a blank drive that code is
+   all zeros, so the guest NOPs to the top of memory, wraps, and the patched warm
+   vector runs the loader again — the `READ LBA 5 ×11` loop, seen 4 673 times in
+   one run. So the drive has to already carry an MD-10 system, and nothing in the
+   archive writes one: `PREP.COM` option 1 formats (all of its writes are MAME
+   no-ops) and option 3, *Configure operating system*, refuses a drive whose first
+   two sectors are not a format it recognises (`Disk has unrecognizable format
+   (or none)`). This is a *media* question — what the system tracks of an MD-10
+   disk contain — not a card question.
 3. **`2Dh` — "cable connected backwards" — is not modelled.** Both overlays test
    for it; it is a wiring condition, and it is recorded rather than invented.
 
@@ -327,12 +456,18 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
   `CNTLRCOD.OVL` (probe 0x8100, transaction 0x8051), `HARDBIOS.SPR`
   (transaction 0xE285, `BOOT` 0xE182), `MD10.COM`, `DRIVETBL.DAT`.
 - `research/adaptec/Osborne Hard Disk Control Software Version 2.01 (1984).img`
-  — `PREP.COM`, `HARD.COM`, `CNTLRCOD.OVL` (896-byte build).
+  — `PREP.COM`, `HARD.COM` (its routine 0x0221, its relocated body 0x053A →
+  0xD800), `CNTLRCOD.OVL` (the 896-byte build, routine 0x8030).
+- `research/adaptec/acb4000/400003-00A_ACB-4000A_Users_Manual_Oct85.ocr.txt` §4.4
+  — the bring-up order `PREP.COM` follows (REZERO, TEST UNIT READY, MODE SELECT,
+  FORMAT, READ CAPACITY) and "the FORMAT command writes the drive parameters in
+  the ID fields".
 - MAME 0.289 `src/mame/osborne/osborne1.cpp`, `src/devices/machine/legscsi.{h,cpp}`,
   `src/devices/bus/scsi/{scsi,scsihd,scsihle}.{h,cpp}`,
   `src/devices/machine/t10sbc.cpp`, `src/emu/addrmap.cpp` (entry precedence).
 - `docs/acb4000-host-adapter.md` §1–§2 (the protocol and the blocker);
   `docs/acb4000-firmware.md`; `docs/harddisk-decision.md` §5–§6, §7.2–§7.3.
-- `tools/emulator-setup/mame-osborne1ng/` — the patch, `apply.sh`, `o1ng-probe.lua`.
+- `tools/emulator-setup/mame-osborne1ng/` — the patch, `apply.sh`,
+  `o1ng-probe.lua`, `o1ng-dataphase.lua`.
 - `tools/research/{acb4000.lua,mame-boot-probe.sh,o1keys.sh,md10patch.py}`.
 

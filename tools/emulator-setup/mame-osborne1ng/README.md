@@ -18,6 +18,7 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `osborne1ng.patch` | the change, as a `git apply` / `patch -p1` diff against MAME 0.289 |
 | `apply.sh` | apply it to a source tree, optionally build the subtarget, optionally run the probe |
 | `o1ng-probe.lua` | the headless check: the I/O decode, and the card's presence probe |
+| `o1ng-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 
 The patch touches five files:
 
@@ -60,18 +61,65 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the mainboard's 2-bit decode survives | **yes** — `00h`–`03h` still bank-switch, and `05h`/`3Dh` still alias `01h` |
 | the card owns `30h`–`33h` | **yes** — writes there do not bank-switch |
 | the MD-10 presence probe | **yes** — `IN (32h)` reads `04h`; after `OUT (32h),00h` it reads `00h` |
-| the ID scan | **yes** — `PREP.COM` finds the controller at select byte `01h` |
-| **`PREP.COM` (the MD-10 drive-table editor) runs unpatched** | **yes** — its main menu and the drive-table submenu both come up |
-| `HARD.COM` reaches the controller | **yes** — it issues `TEST UNIT READY` and gets a status phase back |
-| a **data** phase (`MODE SENSE`, `READ CAPACITY`, `READ`) | **not yet** — implemented, not exercised end to end |
-| `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — needs the MD-10 BIOS booted *and* a drive image mounted |
+| the ID scan | **yes** — `PREP.COM` finds the controller at select byte `01h` only |
+| **`PREP.COM` (the MD-10 drive-table editor) runs unpatched** | **yes** — its main menu, the drive-table submenu, *and* its whole initialize/format flow |
+| `HARD.COM` reaches the controller | **yes** — real commands (`TEST UNIT READY`, then `READ` LBA 5 ×11 — the `CCP`+`BDOS` it boots) |
+| the **data phase** (`INQUIRY`, `MODE SENSE`, `READ CAPACITY`, `READ`) | **yes** — 22/22 checks, `o1ng-dataphase.lua` |
+| the **data-out** phase (`MODE SELECT`, `SEND DIAGNOSTIC`) | **yes** — both complete |
+| `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
 
-The last two are the next slice: the tables are built by the MD-10 BIOS's
-`SELDSK` from the geometry the controller reports, so getting there needs a
-hard-disk image in the SCSI slot and the MD-10 system installed with `HARD.COM`.
-`MD10.COM`'s predecessor in this work was stepped over by
-`tools/research/md10patch.py` precisely because the presence check could not
-pass; it now does.
+### Driving a transfer
+
+The data phase needs a drive image mounted, and the slot's option is **`-hard`**
+(not `-scsi:1:harddisk:image` — `-listxml` gives the device tree path
+`:scsi:1:harddisk:image`, but the command line wants the instance's brief name):
+
+```sh
+chdman createhd -o /tmp/md10/hd.chd -c none -chs 321,4,18 -ss 512
+O1NG_LOG=/tmp/o1ng-dataphase.log mame osborne1ng \
+  -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
+  -video none -sound none -nothrottle -seconds_to_run 6 \
+  -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
+```
+
+`chdman` comes from the same MAME source tree (`make SUBTARGET=chdman` is *not*
+it — the tools are generated with `TOOLS=1`, and then
+`make -C build/projects/<osd>/<solution>/<toolchain> config=release64 chdman`).
+`321,4,18` is `PYXIS13`, the drive-table entry `MD10.COM` offers a new drive.
+
+### The handshake details that cost the time
+
+Four of them, all read out of the driver and all of them a hang until they were
+right (`docs/osborne1ng-machine.md` §3):
+
+1. **The status phase asserts PHASE and END but not REQ** — the driver's data-out
+   loop writes a byte per REQ, so a REQ left up while the status waits writes for
+   ever. `MODE SELECT` is where it bites.
+2. **The status byte survives two reads** — the routine reads it into `B` and
+   then reads the register again to acknowledge, and a byte-at-a-time data-in
+   transfer reads it once more.
+3. **The CDB index resets when the command phase starts** — otherwise the first
+   command works and every later one re-runs the *stale* CDB. That was
+   `HARD.COM`'s "Waiting for drive to become ready": a `READ` answered by a
+   leftover `TEST UNIT READY`.
+4. **A select byte is accepted whenever the card is not mid-command** — the ID
+   scan selects the next candidate without acknowledging the previous status.
+
+A transfer also ends at the target's length, not only at a 512-byte boundary, so
+a short one (`MODE SENSE`'s 36 bytes, `READ CAPACITY`'s 8) ends where the target
+said it would.
+
+### What is left: the low-RAM DPB tables
+
+`peek 0x055E` / `0x056E` — the DPH/DPB tables the MD-10 BIOS's `SELDSK` builds
+from the geometry above — is the one acceptance item still open. It is not a card
+problem any more, and the reason is measured: `HARD.COM` is a **hard-disk boot
+loader**, not an installer. It reads LBA 5 for 11 blocks (`0x1600` bytes = the
+`CCP`+`BDOS` of the O1 system layout), patches page zero to point at itself and
+jumps into what it read — so the drive has to *already* carry an MD-10 system.
+Nothing in the archive writes one: `PREP.COM` option 1 formats (and MAME's
+`SCSIHD` drops every write it is given), and option 3, *Configure operating
+system*, refuses a drive whose first two sectors are not a format it recognises.
 
 ## The two findings worth not rediscovering
 
