@@ -23,12 +23,19 @@ agent working in `o1nextgen`. Follow it over generic defaults.
    (e.g. `research/o1-memory-io-map`, `docs/research-archive-readme-video`)
 2. **Commit frequently** — small, self-contained commits that each compile
    into a coherent state. Don't hold a day's work uncommitted.
-3. **Every commit must be GPG-signed.** The repo config already sets
-   `commit.gpgsign=true` (key `D61B664A126EE2410F5A0BF1D3FB4FF4931F5225`).
+3. **Every commit must be GPG-signed.** `commit.gpgsign=true` and
+   `user.signingkey=A69B4405637BD55D` come from the **global** `~/.gitconfig`;
+   the repo sets neither. `A69B4405637BD55D` is the signing subkey of primary
+   `9AA02DEEAFA4F425`.
    - If signing fails (key locked, agent can't reach pinentry, etc.),
      **stop and tell the user** — never bypass with `--no-gpg-sign` or by
      flipping the config.
-   - Verify with `git log --format='%h %G? %s'` — every commit shows `G`.
+   - Verify with `git log --format='%h %G? %s'`. **Authored commits show `G`.**
+     `E` is *a signature that cannot be checked here* — GitHub-created merges
+     (the `web-flow` key is not imported) and commits from a session whose key is
+     not in this keyring. `N` is unsigned; `B` is a bad signature. `E` is not a
+     signing failure, and it is not a reason to stop: **#160** is the keyring work
+     that turns those into `G`.
 4. **Commit message format:** `<area>: <imperative summary> (#issue)`
    - Areas in use: `docs:`, `research:`, `tools:` (plus merge commits).
    - Reference the driving issue in every commit: `(#9)`,
@@ -39,11 +46,12 @@ agent working in `o1nextgen`. Follow it over generic defaults.
      unmerged branch.
 5. **Push the branch, then open a PR** (`gh pr create`) with a title
    mirroring the commit message and a body linking the issues.
-6. **Merge through the GitHub PR**, not local merges pushed to `main`.
-   Local merges leave PRs stuck in "closed" (not "merged") state and skip
-   issue auto-close — PRs #36–#38 in this repo's history show that failure
-   mode. Prefer `gh pr merge` or the web button; delete the local branch
-   after merge.
+6. **Merge through the GitHub PR**, not local merges pushed to `main`. A merge
+   commit created locally bypasses the PR's own record and its issue auto-close,
+   and the history shows it: **16 merges into `main` were made that way on
+   2026-10-09**, six of them bare `Merge feature/X` with no PR reference at all.
+   Nothing since 2026-10-10 11:32 has been. Prefer `gh pr merge` or the web
+   button; delete the local branch after merge.
 7. Never commit directly to `main`; never force-push `main`.
 
 ## When a tool is missing, ask — do not engineer around it
@@ -120,6 +128,12 @@ message. A modal is the opposite: it blocks, it expires, and it produces nothing
   artifact, and each declares what "finished" means for it. **Outcomes never sit
   in a research tree**: that is why the book is a deliverable and not Phase 0
   work, and why pulling it out moved Phase 0's bar from 15/23 to 15/22.
+- **Assignees mean "the ball is with a person".** An issue whose remaining work
+  only the maintainer can do — handling the physical machines, a keyring or
+  account action, sending a note to a third party — is **assigned to the
+  maintainer** (`Myrcurial`). Everything else stays **unassigned**, and
+  unassigned means "still ours to work on" — including work that ends in a
+  recommendation the maintainer then decides on.
 
 ## Before declaring done
 
@@ -127,4 +141,6 @@ message. A modal is the opposite: it blocks, it expires, and it produces nothing
 - PR open and linked to its issues; no dangling `closes #N`.
 - Docs cross-references resolve: if you cite `docs/foo.md` or
   `research/bar/`, that file must exist **on the branch you're merging**.
-- Commits verified signed (`%G?` = `G`).
+- Commits verified signed: `%G?` = `G` on authored commits. GitHub merges read
+  `E` until the `web-flow` key is imported (#160) — that is expected, not a
+  failure.
