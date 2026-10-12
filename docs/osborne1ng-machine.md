@@ -416,14 +416,23 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
 
 ## 5. What is not, yet
 
-1. **Nothing writes through the card.** `MODE SELECT` and `SEND DIAGNOSTIC` complete
-   their data-out phases, but MAME's `SCSIHD` drops what it is given (`t10sbc.cpp`
-   `case T10SPC_CMD_MODE_SELECT_6: break;`) and its `FORMAT UNIT` is a status-only
-   no-op, so `PREP.COM`'s format leaves the CHD blank and its verify pass —
-   `SEARCH DATA EQUAL` (`2F`), one command per sector — has nothing to compare
-   against (`t10spc`/`t10sbc` have no constant for `2F`, so the card answers with a
-   status phase and no data phase). The card's part of a write is exercised; the
-   *store* is MAME's gap, not the card's.
+1. **Nothing writes through the card, so `PREP.COM` cannot finish a format.**
+   `MODE SELECT` and `SEND DIAGNOSTIC` complete their data-out phases, but MAME's
+   `SCSIHD` drops what it is given (`t10sbc.cpp` `case
+   T10SPC_CMD_MODE_SELECT_6: break;`) and its `FORMAT UNIT` is a status-only
+   no-op. The verify pass that follows is `SEARCH DATA EQUAL` (`2F`), which
+   `t10spc`/`t10sbc` have no constant for at all — so the card answers with a
+   status phase and no data phase, the driver never sees the match it is looking
+   for, and it loops. Measured: `PREP.COM` option 1 reaches *"Verifying disk
+   (first pass)..."* and stays there for 600 emulated seconds, issuing 1 772 618
+   `2F` commands over LBA `0`–`0xFF` — walking that range and starting again.
+   The card's part of a write is exercised; the *store* is MAME's gap, not the
+   card's.
+
+   So the formatted disk is built rather than formatted:
+   `tools/research/mkdrive.py` writes the ACB-4000's own fill byte (`6C`) into
+   every data field and gives `chdman` the geometry, which is the same blob the
+   controller would have produced. `docs/harddisk-decision.md` §7.2 has it.
 2. **`peek 0x055E` / `0x056E` is not reached, and the reason is now measured.**
    `HARD.COM` is not an installer — it is a **hard-disk boot loader**: it reads
    LBA 5 for 11 blocks (5632 bytes = `0x1600`, exactly the `CCP`+`BDOS` of the

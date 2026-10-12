@@ -91,6 +91,16 @@ scratch programs, "figuring it out" notebooks/scripts.
   Written for #178 because `cpmfs.py get` cannot: the file's directory entry says
   128 bytes while it holds 16 512, so the table is only reachable by walking the
   block list. Prints each entry's name, description and geometry.
+- **`mkdrive.py`** — builds a **blank but formatted** ST-506/MFM hard-disk image
+  for any geometry, byte-wise, for the `osborne1ng` card to talk to (#191). The
+  ACB-4000's `FORMAT` writes a fill pattern into every data field — `6C` hex
+  unless the command says otherwise — so that is what this writes, and the
+  geometry goes to `chdman`, whose `GDDD` metadata is the same record the
+  controller keeps in the disk's ID fields. It exists because MAME's `SCSIHD`
+  cannot finish a format (no `FORMAT UNIT`, no `SEARCH DATA EQUAL`), so
+  `PREP.COM`'s initialize loops at *"Verifying disk (first pass)..."*. Needs
+  `chdman` (`REQUIREMENTS.md`). See `docs/harddisk-decision.md` 7.2 and
+  `docs/osborne1ng-machine.md` 5.
 - **`hardbios.py`** — read the MD-10 hard-disk BIOS overlay. `jump` prints the
   CP/M 2.2 BIOS jump table with every target resolved and walks `SELDSK`'s DPH
   construction; `audit` searches the whole archive for writers of the low-RAM

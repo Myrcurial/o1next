@@ -46,13 +46,16 @@ mame osborne1ng -rompath tools/emulator-setup/roms \
     -flop1 research/shipped-software/OS1UTLS.IMD
 ```
 
-**Headless runs need `-window` on macOS.** `-video none` picks the *renderer*,
-not the window: the window belongs to the OSD, and MAME's default is full screen
-(`-window`: *"otherwise, full screen mode is assumed"*). The mac OSD — what a
-macOS source build uses, because it otherwise wants SDL3 — has no
-`SDL_VIDEODRIVER=dummy` to hide behind, so a headless run without `-window`
-takes the whole display with a grey window until it exits. `-numscreens 0` is
-rejected (`must be between 1 and 4`). Full note in `docs/mame-emulation.md` §6.
+**Headless means an SDL build.** `-video none` picks the *renderer*, not the
+window: the window belongs to the OSD, and MAME's default is full screen
+(`-window`: *"otherwise, full screen mode is assumed"*). `SDL_VIDEODRIVER=dummy`
+is what makes a run headless, and it only works for an SDL build — so the build
+must be the tree's default OSD (`sdl3` on macOS), which needs **`pkg-config`**
+for MAME to find SDL3 (`REQUIREMENTS.md`). Without pkg-config the build falls
+back to the mac OSD, which has no such switch and takes the whole display until
+it exits; `apply.sh` says so when it falls back, and `-window` is the only thing
+that keeps it off the display (`-numscreens 0` is rejected). Full note in
+`docs/mame-emulation.md` §6.
 
 `osborne1ng` runs the **1.44 ROM only** (`3a10082-00rev-e.ud11`, with the
 `7a3007-00.ud15` character generator). It does not carry the `osborne1` family's
@@ -83,17 +86,19 @@ The data phase needs a drive image mounted, and the slot's option is **`-hard`**
 `:scsi:1:harddisk:image`, but the command line wants the instance's brief name):
 
 ```sh
-chdman createhd -o /tmp/md10/hd.chd -c none -chs 321,4,18 -ss 512
-O1NG_LOG=/tmp/o1ng-dataphase.log mame osborne1ng \
+tools/research/mkdrive.py --out /tmp/md10/hd.chd                # PYXIS13, 321/4/18
+O1NG_LOG=/tmp/o1ng-dataphase.log SDL_VIDEODRIVER=dummy mame osborne1ng \
   -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
   -video none -sound none -window -nothrottle -seconds_to_run 6 \
   -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
 ```
 
-`chdman` comes from the same MAME source tree (`make SUBTARGET=chdman` is *not*
-it — the tools are generated with `TOOLS=1`, and then
-`make -C build/projects/<osd>/<solution>/<toolchain> config=release64 chdman`).
-`321,4,18` is `PYXIS13`, the drive-table entry `MD10.COM` offers a new drive.
+`mkdrive.py` is how the drive gets there: it writes a **blank but formatted**
+ST-506/MFM image — the ACB-4000's own fill byte (`6C`) in every data field,
+which is what the controller's `FORMAT` writes — for any geometry, without the
+1984 tools (MAME's `SCSIHD` cannot finish a format; see "What is left" below).
+`--chs 306,4,17` gives an `ST412`, and the period list of drive geometries is
+archived at `research/adaptec/compatible-drives-1991-usenet.txt`.
 
 ### The handshake details that cost the time
 
@@ -125,9 +130,16 @@ problem any more, and the reason is measured: `HARD.COM` is a **hard-disk boot
 loader**, not an installer. It reads LBA 5 for 11 blocks (`0x1600` bytes = the
 `CCP`+`BDOS` of the O1 system layout), patches page zero to point at itself and
 jumps into what it read — so the drive has to *already* carry an MD-10 system.
-Nothing in the archive writes one: `PREP.COM` option 1 formats (and MAME's
-`SCSIHD` drops every write it is given), and option 3, *Configure operating
-system*, refuses a drive whose first two sectors are not a format it recognises.
+
+`PREP.COM` option 1 would write one, but it cannot finish: MAME's `SCSIHD` drops
+the `MODE SELECT` parameters and its `FORMAT UNIT` is a status-only no-op, and
+the verify pass after it is `SEARCH DATA EQUAL` (`2F`) — which `t10spc`/`t10sbc`
+do not implement at all, so the driver never sees its match and loops (measured:
+600 emulated seconds at *"Verifying disk (first pass)..."*, 1 772 618 `2F`
+commands over LBA `0`–`0xFF`). That is why the drive is **built** rather than
+formatted — `tools/research/mkdrive.py` — and why what is still missing is the
+MD-10's own on-disk structure, which is written by the part of `PREP.COM` we
+cannot reach.
 
 ## The two findings worth not rediscovering
 

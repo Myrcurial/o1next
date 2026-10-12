@@ -434,6 +434,38 @@ The whole table — 126 entries over 113 description records — is in
 MD-20.img`; `tools/research/drivetbl.py` prints it. The 2.01 disk carries the
 same table byte-for-byte.
 
+**A second, independent list.** `DRIVETBL.DAT` is Osborne's/MD-10's list. The
+period list archived at `research/adaptec/compatible-drives-1991-usenet.txt`
+(Robert Haar, `comp.sys.3b1`, Feb 1991, reposting Lenny Tropiano's 1989 table
+out of the Western Digital support BBS) is the *drive manufacturers'* one, and
+it is broader: Atasi, ALPS, Ampex, CMI, Disctron, Evotek, Fujitsu, IMI,
+Maxtor, Microscience, Miniscribe, Mitsubishi, NEC, Newbury, Priam, Rodime,
+Seagate, Sony, Tandon, Teac, Texas Instruments, Toshiba, Tulin, Vertex and
+Western Digital. It also gives each drive's **sectors/track** — 17 for almost
+every entry — which `DRIVETBL.DAT` does not carry at all (its capacity formula
+assumes 18), and it numbers `PYXIS-13` at **320** cylinders where `DRIVETBL.DAT`
+says **321**. Neither is wrong: one is the drive's own number, the other is what
+the tools carry. Nothing is reconciled here; both are recorded, because the
+personality (#179) may offer any geometry the driver's DPB can describe, not
+only the 126 in the shipped table.
+
+**Making a drive image.** `tools/research/mkdrive.py` builds a blank-but-formatted
+ST-506/MFM image for any geometry, byte-wise, without the 1984 tools:
+
+```sh
+tools/research/mkdrive.py --out /tmp/md10/hd.chd                  # PYXIS13
+tools/research/mkdrive.py --out /tmp/md10/st412.chd --chs 306,4,17
+```
+
+It fills every sector's data field with **`6C`**, which is what the ACB-4000's
+FORMAT writes by default — "completely written with 6C hex unless otherwise
+specified in the format command" (`research/adaptec/acb4000/…Users_Manual_Oct85`,
+§4.4.5 and the FORMAT command reference) — and passes the geometry to `chdman`,
+whose `GDDD` metadata is the same record the controller keeps in the disk's ID
+fields. `PREP.COM` asks for a *unique* fill byte and sends `D9` in its FORMAT
+CDB, so `--fill d9` exists too. It is needed because MAME's `SCSIHD` cannot
+finish a format (`docs/osborne1ng-machine.md` §5).
+
 #### Running the editor
 
 Four things were added to `tools/research/` for this, each with a header saying

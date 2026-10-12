@@ -1,0 +1,630 @@
+# ST-506/MFM hard drive table - comp.sys.3b1, February 1991
+#
+# Provenance (see research/README.md for the table this row belongs to):
+#   Subject : List of replacement hard drives for 3b1
+#   Poster  : Robert L. Haar CS50 <rhaar at albert.cs.gmr.com>, G.M. Research Labs
+#   Date    : Tue Feb 12 04:24:53 AEST 1991
+#   Group   : comp.sys.3b1
+#   Archive : https://www.tuhs.org/Usenet/comp.sys.3b1/1991-February/000257.html
+#             (TUHS Usenet archive, retrieved 2026-10-12)
+#
+# It is not Haar's own list: he reposts Lenny Tropiano's
+#   "ST-506 MFM Hard Drive Manufacturer listing (LONG), model #'s and specs"
+#   <952 at icus.islp.ny.us>, 2 Sep 89, crossposted to unix-pc.general,
+#   comp.sys.att and comp.periphs, and Tropiano in turn edited it out of the
+#   full drive list on the Western Digital technical support BBS (which held
+#   ST-506 MFM, RLL, ESDI and SCSI drives).  Quoted verbatim below, Haar's
+#   header lines and all.
+#
+# WHY IT IS HERE
+#   The MD-10 personality should be able to offer any ST-506/412-class drive
+#   (docs/harddisk-decision.md section 7.2).  The drive table the MD-10 tools
+#   ship - DRIVETBL.DAT, 126 name records, printed by tools/research/drivetbl.py
+#   - is one such list; this is a second, independent one, from a period
+#   source, with the manufacturers' own numbers.  Columns, as the posting
+#   defines them:
+#
+#     CAP = capacity in FORMATTED megabytes      RATE  = transfer rate, Mbit/s
+#     CYC = maximum number of cylinders          ACCESS= average access time
+#     H   = number of data heads                 SPT   = sectors/track x 512 bytes
+#     RWC = start reduced write current          ENC   = encoding (R=RLL, M=MFM)
+#     WPC = start write precomp                  FH/HH = full/half height
+#   "if it's = CYC + 1 then it is not used" applies to RWC and WPC.
+#
+#   Note SPT is 17 for almost every entry here, while DRIVETBL.DAT's capacity
+#   formula uses 18 (docs/harddisk-decision.md section 7.2).  The two lists
+#   disagree on PYXIS-13 too: 320 cylinders here, 321 in DRIVETBL.DAT.  Neither
+#   is wrong - one is the drive manufacturer's number and the other is what the
+#   MD-10 tools carry - and the difference is recorded rather than reconciled.
+
+In article <434 at yonder.UUCP>, michael at yonder.UUCP (Michael E. Haws) writes:
+|> In article <433 at yonder.UUCP>, michael at yonder.UUCP (Michael E. Haws) writes:
+|> > I would like to compile a list of replacement hard drives for the 3b1
+|> 
+|> I posted this a week or so ago and got very little response.  I actually
+|> received more requests for summary than drive info.  Since I now know there
+|> is an interest out there I am trying once more, hoping that perhaps
+|> the last post did not reach as many sites as possible due to the switching
+|> to the new group(3b1).
+|> 
+
+OK. Included below is one of the more recent lists from Lenny Tropiano
+
+______________________________________________________________________________
+
+Article 2637 of unix-pc.general:
+Path: rphroy!cfctech!sharkey!mailrus!rutgers!gatech!rayssd!icus!lenny
+>From: lenny at icus.islp.ny.us (Lenny Tropiano)
+Newsgroups: unix-pc.general,comp.sys.att,comp.periphs
+Subject: ST-506 MFM Hard Drive Manufacturer listing (LONG), model #'s
+and specs.
+Keywords: hard drives, ST-506, MFM, Western Digital, specs, capacity
+Message-ID: <952 at icus.islp.ny.us>
+Date: 2 Sep 89 02:26:09 GMT
+Organization: ICUS Software Systems, Islip, New York
+Lines: 561
+Xref: rphroy unix-pc.general:2637 comp.sys.att:4790 comp.periphs:1265
+
+
+Western Digitial semi-automated Technical Support line  800-777-4787
+
+ST-506 MFM Hard drive Table editted from the full list of HD's that
+contained the ST-506 MFM, RLL, SCSI, EDSI on the Western Digital 
+Technical Support BBS (2400/1200 baud)   714-756-8176
+
+DISCLAIMER:  I have no connection with WD or any of the following hard drive
+manufacturers.  Nor do I claim that all this drives will work in the UNIX pc.
+Use this information purely for technical specifications of the hard drives,
+along with the information that Craig Votava (cmv at ihlpz.att.com) posted a
+while ago for other drives that were tested on the UNIX pc.
+
+
+       CAP   = CAPACITY IN FORMATTED MEGABYTES
+       CYC   = MAXIMUM NUMBER OF CYLINDER
+       H     = NUMBER OF DATA HEADS
+       RWC   = START REDUCED WRITE CURRENT
+               IF IT'S = CYC + 1 THEN IT IS NOT USED
+       WPC   = START WRITE PRECOMP
+               IF IT'S = CYC + 1 THEN IT IS NOT USED
+       ENC   = ENCODING METHOD R=RLL, M=MFM
+       RATE  = TRANSFER RATE IN MEGABITS/SEC
+       ACCESS= AVERAGE ACCESS TIME
+       SPT   = SECTORS/TRACK X 512 bytes
+       FH    = FULL HIGH FORM FACTOR
+       HH    = HALF HIGH FORM FACTOR
+       R     = RLL (run length limited)
+       N     = NRZ (non return to zero)
+       M     = MFM (modified frequency modulation)
+       SA    = STAND ALONE
+       Z     = ZBR
+
+------------------------------------------------------------------------------
+ALPS ELECTRIC  800-950-2557
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+DRND-10A        3.5"      10   615  2  616  616 M    5    60 MS   17
+DRND-20A        3.5"      20   615  4  616  616 M    5    60 MS   17
+------------------------------------------------------------------------------
+AMPEX          213-640-0150 OR 800-231-1036
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+PYXIS-7         5.25 FH    5   320  2  132  132 M    5    90 MS   17
+PYXIS-13        5.25 FH   10   320  4  132  132 M    5    90 MS   17
+PYXIS-20        5.25 FH   15   320  6  132  132 M    5    90 MS   17
+PYXIS-27        5.25 FH   20   320  8  132  132 M    5    90 MS   17
+------------------------------------------------------------------------------
+ATASI
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+3020                      17   645  3  320  320 M    5            17
+3033                      28   645  5  320  320 M    5            17
+3046                      39   645  7  320  320 M    5            17
+3051                      43   704  7  359  350 M    5            17
+3053                      44   733  7  350  -   M    5            17
+3075                      67  1024  8 1025 1025 M    5            17
+3085                      67  1024  8  -    512 M    5            17
+------------------------------------------------------------------------------
+BASF
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+6185                      23   440  6  220  220 M    5            17
+6186                      15   440  4  220  220 M    5            17
+6187                       8   440  2  220  220 M    5            17
+------------------------------------------------------------------------------
+BULL
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+D-530                     25   987  3  988  988 M    5            17
+D-550                     43   987  5  988  988 M    5            17
+D-570                     59   987  7  988  988 M    5            17
+------------------------------------------------------------------------------
+C. ITOH        800-227-0315
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+YD-3530                   32   731  5  732  732 M    5            17
+YD-3540         5.25 HH   45   731  7  732  732 M    5    26 MS   17
+------------------------------------------------------------------------------
+CARDIFF
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+F-3053          3.5"      44  1024  5   -    -  M    5    20 MS   17
+------------------------------------------------------------------------------
+C D C          612-853-8100
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+BJ7D5A  77731614 5.25 FH  23   670  4  671  128 M    5            17
+BJ7D5A  77731608 5.25 FH  29   670  5  671  128 M    5            17
+BJ7D5A  77731613               733  5  734  128      5            17
+94155-21 WREN-1 5.25 FH   21   697  3  698  128 M    5    28 MS   17
+94155-25                  24   697  4  698  128 M    5            17
+94155-28                  24   697  4  698  128 M    5            17
+94155-36 WREN-1 5.25 FH   36   697  5  698  128 M    5    28 MS   17
+94155-38                  31   733  5  734  128 M    5            17
+94155-48 WREN-2 5.25 FH   40   925  5  926  128 M    5    28 MS   17
+94295-51 WREN-2 5.25 FH   43   989  5  990  128 M    5    28 MS   17
+94155-57 WREN-2 5.25 FH   48   925  6  926  128 M    5    28 MS   17
+94155-67 WREN-2 5.25 FH   56   925  7  926  128 M    5    28 MS   17
+94155-77 WREN-2           64   925  8  926  128 M    5            17
+94155-85 WREN-2 5.25 FH   71  1024  8 1025  128 M    5    28 MS   17
+94155-86 WREN-2 5.25 FH   72   925  9  926  128 M    5    28 MS   17
+94205-51        5.25 HH   43   989  5  990  128 M    5    32 MS   17
+94335-55        3.5"      46  -     5   -    -  M    5    25 MS   17
+94335-100       3.5"      83  -     9   -    -  M    5    25 MS   17
+94355-55   SWIFT-2 3.5"   46  -     5   -    -  M    5    16.5 MS 17
+94355-100  SWIFT 3.5"     88  1072  9 1073  300 M    5    15 MS   17
+------------------------------------------------------------------------------
+C M I          818-709-6445
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+3426                      20   615  4  616  256 M    5            17
+5206                      5    306  2  307  256 M    5            17
+5205                      4    256  2  128  128 M    5            17
+5410                      8    256  4  128  128 M    5            17
+5412                      10   306  4  307  128 M    5            17
+5616                      13   256  6  257  257 M    5            17
+5619                      15   306  6  307  128 M    5            17
+6213                      11   640  2  641  256 M    5            17
+6426                      21   640  4  641  256 M    5            17
+6640                      33   615  6  616  256 M    5            17
+7660                      50   960  6  961  450 M    5            17
+7880                      67   960  8  961  450 M    5            17
+------------------------------------------------------------------------------
+COGITO         408-942-8262
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+CG-906                    5    306  2  128  128 M    5
+CG-912                    11   306  4  128  128 M    5
+PT-912                    11   612  2  307  307 M    5
+PT-925                    21   612  4  307  307 M    5
+------------------------------------------------------------------------------
+CORE INTNL
+------------------------------------------------------------------------------
+MODEL   ST-506 MFM       CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+AT 32            5.25 HH  31   733  5  -    -   M    5    21 MS   17
+AT 30            5.25 FH  31   733  5  -    -   M    5    26 MS   17
+AT 40            5.25 FH  40   924  5  -    -   M    5    26 MS   17
+AT 63            5.25 FH  42   988  5  -    -   M    5    26 MS   17
+AT 72            5.25 FH  72   924  9  -    -   M    5    26 MS   17
+OPTIMA     30    5.25 HH  31   733  5  -    -   M    5    21 MS   17
+OPTIMA     40    5.25 HH  41   963  5  -    -   M    5    26 MS   17
+OPTIMA     70    5.25 FH  71   918  9  -    -   M    5    26 MS   17
+------------------------------------------------------------------------------
+DISCTRON
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+D-503                     3    153  2  -    -   M    5            17
+D-504                     4    215  2  -    -   M    5            17
+D-506                     5    153  4  -    -   M    5            17
+D-507                     5    306  2  128  128 M    5            17
+D-509                     8    215  4  128  128 M    5            17
+D-512                     11   153  8  -    -   M    5            17
+D-513                     11   215  6  128  128 M    5            17
+D-514                     11   306  4  128  128 M    5            17
+D-518                     15   215  8  128  128 M    5            17
+D-519                     16   306  6  128  128 M    5            17
+D-526                     21   306  8  128  128 M    5            17
+------------------------------------------------------------------------------
+DMA
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+306                       11   612  2  612  400 M    5            17  REMOV.
+------------------------------------------------------------------------------
+ELCOH
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+DISCACHE10                10   320  4  321  321 M    5            17
+DISCACHE20                20   320  8  321  321 M    5            17
+------------------------------------------------------------------------------
+FUJI           415-651-0811
+------------------------------------------------------------------------------
+MODEL   ST-506 MFM       CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+FK305-26          3.5"    21   615  4  -    616 M    5    50-80MS 17
+FK305-39          3.5"    32   615  6  -    616 M    5    50-80MS 17
+FK309-26          3.5"    21   615  4  -    616 M    5    50-80MS 17
+FK301                     10   306  4  307  128 M    5            17
+FK302-13                  10   612  2  613  307 M    5            17
+FK302-26                  21   612  4  613  307 M    5            17
+FK302-39                  32   612  6  613  307 M    5            17
+FK303-52          3.5"    40   615  8  -    616 M    5    50-80MS 17
+------------------------------------------------------------------------------
+FUJITSU        408-432-1300
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+2230 AS                   5    320  2  321  321 M    5            17
+2233 AS                   10   320  4  321  321 M    5            17
+2234 AS                   15   320  6  321  321 M    5            17
+2235 AS                   20   320  8  321  321 M    5            17
+2241 AS                   26   754  4  755  755 M    5            17
+M2226D2           3.5"    30   615  6  -    -   M    5    35 MS   17
+M2227D2           3.5"    40   615  8  -    -   M    5    35 MS   17
+M2242AS2         5.25 FH  43   754  7  -    -   M    5    30 MS   17
+M2243AS2         5.25 FH  67   754 11  -    -   M    5    30 MS   17
+M2243T           5.25 HH  68  1186  7  -    -   M    5    25 MS   17
+------------------------------------------------------------------------------
+HITACHI        415-872-1902
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+DK301-1            3.5"   10   306  4  -    -   M    5    85 MS   17
+DK301-2            3.5"   15   306  6  -    -   M    5    85 MS   17
+DK511-3           5.25 FH 28   699  5  -    -   M    5    30 MS   17
+DK511-5           5.25 FH 40   699  7  -    -   M    5    30 MS   17
+DK511-8           5.25 FH 67   823 10  -    -   M    5    23 MS   17
+DK521-5           5.25 HH 51   823  6  -    -   M    5    25 MS   17
+------------------------------------------------------------------------------
+IMI
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+5006                      5    306  2  307  214 M    5            17
+5012                      10   306  4  307  214 M    5            17
+5018                      15   306  6  307  214 M    5            17
+------------------------------------------------------------------------------
+JCT            503-474-5678
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+100              5.25 HH  5    -    -  -    -   M    5    110 MS  17
+105              5.25 HH  7    -    -  -    -   M    5    110 MS  17
+110              5.25 HH  14   -    -  -    -   M    5    130 MS  17
+120              5.25 HH  20   -    -  -    -   M    5    100 MS  17
+------------------------------------------------------------------------------
+KALOK CORP.    408-747-1315
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+KL320   OCTAGON 20 3.5"   20   615  4  616  300 M    5    48 MS   17
+------------------------------------------------------------------------------
+KYOCERA        619-576-2600
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+KC20A/     KC20B/  3.5"   20   616  4  -    -   M    5    65 MS   17
+------------------------------------------------------------------------------
+LA PINE
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+3522                      10   306  4  307  -   M    5            17
+LT 10                     10   615  2  616  -   M    5            17
+LT 20                     20   615  4  616  -   M    5            17
+LT 200                    20   614  4  615  -   M    5            17
+LT 2000                   20   614  4  615  -   M    5            17
+------------------------------------------------------------------------------
+MAXTOR         408-432-1700
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+XT-1065          5.25 FH  56   918  7  919  919 M    5    28 MS   17
+XT-1085          5.25 FH  71  1024  8 1025 1025 M    5    28 MS   17
+XT-1105          5.25 FH  87   918 11  919  919 M    5    27 MS   17
+XT-1140          5.25 FH  119  918 15  919  919 M    5    27 MS   17
+XT-2085          5.25 FH  74  1224  7 1225 1225 M    5    30 MS   17
+XT-2140          5.25 FH  117 1224 11 1225 1225 M    5    30 MS   17
+XT-2190          5.25 FH  159 1224 15 1225 1225 M    5    29 MS   17
+------------------------------------------------------------------------------
+MEMOREX
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+321                       5    320  2  321  128 M    5            17
+322                       10   320  4  321  128 M    5            17
+323                       15   320  6  321  128 M    5            17
+324                       20   320  8  321  128 M    5            17
+450                       10   612  2  321  350 M    5            17
+512                       25   961  3  321  480 M    5            17
+513                       41   961  5  321  480 M    5            17
+514                       58   961  7  321  480 M    5            17
+------------------------------------------------------------------------------
+MICROPOLIS     818-709-3300
+------------------------------------------------------------------------------
+
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+1302             5.25 FH  21   830  3  831  831 M    5            17
+1303             5.25 FH  36   830  5  831  831 M    5            17
+1304             5.25 FH  43   830  6  831  831 M    5            17
+1323             5.25 FH  35  1024  4 1025 1025 M    5    28 MS   17
+1323A            5.25 FH  44  1024  5 1025 1025 M    5    28 MS   17
+1324             5.25 FH  53  1024  6 1025 1025 M    5    28 MS   17
+1324A            5.25 FH  62  1024  7 1025 1025 M    5    28 MS   17
+1325             5.25 FH  71  1024  8 1025 1025 M    5    28 MS   17
+1333A            5.25 FH  44  1024  5 1025 1025 M    5    28 MS   17
+1334             5.25 FH  53  1024  6 1025 1025 M    5    28 MS   17
+1335             5.25 FH  71  1024  8 1025 1025 M    5    28 MS   17
+------------------------------------------------------------------------------
+MICROSCIENCE   408-730-5965
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+HH 312                    10   306  4  307  307 M    5            17
+HH 315                    10   306  4  307  307 M    5            17
+HH 325                    21   612  4  613  613 M    5    80 MS   17
+HH 612                    11   306  4  307  307 M    5            17
+HH 625                    21   612  4  613  613 M    5            17
+HH 712           5.25 HH  10   612  2  613  613 M    5    105 MS  17
+HH 725           5.25 HH  21   612  4  613  613 M    5    105 MS  17
+HH 825           5.25 HH  21   615  4  616  616 M    5    65 MS   17
+HH 1050          5.25 HH  44  1024  5 1025 1025 M    5    28 MS   17
+HH-1075          5.25 HH  65  1024  7 1025 1025 M    5    28 MS   17
+HH-1090          5.25 HH  80  1314  7 1315 1315 M    5    28 MS   17
+4050              3.5"    44  1024  5 1025 1025 M    5    18 MS   17
+------------------------------------------------------------------------------
+MINISCRIBE     303-651-6000
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+1006                      5    306  2  153  128 M    5            17
+1012                      10   306  4  153  128 M    5            17
+2006                      5    306  2  307  128 M    5            17
+2012                      11   306  4  307  128 M    5            17
+3053             5.25 HH  44  1024  5 1025  512 M    5    25 MS   17
+3085             5.25 HH  71  1170  7 1171  512 M    5   <20 MS   17
+3212             5.25 HH  11   612  2  613  128 M    5    85 MS   17
+3212 PLUS        5.25 HH  11   612  2  613  128 M    5    53 MS   17
+3412                      11   306  4  307  128 M    5            17
+3425             5.25 HH  21   612  4  613  128 M    5    85 MS   17
+3425 PLUS        5.25 HH  21   612  4  613  128 M    5    53 MS   17
+3650             5.25 HH  42   809  6  810  128 M    5    61 MS   17
+3650F            5.25 HH  42   809  6  810  128 M    5    46 MS   17
+4010                      8    480  2  481  128 M    5            17
+4020                      17   480  4  481  128 M    5            17
+5330                      25   480  6  481  128 M    5            17
+5338                      32   612  6  613  128 M    5            17
+5440                      32   480  8  481  128 M    5            17
+5451                      43   612  8  613  128 M    5            17
+6032             5.25 FH  26  1024  3 1025  512 M    5    28 MS   17
+6053             5.25 FH  44  1024  5 1025  512 M    5    28 MS   17
+6074             5.25 FH  62  1024  7 1025  512 M    5    28 MS   17
+6085             5.25 FH  71  1024  8 1025  512 M    5    28 MS   17
+6212                      10   612  2  613  128 M    5            17
+7426                      21   612  4  613  128 M    5            17
+8212                      11   612  2  613  128 M    5            17
+8412                      10   306  4  307  128 M    5            17
+8425              3.5"    21   615  4  616  128 M    5    68 MS   17
+8425F             3.5"    21   615  4  616  128 M    5    40 MS   17
+------------------------------------------------------------------------------
+MITSUBISHI         213-515-3993 x460
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+MR521            5.25 HH  10   612  2  -    -   M    5    85 MS   17
+MR522            5.25 HH  20   612  4  -    -   M    5    85 MS   17
+MR535            5.25 HH  42   977  5  300  300 M    5    28 MS   17
+------------------------------------------------------------------------------
+MMI
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+M 112             3.5"    10   306  4  -    128 M    5    75 MS   17  BRKT
+M 106             3.5"    5    306  2  -    128 M    5    75 MS   17  BRKT
+M 125             3.5"    20   306  8  -    128 M    5    75 MS   17  BRKT
+M 306             3.5"    5    306  2  -    128 M    5    75 MS   17  BRKT
+M 212            5.25 HH  10   306  4  -    128 M    5    75 MS   17
+M 225            5.25 HH  20   306  8  -    128 M    5    75 MS   17
+M 312            5.25 HH  10   306  4  -    128 M    5    75 MS   17
+M 325            5.25 HH  20   306  8  -    128 M    5    75 MS   17
+------------------------------------------------------------------------------
+N E C          800-227-9001
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+D3126             3.5"    20   615  4  616  256 M    5     85 MS  17
+D5124            5.25 HH  10   309  4  310  310 M    5     85 MS  17
+D5126            5.25 HH  20   612  4  613  -   M    5     85 MS  17
+D5126H                    20   612  4  613  -   M    5     40 MS  17
+D5146            5.25 HH  40   615  8  616  -   M    5     85 MS  17
+D5146H           5,25 HH  40   615  8  616  -   M    5     40 MS  17
+------------------------------------------------------------------------------
+NEWBURY DATA   213-372-3775
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE  ACCESS  SPT COMMENTS
+NDR 340           3.5"    42   615  8  -    -   M          40 MS
+NDR 1065         5.25 FH  55   918  7  -    -   M          25 MS
+NDR 1085         5.25 FH  71  1025  8  -    -   M          26 MS
+NDR 1105         5.25 FH  87   918 11  -    -   M          25 MS
+NDR 1140         5.25 FH  105  918 15  -    -   M          25 MS
+NDR 2190         5.25 FH  191  918 15  -    -   M          28 MS
+------------------------------------------------------------------------------
+OLIVETTI
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+HD662/11                  10   612  2  -    -   M    5            17
+HD662/12                  20   612  4  -    -   M    5            17
+------------------------------------------------------------------------------
+OTARI
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+C 214                     10   306  4  128  128 M    5            17
+C 519                     15   306  6  128  128 M    5            17
+C 526                     21   306  8  128  128 M    5            17
+------------------------------------------------------------------------------
+PANASONIC      408-262-2200
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+JU-116            3.5"    20   615  4  616  616 M    5    85 MS   17
+JU-128            3.5"    42   733  7  734  734 M    5    35 MS   17
+------------------------------------------------------------------------------
+PRIAM          408-434-9300
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+V-150                     42   987  5  988  988 M    5            17
+V-160                     50  1166  5 1167 1167 M    5            17
+V-170                     60   987  7  988  988 M    5            17
+V-185                     71  1166  7 1167 1167 M    5            17
+502                       46   755  7  756  756 M    5            17
+504                       46   755  7  756  756 M    5            17
+514              5.25 FH  117 1224 11 1225 1225 M    5    22 MS   17
+519              5.25 FH  160 1224 15 1225 1225 M    5    22 MS   17
+------------------------------------------------------------------------------
+PTI            805-581-1000
+------------------------------------------------------------------------------
+MODEL   ST-506 MFM       CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+PT-225            3.5"    21   615  4  -    -   M    5    35 MS   17
+PT-234            3.5"    28   820  4  -    -   M    5    35 MS   17
+PT-338            3.5"    32   615  6  -    -   M    5    35 MS   17
+PT-351            3.5"    42   820  6  -    -   M    5    35 MS   17
+------------------------------------------------------------------------------
+QUANTUM        408-262-1100
+------------------------------------------------------------------------------
+MODEL   ST-506 MFM       CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+Q-510                     8    512  2  256  256 M    5            17
+Q-520                     18   512  4  256  513 M    5            17
+Q-530                     27   512  6  256  513 M    5            17
+Q-540                     36   512  8  256  513 M    5            17
+------------------------------------------------------------------------------
+RICOH SYS
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+RH-5130                   10   612  2  613  400 M    5    85 MS   17
+RH-5260                   10   615  2  -    -   M    5    85 MS   17  REMOV.
+------------------------------------------------------------------------------
+RODIME         407-997-0774
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+RO 101           5.25 FH  6    192  2   96  192 M    5            17
+RO 102           5.25 FH  12   192  4   96  192 M    5            17
+RO 103           5.25 FH  18   192  6   96  192 M    5    55 MS   17
+RO 104           5.25 FH  24   192  8   96  192 M    5            17
+RO 201           5.25 FH  5    321  2  132  300 M    5    85 MS   17
+RO 201E          5.25 FH  11   640  2  264  300 M    5    55 MS   17
+RO 202           5.25 HH  10   321  4  132  300 M    5    85 MS   17
+RO 202E          5.25 FH  21   640  4  264  300 M    5    55 MS   17
+RO 203           5.25 HH  15   321  6  132  300 M    5    85 MS   17
+RO 203E          5.25 FH  32   640  6  264  300 M    5    55 MS   17
+RO 204           5.25 FH  21   320  8  132  300 M    5    85 MS   17
+RO 204E          5.25 FH  43   640  8  264  300 M    5    55 MS   17
+RO 251           5.25 HH  5    306  2  307  307 M    5    85 MS   17
+RO 252           5.25 HH  11   306  4   64  128 M    5    85 MS   17
+RO 351                    5    306  2  307  307 M    5    85 MS   17
+RO 352            3.5"    11   306  4   64  128 M    5    85 MS   17
+RO 365            3.5"    21   612  4  613  613 M    5            17
+RO 3045                   37   872  5  873  -   M    5    28 MS   17
+RO 3055                   45   872  6  873  -   M    5    28 MS   17
+RO 3065                   53   872  7  -    -   M    5    28 MS   17
+RO 5065          5.25 HH  63   -    5  -    -   M    5    28 MS   17
+RO 5090          5.25 HH  89  1224  7  -    -   M    5    28 MS   17
+------------------------------------------------------------------------------
+SEAGATE        800-468-3472
+------------------------------------------------------------------------------
+MODEL   ST-506 MFM       CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENT
+ST125             3.5"    21   615  4  616  616 M    5    40 MS   17
+ST125-1           3.5"    21   615  4  616  616 M    5    28 MS   17
+ST138             3.5"    32   615  6  616  616 M    5    40 MS   17
+ST138-1           3.5"    32   615  6  616  616 M    5    28 MS   17
+ST151             3.5"    42   977  5  978  978      5    24 MS   17
+ST206            5.25 FH  5    306  2  307  128 M    5            17
+ST212            5.25 FH  10   306  4  307  128 M    5            17
+ST213            5.25 FH  10   615  2  613  307 M    5            17
+ST225            5.25 HH  21   615  4  616  616 M    5    65 MS   17
+ST251            5.25 HH  42   820  6  821  822 M    5.0  40 MS   17
+ST251-1          5.25 HH  42   820  6  821  821 M    5.0  28 MS   17
+ST406            5.25 FH  5    306  2  307  128 M    5            17
+ST412            5.25 FH  10   306  4  307  128 M    5            17
+ST419            5.25 FH  15   306  6  307  128 M    5            17
+ST425            5.25 FH  21   306  8  307  128 M    5            17
+ST506            5.25 FH  5    153  4  128  128 M    5            17
+ST706            5.25 FH  5    306  2  307  128 M    5            17
+ST4026           5.25 FH  21   615  4  616  307 M    5            17
+ST4038           5.25 HH  38   733  5  734  367 M    5    40 MS   17
+ST4051           5.25 FH  42   977  5  978  498 M    5    40 MS   17
+ST4053           5.25 FH  44  1024  5 1023 1023 M    5    28 MS   17
+ST4096           5.25 FH  80  1024  9 1023 1023 M    5    28 MS   17
+------------------------------------------------------------------------------
+SHUGART
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+604                       5    160  4  128  128 M    5            17
+606                       7    160  6  128  128 M    5            17
+612                       11   306  4  307  128 M    5            17
+706                       6    320  2  321  128 M    5            17
+712                       11   320  4  321  128 M    5            17
+------------------------------------------------------------------------------
+SIEMENS        818-706-8872
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+1200             5.25 FH  174 1216  8  -    -   R/N  10   25 MS
+1300             5.25 FH  261 1216 12  -    -   R/N  10   25 MS
+2300             5.25 FH  261 1216 12  -    -   R/N  10   25 MS
+5720                      655 -    15  -    -             16 MS
+------------------------------------------------------------------------------
+SYQUEST        415-490-7511
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+SQ 306RD                  5    306  2  307  307 M    5            17 REMOV.
+SQ 312RD                  10   615  2  616  616 M    5            17 REMOV.
+SQ 325F                   20   615  4  616  616 M    5            17
+SQ 338F                   30   615  6  616  616 M    5            17
+SQ 340AF                  38   640  6  616  616 M    5            17
+------------------------------------------------------------------------------
+TANDON WD      805-523-0340
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+TM 252                    10   306  4  307  307 M    5            17
+TM 261                    10   615  2  616  616 M    5            17
+TM 262                    21   615  4  616  616 M    5            17
+TM 361                    10   615  2  616  616 M    5            17
+TM 362                    21   615  4  616  616 M    5            17
+TM 501                    5    306  2  128  153 M    5            17
+TM 502                    10   306  4  128  153 M    5            17
+TM 503                    15   306  6  128  153 M    5            17
+TM 703                    10   733  5  734  734 M    5            17
+TM 755             5.25   43   981  5  982  982 M    5            17
+TM 3085                   71  1024  8 1024 1024 M    5    37 MS   17
+TM 6025                   10   153  4  128  128 M    5            17
+TM 6035                   10   153  6  128  128 M    5            17
+TM 6035E                  21   230  6  128  128 M    5            17
+------------------------------------------------------------------------------
+TEAC
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+SD 510                    10   306  4  128  128 M    5            17
+SD 520                    20   615  4  128  128 M    5            17
+------------------------------------------------------------------------------
+TEXAS INSTRUMENT
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+                 5.25 FH  5   153  4   64   64 M    5             17
+------------------------------------------------------------------------------
+TOSHIBA        408-727-3939
+------------------------------------------------------------------------------
+MODEL   ST-506  MFM      CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+MK53FA           5.25 FH  43   830  5  831  831 M    5    30 MS   17
+MK 54FA          5.25 FH  60   830  7  831  831 M    5    30 MS   17
+MK 56FA          5.25 FH  86   830 10  831  831 M    5    30 MS   17
+MK134FA           3.5"    44   733  7  734  734 M    5    25 MS   17
+------------------------------------------------------------------------------
+TULIN          408-432-9025
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+213                       10   640  2  656  656 M    5            17
+226                       22   640  4  656  656 M    5            17
+240                       33   640  6  656  656 M    5            17
+326                       22   640  4  641  641 M    5            17
+340                       33   640  6  641  641 M    5            17
+------------------------------------------------------------------------------
+VERTEX         408-946-4600    (SEE PRIAM)
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+V130                      26   987  3  988  988 M    5            17
+V150                      43   987  5  988  988 M    5            17
+V170                      60   987  7  988  988 M    5            17
+------------------------------------------------------------------------------
+WESTERN DIGITAL 800-777-4787
+------------------------------------------------------------------------------
+MODEL   ST-506           CAP   CYC  H  RWC  WPC ENC  RATE ACCESS  SPT COMMENTS
+WD 262    3.5 to 5.25 HH  20   615  4  616  616 M    5    80 MS   17  BRKT
+WD 362            3.5"    20   615  4  616  616 M    5    80 MS   17
+-- 
+Lenny Tropiano             ICUS Software Systems         [w] +1 (516) 589-7930
+lenny at icus.islp.ny.us      Telex; 154232428 ICUS         [h] +1 (516) 968-8576
+{ames,pacbell,decuac,hombre,talcott,sbcs}!icus!lenny     attmail!icus!lenny
+        ICUS Software Systems -- PO Box 1; Islip Terrace, NY  11752
+
+________________________ END INCLUDED FILE___
