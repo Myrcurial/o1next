@@ -82,6 +82,16 @@ scratch programs, "figuring it out" notebooks/scripts.
   Written for #178 because `cpmfs.py get` cannot: the file's directory entry says
   128 bytes while it holds 16 512, so the table is only reachable by walking the
   block list. Prints each entry's name, description and geometry.
+- **`hardbios.py`** — read the MD-10 hard-disk BIOS overlay. `jump` prints the
+  CP/M 2.2 BIOS jump table with every target resolved and walks `SELDSK`'s DPH
+  construction; `audit` searches the whole archive for writers of the low-RAM
+  DPH/DPB table block. Written for #178, where it produced the **negative** result
+  that bounds the DPB question: no file initialises `0x055E`/`0x056E`, so the
+  numeric DPB is not in the files we hold. It also documents why reading
+  `HARDBIOS.SPR` linearly misleads — the overlay is **relocatable**, and its
+  jump-table operands and internal `JP`/`CALL` targets are offsets from the table
+  rather than addresses, so a linear disassembler drifts into the data and invents
+  instructions. See `docs/harddisk-decision.md` 7.3.
 - **`drive-c-trace.lua`** — write taps on the O1's IEEE-488 PIA (`2900–2903`),
   logging every access while the real Drive C software runs. Written for #6; it
   is how the Drive C frame was *measured* rather than only read out of the

@@ -439,6 +439,106 @@ harness, with a `peek` directive — that is what made the in-memory table
 checkable), `md10patch.py` (patch a file inside the image, by name; the three
 patches above) and `drivetbl.py` (dump the table).
 
+### 7.3 The DPB — the mechanism, and why the archive cannot give the numbers (#178)
+
+The second half of #178's acceptance is "the DPB for each logical drive is written
+down with its source offset".  The **mechanism** is read and the **source offsets**
+are pinned; the **numbers** are not obtainable from the files in the archive, and
+this section says exactly why.
+
+#### The chain, with source offsets
+
+All offsets are file offsets into `HARDBIOS.SPR`, which maps to `0xE000 + offset`.
+It is a **relocatable** image: the BIOS jump table is at file offset `0x100`
+(`0xE100`) and its operands — and the routine's own internal `JP`/`CALL` targets —
+are *offsets from the table*, not addresses.  Read it linearly and the
+disassembler drifts through the data and invents instructions; `tools/research/
+hardbios.py` resolves them the way the loader does.
+
+| Step | Offset | What it does |
+|---|---|---|
+| `SELDSK` entry | `0x11B` | jump table: operand `0x00D5` → target `0x1D5` |
+| drive range | `0x1D5` | `LD A,C` / `CP 010h` / `RET NC` — drives 0–15, else NULL |
+| type byte | `0x1DC`–`0x1E7` | saves the drive at `0x0180`, indexes `0x055E + drive`; `0FFh` = absent |
+| descriptor | `0x1F6`–`0x203` | `type * 8`, then ×3 more, then `+ 0x056E` → `0x056E + type*24` |
+| the DPH | `0x204`–`0x209` | `+ 8`, saved to `0x0555`, returned in `HL` |
+| **the DPB pointer** | `0x393`–`0x39C` | in READ/WRITE: `HL = (0x0555)` — the saved DPH — `+10`, dereference → **the DPB** |
+| block size | `0x39D`–`0x3A2` | `+3` into the DPB = **BLM**, `+1` = the deblocking count |
+| sector size | `0x3DA`–`0x3E4` | `SRL H` / `RR L` **twice** — the 128-byte CP/M record number shifts right two, so the physical sector is **512 bytes** |
+
+Three things follow, and they are the substance of the answer:
+
+1. **There is a DPB per logical drive, and it is an ordinary CP/M 2.2 DPB.**  The
+   driver reaches it at DPH+10 — the DPH's `DPB` field in the canonical layout
+   (XLT 0–1, scratch 2–7, DIRBUF 8–9, **DPB 10–11**, CSV 12–13, ALV 14–15) — and
+   then reads `DPB+3` as `BLM`.  So the descriptor points at a 15-byte DPB whose
+   fields are the usual SPT/BSH/BLM/EXM/DSM/DRM/AL0/AL1/CKS/OFF.
+2. **`SPT` is counted in 128-byte records, four to a physical sector.**  The
+   record→sector conversion is a two-bit shift (`0x3DA`), so a 17-sector track is
+   `SPT = 68`.  Whoever turns §7.2's geometry into a DPB needs that, and it is read
+   from the code rather than assumed.
+3. **A descriptor entry is 24 bytes with the DPH at `+8`**, so it carries eight
+   bytes *before* the DPH.  What those eight hold is not determined — nothing in
+   the archive reads them.
+
+#### Why the numbers are not in the archive
+
+`0x055E` (the per-drive type byte) and `0x056E` (the 24-byte descriptors) are
+**never written by any file in the archive**.  That is not an impression but an
+exhaustive search over every opcode that can store to an absolute address —
+`LD (nn),A` (`32`), `LD (nn),HL` (`22`), `LD (nn),BC/DE` (`ED 43`/`ED 53`) —
+across all 14 files of the MD utilities disk and the extracted ACT software.
+`tools/research/hardbios.py audit` reproduces it:
+
+```
+=== writers of 0x0500-0x0700 ===
+  HARDBIOS.SPR       0555@0x209 0557@0x18D 0557@0x217 0558@0x1E9
+  ...
+  0x055E / 0x056E writers: NONE
+```
+
+The only writes anywhere near are the BIOS's *own* variables — `0x0555` (the saved
+DPH), `0x0557` (a flag), `0x0558` (the saved type).  The two tables `SELDSK` *reads*
+have no writer at all.
+
+Two further checks close the alternatives:
+
+- **Not data carried by another overlay.**  If an overlay were loaded so that its
+  bytes landed on `0x055E`/`0x056E`, the table would be there as *data*.  It is
+  not: those offsets in `HARDBDOS.SPR` and `HARDCCP.SPR` are code, and neither file
+  contains a per-drive type run (`00 01 02 … FF`) or a 24-byte record table.
+- **Not in a system image.**  The MD utilities disk is a **data** disk — its system
+  tracks (tracks 0–2, 7680 bytes) are **all `0xE5`**, and no part of `HARDBIOS.SPR`
+  appears in them.  So the archive holds the MD-10 *utilities* and no MD-10 *system*
+  disk, and the system image is where the tables must live: the BIOS reads them at
+  run time and nothing in it writes them.
+
+**What would settle it**, in order of preference: a **bootable MD-10 system disk**
+(the system tracks would carry the tables, and `cpmfs.py` reads them); or a
+**measurement** — boot an installed MD-10 and `peek` `0x055E`, `0x056E` and each
+DPH's `+10` word under MAME, for two drive types of different geometry.  Two points
+fix the arithmetic if the DPB is computed; two reads fix the values if it is not.
+The recipe that reaches a running MD-10 already exists (`tools/research/o1keys.sh`,
+§7.2) and its `peek` directive is the instrument.
+
+#### A trap: the other hard disk in the archive is not this one
+
+`research/harddisk/OCC1_HARDDISK.IMD` holds a *second, unrelated* hard-disk system —
+`60K CP/M vers 2.20 for OSBORNE I`, **Australian Computer & Telecommunications** —
+and it talks to **port `00`**, not the ACB-4000's `30h`–`33h`.  It is the only
+readable hard-disk DPB table in the archive, so it is precisely what a later reader
+will mistake for the answer:
+
+| Its DPB | SPT | BSH | BLM | EXM | DSM | DRM | AL0 | AL1 | CKS | OFF |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `0xE1E3` — SD floppy | 20 | 4 | 15 | 1 | 45 | 63 | `0x80` | 0 | 16 | 3 |
+| `0xE1F5` — **fixed disk** | 64 | 4 | 15 | 0 | 1215 | 511 | `0xFF` | 0 | **0** | 2 |
+
+Both are internally consistent — `CKS = 0` with 512 directory entries is the
+fixed-disk signature, and `AL0 = 0xFF` covers exactly `DRM+1` entries at 2 KiB
+blocks — and **neither is the MD-10's**.  Recorded here so it is not rediscovered as
+a result.
+
 ## 8. Coexistence — the A/B→E/F remap and the CoPower-88
 
 The MD-10 moves the O1's floppies from `A:`/`B:` to `E:`/`F:` (§6). Does that
@@ -534,8 +634,10 @@ if a driver turns out to depend on undocumented controller behaviour.
 ## 10. Open questions
 
 1. **The MD-10 DPB** — the numeric SPT/DSM/DRM/AL0 the driver builds at run time.
-   The geometry it is built from is read (§7.2); the descriptor template in low
-   RAM (`0x055E`, `0x056E`) is not (§9.4 item 1).
+   The mechanism and its source offsets are read (§7.3) and the geometry it is
+   built from is read (§7.2), but the **values are not in the archive**: no file
+   initialises `0x055E`/`0x056E`, and the utilities disk carries no system image
+   (§7.3). It needs an MD-10 system disk or a `peek` under MAME.
 2. **The MD-10 host-adapter bit map** — which observed status bit is `REQ`, which
    is `BSY`, which is phase (§6). Bounded, because the *protocol* is known.
 3. **"36 user areas"** — a driver extension, or advertising copy?

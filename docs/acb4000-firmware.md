@@ -85,8 +85,11 @@ MAME, or a read of the driver's command buffer, would settle it.)*
   that is now read: `docs/harddisk-decision.md` §7.2 has the record layout and
   the byte→field mapping, which turns out to be this same `MODE SELECT` drive
   parameter block, stored little-endian in a 128-byte description record behind
-  a name table. What is left is the *numeric* DPB (SPT/DSM/DRM/AL0) the driver
-  builds from it at run time.
+  a name table. §7.3 then pins the DPB *mechanism* — the driver reaches it at
+  DPH+10 and reads `BLM` from `DPB+3`, and the record→sector conversion is a
+  two-bit shift, so `SPT` counts 128-byte records — and shows that the *values*
+  are absent from the archive: nothing initialises `0x055E`/`0x056E`, and the MD
+  utilities disk is a data disk with no system image. That is where #178 stands.
 - The `0x6C` fill byte found in the *driver* (`docs/harddisk-decision.md` §7.1)
   and the `6Ch` default in the *manual* now sit together: the driver passes the
   fill byte through `MODE SELECT`/`FORMAT`, and the controller writes it.
