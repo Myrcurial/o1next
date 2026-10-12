@@ -445,7 +445,7 @@ and only one of them is a register.
 |---|---|---|
 | **OCC SCREEN-PAC** | read `2400H` in bank 2: **bit 2 LOW** = board fitted | documented (user guide p. 13, [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a) |
 | **Osmosis** | **no detection register** — the interface is commands, so a program probes by *sending* an OS/5-unique escape and watching the screen | the manual's own warning *is* the answer; its paid Technical Manual is where "the CP/M interface" is documented |
-| **Nuevo** | BIOS 1.5 **checks for the board's presence** and skips the 80-column configuration when it is absent | stated by the vendor; the mechanism is not yet identified |
+| **Nuevo** | BIOS 1.5 **reads a port the Osborne 1 does not decode**; if it is not zero (i.e. no board), the 80-column configuration is skipped | read out of the two CBIOS images (#173); the one step needing a board is named below |
 
 ### Osmosis: the probe *is* the interface
 
@@ -463,13 +463,13 @@ visible*, which is a design decision rather than an omission. It is the opposite
 of the SCREEN-PAC's passive status bit, and it means a video personality (#24)
 has to model **command effect**, not a register, to be Osmosis-compatible.
 
-### Nuevo: a check that exists, and two mechanisms it is not
+### Nuevo: the check is a read of an undecoded port (#173)
 
 The DD manual says BIOS 1.5 does the check (quoted in
-[`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md)), and we hold the CBIOS 1.5 in two forms: the DDT
-objects the installer inserts (`BIOS15.OBJ` at `1F00`, `BIOS15BM.OBJ` at `29E0`)
-and the relocated system the disk actually boots — the system tracks of
-`OS1NUEVO.IMD`. The latter confirms the manual's first item: its sign-on reads
+[`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md)), and we hold CBIOS 1.5 in two forms: the DDT objects
+the installer inserts (`BIOS15.OBJ`, `BIOS15BM.OBJ`) and the relocated system the
+disk actually boots — the system tracks of `OS1NUEVO.IMD`. The latter confirms the
+manual's item 1: its sign-on reads
 
 ```
 Osborne 1 Computer
@@ -480,34 +480,57 @@ CBIOS vers 1.5
 against the factory disk's `Osborne Computer System` / **`59k`** `CP/M vers 2.2`.
 The `59k` is gone, exactly as the 1.4→1.5 list says.
 
-Disassembling CBIOS 1.5 rules two mechanisms out:
+**The check is the first thing the cold boot does that 1.4 does not.** Both CBIOSes
+open identically — stack, one `CALL`, five variable loads — and then part:
 
-- **Not the SCREEN-PAC's flag.** There is no `LD A,(2400H)` anywhere in the
-  system image, so Nuevo is not reading the bit the SCREEN-PAC presents.
-- **Not an I/O port probe.** The CBIOS's only port accesses are the floppy
-  controller (`00`/`01`), the 6850 (`04`/`06`) and one variable port
-  (`OUT (C),A`, in the interrupt-exit path). There is no third device being
-  polled.
+| | 1.4 (`O1CPM.IMD`) | 1.5 (`OS1NUEVO.IMD`) |
+|---|---|---|
+| cold boot | `E4ED`–`E513`, **38 bytes** | `E469`–`E4BE`, **85 bytes** |
+| after the five variable loads | `XOR A` / `LD (0004H),A` / `INC A` | **47 new bytes**, then those same three |
 
-The archive also holds the diff partner: [`research/shipped-software/O1CPM.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/O1CPM.IMD) is
-a factory DD boot disk, and its system image is the same 8 KB CP/M build — so a
-1.4 ↔ 1.5 diff is available in principle. One change in it is already
-identifiable: at system offset `172C` the factory image carries the extra
-formats' sector-translation tables and the Nuevo image keeps the first and
-**zeros the rest**, with a short table of pointers (`E236`, `E24A`, `E93C`,
-`E95C`) where the factory had the first table's header — the removal of the IBM,
-Xerox and DEC formats that item 2 describes.
+and those 47 bytes open with a guard:
 
-Isolating the presence check itself is the remaining step, and it is a real piece
-of work rather than a lookup: the two images are the same code with several
-insertions and deletions, so a single byte shift does not align them (one region
-matches exactly at a `0x57` shift, the rest does not). That task is filed
-separately as **#173** so it does not hold this issue open.
+```
+E488  IN   A,(04H)      ; read port 04H
+E48A  AND  1FH
+E48C  JR   NZ,E4B7H     ; not present -> skip the configuration
+```
+
+**Port `04H` is not a device on the Osborne 1.** Its I/O decode uses only `A0`/`A1`
+([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §4), so a *write* to `04H` is an alias of the bank-2
+latch — but a **read** of it is answered by nothing on the machine, and a floating
+TTL bus reads back non-zero. On a stock machine the guard therefore takes the
+skip; with the board fitted, the board has only to pull those five bits low. That
+is the manual's behaviour exactly: *"If not present, the configuration routine for
+the 80 Column Upgrade will be skipped."*
+
+What the guard protects is a **video** configuration, and that is the rest of the
+evidence:
+
+- it reads the config byte at BIOS variable **`E1A6H`** — the address immediately
+  above `E1A5H`, the width variable the SCREEN-PAC user guide documents
+  ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a), so Nuevo kept OCC's variable layout rather
+  than inventing one;
+- it then drives the **BIT 9 latch** with `OUT (06H),A` — `06H` aliases `02H`, the
+  latch that maps bank 3, the video/dim bank, into `F000–FFFF`
+  ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §4). **The factory BIOS never touches that latch**:
+  its only bank selects are ports `00H` and `01H`.
+
+The consistency check that lifts this above a guess: BIOS 1.5 ships on **both** the
+DD-only disk and the 80-column disk — the installer inserts the *same*
+`BIOS15.OBJ` either way — and it is precisely a *shared* BIOS that needs the
+check, because the DD customer has no video board for the configuration routine to
+talk to. That is the manual's stated reason, verbatim.
+
+**The one step that needs a board:** that `IN A,(04H)` reads zero with the card
+fitted. Everything above is read out of the two images. If that read is *not* zero
+with the card fitted, the guard is something else and this subsection is wrong —
+so it is recorded as the evidence supports it, not as established fact.
 
 ## Open
 
-- **Nuevo's presence check** — the mechanism is unidentified; the next step is to
-  align the two BIOS images and read the inserted code (#173).
+- **Nuevo's presence check** — the mechanism is read out of the images (#173); the
+  remaining step is one measurement, `IN A,(04H)` with the board fitted.
 - Osmosis's *technical* manual ("theory of operation; documentation on the CP/M
   interface; cursor addressing") is a paid document the archive does not hold. If
   a detection register exists, that is where it is — but the user manual's own
@@ -516,6 +539,7 @@ separately as **#173** so it does not hold this issue open.
   Nuevo's boot-time auto-configuration via `NEWSETUP.COM` and its 2 x 2 / 4 x 4
   formats, and Osmosis's OSMOS 1–3 density line plus the standalone OSMOS 4
   conversion product.
+
 
 
 ## Sources

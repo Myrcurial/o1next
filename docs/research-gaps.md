@@ -222,7 +222,7 @@ constrains any 2.0 ROM (#83).
 
 | Item | Issue | State |
 |---|---|---|
-| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Closed 2026-10-12.** Both halves of both products are written up in `o1-upgrade-boards.md` — the video side there, the DD side in `dd-upgrade-formats.md` — with the prior-art note in `research/inspired-by/README.md`. Residue routed: **#173**, the Nuevo BIOS 1.5 presence check |
+| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Closed 2026-10-12.** Both halves of both products are written up in `o1-upgrade-boards.md` — the video side there, the DD side in `dd-upgrade-formats.md` — with the prior-art note in `research/inspired-by/README.md`. Its residue, **#173** (the Nuevo BIOS 1.5 presence check), closed the same day: the check is a read of a port the Osborne 1 does not decode |
 | Advent Products' **Osbaud** baud-rate generator (#21) | #21 | The four connection points are decoded from the review + schematic (6850 pins 4/12, 74LS32 and 74LS04 pin 7); the internal crystal/divider topology is **not** known — needs the instruction sheet or a photo. `o1-modem-serial.md` |
 | Archive provenance TODOs (2 items) | #74 | **Closed** |
 | `cpmtools` misreads Kaypro DSDD images | #35 | `misc`. Upstream identified: the primary site is `moria.de` (Michael Haardt, 2.23, **email patch** — no GitHub, no tracker), and the practical PR venue is the unofficial `lipro-cpm4l/cpmtools` fork (3 open PRs, 2.21-based). Closes **when filed**, not when merged |
@@ -249,7 +249,8 @@ research-labelled and has been removed from this table.
 | #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as `docs/drive-c-protocol.md` and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
 | #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed 2026-10-11** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
-| #73 | Nuevo + Osmosis prior art | **Closed 2026-10-12** | Written up in `o1-upgrade-boards.md` (both products, both halves, and how each is detected) plus the prior-art note in `research/inspired-by/README.md`. Residue routed: **#173** (the Nuevo BIOS 1.5 presence check) |
+| #73 | Nuevo + Osmosis prior art | **Closed 2026-10-12** | Written up in `o1-upgrade-boards.md` (both products, both halves, and how each is detected) plus the prior-art note in `research/inspired-by/README.md`. Residue **#173** closed the same day |
+| #173 | The Nuevo BIOS 1.5 presence check | **Closed 2026-10-12** | Read out of the two CBIOS images: `IN A,(04H)` at the head of the cold boot, guarding the 80-column configuration, with the factory DD disk `O1CPM.IMD` as the 1.4 partner. The one step a board would add — that the read is zero with the card fitted — is stated as such in `o1-upgrade-boards.md` |
 | #75 | The book | **Ungated** | The pieces in #108–#115 |
 | #81 | OZROM as tooling | **Closed 2026-10-11** | The manual is indexed, the 52/80/104-column switch's mechanism is measured from the ROM (it drives the stock video PIA through the stock ROM's helper — `2C00`, cached in `EF61`), and the jump table now diffs clean against `rom144.asm`. Residue routed: #167 (harness keystrokes). #168 (a complete Utilities disk) closed as unnecessary — we had it; the "erased sectors" were a `cpmfs.py` skew bug (#170) |
 | #95 | DD multi-format (now also the G2, absorbed from #30) | **Closed 2026-10-11** | Taken as written: the manual's list and the CBIOS DPB+skew table agree field for field, and Osborne SD is confirmed end to end in MAME. The four foreign skew tables are deliberately left unverified — the O1 does not need to recognise them, because foreign media is converted on the modern side |
@@ -307,7 +308,7 @@ Ordered by what blocks what:
    2026-10-11** (`rt60a-analysis.md`); #18 implements it.
 5. ~~**#73** — the DD halves of the Nuevo and Osmosis boards.~~ **Closed
    2026-10-12**: written up in `o1-upgrade-boards.md` and `dd-upgrade-formats.md`;
-   the one residue, the Nuevo presence check, is **#173**.
+   the one residue, the Nuevo presence check, is **#173** — closed the same day.
 
 The book (#75) is **no longer gated on all of this**: it is a rolling build whose
 pieces are tracked as #108–#115, and Part I plus the appendices are buildable now.
