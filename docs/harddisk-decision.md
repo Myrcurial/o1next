@@ -159,11 +159,15 @@ simply making the host-adapter half a *description* instead of a fixed PCB, so
 that the SCSI half is written once. (Inference from the ad and the port map, not
 from a schematic of the MD-10 board.)
 
-The Z80-socket form factor is itself the portability carrier: any machine with a
-socketed 40-pin Z80 can host the interposer. The limits to be honest about are
-(a) a non-Osborne machine needs a shim profile that matches *its* driver, and
-(b) the interposer must snoop *that* machine's bus — the SCSI layer does not
-change, the plumbing around it does.
+The Z80-socket form factor is the portability carrier: any machine with a
+socketed 40-pin Z80 can host the interposer, and the **bus side does not vary** —
+a Z80 socket is a Z80 socket, so the electrical interface is the same wherever
+the board fits. What varies between machines is **logical, not electrical**:
+(a) which port/register model *that machine's driver* expects, and (b) whether
+the machine already decodes those addresses — and the interposer overrides them
+either way. Both are configuration, so the shim is a *profile* (a table), not a
+board. The original MD-10 host adapter was a PCB, but nothing about the Z80 side
+of it needs to be.
 
 ## 6. The Osborne 1 shape of it (the MD-10)
 
@@ -242,6 +246,35 @@ the ACB-4000's `FORMAT` is what makes the *whole* volume uniform. So a volume is
 only "sparse-friendly" if it was formatted by the controller — which it will be
 — and the trailing-fill length should be **measured on a formatted volume**
 before the tooling trusts it.
+
+### 7.1 What #178 found — directories, not loose files
+
+Reading the MD-10 BIOS overlay `HARDBIOS.SPR` (the file maps to address
+`0xE000 + offset`; the BIOS jump table is at `0xE100`, and its entries are
+relative to that base, so `SELDSK` at `0xE1D5`):
+
+- **It is a CP/M 2.2 filesystem.** `SELDSK` returns a **DPH**, so the volume is an
+  ordinary CP/M logical drive with a **directory** — `DIR`, `PIP`, `ERA`, `STAT`
+  work, and files are normal CP/M files. It is *not* a raw 10 MB blob of loose
+  files.
+- **Up to 16 logical drives, not two.** `SELDSK` opens with `LD A,C` / `CP 10h`
+  (`0xE1D5`–`0xE1D7`) — the driver can present all of CP/M's `A:`–`P:`. The
+  advertisement's "units A and B" is the shipped *default*, not a limit.
+- **The geometry is data-driven, which is why there is no literal DPB.**
+  `SELDSK` indexes a **per-drive type byte** at `0x055E` (one per drive; `0FFh` =
+  drive absent), then a table of **24-byte per-type descriptors at `0x056E`**,
+  selecting entry `type × 24`; the returned DPH sits at entry `+8`. The per-drive
+  track limit lives at `0x016F`/`0x0170`. So the DPB is *built* from the drive
+  table — the same reason `DRIVETBL.DAT` is editable.
+- **Management is standard CP/M plus the vendor's own tools.** `MD10.COM` /
+  `MD20.COM` is the drive-table editor *and* `PREP` — format with a label and a
+  password, two-pass format then verify. `PORTCHNG.COM` relocates the port base.
+  The companion disk carries the transfer/backup set (`AREN`, `DIRA`/`DIRS`,
+  `GET`/`PUT`, `ERQ`, `FSET`, `NS`, `OSD`, `POP`, `SUBMIT`, `WSPATCH.*`).
+- **Still open:** the *numeric* DPB (SPT/DSM/DRM/AL0) and the `DRIVETBL.DAT`
+  record layout. The structure above is read from the code; the values need the
+  24-byte descriptor template and the drive table decoded. That is the residue
+  of #178.
 
 ## 8. Coexistence — the A/B→E/F remap and the CoPower-88
 
