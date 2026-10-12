@@ -45,8 +45,14 @@ case "$(uname -s)" in
     Darwin) OSD_OPT="OSD=mac" ;;
 esac
 
-echo "==> patching $SRC"
-(cd "$SRC" && patch -p1 --forward < "$PATCH")
+if [ -e "$SRC/src/devices/machine/acb4000_host_adapter.cpp" ]; then
+    # patch --forward would skip the hunks and scatter .rej files about; a tree
+    # that already has the device is a tree that is already patched.
+    echo "==> $SRC already has the osborne1ng machine; not patching again"
+else
+    echo "==> patching $SRC"
+    (cd "$SRC" && patch -p1 --forward < "$PATCH")
+fi
 
 if [ "$BUILD" = 1 ]; then
     echo "==> building the osborne subtarget (this takes a while)"
