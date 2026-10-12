@@ -271,10 +271,23 @@ relative to that base, so `SELDSK` at `0xE1D5`):
   password, two-pass format then verify. `PORTCHNG.COM` relocates the port base.
   The companion disk carries the transfer/backup set (`AREN`, `DIRA`/`DIRS`,
   `GET`/`PUT`, `ERQ`, `FSET`, `NS`, `OSD`, `POP`, `SUBMIT`, `WSPATCH.*`).
-- **Still open:** the *numeric* DPB (SPT/DSM/DRM/AL0) and the `DRIVETBL.DAT`
-  record layout. The structure above is read from the code; the values need the
-  24-byte descriptor template and the drive table decoded. That is the residue
-  of #178.
+- **The controller driver is a separate overlay, and it is port-parameterised.**
+  `CNTLRCOD.OVL` — and `CNT00COD.OVL` / `CNT04COD.OVL`, the *same code* at port
+  bases `30h` / `00h` / `04h` — loads at **`0x8000`**. The SCSI handshake is right
+  there: poll `base+2`, write the command byte held at `0x8023` to `base+0`, then
+  block-transfer with `OUTI`/`INI`. And the ACB-4000's default format fill byte
+  (`6Ch`, §4) sits at `0x8024` as a lone data byte — an independent confirmation
+  of the controller, found in the driver rather than the manual.
+- **`DRIVETBL.DAT` is a list of drive-model entries.** A 12-byte header, then
+  ~11-byte records — a name (`AT3020`, `UAT3033`, `WCM5205`, `CM5206`, `CM5410`,
+  `D-720`, `D-740`, …) followed by a few parameter bytes; 11 entries in the 1.93
+  build. This is the table `MD10.COM` edits and `SELDSK`'s 24-byte descriptors
+  are built from.
+- **Still open:** the exact `DRIVETBL.DAT` byte→field mapping, and the *numeric*
+  DPB (SPT/DSM/DRM/AL0). The structure above is read from the code; the values
+  need the drive-table fields decoded — `MD10.COM`'s editor is the oracle — and
+  the BIOS's runtime descriptor table, which is built in low RAM (`0x055E`,
+  `0x056E`) from a template not yet located. That is the residue of #178.
 
 ## 8. Coexistence — the A/B→E/F remap and the CoPower-88
 
