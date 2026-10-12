@@ -10,7 +10,7 @@
 #
 #   source   a path in the repo, or "-" for a chapter that has not been written
 #            yet (it appears in the TOC, marked as such, with no page)
-#   status   solved | partial | design | reference | living | pending
+#   status   solved | partial | design | decision | reference | living | pending
 #
 # `[part]` starts a new part. Lines beginning with # are comments.
 
@@ -37,7 +37,8 @@ keyboard        | Keyboard and printer                    | -                   
 drive-c         | Drive C: the IEEE-488 RAM disk          | docs/drive-c-protocol.md       | solved
 drive-c-hw      | The Drive C reproduction: hw + firmware | docs/drive-c-design.md         | design
 drive-c-exec    | The Drive C's Executive variant         | docs/drive-c-executive.md      | solved
-hard-disks      | The hard-disk products                  | docs/occ1-harddisk-analysis.md | partial
+hard-disks      | The hard-disk products                  | docs/occ1-harddisk-analysis.md | solved
+hard-disk-dec   | The hard-disk decision: the ACB-4000    | docs/harddisk-decision.md      | decision
 rt60a           | The RT-60A real-time clock              | docs/rt60a-analysis.md         | partial
 copower88       | CoPower-88: the host protocol           | docs/copower88-protocol.md     | partial
 copower88-sch   | CoPower-88: the schematics              | docs/copower88-schematics.md   | solved

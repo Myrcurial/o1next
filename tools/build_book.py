@@ -54,6 +54,7 @@ STATUS_NOTE = {
     "solved": "",
     "partial": "partially solved",
     "design": "design",
+    "decision": "decided",
     "reference": "reference",
     "living": "living document",
     "pending": "not yet written",
