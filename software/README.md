@@ -12,7 +12,7 @@ lives in `firmware/`.
 | `fatcopy/` | `FATCOPY.COM` — CP/M ↔ MS-DOS FAT12 (360K) file copy, PIP-sibling syntax | #51 | Medium |
 | `copower88-driver/` | Osborne 1 host driver for CoPower-88 (real board or interposer shim) | #26, #3-#5 | Hard |
 | `rt60a-clock/` | RT-60A host software replica: CLOCK.COM/CLKSET reimplemented from the manual (original TD0 dump is damaged) | #7, #37 | Medium |
-| `boot-disk/` | Updated O1 boot disk: storage + RTC integration, G2 multi-format DPBs, bundled utilities | #28, #30 | Medium (integration) |
+| `boot-disk/` | Updated O1 boot disk: storage + RTC integration, the DD disk table (native formats only), bundled utilities | #28, #95 | Medium (integration) |
 
 ## No-new-code deliverables (documentation only)
 
@@ -35,5 +35,5 @@ setup/usage doc shipped in `docs/` and on the boot disk — not new code:
   (e.g. z88dk/Hi-Tech) only.
 - Everything must fit the updated boot disk (#28) alongside the
   period drivers.
-- Utilities use the BIOS disk path and must coexist with the G2
-  multi-format disk-table changes (#30).
+- Utilities use the BIOS disk path and must coexist with the DD
+  disk-table changes (#28, #95).

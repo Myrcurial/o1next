@@ -247,7 +247,7 @@ always 25 (result code + 24).
 
 | `KIND` | Mounts to | Valid sizes |
 |---|---|---|
-| `0` — floppy image | `A:` / `B:` | per the G2 multi-format table (#95) |
+| `0` — floppy image | `A:` / `B:` | a native Osborne geometry (SD, 256 B sectors; DD, 1024 B). A foreign-format image is converted on the modern side before it is mounted (#95) |
 | `1` — Drive C blob | Drive C | **exactly 196 608** (192K) or **393 216** (384K) |
 
 For a Drive C blob the file length **is** the geometry
