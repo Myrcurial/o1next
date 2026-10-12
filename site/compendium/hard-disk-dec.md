@@ -294,6 +294,35 @@ relative to that base, so `SELDSK` at `0xE1D5`):
   the BIOS's runtime descriptor table, which is built in low RAM (`0x055E`,
   `0x056E`) from a template not yet located. That is the residue of #178.
 
+### 7.2 The drive table, read out of `MD10.COM` (#178)
+
+`MD10.COM` is the drive-table editor *and* PREP. Disassembled at `org 0x100`, it
+narrows the residue considerably:
+
+- **A record is 11 bytes.** The template it copies for a new entry lives at
+  `0x2719` — `"PYXIS13"` followed by four zero bytes — and it is copied with
+  `LD HL,0x2719 / LD BC,0x000B / LDIR` (`0x05C6`). So a record is a **7-byte name
+  plus 4 parameter bytes**.
+- **`DRIVETBL.DAT` is exactly one 128-byte CP/M record.** It is written with
+  **BDOS function `22h` (write random)** on an FCB at `0x0D6C` (name
+  `DRIVETBLDAT`), the record number going to the FCB's random-record field at
+  `0x0D8D`.
+- **The in-memory table is at `0x3001`**, walked by a pointer at `0x3004` in
+  **11-byte steps** — the same stride as the record, which is the cross-check.
+- The editor prompts for *description, cylinders, heads, reduced-write-current,
+  step code, landing zone* and displays `Cyl= / Head= / Reduc= / Lz= / Step= /
+  Cap=`, so those are the fields the 4 parameter bytes encode.
+- **Still open:** *which* parameter byte is which field, and the header size.
+  Four bytes for five numeric fields means something is packed — the manual's
+  `MODE SELECT` descriptor spreads the same information over nine bytes
+  (cylinders 2, heads 1, reduced-write-current 2, precomp 2, landing zone 1,
+  step code 1), so the driver must expand a packed record into that descriptor.
+
+**How to finish it.** The mapping is best settled by *running* `MD10.COM` — edit
+one drive's parameters and diff `DRIVETBL.DAT` — which needs a CP/M machine
+(MAME) rather than more static reading. That is the next step, and it is
+deliberately not taken here.
+
 ## 8. Coexistence — the A/B→E/F remap and the CoPower-88
 
 The MD-10 moves the O1's floppies from `A:`/`B:` to `E:`/`F:` (§6). Does that
