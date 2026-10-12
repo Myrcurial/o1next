@@ -1,13 +1,16 @@
 # Research gaps — status review
 
-**Last reviewed:** 2026-10-11 (sixth pass), after **#81 was closed** on its stated
-deliverable — OZROM 1E as tooling: manual indexed, the column switch's mechanism
-measured from the ROM as well as documented, memory tester and error codes written
-down, ROM interface recorded. Its four residues are routed rather than carried
-(#167, #168; the jump-table diff is now done). Phase 0 reads **19 of 23** — the
-child count grew by one because the residue that is *work* became its own issue
-(#168), which is the tree doing its job. Counted from the tree, not from memory.
-Previous review
+**Last reviewed:** 2026-10-11 (seventh pass), after **#168 closed the same day it
+was filed** — not because a copy was found, but because we already had one: the
+"290 of 400 sectors erased" that justified the hunt was a `cpmfs.py` sector-skew
+bug (**#170**), and with the correct skew all twenty files of the OZROM Utilities
+disk extract whole. Phase 0 reads **20 of 23** — counted from the tree, not from
+memory. Previous review
+2026-10-11 (sixth pass), after **#81 was closed** on its stated deliverable —
+OZROM 1E as tooling: manual indexed, the column switch's mechanism measured from
+the ROM as well as documented, memory tester and error codes written down, ROM
+interface recorded. Its residues are routed rather than carried (#167; the
+jump-table diff is done, and #168 closed). Previous review
 2026-10-11 (fifth pass), after **#95 was closed** on the
 decision that the O1 does not need to recognise foreign diskette formats: the
 manufacturer's list and the CBIOS DPB+skew table agree field for field, Osborne
@@ -242,13 +245,13 @@ research-labelled and has been removed from this table.
 
 | Issue | Title | State | What closes it |
 |---|---|---|---|
-| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 19 of 23 closed |
+| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 20 of 23 closed |
 | #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as `docs/drive-c-protocol.md` and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
 | #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed 2026-10-11** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
 | #73 | Nuevo + Osmosis prior art | Partially | The DD halves of both products, and the board-detection method |
 | #75 | The book | **Ungated** | The pieces in #108–#115 |
-| #81 | OZROM as tooling | **Closed 2026-10-11** | The manual is indexed, the 52/80/104-column switch's mechanism is measured from the ROM (it drives the stock video PIA through the stock ROM's helper — `2C00`, cached in `EF61`), and the jump table now diffs clean against `rom144.asm`. Residues routed: #167 (harness keystrokes) and #168 (a complete Utilities disk) |
+| #81 | OZROM as tooling | **Closed 2026-10-11** | The manual is indexed, the 52/80/104-column switch's mechanism is measured from the ROM (it drives the stock video PIA through the stock ROM's helper — `2C00`, cached in `EF61`), and the jump table now diffs clean against `rom144.asm`. Residue routed: #167 (harness keystrokes). #168 (a complete Utilities disk) closed as unnecessary — we had it; the "erased sectors" were a `cpmfs.py` skew bug (#170) |
 | #95 | DD multi-format (now also the G2, absorbed from #30) | **Closed 2026-10-11** | Taken as written: the manual's list and the CBIOS DPB+skew table agree field for field, and Osborne SD is confirmed end to end in MAME. The four foreign skew tables are deliberately left unverified — the O1 does not need to recognise them, because foreign media is converted on the modern side |
 
 Closed, but still carrying the label — the work that got Phase 0 to where it is:
@@ -318,7 +321,7 @@ tree, **closed issues included**, so each one renders a progress bar:
 
 | Phase parent | Children | Closed |
 |---|---|---|
-| **#1** — Phase 0: research & reverse engineering | 23 | 19 |
+| **#1** — Phase 0: research & reverse engineering | 23 | 20 |
 | **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 0 |
 | **#16** — Phase 2: firmware personalities | 12 | 1 (#86) |
 | **#25** — Phase 3: Osborne-side software | 4 | 0 |

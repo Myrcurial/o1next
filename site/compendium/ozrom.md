@@ -303,7 +303,7 @@ is routed rather than carried:
 | Residue | Where it goes |
 |---|---|
 | **Drive the column switch from the harness** (§7) — the one measurement still missing | **#167** — the harness can only post plain characters, so ctrl-arrow and ctrl-shift are inexpressible. That is a tools capability, wanted by #24 as much as by this issue. |
-| **A complete copy of the Utilities disk** (§10) | **#168** — ours has an intact directory but 290 of 400 sectors erased. Someone with a working OZROM disk can supply one, and the vendor's `CRCKLIST.CRC` verifies it. Maintainer/community action. |
+| **A complete copy of the Utilities disk** (§10) | **#168 — closed: we already have it.** The "290 of 400 sectors erased" reading was a `cpmfs.py` sector-skew bug (§10.2); with the correct skew all twenty files extract whole. |
 | **Diff the jump table against `rom144.asm`** (§6) | **Done** — see below. |
 | **Reconcile the `EF66–EF69` clock against ROM 1.44** | Not OZROM's question: it is about *which stock revision* dropped `UPTIM`. Recorded in [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md); belongs with #83/#18, not here. |
 
@@ -359,49 +359,64 @@ that the manual only implies:
 - **The utilities are separate `.COM` files, not ROM calls.** Nothing here is
   resident; the ROM supplies the interface and the disk supplies the programs.
   A reproduction does not need to ship this disk to be OZROM-compatible.
-- **`CRCKLIST.CRC` is a self-check file** — a name/CRC list, so a 1984 owner
-  could verify their copy. It is the vendor's own integrity manifest, and it is
-  the reason to keep hunting for a complete one: the hashes let a good copy be
-  confirmed in seconds.
+- **`CRCKLIST.CRC` is a self-check file** — a name/CRC list, so a 1984 owner could
+  verify their copy. It is the vendor's own integrity manifest, and the hashes are
+  what a replacement would be checked against (§10.2 has the news: we do not need
+  one).
 
 
-### 10.2 Condition — partial, and that matters
+### 10.2 Condition — intact, and the first reading was ours to blame
 
-This is a **partially erased disk**. Of its 400 sectors, **110 carry data and 290
-read back as uniform `0xE5`** (the format fill byte), and the erased sectors fall
-*inside* file bodies rather than being confined to free space:
+**Corrected 2026-10-11.** This section previously said the disk was *partially
+erased*: "110 of 400 sectors carry data and 290 read back as uniform `0xE5`",
+with the holes *inside* file bodies — `CRASH.COM` gone, `READ.ME` missing its
+first sector. **That was a tooling artefact, not the disk.** The 290 sectors are
+**free space**.
 
-```
-      sec: 1 2 3 4 5 6 7 8 9 10
-  T0   R R . . . . . . . .      boot stub
-  T1   . . . . . . . . . .
-  T2   . . R . . . . . . .      the "no CP/M system" loader
-  T3   R . R . R . . R . R      directory (S1-S8) + data block 1 (S9-S10)
-  T4   R . . R . . . . . .
-  ...
-  T7   R R R R R R R R R R
-  ...
-  T21  R . . . . . . . . .
-  T22  . . . . . . . . . .      free from here to T39
-  ...
-```
+[`tools/cpmfs.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/cpmfs.py)'s `osb1sssd` preset was missing the format's **sector skew**
+(`skew 2` — the Osborne SD layout interleaves its ten sectors per track).
+Without it, block pointers resolve to the wrong physical sectors: the *directory*
+still reads, which is why the file list looked right and the damage looked like
+erasure, while every **file body** came back from sectors that had never been
+written. `cpmtools`' own `osb1sssd` diskdef carries the skew, and reading the same
+image through it returns real content — `CRCKLIST.CRC`, for one, is intact text.
 
-The directory and the file *names, sizes and allocation* are therefore
-trustworthy; the file *bodies* mostly are not. `SET.COM` is 100 % present,
-`FK.COM` 93 %, `MEMORIZE.COM` 86 %; `CRASH.COM` is gone entirely, and
-`ALARM.COM`, `QUIKTIME.COM` and `READ.ME` have each lost their first sector.
+Re-extracted with the correct skew, **all twenty files are whole**: no file holds
+an interior run of `0xE5` longer than a handful of bytes (those are ordinary data
+bytes), and every size matches the directory. `READ.ME` — reported here as having
+lost its first sector — is complete, which the emulated machine confirms by
+printing it from the start (§10.2a).
 
-What survives is still worth reading — `READ.ME` is a real note about the
-rewritten `TIMER` syntax (`TIME TIMER 10.6 WS DOCUMENT.DOC`, and the syntax
-changed at version 2.00), and `CLKPATCH.DOC` explains the blink-rate patch — but
-**nothing here should be treated as a byte-exact copy of a 1984 master.**
+The `0xE5` is still real, and still not a de-skew problem *in the sense §10.4
+meant*: the image genuinely holds ~291 sectors of format fill, because that is
+what a CP/M formatter writes across a disk. They are **free blocks**, not holes.
+The arithmetic agrees: twenty files totalling ~22 KB plus a 64-entry directory
+and three system tracks is ~110 sectors of the 400 — exactly the sectors that are
+not `0xE5`.
 
-The `0xE5` is not an artefact of our reconstruction. The IMD holds 110 normal
-sector records and 290 compressed ones, every compressed record filled with
-`0xE5`, and **no "unreadable sector" records at all** — ImageDisk read those
-sectors and got `0xE5` back. Nor is it a de-skew problem: the erased fraction is
-invariant under rotation, and no block alignment from −1 KiB to +2 KiB produces a
-consistent layout (§10.4).
+### 10.2a Measured on the machine: the ROM makes no difference
+
+The OZROM ROM and this disk had **never been run together** — every OZROM test
+used `52-blank.imd`. Run both ways (`-flop1 52-blank.imd -flop2
+OZROM_1E_Utilities.IMD`) with the same commands posted to each:
+
+| | stock ROM | OZROM 1E |
+|---|---|---|
+| `DIR B:` | 20 files | **the same 20 files** |
+| `TYPE B:CRCKLIST.CRC` | the full vendor CRC list | **the same list** |
+| `TYPE B:READ.ME` | the TIMER syntax note, from its start | the same |
+
+So the diskette does **not** read differently with the ROM installed. The ROM
+supplies the interface and the disk supplies data; nothing in OZROM's disk path
+changes what the bytes are. OZROM *does* enable CRC checking on disk access
+(§8), but that can only make it stricter, not more permissive.
+
+One behavioural difference is worth knowing, and it is not about reading:
+**OZROM's console acts on its control-shift codes `0xF0–0xFC`** — the "process
+immediately" set from §7 — so `TYPE`ing a *binary* file such as `CRCKLIST.CRC`
+makes OZROM execute whatever codes its bytes happen to contain. Under OZROM the
+screen came up with the keyboard-redefinition display after that `TYPE`; the
+stock ROM simply prints the bytes.
 
 ### 10.3 The boot sector is not vendor code
 
@@ -444,22 +459,35 @@ images turn out to be rotated and were never convertible before the fix:
 disk** (`DIAG.COM`, `FILETEST.COM`, `DDBIT.COM`, `SETUP.COM`, `SYSGEN.COM`, …),
 and [`research/source-code/OCCROM.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/OCCROM.IMD) its 77-track FM/MFM disk.
 
+**A second bug of the same class was found on 2026-10-11, and it did more
+damage.** `cpmfs.py`'s `osb1sssd` preset had no **sector skew** for the format it
+names, so every SD Osborne *file body* it read came back from the wrong sectors —
+which is what made this disk look "partially erased" (§10.2). The lesson repeats:
+both bugs produced output that *parsed*, and one of them was believed for a day
+because the directory survived and the result looked like physical damage rather
+than a misread. **A reader that returns plausible garbage is more dangerous than
+one that errors.**
+
 ### 10.5 What it changes for #81
 
 Less than the file count suggests, and that is the honest answer: the ROM is the
 deliverable and this is the optional companion disk. What it does give us:
 
-- The **complete and authoritative file list** of the utilities, so a future
-  search knows exactly what to look for — and `CRCKLIST.CRC` supplies the hashes
-  to verify a good copy against.
+- The **complete and authoritative file list** of the utilities — and, as §10.2
+  now records, the **complete files themselves**, not a holed copy.
 - Confirmation that the utilities are **external programs, not ROM entry
   points**, which bounds the reproduction scope: OZROM compatibility means the
   ROM's jump table and memory map, not this disk.
 - A second, independent description of the feature set to hold against the
   manual (§4).
 
-**Still open:** a *complete* copy. Anyone with a working OZROM disk can supply
-one, and `CRCKLIST.CRC` makes verifying it trivial.
+**No longer open, though this section used to say it was:** the hunt for a
+complete copy. **#168** was filed to find one and closed the same day — the "290
+of 400 sectors erased" that justified it was our own skew bug (§10.2), and the
+disk we hold is whole. The one check still not possible is against the vendor's
+own manifest: `CRCKLIST.CRC` lists a two-byte CRC per file, and none of the
+standard CRC-16 variants tried so far reproduces them, so per-file verification
+against the manifest has to wait for someone to identify the algorithm.
 
 ## Sources
 
