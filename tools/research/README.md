@@ -73,9 +73,10 @@ scratch programs, "figuring it out" notebooks/scripts.
   `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
 - **`md10patch.py`** — patches a file *inside* a raw Osborne image, addressed by
   name and file offset. Written for #178: `MD10.COM` refuses to start without an
-  ACB-4000 on ports `30h`–`33h`, and MAME cannot emulate one, so two 3-byte
-  patches step over the presence check (the overlay init call at `0x0219` and
-  the probe at `0x15AF`) and nothing else is touched. See
+  ACB-4000 on ports `30h`–`33h`, and MAME cannot emulate one, so three 3-byte
+  patches step over the presence check and take the loaded table to the editor's
+  menu — the overlay init call at `0x0219`, the probe at `0x15AF` and the branch
+  at `0x0EE8` — and nothing else is touched. See
   `docs/harddisk-decision.md` 7.2.
 - **`drivetbl.py`** — dumps the whole MD-10 drive table out of `DRIVETBL.DAT`.
   Written for #178 because `cpmfs.py get` cannot: the file's directory entry says
