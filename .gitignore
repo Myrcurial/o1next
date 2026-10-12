@@ -14,3 +14,9 @@ build/
 _site/
 .jekyll-cache/
 Gemfile.lock
+
+# The build-time Python for tools/romfont.py.  Homebrew's Python is PEP 668
+# externally-managed and refuses `pip3 install fonttools brotli` outright, and
+# which interpreter `python3` is differs by machine, so the venv that
+# tools/bootstrap.sh creates is the portable answer.  Never committed.
+.venv/
