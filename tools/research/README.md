@@ -57,6 +57,30 @@ scratch programs, "figuring it out" notebooks/scripts.
   not call `os.exit()`** — MAME only flushes a modified image on a clean
   shutdown, so `os.exit()` silently discards guest writes. See
   `docs/dd-upgrade-formats.md`.
+- **`o1raw2imd.py`** — wraps a bare raw Osborne 1 SD sector image in an
+  ImageDisk container. `imdmake.py` writes *blank* IMDs and `imdinfo.py` reads
+  them; nothing wrapped a raw one, and MAME will not open a raw sector image.
+  Written for #178, where the MD-10 utilities disks are held as raw 100 KiB
+  `.img` files. Convention is the archive's own: the image is in physical track
+  order with R = position+1, so the numbering map is the identity.
+- **`o1keys.lua` + `o1keys.sh`** — the scripted-keystroke harness: boot a disk,
+  then drive the guest with a list of directives (`wait`, `type`, `key`, `sleep`,
+  `dump`, `shot`, `peek`). `o1disk-copy` types one command and waits for the
+  prompt, which is not enough for a program that never returns to `A>` until you
+  walk its menus. Written for #178 to run `MD10.COM`. **`key esc` is not
+  usable** — posting `\27` segfaults MAME's Lua layer — and `peek` is the
+  directive that made the editor's in-memory table checkable. Note
+  `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
+- **`md10patch.py`** — patches a file *inside* a raw Osborne image, addressed by
+  name and file offset. Written for #178: `MD10.COM` refuses to start without an
+  ACB-4000 on ports `30h`–`33h`, and MAME cannot emulate one, so two 3-byte
+  patches step over the presence check (the overlay init call at `0x0219` and
+  the probe at `0x15AF`) and nothing else is touched. See
+  `docs/harddisk-decision.md` 7.2.
+- **`drivetbl.py`** — dumps the whole MD-10 drive table out of `DRIVETBL.DAT`.
+  Written for #178 because `cpmfs.py get` cannot: the file's directory entry says
+  128 bytes while it holds 16 512, so the table is only reachable by walking the
+  block list. Prints each entry's name, description and geometry.
 - **`drive-c-trace.lua`** — write taps on the O1's IEEE-488 PIA (`2900–2903`),
   logging every access while the real Drive C software runs. Written for #6; it
   is how the Drive C frame was *measured* rather than only read out of the

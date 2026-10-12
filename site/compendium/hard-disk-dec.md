@@ -215,8 +215,9 @@ The advertised envelope is **10 MB (MD-10), 20 MB (MD-20), "20 and 44 MB also
 available."** Because the controller auto-configures to the host-supplied
 geometry and we back it with a blob, **our practical limit is the driver's DPB,
 not our storage** — we can offer any geometry `DRIVETBL.DAT` can describe. The
-DPB itself is *not yet read* (§9.4, item 1); it is the one number this
-decision still owes.
+drive table's fields are now read (§7.2), so the geometry side of that is
+settled and #179 has a default; the DPB the driver *builds* from it is still
+not read (§9.4, item 1).
 
 **"How does it handle CP/M 2.2's limits on the Osborne?"**
 
@@ -283,45 +284,162 @@ relative to that base, so `SELDSK` at `0xE1D5`):
   block-transfer with `OUTI`/`INI`. And the ACB-4000's default format fill byte
   (`6Ch`, §4) sits at `0x8024` as a lone data byte — an independent confirmation
   of the controller, found in the driver rather than the manual.
-- **`DRIVETBL.DAT` is a list of drive-model entries.** A 12-byte header, then
-  ~11-byte records — a name (`AT3020`, `UAT3033`, `WCM5205`, `CM5206`, `CM5410`,
-  `D-720`, `D-740`, …) followed by a few parameter bytes; 11 entries in the 1.93
-  build. This is the table `MD10.COM` edits and `SELDSK`'s 24-byte descriptors
-  are built from.
-- **Still open:** the exact `DRIVETBL.DAT` byte→field mapping, and the *numeric*
-  DPB (SPT/DSM/DRM/AL0). The structure above is read from the code; the values
-  need the drive-table fields decoded — `MD10.COM`'s editor is the oracle — and
-  the BIOS's runtime descriptor table, which is built in low RAM (`0x055E`,
-  `0x056E`) from a template not yet located. That is the residue of #178.
+- **`DRIVETBL.DAT` is a list of drive-model entries.** This is the table
+  `MD10.COM` edits and `SELDSK`'s 24-byte descriptors are built from. The first
+  reading of it here got the shape wrong — a 12-byte header and eleven 11-byte
+  records — because the file's *directory entry* says it is 128 bytes long when
+  it is 16 512. **§7.2 has the corrected structure, and the byte→field mapping.**
+- **Still open:** the *numeric* DPB (SPT/DSM/DRM/AL0). The geometry the DPB is
+  built from is now read out of the drive table (§7.2), so what remains is the
+  BIOS's runtime descriptor table — built in low RAM (`0x055E`, `0x056E`) from a
+  template not yet located. That is the residue of #178.
 
-### 7.2 The drive table, read out of `MD10.COM` (#178)
+### 7.2 The drive table — structure, and the byte→field mapping (#178)
 
-`MD10.COM` is the drive-table editor *and* PREP. Disassembled at `org 0x100`, it
-narrows the residue considerably:
+**Solved**, by reading the shipped file and then running the editor that edits it.
 
-- **A record is 11 bytes.** The template it copies for a new entry lives at
-  `0x2719` — `"PYXIS13"` followed by four zero bytes — and it is copied with
-  `LD HL,0x2719 / LD BC,0x000B / LDIR` (`0x05C6`). So a record is a **7-byte name
-  plus 4 parameter bytes**.
-- **`DRIVETBL.DAT` is exactly one 128-byte CP/M record.** It is written with
-  **BDOS function `22h` (write random)** on an FCB at `0x0D6C` (name
-  `DRIVETBLDAT`), the record number going to the FCB's random-record field at
-  `0x0D8D`.
-- **The in-memory table is at `0x3001`**, walked by a pointer at `0x3004` in
-  **11-byte steps** — the same stride as the record, which is the cross-check.
-- The editor prompts for *description, cylinders, heads, reduced-write-current,
-  step code, landing zone* and displays `Cyl= / Head= / Reduc= / Lz= / Step= /
-  Cap=`, so those are the fields the 4 parameter bytes encode.
-- **Still open:** *which* parameter byte is which field, and the header size.
-  Four bytes for five numeric fields means something is packed — the manual's
-  `MODE SELECT` descriptor spreads the same information over nine bytes
-  (cylinders 2, heads 1, reduced-write-current 2, precomp 2, landing zone 1,
-  step code 1), so the driver must expand a packed record into that descriptor.
+Two things §7.1 recorded from a first reading of the file were wrong, and the
+corrections are the reason the mapping was hard to see:
 
-**How to finish it.** The mapping is best settled by *running* `MD10.COM` — edit
-one drive's parameters and diff `DRIVETBL.DAT` — which needs a CP/M machine
-(MAME) rather than more static reading. That is the next step, and it is
-deliberately not taken here.
+- **`DRIVETBL.DAT` is not one 128-byte record.** Its directory entry says
+  `rc = 1` (128 bytes) and even sits at extent 1, but the file owns nine
+  allocation blocks and holds **16 512 bytes of live data**. A `cpmfs.py get`
+  therefore returns the header and five name records and nothing else; the rest
+  is reachable only by walking the block list ([`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drivetbl.py)).
+- **A record is not a 7-byte name plus four parameter bytes.** The name field is
+  **ten** bytes, and the four bytes are not the numeric fields at all — the
+  geometry lives somewhere else entirely.
+
+#### The file
+
+| Offset | Length | Holds |
+|---|---|---|
+| `0x0000` | 13 | **Header.** `+0..1` = `13 + 11×N`, the end offset of the name table (LE); `+2` = the next free description-record index (`0x81` = 129 here); `+3` = `0x0D` = 13 — the header length, i.e. where the records start; `+4..12` = 0 |
+| `0x000D` | `11×N` | **126 name records** of 11 bytes: a NUL-terminated name of up to 10 characters, then **one byte — the index of that drive's description record** |
+| `13+11N` | 9 | **Sentinel** `00 "RDBAK" 00 00 00`. Its leading `0x00` is what stops the driver's name search |
+| `0x0800` | `128×113` | **113 description records**, one per index 16…128, at file offset `128 × index` — so records 11–15 of the file are a gap between the two areas |
+| desc. record | `+0..8` | **the nine geometry bytes** |
+| | `+9..127` | the free-text description, NUL-terminated, with the stale tails of longer earlier strings left behind |
+
+#### The nine geometry bytes — the mapping
+
+They are **not packed**. They are the ACB-4000's own `MODE SELECT`
+drive-parameter block, field for field, in the manual's order (parameter-list
+offsets `0D`–`15`):
+
+| Description record | Manual (`MODE SELECT`) | Field | Stored as |
+|---|---|---|---|
+| `+0..1` | `0D`–`0E` | Cylinder count | 16-bit, **little-endian** |
+| `+2` | `0F` | Head count | 8-bit |
+| `+3..4` | `10`–`11` | Reduced-write-current cylinder | 16-bit, LE |
+| `+5..6` | `12`–`13` | Write-precompensation cylinder | 16-bit, LE |
+| `+7` | `14` | Landing zone | 8-bit (signed in the editor: `Lz=+0`) |
+| `+8` | `15` | Step pulse output rate code | 8-bit |
+
+The manual's block is big-endian and the file is little-endian, so the driver
+byte-swaps when it builds the descriptor. **That byte order is the whole of the
+"something is packed"** the first reading inferred: four bytes for five fields
+was never the shape of the thing.
+
+Two of the fields are outside the editor: it prompts for cylinders, heads,
+reduced-write-current, landing zone and step code (measured, below) and neither
+displays nor writes `+5..6`. The manual puts write precompensation there and
+every entry in the shipped table has it zero, so **precomp is inferred**, not
+measured.
+
+#### The name record
+
+An 11-byte record is a NUL-terminated name of up to ten characters and then the
+description index. The driver's name search compares at most ten bytes and stops
+at the typed name's terminator (`LD B,9` / `DJNZ`, `0x0C04`–`0x0C12`), so **the
+bytes after the name's NUL are never read by the driver** — which is exactly why
+the first reading took them for "parameter bytes". In the shipped table they are
+not consistently name text (`AT3020` is followed by `"15"`, the Seagate entries
+by `"62"`, `D-720` by three unprintable bytes), so their meaning is unresolved
+and, for #179, irrelevant.
+
+Bit 7 of a name's **first** byte is a flag — the search masks it off with
+`AND 7Fh`. In this table it is set on 26 entries, and every one of them is an
+alias: all 26 share their description record with another name (the editor's
+"Add `<S>`ynonym"), and no unflagged entry shares one.
+
+#### How we know
+
+**Measured**, in MAME, by running the editor itself. `MD10.COM` will not start
+without an ACB-4000 answering on `30h`–`33h`, so the presence check was stepped
+over with two 3-byte patches — the overlay's init call at `0x0219` and the probe
+at `0x15AF` ([`tools/research/md10patch.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/md10patch.py)); nothing else was touched. With that,
+the editor's own `<L>ist parameters` prints, for `CM5205`:
+
+```
+CM5205: Computer Memories, Inc. model CM5205
+  Cyl=256, Head=2, Reduc=256, Lz=+0, Step=1, Cap=4608K
+```
+
+and the description record at index 16 is `00 01 | 02 | 00 01 | 00 00 | 00 | 01`
+— 256, 2, 256, 0, 0, 1. Field for field, including the little-endian pair. The
+same run fixed the rest:
+
+- the editor's prompts run **cylinders, heads, reduced-write-current, landing
+  zone, step code** — ascending record offsets 0, 2, 3, 7, 8;
+- pointed at the 13-byte *header* instead of a record, the same display reads the
+  header's bytes at those offsets — `Cyl=1399, Head=129, Reduc=13, Lz=+0, Step=0`
+  is `77 05` / `81` / `0d 00` / `00` / `00` — an independent check of the offsets
+  from the measured display;
+- the loader reads 11 CP/M records (1408 bytes) into `0x3001` and sets the
+  current-record offset at `0x3004` to **13** — the header length.
+
+**Read from the primary source**: the shipped `DRIVETBL.DAT` itself, dumped by
+[`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drivetbl.py). **Read from the driver**: the write side uses the
+same five offsets (`LD (2719h),HL` … `LD (2721h),A`). **Cross-checked against the
+manual and against the real drives**: the step codes are the manual's table
+(`0` = 3 ms unbuffered, ST-506; `1` = 28 µs buffered, ST-412; `2` = 12 µs
+buffered, most others) and the shipped entries obey it exactly — `ST506` → 0,
+`ST412` → 1, everything else → 2; and the geometries are the drives' own:
+`ST506` 153/4, `ST412` 306/4, `ST419` 306/6, `SA604` 416/4, `XT-1065` 918/7,
+`XT-1140` 918/15, `XT-2085` 1224/7.
+
+**Not obtained**: a write-back diff. In the emulated run the editor took an edit,
+prompted through all five fields and returned to its menu without rewriting
+`DRIVETBL.DAT` — the only bytes that changed in the image were our own patch — so
+the write side is read from the code, not measured.
+
+#### What this gives #179
+
+A default geometry, and the table to pick it from. The editor's own template for
+a new entry is the name `PYXIS13`, and that name is in the table — the vendor's
+default drive. A selection from it:
+
+| Entry | Cyl | Heads | RWC | LZ | Step | Cap | Description |
+|---|---|---|---|---|---|---|---|
+| **`PYXIS13`** | **321** | **4** | **132** | **0** | **2** | 11 556K | Rodime PLC model RO 202 / Ampex model Pyxis 13 |
+| `ST506` | 153 | 4 | 128 | 0 | 0 | 5 508K | Seagate model ST506 — the manual's reference drive |
+| `ST412` | 306 | 4 | 306 | 0 | 1 | 11 016K | Seagate model ST412 |
+| `RO202E` | 640 | 4 | 0 | 0 | 2 | 23 040K | Rodime PLC model RO 202E |
+| `PYXIS27` | 321 | 8 | 132 | 0 | 2 | 23 112K | Rodime PLC model RO 204 / Ampex model Pyxis 27 |
+
+**Recommendation: `PYXIS13`.** It is what `MD10.COM` itself offers a new drive,
+it lands in the MD-10's advertised 10 MB class, and period software and the
+driver accept it by construction. `ST506` is worth keeping as a second profile:
+it is the manual's worked example and the only step-code-0 case, so it exercises
+a different code path. `Cap` is the editor's own formula,
+`cylinders × heads × 18 × 512 B`, which reproduces its `Cap=4608K` for `CM5205`
+exactly; the personality need not agree with it, but #179's `MODE SENSE` must
+report the geometry the table holds.
+
+The whole table — 126 entries over 113 description records — is in
+`research/adaptec/MD Utilities Adaptec 4000 Controller Ver. 1.93 Osborne - MD-10
+MD-20.img`; [`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drivetbl.py) prints it. The 2.01 disk carries the
+same table byte-for-byte.
+
+#### Running the editor
+
+Four things were added to [`tools/research/`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/) for this, each with a header saying
+what it was for: `o1raw2imd.py` (wrap an archive `.img` for MAME, which will not
+open a bare raw sector image), `o1keys.lua` + `o1keys.sh` (a scripted-keystroke
+harness, with a `peek` directive — that is what made the in-memory table
+checkable), `md10patch.py` (patch a file inside the image, by name; the two
+presence-check patches above) and `drivetbl.py` (dump the table).
 
 ## 8. Coexistence — the A/B→E/F remap and the CoPower-88
 
@@ -417,7 +535,9 @@ if a driver turns out to depend on undocumented controller behaviour.
 
 ## 10. Open questions
 
-1. **The MD-10 DPB** — the volume size the driver installs (§7, §9.4 item 1).
+1. **The MD-10 DPB** — the numeric SPT/DSM/DRM/AL0 the driver builds at run time.
+   The geometry it is built from is read (§7.2); the descriptor template in low
+   RAM (`0x055E`, `0x056E`) is not (§9.4 item 1).
 2. **The MD-10 host-adapter bit map** — which observed status bit is `REQ`, which
    is `BSY`, which is phase (§6). Bounded, because the *protocol* is known.
 3. **"36 user areas"** — a driver extension, or advertising copy?

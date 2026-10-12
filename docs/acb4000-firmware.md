@@ -1,6 +1,8 @@
 # The ACB-4000's own firmware (#178)
 
-**Status: open** — but it explains the residue. The controller is a small computer
+**Status: partially solved.** The ROMs, the command set and the "why there is no
+literal DPB" argument are read; the geometry round-trip itself is inferred, not
+traced. The controller is a small computer
 running its own firmware; the ROMs are archived at
 `research/adaptec/acb4000/firmware/`. This note records what the firmware *is*,
 and what it tells us about the personality — in particular **why the MD-10
@@ -78,10 +80,13 @@ MAME, or a read of the driver's command buffer, would settle it.)*
   (`25`) faithfully** — because the driver's DPB comes from what the controller
   reports, not from anything the driver holds. This is a hard requirement for
   #179, and it is now written down.
-- **The residue moves.** The open number is no longer "the driver's DPB" (it is
-  derived) but the **`DRIVETBL.DAT` record**: once the drive-table fields are
-  known, the DPB follows arithmetically from the geometry — which is exactly the
-  `MD10.COM` editor's job to define.
+- **The residue moves — and it has now moved once more.** The open number was
+  never "the driver's DPB" (it is derived) but the **`DRIVETBL.DAT` record**, and
+  that is now read: `docs/harddisk-decision.md` §7.2 has the record layout and
+  the byte→field mapping, which turns out to be this same `MODE SELECT` drive
+  parameter block, stored little-endian in a 128-byte description record behind
+  a name table. What is left is the *numeric* DPB (SPT/DSM/DRM/AL0) the driver
+  builds from it at run time.
 - The `0x6C` fill byte found in the *driver* (`docs/harddisk-decision.md` §7.1)
   and the `6Ch` default in the *manual* now sit together: the driver passes the
   fill byte through `MODE SELECT`/`FORMAT`, and the controller writes it.
