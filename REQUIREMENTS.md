@@ -60,6 +60,7 @@ them goes stale on every other one.
 
 | Tool | Used by | Notes |
 |---|---|---|
+| **MAME source tree** | `tools/emulator-setup/mame-osborne1ng/apply.sh` — the `osborne1ng` machine (#191) | `brew install mame` gives a *binary*; a machine that is not upstream needs a source tree to patch and rebuild. Nothing new has to be installed for it — GNU make and a C++20 compiler (Xcode CLT) are enough. **On macOS a source build defaults to the SDL3 OSD**, so `apply.sh` passes `OSD=mac` and uses the tree's own Cocoa layer instead of asking for SDL3. |
 | **SAMdisk 4** (Simon Owen) | `tools/extract_all.sh` — the TD0 → EDSK leg | cmake on macOS; decodes TeleDisk including advanced compression. **Not installed by `bootstrap.sh`** — the archive is already extracted, so this only matters if the pipeline has to be re-run. `brew install cmake`, then build from source. |
 | **disk-analyse** (Keir Fraser, Disk-Utilities) | IMD ↔ raw, IMD ↔ HFE | built from source, not in Homebrew; `bootstrap.sh` checks for it but cannot install it |
 

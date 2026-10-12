@@ -33,14 +33,22 @@ CoPower-88 sets).
 
 ## 2. The three machines
 
-MAME models three Osborne 1 variants. Two are clones of the stock machine; one
-has its own ROMs:
+MAME models three Osborne 1 variants — and this project adds a fourth (below).
+Two are clones of the stock machine; one has its own ROMs:
 
 | MAME machine | Description | Year | Parent | Relationship | Display (measured) |
 |---|---|---|---|---|---|
 | `osborne1` | Osborne-1 | 1981 | — | the stock machine | 416×240 = **52 columns** |
 | `osborne1sp` | Osborne-1 with SCREEN-PAC | 1983 | `osborne1` | clone — **no ROM differences at all** | 832×240 = **104 columns** |
 | `osborne1nv` | Osborne-1 (Nuevo Video) | 1984 | `osborne1` | own BIOS **and** own character generator | 640×240 = **80 columns** |
+
+This project adds a **fourth** (`tools/emulator-setup/mame-osborne1ng/`, #191):
+`osborne1ng` is a clone of `osborne1` whose Z80 sits behind an emulated card
+that decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
+answer on ports `30h`–`33h`. It is not in MAME; it is a patch, and it runs the
+**1.44 ROM only**. Banking and video are identical to `osborne1` — measured, not
+assumed — and the presence check the MD-10 driver demands now passes. See
+`docs/osborne1ng-machine.md`.
 
 **Yes, the Nuevo machine really is 80 columns.** The display width is a property
 of the emulated *machine*, not of the disk, and it was measured by booting the

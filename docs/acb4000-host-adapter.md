@@ -106,6 +106,16 @@ a MAME **driver change** — a card device with its own full 8-bit I/O decode on
 `30h`–`33h` — not a Lua script. That is a change to a host tool, so per `AGENTS.md` it
 is a question for the maintainer rather than something to engineer around.
 
+**That change has since been built — #191, `docs/osborne1ng-machine.md`.** The
+`osborne1ng` machine (`tools/emulator-setup/mame-osborne1ng/`) widens the I/O
+decode to eight bits while keeping the mainboard's 2-bit alias, and answers on
+`30h`–`33h` with an ACB-4000 host adapter. The MD-10's presence probe now reads
+`04h` unpatched, and the drive-table editor (`MD10.COM`, shipped as `PREP.COM` in
+2.01) runs. §1's bit map was corrected in the process: `base+2` is a
+**read/write register**, and `04h` is a controller-select field read back, not a
+status bit — the *real* probe is the ID scan that follows it. Adaptec's
+"controller 01" is **SCSI ID 0**, and the select byte is a one-of-eight mask.
+
 ## 3. A system image does not carry the low-RAM tables
 
 §7.3 assumed the tables at `0x055E`/`0x056E` "must live" in the system image, because
@@ -149,7 +159,11 @@ The tables are still built at run time (or pre-loaded by something outside the
 archive). §7.3's two routes stand, with the first now carrying a dependency:
 
 1. **A MAME driver change** to model the ACB-4000 card's full I/O decode — then the
-   stub becomes possible. This is the blocker above.
+   stub becomes possible. This is the blocker above. **Built: #191, the
+   `osborne1ng` machine** (`docs/osborne1ng-machine.md`). The probe passes and the
+   drive-table editor runs; what is left on this route is the *data* phase — a
+   mounted drive image and the MD-10 BIOS's `SELDSK` — which is the same thing
+   route 2 below is waiting on.
 2. **A bootable MD-10 system disk.** One observation keeps this alive: the MD-10 BIOS's
    own `BOOT` (file `0x182`) reads a **5-byte block at `0x0559`–`0x055D`** and calls the
    SCSI routine at file `0x285`; nothing in the archive writes `0x0559`–`0x055D`

@@ -1,0 +1,657 @@
+--- a/src/mame/osborne/osborne1.cpp
++++ b/src/mame/osborne/osborne1.cpp
+@@ -97,6 +97,8 @@
+ 
+ #include "bus/ieee488/ieee488.h"
+ #include "bus/rs232/rs232.h"
++#include "bus/scsi/scsi.h"
++#include "bus/scsi/scsihd.h"
+ 
+ #include "cpu/z80/z80.h"
+ 
+@@ -104,6 +106,7 @@
+ 
+ #include "machine/6821pia.h"
+ #include "machine/6850acia.h"
++#include "machine/acb4000_host_adapter.h"
+ #include "machine/wd_fdc.h"
+ 
+ #include "sound/spkrdev.h"
+@@ -162,6 +165,8 @@
+ 	virtual void machine_reset() override ATTR_COLD;
+ 	virtual void video_start() override ATTR_COLD;
+ 
++	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
++
+ 	void osborne1_base(machine_config &config);
+ 
+ 	void osborne1_mem(address_map &map) ATTR_COLD;
+@@ -201,8 +206,6 @@
+ 
+ 	void serial_acia_irq_func(int state);
+ 
+-	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
+-
+ 	TIMER_CALLBACK_MEMBER(video_callback);
+ 	TIMER_CALLBACK_MEMBER(acia_rxc_txc_callback);
+ 
+@@ -304,6 +307,28 @@
+ 
+ 	required_device<palette_device> m_palette;
+ 	required_region_ptr<u8>         m_p_nuevo;
++};
++
++
++// The emulated interposer: a stock Osborne-1 whose Z80 sits behind a card that
++// decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
++// answer on 30h-33h -- the ports its driver demands and the stock machine
++// cannot reach (docs/osborne1ng-machine.md, docs/acb4000-host-adapter.md 2).
++class osborne1ng_state : public osborne1_state
++{
++public:
++	osborne1ng_state(const machine_config &mconfig, device_type type, const char *tag) :
++		osborne1_state(mconfig, type, tag),
++		m_acb4000(*this, "acb4000")
++	{
++	}
++
++	void osborne1ng(machine_config &config);
++
++private:
++	void osborne1ng_io(address_map &map) ATTR_COLD;
++
++	required_device<acb4000_host_adapter_device> m_acb4000;
+ };
+ 
+ 
+@@ -827,6 +852,21 @@
+ 	map(0x04, 0x04).rw("crtc", FUNC(mc6845_device::status_r), FUNC(mc6845_device::address_w));
+ 	map(0x05, 0x05).rw("crtc", FUNC(mc6845_device::register_r), FUNC(mc6845_device::register_w));
+ 	// seems to be something at 0x06 as well, but no idea what - BIOS writes 0x07 on boot
++}
++
++
++void osborne1ng_state::osborne1ng_io(address_map &map)
++{
++	map.unmap_value_high();
++
++	// The mainboard's own decode looks at A0-A1 only, so its four bank/video
++	// ports alias across the whole low port page -- and the CBIOS drives them on
++	// every console character, so that behaviour has to survive untouched.  Keep
++	// the 2-bit alias and put the card's window on top of it: 30h-33h is the
++	// one place where the card, not the mainboard, owns the bus.
++	map.global_mask(0xff);
++	map(0x00, 0x03).mirror(0xfc).w(FUNC(osborne1ng_state::bankswitch_w));
++	map(0x30, 0x33).rw(m_acb4000, FUNC(acb4000_host_adapter_device::read), FUNC(acb4000_host_adapter_device::write));
+ }
+ 
+ 
+@@ -1065,6 +1105,27 @@
+ }
+ 
+ 
++void osborne1ng_state::osborne1ng(machine_config &config)
++{
++	osborne1_base(config);
++
++	m_maincpu->set_addrmap(AS_IO, &osborne1ng_state::osborne1ng_io);
++
++	m_screen->set_screen_update(FUNC(osborne1ng_state::screen_update));
++	m_screen->set_raw(MAIN_CLOCK / 2, 512, 0, 52 * 8, 260, 0, 24 * 10);
++	m_screen->screen_vblank().set(m_pia1, FUNC(pia6821_device::ca1_w));
++	m_screen->set_palette("palette");
++	m_screen->set_video_attributes(VIDEO_UPDATE_SCANLINE | VIDEO_ALWAYS_UPDATE);
++
++	// the controller the card talks to, on a SCSI bus of its own
++	scsi_port_device &scsi(SCSI_PORT(config, "scsi"));
++	scsi.set_slot_device(1, "harddisk", SCSIHD, DEVICE_INPUT_DEFAULTS_NAME(SCSI_ID_0));
++
++	ACB4000_HOST_ADAPTER(config, m_acb4000);
++	m_acb4000->set_scsi_port("scsi");
++}
++
++
+ ROM_START( osborne1 )
+ 	ROM_DEFAULT_BIOS("ver144")
+ 	ROM_SYSTEM_BIOS( 0, "vera",   "BIOS version A" )
+@@ -1096,6 +1157,16 @@
+ 
+ #define rom_osborne1sp rom_osborne1
+ 
++// osborne1ng runs the 1.44 ROM and nothing else: it is the emulated interposer
++// machine, and the MD-10's software is what it exists to run.
++ROM_START( osborne1ng )
++	ROM_REGION( 0x1000, "maincpu", 0 )
++	ROM_LOAD( "3a10082-00rev-e.ud11",    0x0000, 0x1000, CRC(c0596b14) SHA1(ee6a9cc9be3ddc5949d3379351c1d58a175ce9ac) )
++
++	ROM_REGION( 0x800, "chargen", 0 )
++	ROM_LOAD( "7a3007-00.ud15", 0x0000, 0x800, CRC(6c1eab0d) SHA1(b04459d377a70abc9155a5486003cb795342c801) )
++ROM_END
++
+ ROM_START( osborne1nv )
+ 	ROM_REGION(0x1000, "maincpu", 0)
+ 	ROM_LOAD( "monrom-rev1.51-12.ud11", 0x0000, 0x1000, CRC(298da402) SHA1(7fedd070936ccfe98f96d6e0ac71689666da79cb) )
+@@ -1114,3 +1185,4 @@
+ COMP( 1981, osborne1,   0,        0,      osborne1,   osborne1,   osborne1_state,   empty_init, "Osborne",       "Osborne-1",                 MACHINE_SUPPORTS_SAVE )
+ COMP( 1983, osborne1sp, osborne1, 0,      osborne1sp, osborne1,   osborne1sp_state, empty_init, "Osborne",       "Osborne-1 with SCREEN-PAC", MACHINE_SUPPORTS_SAVE )
+ COMP( 1984, osborne1nv, osborne1, 0,      osborne1nv, osborne1nv, osborne1nv_state, empty_init, "Osborne/Nuevo", "Osborne-1 (Nuevo Video)",   MACHINE_SUPPORTS_SAVE )
++COMP( 1981, osborne1ng, osborne1, 0,      osborne1ng, osborne1,   osborne1ng_state, empty_init, "Osborne",       "Osborne-1 (emulated interposer)", MACHINE_SUPPORTS_SAVE )
+--- a/src/mame/mame.lst
++++ b/src/mame/mame.lst
+@@ -36523,6 +36523,7 @@
+ 
+ @source:osborne/osborne1.cpp
+ osborne1
++osborne1ng
+ osborne1nv
+ osborne1sp
+ 
+--- a/scripts/src/machine.lua
++++ b/scripts/src/machine.lua
+@@ -10,6 +10,8 @@
+ ----------------------------------------------------------------------------
+ 
+ files {
++	MAME_DIR .. "src/devices/machine/acb4000_host_adapter.cpp",
++	MAME_DIR .. "src/devices/machine/acb4000_host_adapter.h",
+ 	MAME_DIR .. "src/devices/machine/bcreader.cpp",
+ 	MAME_DIR .. "src/devices/machine/bcreader.h",
+ 	MAME_DIR .. "src/devices/machine/buffer.cpp",
+--- /dev/null
++++ b/src/devices/machine/acb4000_host_adapter.h
+@@ -0,0 +1,113 @@
++// license:BSD-3-Clause
++// copyright-holders:James Arlen
++/***************************************************************************
++
++    Adaptec ACB-4000 host adapter -- the Z80-side card
++
++    The ACB-4000 itself is a SCSI target with its own 8080 firmware (the
++    archive holds six 8 KiB ROM images for it).  What a Z80 machine has is a
++    *host adapter* -- a SCSI initiator -- and that is the machine-specific
++    half.  docs/harddisk-decision.md section 5 splits the personality into
++    three layers: the SCSI target (machine independent), this host-adapter
++    shim (a port block, i.e. a profile) and the backing store.  This device is
++    the middle layer, and it is what the emulated interposer answers with.
++
++    The Osborne 1 / MD-10 profile presents four registers on four consecutive
++    I/O ports, decoded from the full 8-bit address:
++
++        base+0  data      -- also the block port (OUTI/INI/OTIR/INIR, C=base)
++        base+1  control   (write only)
++        base+2  status (read) / control (write)
++        base+3  control   (write only)
++
++    The status byte's bit map and the whole handshake are *read*, not guessed:
++    the transaction routine is the MD-10 BIOS overlay's own code, at
++    HARDBIOS.SPR file offset 0x285 (address 0xE285, "HARDBIOS.SPR maps to
++    0xE000 + offset").  See docs/osborne1ng-machine.md for the listing and
++    docs/acb4000-host-adapter.md section 1 for the register roles.
++
++    Status (base+2, read), md10 profile:
++
++        bit 0  01h  selection handshake -- clear at rest, set while the host
++                    has selected the card and the card has acknowledged
++        bit 1  02h  REQ -- move a byte (or a 512-byte block) now
++        bit 2  04h  one controller on-line -- the presence probe reads this
++        bit 5  20h  phase -- 1 = command/status/message, 0 = data
++        bit 6  40h  the current phase is complete, act on it
++
++    The controller is at SCSI ID 01 (ACB-4000 OEM manual, Appendix A).
++
++***************************************************************************/
++
++#ifndef MAME_MACHINE_ACB4000_HOST_ADAPTER_H
++#define MAME_MACHINE_ACB4000_HOST_ADAPTER_H
++
++#pragma once
++
++#include "machine/legscsi.h"
++
++
++class acb4000_host_adapter_device : public legacy_scsi_host_adapter
++{
++public:
++	acb4000_host_adapter_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++
++	// configuration helpers
++	void set_target_id(u8 id) { m_target_id = id; }
++
++	// the four registers, relative to the base port
++	u8 read(offs_t offset);
++	void write(offs_t offset, u8 data);
++
++protected:
++	virtual void device_start() override ATTR_COLD;
++	virtual void device_reset() override ATTR_COLD;
++
++private:
++	enum : u8
++	{
++		STATUS_SELECT = 0x01,   // bit 0 -- selection handshake
++		STATUS_REQ    = 0x02,   // bit 1 -- request: move a byte
++		STATUS_ONLINE = 0x04,   // bit 2 -- one controller on-line
++		STATUS_PHASE  = 0x20,   // bit 5 -- 1 = command/status/message
++		STATUS_END    = 0x40    // bit 6 -- phase complete
++	};
++	enum : u8 { CTRL_SELECT = 0x10 };   // written to base+2 to start a transfer
++
++	enum class xfer : u8 { idle, selected, command, data_in, data_out, status };
++
++	static int cdb_length(u8 opcode);
++	bool select_target();
++	void start_command();
++	void begin_data(bool data_in);
++	void begin_status();
++	u8 read_data_byte();
++	void write_data_byte(u8 data);
++	u8 status_bits() const;
++
++	u8      m_target_id;
++
++	u8      m_reg1;         // base+1 latch (write only)
++	u8      m_reg2;         // base+2 -- read/write controller-select register
++	u8      m_reg3;         // base+3 latch (write only)
++	u8      m_select;       // the byte the host wrote to base+0 to select
++	u8      m_last_read;    // the last byte handed to the host on base+0
++
++	xfer    m_xfer;
++	u8      m_cdb[16];
++	int     m_cdb_index;
++	int     m_cdb_length;
++
++	u8      m_buffer[512];  // the adapter's block buffer
++	int     m_buffer_count; // bytes valid in m_buffer
++	int     m_buffer_index; // bytes already moved
++	u32     m_transferred;  // bytes moved across the whole data phase
++	u32     m_total;        // bytes the target reported
++
++	bool    m_online;
++};
++
++// device type definition
++DECLARE_DEVICE_TYPE(ACB4000_HOST_ADAPTER, acb4000_host_adapter_device)
++
++#endif // MAME_MACHINE_ACB4000_HOST_ADAPTER_H
+--- /dev/null
++++ b/src/devices/machine/acb4000_host_adapter.cpp
+@@ -0,0 +1,379 @@
++// license:BSD-3-Clause
++// copyright-holders:James Arlen
++/***************************************************************************
++
++    Adaptec ACB-4000 host adapter -- the Z80-side card
++
++    See acb4000_host_adapter.h for the register map.  The transaction
++    routine this answers is the MD-10 BIOS overlay's own code, at
++    HARDBIOS.SPR file offset 0x285 (address 0xE285):
++
++        e285  ld (0172h),hl      ; save the host buffer pointer
++        e288  ld (01fah),a       ; the opcode, and so the CDB at 01fah..
++        e28b  in a,(032h)        ; wait for the select handshake to clear
++              and 001h
++              jr nz,e28b
++        e291  ld a,(00557h)      ; the select byte
++              out (030h),a
++        e296  ld a,010h
++              out (032h),a       ; assert the handshake
++        e29a  in a,(032h)        ; ... and wait for the card to answer
++              and 001h
++              jr z,e29a
++        e2a0  xor a
++              out (032h),a       ; release it -- the command phase starts
++              ld hl,01fah
++              ld c,030h
++        e2a8  in a,(032h)        ; command phase: REQ + phase -> send a byte
++              bit 6,a
++              jr nz,e2ba
++              bit 1,a
++              jr z,e2a8
++              and 020h
++              jr z,e2ba
++              outi
++              jr e2a8
++        e2ba  ld b,000h          ; data phase: 512 bytes per pass
++              ld hl,(0172h)
++        e2bf  in a,(032h)
++              bit 6,a
++              jr nz,e2cf
++              and 002h
++              jr z,e2bf
++              otir
++              otir
++              jr e2bf
++        e2cf  and 020h           ; phase over: status, or read the data in
++              jr nz,e2e6
++              ld a,(01fah)
++              cp 008h
++              jr z,e2f4          ; READ -> 2 x INIR = 512 bytes
++        e2da  ini                ; ... otherwise a byte at a time
++        e2dc  in a,(032h)
++              bit 6,a
++              jr z,e2dc
++              and 020h
++              jr z,e2da
++        e2e6  in b,(c)           ; the status byte
++        e2e8  in a,(032h)
++              and 040h
++              jr z,e2e8
++        e2ee  in a,(030h)        ; discard
++              ld a,b
++              and 002h           ; 0 = good, 2 = check condition
++              ret
++
++    So the card has to present four states and the driver's own loops do the
++    rest: the command phase moves one CDB byte per REQ, the data phase moves
++    512-byte blocks, and the status phase hands over one status byte.
++
++***************************************************************************/
++
++#include "emu.h"
++#include "acb4000_host_adapter.h"
++
++#include "machine/t10spc.h"
++
++#include <algorithm>
++#include <iterator>
++
++
++// device type definition
++DEFINE_DEVICE_TYPE(ACB4000_HOST_ADAPTER, acb4000_host_adapter_device, "acb4000ha", "Adaptec ACB-4000 host adapter")
++
++// The controller answers as Adaptec's "controller 01", i.e. select byte 01h --
++// which is SCSI ID 0.  HARD.COM's own probe reads its select byte from a
++// configured byte (0x0A93) rather than scanning, and that byte is 01h
++// (docs/osborne1ng-machine.md).
++static constexpr u8 ACB4000_SCSI_ID = 0;
++
++// the driver moves data in 512-byte blocks (2 x OTIR/INIR with B = 0)
++static constexpr int BLOCK_SIZE = 512;
++
++
++acb4000_host_adapter_device::acb4000_host_adapter_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
++	: legacy_scsi_host_adapter(mconfig, ACB4000_HOST_ADAPTER, tag, owner, clock)
++	, m_target_id(ACB4000_SCSI_ID)
++	, m_reg1(0)
++	, m_reg3(0)
++	, m_select(0)
++	, m_last_read(0)
++	, m_xfer(xfer::idle)
++	, m_cdb_index(0)
++	, m_cdb_length(0)
++	, m_buffer_count(0)
++	, m_buffer_index(0)
++	, m_transferred(0)
++	, m_total(0)
++	, m_online(false)
++{
++}
++
++void acb4000_host_adapter_device::device_start()
++{
++	legacy_scsi_host_adapter::device_start();
++
++	save_item(NAME(m_reg1));
++	save_item(NAME(m_reg2));
++	save_item(NAME(m_reg3));
++	save_item(NAME(m_select));
++	save_item(NAME(m_last_read));
++	save_item(NAME(m_cdb));
++	save_item(NAME(m_cdb_index));
++	save_item(NAME(m_cdb_length));
++	save_item(NAME(m_buffer));
++	save_item(NAME(m_buffer_count));
++	save_item(NAME(m_buffer_index));
++	save_item(NAME(m_transferred));
++	save_item(NAME(m_total));
++	save_item(NAME(m_online));
++}
++
++void acb4000_host_adapter_device::device_reset()
++{
++	legacy_scsi_host_adapter::device_reset();
++
++	m_reg1 = m_reg3 = 0;
++	m_select = 0;
++	m_last_read = 0;
++	m_xfer = xfer::idle;
++	m_cdb_index = m_cdb_length = 0;
++	m_buffer_count = m_buffer_index = 0;
++	m_transferred = m_total = 0;
++
++	// "one controller on-line" is a property of the card, not of a register
++	// the host writes: the presence probe writes 04h to base+2 and reads the
++	// on-line bit back out of the status byte (docs/acb4000-host-adapter.md 1).
++	m_online = select(m_target_id);
++	if (!m_online)
++	{
++		for (int i = 0; 8 > i; ++i)
++			if (select(i))
++				logerror("a target answers at SCSI id %d, but the card is looking for %d\n", i, m_target_id);
++	}
++
++	// base+2 is a read/write register, and its controller field reflects what is
++	// fitted: one controller on-line reads back as 04h (docs/osborne1ng-machine.md).
++	m_reg2 = m_online ? STATUS_ONLINE : 0x00;
++}
++
++// SCSI CDB length from the group code in the opcode's top three bits
++int acb4000_host_adapter_device::cdb_length(u8 opcode)
++{
++	switch ((opcode >> 5) & 0x07)
++	{
++	case 0:  return 6;
++	case 1:
++	case 2:  return 10;
++	case 3:  return 12;
++	case 4:  return 16;
++	case 5:  return 12;
++	default: return 6;
++	}
++}
++
++bool acb4000_host_adapter_device::select_target()
++{
++	// The host writes a one-of-eight ID mask to base+0 before asserting the
++	// select bit; the overlay scans the mask with `sla c` from 01h, so that is
++	// the encoding (docs/osborne1ng-machine.md).
++	int id = -1;
++	for (int i = 0; (8 > i) && (0 > id); ++i)
++		if (BIT(m_select, i))
++			id = i;
++
++	logerror("select byte %02X\n", m_select);
++
++	// strict: the card answers only at the ID the host selected
++	return (0 <= id) && select(id);
++}
++
++void acb4000_host_adapter_device::start_command()
++{
++	select_target();
++	send_command(m_cdb, m_cdb_length);
++
++	m_total = get_length();
++	logerror("CDB %02X %02X %02X %02X %02X %02X -> phase %d, %u bytes\n",
++			m_cdb[0], m_cdb[1], m_cdb[2], m_cdb[3], m_cdb[4], m_cdb[5], get_phase(), m_total);
++
++	switch (get_phase())
++	{
++	case SCSI_PHASE_DATAIN:  begin_data(true);  break;
++	case SCSI_PHASE_DATAOUT: begin_data(false); break;
++	default:                 begin_status();    break;
++	}
++}
++
++void acb4000_host_adapter_device::begin_data(bool data_in)
++{
++	m_xfer = data_in ? xfer::data_in : xfer::data_out;
++	m_transferred = 0;
++	m_buffer_index = 0;
++	m_buffer_count = 0;
++
++	// a target may answer with a zero-length transfer (TEST UNIT READY, SEEK,
++	// FORMAT ...) -- there is no data phase, go straight to status
++	if (!m_total)
++	{
++		begin_status();
++		return;
++	}
++
++	if (data_in)
++	{
++		m_buffer_count = BLOCK_SIZE;
++		read_data(m_buffer, BLOCK_SIZE);
++	}
++}
++
++void acb4000_host_adapter_device::begin_status()
++{
++	m_xfer = xfer::status;
++	m_buffer_index = 0;
++	m_buffer_count = 0;
++}
++
++u8 acb4000_host_adapter_device::read_data_byte()
++{
++	if (xfer::data_in != m_xfer)
++	{
++		// status phase: the first read is the status byte, the second is the
++		// discard the routine does at e2ee
++		if (xfer::status == m_xfer)
++		{
++			if (0 == m_buffer_index)
++			{
++				m_buffer_index++;
++				m_last_read = get_status();
++				return m_last_read;
++			}
++			m_xfer = xfer::idle;
++			m_last_read = 0;
++			return m_last_read;
++		}
++		m_last_read = 0;
++		return m_last_read;
++	}
++
++	m_last_read = m_buffer[m_buffer_index++];
++	if (BLOCK_SIZE <= m_buffer_index)
++	{
++		m_transferred += BLOCK_SIZE;
++		m_buffer_index = 0;
++		if (m_transferred >= m_total)
++			begin_status();
++		else
++		{
++			m_buffer_count = BLOCK_SIZE;
++			read_data(m_buffer, BLOCK_SIZE);
++		}
++	}
++	return m_last_read;
++}
++
++void acb4000_host_adapter_device::write_data_byte(u8 data)
++{
++	if (xfer::data_out != m_xfer)
++		return;
++
++	m_buffer[m_buffer_index++] = data;
++	if (BLOCK_SIZE <= m_buffer_index)
++	{
++		const int remaining = m_total - m_transferred;
++		write_data(m_buffer, std::min(BLOCK_SIZE, remaining));
++		m_transferred += BLOCK_SIZE;
++		m_buffer_index = 0;
++		if (m_transferred >= m_total)
++			begin_status();
++	}
++}
++
++u8 acb4000_host_adapter_device::status_bits() const
++{
++	// base+2 is a read/write register: the host writes a controller-select byte
++	// and reads it back.  Its controller field only reads back when a controller
++	// is actually on-line, which is what makes the presence probe a probe and
++	// not an echo (docs/osborne1ng-machine.md).
++	u8 st = m_reg2;
++	if (!m_online)
++		st &= ~STATUS_ONLINE;
++
++	// ... and the card drives the handshake and transfer bits on top of it
++	switch (m_xfer)
++	{
++	case xfer::idle:      break;
++	case xfer::selected:  st |= STATUS_SELECT;                            break;
++	case xfer::command:   st |= STATUS_REQ | STATUS_PHASE;                break;
++	case xfer::data_in:   st |= STATUS_REQ | STATUS_END;                  break;
++	case xfer::data_out:  st |= STATUS_REQ;                               break;
++	case xfer::status:    st |= STATUS_REQ | STATUS_PHASE | STATUS_END;   break;
++	}
++
++	return st;
++}
++
++u8 acb4000_host_adapter_device::read(offs_t offset)
++{
++	switch (offset & 0x03)
++	{
++	case 0x00:  // data -- and the block port the OUTI/INI/OTIR/INIR loops use
++		return read_data_byte();
++
++	case 0x02:  // status
++		return status_bits();
++
++	default:
++		return 0xff;
++	}
++}
++
++void acb4000_host_adapter_device::write(offs_t offset, u8 data)
++{
++	switch (offset & 0x03)
++	{
++	case 0x00:  // data
++		switch (m_xfer)
++		{
++		case xfer::idle:                                     // the select byte
++			m_select = data;
++			break;
++		case xfer::command:                                  // one CDB byte
++			if (0 == m_cdb_index)
++				m_cdb_length = cdb_length(data);
++			if (m_cdb_index < std::size(m_cdb))
++				m_cdb[m_cdb_index] = data;
++			m_cdb_index++;
++			if (m_cdb_index >= m_cdb_length)
++				start_command();
++			break;
++		case xfer::data_out:
++			write_data_byte(data);
++			break;
++		default:
++			break;
++		}
++		break;
++
++	case 0x01:  // control
++		m_reg1 = data;
++		break;
++
++	case 0x02:  // status (read) / control (write)
++		m_reg2 = data;
++		if (CTRL_SELECT == data)
++		{
++			// select: only a controller that actually answers raises bit 0, and
++			// that is what the overlay's ID scan (sla c from 01h) is looking for
++			if (select_target())
++				m_xfer = xfer::selected;
++		}
++		else if ((0 == data) && (xfer::selected == m_xfer))
++			m_xfer = xfer::command;                          // the command phase starts
++		break;
++
++	case 0x03:  // control
++		m_reg3 = data;
++		break;
++	}
++}
