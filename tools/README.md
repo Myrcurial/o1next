@@ -9,6 +9,28 @@
 
 Run everything: `tools/extract_all.sh [path-to-samdisk]`
 
+## Bringing a machine up (`bootstrap.sh`)
+
+Every row of `REQUIREMENTS.md` §Required, executable:
+
+```
+tools/bootstrap.sh --check     # ok / MISSING / DEAD per row; exit 1 if short
+tools/bootstrap.sh             # install what is missing (Homebrew + repo .venv)
+tools/bootstrap.sh --all       # ...then clear the dead /usr/local relics (sudo)
+tools/bootstrap.sh --dry-run   # print the plan, change nothing
+```
+
+It checks that a tool *runs*, not merely that it resolves. `command -v gs` will
+happily return a 2013 Intel binary on a host with no Rosetta — present to a loop
+over `command -v`, a corpse to anything that calls it. `DEAD` is that state, and
+telling it apart from `MISSING` is the reason this is a script.
+
+It cannot install `disk-analyse` or SAMdisk (built from source, not in Homebrew),
+and it will not guess about another machine's `/usr/local` tree: it prints what
+it found and leaves the decision. `--legacy` is the one destructive mode — it
+needs `sudo`, and it removes only the paths it names, skipping anything native or
+under the Homebrew prefix.
+
 ## Components
 
 - **edsk2raw.py** — EXTENDED CPC DSK (SAMdisk output) to raw CP/M
@@ -108,8 +130,20 @@ quotes, en/em dashes) is mapped onto the machine's ASCII glyphs, because the
 posts contain them and the alternative is the browser substituting a different
 face mid-sentence.
 
-Requires **fonttools** and **brotli** (`pip3 install fonttools brotli`) —
-build-time only; the font files are committed.
+Requires **fonttools** and **brotli** in the repo `.venv` that
+`tools/bootstrap.sh` creates — build-time only; the font files are committed.
+
+```sh
+tools/bootstrap.sh                          # creates .venv, among other things
+.venv/bin/python tools/romfont.py --check   # what CI runs as `python3`
+```
+
+The venv rather than a bare `pip3 install fonttools brotli`, because Homebrew's
+Python is PEP 668 externally-managed and refuses that install outright, and
+because which interpreter `python3` resolves to is a property of the *machine*
+rather than the repo — so the repo carries its own. CI is unaffected: it installs
+both into its runner's Python and runs `python3 tools/romfont.py --check`. The
+tool is the same either way.
 
 ## Reading scanned schematics (`schematic_render.sh`, `schematic_atlas.sh`)
 
