@@ -207,11 +207,34 @@ Five things follow, and the first two correct an assumption worth recording:
 - **"Space remains for two more DPB's to be inserted"** — the table is extensible,
   which is how the 2 x 2 and 4 x 4 geometries fit into the same scheme.
 - **Nuevo's BIOS checks for its own video board's presence** and skips the
-  80-column configuration if it is absent — the same *pattern* as the SCREEN-PAC's
-  `2400H` flag (`docs/o1-upgrade-boards.md`), and the reason its 1.5 ROM still
-  boots on a machine with no Nuevo hardware. The jump table sits at **E100h**,
-  unchanged from 1.4, which is the region the SCREEN-PAC's width variable
-  (`E1A5H`, `docs/o1-memory-io-map.md` §2a) lives in.
+  80-column configuration if it is absent — the same *intent* as the SCREEN-PAC's
+  `2400H` flag, reached by a different mechanism (`docs/o1-upgrade-boards.md`
+  §"How software finds the board"), and the reason its 1.5 ROM still boots on a
+  machine with no Nuevo hardware. The jump table sits at **E100h**, unchanged from
+  1.4, which is the region the SCREEN-PAC's width variable (`E1A5H`,
+  `docs/o1-memory-io-map.md` §2a) lives in.
+
+### The 1.4 → 1.5 list, checked against two images (#173)
+
+The list above is the vendor's. It can now be checked, because the archive holds
+both sides: `research/shipped-software/O1CPM.IMD` is a factory DD boot disk whose
+system image is the same 8 KB CP/M build as Nuevo's base, and
+`research/nuevo/OS1NUEVO.IMD` carries CBIOS 1.5 both as the installer's DDT objects
+and as the system it boots. Five of the six items are confirmed in the bytes:
+
+| Manual item | Where it shows |
+|---|---|
+| 1 — the `59k` sign-on removed | `Osborne Computer System` / `59k CP/M vers 2.2` becomes `Osborne 1 Computer` / `CP/M vers 2.2` / `CBIOS vers 1.5` |
+| 2 — IBM/Xerox/DEC DPBs removed | at system offset `172C` the factory carries three sector-translation tables and Nuevo keeps the first and **zeros the other two**, with a pointer table (`E236`, `E24A`, `E93C`, `E95C`) where the first table's header was |
+| 3 — autostart names 7 → 8 characters | the field **moves**: 1.4 keeps it at `CB10`–`CB17` (8 spaces, unused), 1.5 at `CB87`–`CB90` (`06` `"AUTOST"` `00` + padding) |
+| 5 — the "Unformatted disk" message deleted | 1.4 selects between two messages on bit 0 and patches the drive letter into **both** (`E38C`); 1.5 has one message and one patch site (`E340`) |
+| 6 — jump table at `E100h`, unchanged | 19 `JP` entries at `E100` in both images; every target moved |
+| **4 — the presence check** | not a register: `IN A,(04H)` at the head of the cold boot, guarding the 80-column configuration — `docs/o1-upgrade-boards.md` §"How software finds the board" |
+
+Item 3 is worth its own line, because it explains an installer step that otherwise
+looks arbitrary: `SYS-80C.SUB`'s `FA10,A17,00` is not "clearing the width/variable
+block", it is **erasing the 1.4 autostart field** — 1.5 keeps the name somewhere
+else, and `0010`–`0017` of the image is exactly the 8 bytes the fill clears.
 
 ## A third vendor sold the format list itself: Osmosis OSMOS 4
 
