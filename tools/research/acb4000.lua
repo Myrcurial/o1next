@@ -24,7 +24,15 @@
 --   docs/acb4000-host-adapter.md.)
 --
 -- HOW IT IS DRIVEN
---   O1_ACB=trace O1_KEYS='type MD10 0' tools/research/o1keys.sh osborne1 SYS.IMD [UTL.IMD]
+--   Best as a *standalone* autoboot script (see the last GOTCHA), e.g. a small
+--   file that does `dofile("acb4000.lua")` then types the commands you want with
+--   M.natkeyboard, run as:
+--     O1_ACB=trace O1_ACB_LOG=/tmp/o1acb.log \
+--       mame osborne1 -flop1 SYS.imd -flop2 UTL.imd -video none -sound none \
+--       -nothrottle -autoboot_script /tmp/tr.lua -seconds_to_run 40 \
+--       -rompath <repo>/tools/emulator-setup/roms
+--   It can also be loaded through o1keys.sh (O1_ACB=trace), but the harness's own
+--   VRAM polling silences the taps -- see the GOTCHAS.
 --   O1_ACB_LOG=/tmp/o1acb.log overrides the log path (default /tmp/o1acb.log).
 --
 -- GOTCHAS (all measured, MAME 0.289)
@@ -37,6 +45,12 @@
 --     trap made an earlier trace look like it fired nothing; do not add the PC.
 --   * The guest's console output floods these ports (one write per character), so
 --     expect a large log and filter it.
+--   * **The taps stop firing once the harness polls the program space from Lua.**
+--     Observed: a standalone script (trace + keystrokes, no memory polling) logs
+--     thousands of accesses across a whole run, but o1keys.lua's `rows()` -- which
+--     reads 4 KiB of VRAM per poll -- ends the stream. So a trace should be a
+--     standalone `-autoboot_script`, not a run through o1keys.sh, or it will look
+--     like the ports are silent. This is why the first o1keys traces showed nothing.
 --   * MAME's Lua layer segfaults on a read tap that *returns a value* once the
 --     guest polls in a tight loop (observed with drive-c-box.lua). Keep any such
 --     answer pure arithmetic, no allocation, and prefer short runs.

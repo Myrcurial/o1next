@@ -95,6 +95,11 @@ What was actually measured (`tools/research/acb4000.lua`, MAME 0.289):
 - **Trap:** a tap callback that touches `cpu.state["PC"]` **throws**, and because the
   PC is evaluated as an argument to `string.format`, the whole log line is lost — which
   is why an earlier trace appeared to fire nothing.
+- **Trap:** the taps **stop firing once the harness polls the program space from Lua**
+  (observed: a standalone trace logs thousands of accesses across a run; the same trace
+  through `o1keys.sh`, whose `rows()` reads 4 KiB of VRAM per poll, goes silent). A
+  trace must therefore be a standalone `-autoboot_script`, not a run through the
+  keystroke harness.
 
 **Conclusion.** The "stub the ACB-4000 in MAME (try this first)" route from §7.3 needs
 a MAME **driver change** — a card device with its own full 8-bit I/O decode on
