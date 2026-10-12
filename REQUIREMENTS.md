@@ -15,6 +15,12 @@ Two rules this file serves:
 
 Add a row here in the same PR that installs something new.
 
+**The list is executable.** `tools/bootstrap.sh --check` probes every row below
+and reports `ok` / `MISSING` / `DEAD`, exiting non-zero if anything is short;
+`tools/bootstrap.sh` installs what is missing.  That is the answer to "is this
+machine set up?" — there is more than one machine, and prose describing one of
+them goes stale on every other one.
+
 ## Required
 
 | Tool | Install | Needed by |
@@ -25,7 +31,7 @@ Add a row here in the same PR that installs something new.
 | `python3` | Xcode CLT (system) | every tool in `tools/` — **stdlib only**, no pip deps |
 | `pandoc` | `brew install pandoc` | `tools/build_book.py` |
 | `typst` | `brew install typst` | `tools/build_book.py`, the PDF — `tectonic` or a LaTeX also work, and without any of them the pages are still written |
-| `fonttools` + `brotli` | `pip3 install fonttools brotli` | `tools/romfont.py` (build-time; CI installs both) |
+| `fonttools` + `brotli` | `tools/bootstrap.sh` — the repo `.venv` | `tools/romfont.py` (build-time; CI installs both) |
 | KiCad ≥ 7 (`kicad-cli`) | KiCad app | `tools/check_schematics.py` |
 | poppler | `brew install poppler` | `schematic_render.sh`, `schematic_atlas.sh`, `ocr_pdf.sh` — `pdftoppm`, `pdfinfo`, `pdfimages`, `pdftotext` |
 | `tesseract` | `brew install tesseract` | `tools/ocr_pdf.sh` |
@@ -54,8 +60,8 @@ Add a row here in the same PR that installs something new.
 
 | Tool | Used by | Notes |
 |---|---|---|
-| **SAMdisk 4** (Simon Owen) | `tools/extract_all.sh` — the TD0 → EDSK leg | cmake on macOS; decodes TeleDisk including advanced compression. **Not installed on this machine** — the archive is already extracted, so this only matters if the pipeline has to be re-run. |
-| **disk-analyse** (Keir Fraser, Disk-Utilities) | IMD ↔ raw, IMD ↔ HFE | at `/usr/local/bin/disk-analyse` here |
+| **SAMdisk 4** (Simon Owen) | `tools/extract_all.sh` — the TD0 → EDSK leg | cmake on macOS; decodes TeleDisk including advanced compression. **Not installed by `bootstrap.sh`** — the archive is already extracted, so this only matters if the pipeline has to be re-run. `brew install cmake`, then build from source. |
+| **disk-analyse** (Keir Fraser, Disk-Utilities) | IMD ↔ raw, IMD ↔ HFE | built from source, not in Homebrew; `bootstrap.sh` checks for it but cannot install it |
 
 ## macOS built-ins the tools rely on
 
@@ -69,6 +75,11 @@ No install needed: `sips` and `qlmanage` (`tools/o1art.py`), plus `dd`, `cmp`,
   AGENTS.md records.
 - **Node / npm** — the grep hits are the word "node" in `check_schematics.py`'s
   tree walker, not the runtime.
+- **Homebrew's `fonttools` formula** — it looks like the fix for the row above,
+  and it is not. It is a `Language::Python::Virtualenv` formula, so it installs
+  into its own `libexec/venv` behind `ttx`/`pyftsubset` wrappers and `import
+  fontTools` still fails — against a *different* Python than the one `python3`
+  resolves to. The repo `.venv` is the portable answer.
 
 ## Not installed yet (tracked)
 
@@ -76,34 +87,40 @@ No install needed: `sips` and `qlmanage` (`tools/o1art.py`), plus `dd`, `cmp`,
   for current Jekyll, and `site/` has no `Gemfile` yet, so that issue is partly
   *writing* the manifest rather than only resolving it.
 
-## This machine
+## Bringing a machine up
 
-Checked 2026-10-11. Everything above is present except SAMdisk and Jekyll. The
-Python is the Xcode CLT 3.9.6, with `fontTools` 4.60.2 and `brotli` in
-`~/Library/Python/3.9/lib/python/site-packages`.
-
-**One leftover to clear by hand**, because it is root-owned and `sudo` wants a
-password here: a dead 2014 32-bit Ghostscript is still sitting in `/usr/local/bin`
-next to the Homebrew one. `/opt/homebrew/bin` comes first in `PATH`, so the live
-`gs` wins interactively — but an absolute path still finds the corpse
-(`Bad CPU type in executable`).
+There is more than one machine, so this file describes the *requirement* rather
+than a particular host — the §Required table above is the whole of it, and
+`tools/bootstrap.sh` is that table, executable.
 
 ```sh
-sudo rm -f /usr/local/bin/gs /usr/local/bin/gs-X11 /usr/local/bin/gs-noX11 \
-           /usr/local/bin/gsbj /usr/local/bin/gsdj /usr/local/bin/gsdj500 \
-           /usr/local/bin/gslj /usr/local/bin/gslp /usr/local/bin/gsnd
-sudo rm -rf /usr/local/share/ghostscript
-which -a gs          # should report only /opt/homebrew/bin/gs
+tools/bootstrap.sh --check     # report every row: ok / MISSING / DEAD
+tools/bootstrap.sh             # install what is missing (Homebrew + repo .venv)
+tools/bootstrap.sh --all       # ...then clear the dead /usr/local relics (sudo)
+tools/bootstrap.sh --dry-run   # print the plan, change nothing
 ```
+
+`--check` exits non-zero when anything is short, so it is also the first thing to
+run when a build misbehaves on a host you have not used before.
+
+Two steps it deliberately leaves to a person, because both need something the
+script cannot supply:
+
+1. **`--legacy` needs `sudo`** — the relics it removes are root-owned, and it
+   removes only paths it names, skipping anything native or under the Homebrew
+   prefix. Without a terminal it prints the exact `rm` block rather than hanging
+   on a password prompt.
+2. **The first signed commit needs a passphrase.** `pinentry-mac` can keep it in
+   the login keychain, in which case that is a one-time dialog.
+
+**`DEAD` is the state to watch for.** `command -v gs` is happy to return a 2013
+Intel binary on a host with no Rosetta: it looks installed, it is not, and it
+fails only when something calls it (`Bad CPU type in executable`). Telling those
+two states apart is the whole reason the check is a script and not a loop over
+`command -v`.
 
 ## Checking it
 
 ```sh
-for t in git gh gpg python3 pandoc typst mame pdftoppm tesseract \
-         cpmls z80dasm disk-analyse gs; do
-    printf '%-14s %s\n' "$t" "$(command -v "$t" || echo MISSING)"
-done
-command -v kicad-cli || \
-    ls /Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli
-python3 -c 'import fontTools, brotli; print("fontTools", fontTools.version)'
+tools/bootstrap.sh --check
 ```
