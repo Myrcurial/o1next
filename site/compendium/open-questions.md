@@ -227,7 +227,7 @@ constrains any 2.0 ROM (#83).
 
 | Item | Issue | State |
 |---|---|---|
-| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Video half written up**; the DD halves of both products, and how each lets software detect the board, are outstanding |
+| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Closed 2026-10-12.** Both halves of both products are written up in `o1-upgrade-boards.md` — the video side there, the DD side in `dd-upgrade-formats.md` — with the prior-art note in [`research/inspired-by/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/inspired-by/README.md). Residue routed: **#173**, the Nuevo BIOS 1.5 presence check |
 | Advent Products' **Osbaud** baud-rate generator (#21) | #21 | The four connection points are decoded from the review + schematic (6850 pins 4/12, 74LS32 and 74LS04 pin 7); the internal crystal/divider topology is **not** known — needs the instruction sheet or a photo. `o1-modem-serial.md` |
 | Archive provenance TODOs (2 items) | #74 | **Closed** |
 | `cpmtools` misreads Kaypro DSDD images | #35 | `misc`. Upstream identified: the primary site is `moria.de` (Michael Haardt, 2.23, **email patch** — no GitHub, no tracker), and the practical PR venue is the unofficial `lipro-cpm4l/cpmtools` fork (3 open PRs, 2.21-based). Closes **when filed**, not when merged |
@@ -250,11 +250,11 @@ research-labelled and has been removed from this table.
 
 | Issue | Title | State | What closes it |
 |---|---|---|---|
-| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 20 of 23 closed |
+| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 21 of 23 closed |
 | #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
 | #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed 2026-10-11** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
-| #73 | Nuevo + Osmosis prior art | Partially | The DD halves of both products, and the board-detection method |
+| #73 | Nuevo + Osmosis prior art | **Closed 2026-10-12** | Written up in `o1-upgrade-boards.md` (both products, both halves, and how each is detected) plus the prior-art note in [`research/inspired-by/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/inspired-by/README.md). Residue routed: **#173** (the Nuevo BIOS 1.5 presence check) |
 | #75 | The book | **Ungated** | The pieces in #108–#115 |
 | #81 | OZROM as tooling | **Closed 2026-10-11** | The manual is indexed, the 52/80/104-column switch's mechanism is measured from the ROM (it drives the stock video PIA through the stock ROM's helper — `2C00`, cached in `EF61`), and the jump table now diffs clean against `rom144.asm`. Residue routed: #167 (harness keystrokes). #168 (a complete Utilities disk) closed as unnecessary — we had it; the "erased sectors" were a `cpmfs.py` skew bug (#170) |
 | #95 | DD multi-format (now also the G2, absorbed from #30) | **Closed 2026-10-11** | Taken as written: the manual's list and the CBIOS DPB+skew table agree field for field, and Osborne SD is confirmed end to end in MAME. The four foreign skew tables are deliberately left unverified — the O1 does not need to recognise them, because foreign media is converted on the modern side |
@@ -310,7 +310,9 @@ Ordered by what blocks what:
    emulate, and correct `occ1-harddisk-analysis.md`'s port claim.
 4. ~~**Write the RT-60A ABI contract** (#7), then implement it in #18.~~ **Written
    2026-10-11** (`rt60a-analysis.md`); #18 implements it.
-5. **#73** — the DD halves of the Nuevo and Osmosis boards.
+5. ~~**#73** — the DD halves of the Nuevo and Osmosis boards.~~ **Closed
+   2026-10-12**: written up in `o1-upgrade-boards.md` and `dd-upgrade-formats.md`;
+   the one residue, the Nuevo presence check, is **#173**.
 
 The book (#75) is **no longer gated on all of this**: it is a rolling build whose
 pieces are tracked as #108–#115, and Part I plus the appendices are buildable now.
@@ -326,7 +328,7 @@ tree, **closed issues included**, so each one renders a progress bar:
 
 | Phase parent | Children | Closed |
 |---|---|---|
-| **#1** — Phase 0: research & reverse engineering | 23 | 20 |
+| **#1** — Phase 0: research & reverse engineering | 23 | 21 |
 | **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 0 |
 | **#16** — Phase 2: firmware personalities | 12 | 1 (#86) |
 | **#25** — Phase 3: Osborne-side software | 4 | 0 |
@@ -337,8 +339,9 @@ tree, **closed issues included**, so each one renders a progress bar:
 Two conventions came out of this, and both are worth keeping:
 
 - **Closed work stays attached.** #2, #3, #4, #5, #6, #7, #9, #10, #30, #40, #44,
-  #64, #70, #71, #72, #74 and #79 are children of #1. The progress bar is the
-  point: Phase 0 is three-quarters done and should read that way.
+  #64, #70, #71, #72, #73, #74, #79, #81, #95 and #168 are children of #1. The
+  progress bar is the point: Phase 0 is three-quarters done and should read that
+  way.
 - **`misc` is the label for work that is not a phase** — upstream contributions
   (#35, #82), the site (#97), build tooling (#106) and the modern font (#107).
   Everything else belongs to a phase, and to a parent.

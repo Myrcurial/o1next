@@ -221,6 +221,40 @@ GPIB port (`docs/drive-c-protocol.md`). The photo drop is recorded here because
 it is the first hardware view of either Nuevo product, not because it changes the
 Drive C contract.
 
+### The 80-column board's own feature list, from the shipped software
+
+`OS1NUEVO.IMD` also carries **`AUTOST.COM`** — a two-instruction CP/M program
+(`LD C,9` / `CALL 5`, print a string, exit) whose string is the product's own
+feature list. It is the **autostart banner**: the 80-column installer keeps it
+(`SYS-80C.SUB`) and the DD-only installer *erases* it (`SYS-DDEN.SUB`), so it
+ships only with the video product. The same file is on the disk twice, as
+`AUTOST.COM` and `AUTOST.BAK`, byte-identical.
+
+> **THIS IS AN EIGHTY (80) COLUMN DISPLAY FOR THE OSBORNE ONE.**
+>
+> FEATURES:
+> (1) EIGHTY COLUMN STANDARD DISPLAY.
+> (2) PROGRAMMABLE BAUD RATE GENERATOR (16 RATES, 50 TO 19.2K BAUD).
+> (3) FULL SCREEN REVERSE VIDEO CAPABILITY (JUMPER SELECT).
+> (4) CURSOR PROGRAMMABLE AS UNDERLINE OR REVERSE VIDEO BLOCK.
+> (5) CURSOR PROGRAMMABLE FOR FAST, SLOW, OR NO BLINK.
+> (6) REVERSE VIDEO BLOCK CAPABILITY (INSTEAD OF UNDERLINE; JUMPER SELECT).
+> (7) COMPOSITE VIDEO OUTPUT FOR EXTERNAL MONITOR (NO MORE ADAPTERS).
+> (8) SIMPLE USER INSTALLATION.
+> — `AUTOST.COM`, `research/nuevo/OS1NUEVO.IMD` (extracted with
+> `cpmcp -T raw -f osborne1`; the manual's BIOS 1.4→1.5 list item 3 is the
+> "autostart command space", so the file name is the feature)
+
+This is the product describing itself, and it splits **hardware** from
+**software** cleanly. Only item **(1)** is the CBIOS patch. Items (2)–(7) are
+properties of the board's own circuitry: the CRTC gives the programmable cursor
+(4, 5), the `J1`–`J6` / `J9`–`J12` jumper blocks give the reverse-video options
+(3, 6), the `BAUD` section and 14-pin `P2111-2` header give (2), and the board's
+own video output gives (7). That is what "a second video system, not a wider
+window" means in practice — and it is why the advertisement can sell cursor
+styles and horizontal scroll as *features* while the software delivers exactly one
+of the eight.
+
 ## Osmosis — a Z80 interposer with an escape-sequence interface
 
 Osmosis's 80-column board is the one that matters most to this project, because
@@ -258,6 +292,72 @@ The manual's own dBASE instructions are the same patch Nuevo's disk applies:
 
 > (c) Enter S130 (ret) … Enter 01 (ret) … (e) Enter S154 (ret) … Enter 50 (ret)
 > … (g) Enter S395A (ret) … Enter C9 (ret)
+
+### The escape-sequence set (Appendix E)
+
+Appendix E is the *complete* control interface — every code is `ESC` plus one
+character. It is a display-type table that tesseract renders as noise (the
+`.ocr.txt` interleaves the columns), so it is **hand-transcribed from the PDF**
+here. `*` in the first column is the manual's own mark for "unique to the OS/5
+80-column OSBORNE 1":
+
+| OS/5 only | ASCII | Hex | Dec | Effect |
+|:--:|---|---:|---:|---|
+| ✱ | `-` | 2C | 44 | sets chars to inverse |
+| ✱ | `,` | 2D | 45 | sets chars to normal |
+| | `(` | 28 | 40 | sets full intensity |
+| | `)` | 29 | 41 | sets half intensity |
+| ✱ | `*` | 2A | 42 | sets 3/4 intensity |
+| ✱ | `+` | 2B | 43 | sets 1/4 intensity |
+| ✱ | `.` | 2E | 46 | normal character set |
+| ✱ | `/` | 2F | 47 | alternate character set |
+| ✱ | `0` | 30 | 48 | select default 24-line screen with up/down 48-line scroll |
+| ✱ | `1` | 31 | 49 | reserved |
+| ✱ | `2` | 32 | 50 | reserved *(hand-annotated "NO scroll")* |
+| ✱ | `3` | 33 | 51 | reserved *(hand-annotated "scroll 9 lines only")* |
+| ✱ | `4` | 34 | 52 | reserved |
+| ✱ | `5` | 35 | 53 | **display 52 characters** |
+| ✱ | `8` | 38 | 56 | **display 80 characters** |
+| ✱ | `C` | 43 | 67 | reserved |
+| | `E` | 45 | 69 | insert a line |
+| ✱ | `F` | 46 | 70 | enable 80-column auto-CR/LF |
+| | `G` | 47 | 71 | end graphics |
+| ✱ | `H` | 48 | 72 | disable 80-column auto-CR/LF |
+| ✱ | `I` | 49 † | 73 † | invert screen |
+| ✱ | `N` | 4E † | 78 † | normal screen |
+| | `R` | 52 | 82 † | deletes a line |
+| | `S` | 53 | 83 † | insert a character |
+| | `T` | 54 | 84 † | deletes to end of line |
+| ✱ | `U` | 55 | 85 † | reserved |
+| ✱ | `V` | 56 | 86 † | reserved |
+| ✱ | `W` | 57 | 87 † | deletes char at cursor |
+| ✱ | `X` | 58 | 88 † | reserved |
+| ✱ | `Y` | 59 | 89 † | sets 60 Hz operation |
+| ✱ | `Z` | 5A | 90 † | sets 50 Hz operation |
+| ✱ | `?` | — | — | reserved *(unreadable in the original)* |
+| | `g` | 67 | 103 † | start graphics |
+| | `l` | 6C | 108 | start underline |
+| | `m` | 6D | 109 | stop underline |
+
+Two things about the source table are worth recording rather than smoothing over:
+
+- **† the `Dec` column is damaged.** From `R` (52H) to `Z` (5A) the original
+  prints `8-` — the page edge cuts the column — and it prints `183` for `g` where
+  67H is 103. The values marked † are the correct decimal for the hex shown, not
+  a reading of the original.
+- **One row disagrees with itself.** The ASCII column prints `I` (invert screen)
+  and `N` (normal screen); the Hex and Dec columns print `61H`/`97` and
+  `62H`/`98`, which are `a` and `b`. Every other row's three columns agree, and
+  the table is otherwise in ascending hex order — `49H`/`4EH` would sit exactly
+  where `61H`/`62H` are printed, so the *hex* is the likelier typo. That is
+  inference from the ordering, not a reading, and **which byte the board decodes
+  is not settled by this manual**; treat `ESC I` / `ESC N` as the intent and
+  verify against the board.
+
+Note what the `*` marks mean: `(`, `)`, `E`, `G`, `R`, `S` and `T` are *not*
+board-unique — they are codes a standard system already reacts to. The manual's
+closing warning about them is the detection story, and it is covered in "How
+software finds the board" below.
 
 ### The whole Osmosis product line, from their own advertising
 
@@ -331,14 +431,87 @@ mapping between the two is not established — relevant to #24.
    not the memory (`docs/o1-memory-io-map.md` §2a); only the control interface
    differs.
 
+## How software finds the board
+
+The three implementations answer "is the board there?" in three different ways,
+and only one of them is a register.
+
+| Board | How software detects it | Status |
+|---|---|---|
+| **OCC SCREEN-PAC** | read `2400H` in bank 2: **bit 2 LOW** = board fitted | documented (user guide p. 13, `docs/o1-memory-io-map.md` §2a) |
+| **Osmosis** | **no detection register** — the interface is commands, so a program probes by *sending* an OS/5-unique escape and watching the screen | the manual's own warning *is* the answer; its paid Technical Manual is where "the CP/M interface" is documented |
+| **Nuevo** | BIOS 1.5 **checks for the board's presence** and skips the 80-column configuration when it is absent | stated by the vendor; the mechanism is not yet identified |
+
+### Osmosis: the probe *is* the interface
+
+The closing note to Appendix E is the answer, stated as a warning:
+
+> Commands which are unique to the **OS/5 80-column OSBORNE 1** are annotated
+> with an `*` symbol. Use of these commands on standard systems may cause
+> spurious data to be displayed on the screen; **the program should not be
+> otherwise affected.**
+
+That is the contract. There is no flag to read; a program that wants to know
+whether the board is there sends a `*`-marked code and looks at the screen — and
+the manual is telling the programmer that doing so on a stock machine is *safe but
+visible*, which is a design decision rather than an omission. It is the opposite
+of the SCREEN-PAC's passive status bit, and it means a video personality (#24)
+has to model **command effect**, not a register, to be Osmosis-compatible.
+
+### Nuevo: a check that exists, and two mechanisms it is not
+
+The DD manual says BIOS 1.5 does the check (quoted in
+`docs/dd-upgrade-formats.md`), and we hold the CBIOS 1.5 in two forms: the DDT
+objects the installer inserts (`BIOS15.OBJ` at `1F00`, `BIOS15BM.OBJ` at `29E0`)
+and the relocated system the disk actually boots — the system tracks of
+`OS1NUEVO.IMD`. The latter confirms the manual's first item: its sign-on reads
+
+```
+Osborne 1 Computer
+CP/M vers 2.2
+CBIOS vers 1.5
+```
+
+against the factory disk's `Osborne Computer System` / **`59k`** `CP/M vers 2.2`.
+The `59k` is gone, exactly as the 1.4→1.5 list says.
+
+Disassembling CBIOS 1.5 rules two mechanisms out:
+
+- **Not the SCREEN-PAC's flag.** There is no `LD A,(2400H)` anywhere in the
+  system image, so Nuevo is not reading the bit the SCREEN-PAC presents.
+- **Not an I/O port probe.** The CBIOS's only port accesses are the floppy
+  controller (`00`/`01`), the 6850 (`04`/`06`) and one variable port
+  (`OUT (C),A`, in the interrupt-exit path). There is no third device being
+  polled.
+
+The archive also holds the diff partner: `research/shipped-software/O1CPM.IMD` is
+a factory DD boot disk, and its system image is the same 8 KB CP/M build — so a
+1.4 ↔ 1.5 diff is available in principle. One change in it is already
+identifiable: at system offset `172C` the factory image carries the extra
+formats' sector-translation tables and the Nuevo image keeps the first and
+**zeros the rest**, with a short table of pointers (`E236`, `E24A`, `E93C`,
+`E95C`) where the factory had the first table's header — the removal of the IBM,
+Xerox and DEC formats that item 2 describes.
+
+Isolating the presence check itself is the remaining step, and it is a real piece
+of work rather than a lookup: the two images are the same code with several
+insertions and deletions, so a single byte shift does not align them (one region
+matches exactly at a `0x57` shift, the rest does not). That task is filed
+separately as **#173** so it does not hold this issue open.
+
 ## Open
 
-- Nuevo's and Osmosis's **presence detection** is unknown — only the SCREEN-PAC's
-  `2400H` bit is documented. Worth checking the Osmosis appendix and
-  `NEWSETUP.COM` / `AUTOST.COM` on the Nuevo disk.
-- Osmosis's full escape-sequence set is in its appendix and should be extracted
-  into this doc.
-- The DD halves of both vendors' products are not covered here.
+- **Nuevo's presence check** — the mechanism is unidentified; the next step is to
+  align the two BIOS images and read the inserted code (#173).
+- Osmosis's *technical* manual ("theory of operation; documentation on the CP/M
+  interface; cursor addressing") is a paid document the archive does not hold. If
+  a detection register exists, that is where it is — but the user manual's own
+  warning suggests there is not one.
+- The DD halves of both vendors are **covered**, in `docs/dd-upgrade-formats.md`:
+  Nuevo's boot-time auto-configuration via `NEWSETUP.COM` and its 2 x 2 / 4 x 4
+  formats, and Osmosis's OSMOS 1–3 density line plus the standalone OSMOS 4
+  conversion product.
+
 
 ## Sources
 
@@ -347,10 +520,22 @@ mapping between the two is not established — relevant to #24.
   Scripts extracted with `cpmcp -f osborne1`; cpmtools ships an `osborne1`
   diskdef matching the image exactly (`seclen 1024, sectrk 5, blocksize 1024,
   maxdir 64, boottrk 3`).
-- `research/osmosis/Osmosis_80_Column_Board.pdf` (+ `.ocr.txt`), §3 and §4.
+- `AUTOST.COM` / `AUTOST.BAK` on the same image — the 80-column feature list
+  (extracted with `cpmcp -T raw -f osborne1`; the identical text is visible with
+  `strings`).
+- `research/osmosis/Osmosis_80_Column_Board.pdf` (+ `.ocr.txt`), §3, §4 and
+  **Appendix E** (the escape sequences — hand-transcribed from the PDF, not the
+  OCR).
+- `research/shipped-software/O1CPM.IMD` — the factory DD boot disk used as the
+  CBIOS 1.4 diff partner; its system tracks are the first three tracks
+  (`boottrk 3`), converted with `disk-analyse`.
+- `BIOS15.OBJ` / `BIOS15BM.OBJ` on `OS1NUEVO.IMD` — the installer's DDT objects,
+  disassembled with `z80dasm -g 0x1F00` / `-g 0x29E0`.
 - `research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`
   — the TRA "80 and 100 column video" advertisement (video), and the Helix
   Winchester advertisement on the same page.
 - `docs/o1-rom-variants.md` — ROM inventory, char-gen variants, Nuevo 1.51.
 - `docs/o1-memory-io-map.md` §2a — the window, the widths, the bit fields.
+- `docs/dd-upgrade-formats.md` — the DD halves of both vendors, and the Nuevo
+  BIOS 1.4→1.5 list.
 
