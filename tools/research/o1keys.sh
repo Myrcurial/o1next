@@ -47,13 +47,16 @@ if [ ! -e "$ROMPATH/osborne1.zip" ] && [ ! -d "$ROMPATH/osborne1" ]; then
 fi
 
 RUN_LUA="${TMPDIR:-/tmp}/o1keys.$$.lua"
-trap 'rm -f "$RUN_LUA"; [ -n "$LINKROOT" ] && rm -rf "$LINKROOT"' EXIT
+RUN_ACB="${TMPDIR:-/tmp}/acb4000.$$.lua"
+trap 'rm -f "$RUN_LUA" "$RUN_ACB"; [ -n "$LINKROOT" ] && rm -rf "$LINKROOT"' EXIT
 cat "$HERE/o1keys.lua" > "$RUN_LUA"
+cp "$HERE/acb4000.lua" "$RUN_ACB"
 
 cd "${O1_RUNDIR:-/tmp}"
 
 # shellcheck disable=SC2086
-O1_MACHINE="$MACHINE" O1_FLOP1="$FLOP1" O1_FLOP2="$FLOP2" SDL_VIDEODRIVER=dummy \
+O1_MACHINE="$MACHINE" O1_FLOP1="$FLOP1" O1_FLOP2="$FLOP2" O1_ACB_LUA="$RUN_ACB" \
+SDL_VIDEODRIVER=dummy \
 mame "$MACHINE" ${BIOS:+-bios "$BIOS"} -flop1 "$FLOP1" ${FLOP2:+-flop2 "$FLOP2"} \
     -video none -sound none -nothrottle -autoboot_script "$RUN_LUA" \
     -seconds_to_run "$BUDGET" -rompath "$ROMPATH"

@@ -71,6 +71,15 @@ scratch programs, "figuring it out" notebooks/scripts.
   usable** — posting `\27` segfaults MAME's Lua layer — and `peek` is the
   directive that made the editor's in-memory table checkable. Note
   `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
+- **`acb4000.lua`** — a MAME-side *trace* of the MD-10's ACB-4000 host-adapter
+  ports (`30h`–`33h`), written for #178 to watch the driver build its DPB. It
+  produced the finding instead: MAME's `osborne1` decodes only two I/O address
+  bits, so `30h`–`33h` alias onto the ROM-bank ports and a Lua stub cannot reach
+  the adapter — the "stub it in MAME" route needs a driver change. Three traps
+  worth knowing: a tap callback that touches `cpu.state["PC"]` throws (and the log
+  line vanishes); the guest's console output floods these ports; and the taps go
+  **silent** once a harness polls the program space from Lua, so run the trace
+  standalone rather than through `o1keys.sh`. See `docs/acb4000-host-adapter.md`.
 - **`md10patch.py`** — patches a file *inside* a raw Osborne image, addressed by
   name and file offset. Written for #178: `MD10.COM` refuses to start without an
   ACB-4000 on ports `30h`–`33h`, and MAME cannot emulate one, so three 3-byte
@@ -82,6 +91,16 @@ scratch programs, "figuring it out" notebooks/scripts.
   Written for #178 because `cpmfs.py get` cannot: the file's directory entry says
   128 bytes while it holds 16 512, so the table is only reachable by walking the
   block list. Prints each entry's name, description and geometry.
+- **`hardbios.py`** — read the MD-10 hard-disk BIOS overlay. `jump` prints the
+  CP/M 2.2 BIOS jump table with every target resolved and walks `SELDSK`'s DPH
+  construction; `audit` searches the whole archive for writers of the low-RAM
+  DPH/DPB table block. Written for #178, where it produced the **negative** result
+  that bounds the DPB question: no file initialises `0x055E`/`0x056E`, so the
+  numeric DPB is not in the files we hold. It also documents why reading
+  `HARDBIOS.SPR` linearly misleads — the overlay is **relocatable**, and its
+  jump-table operands and internal `JP`/`CALL` targets are offsets from the table
+  rather than addresses, so a linear disassembler drifts into the data and invents
+  instructions. See `docs/harddisk-decision.md` 7.3.
 - **`drive-c-trace.lua`** — write taps on the O1's IEEE-488 PIA (`2900–2903`),
   logging every access while the real Drive C software runs. Written for #6; it
   is how the Drive C frame was *measured* rather than only read out of the

@@ -181,7 +181,11 @@ From the MD-10 software (`research/adaptec/`, disassembled):
   edits.
 - **Registers:** `base+0` data (also the `OUTI`/`INI` block port), `base+1`
   control, `base+2` status read / control write, `base+3` control. Status bits
-  the driver polls: `01h`, `02h`, `20h`, `40h`.
+  the driver polls: `01h`, `02h`, `20h`, `40h`. The probe, the transaction and
+  the bit meanings are read out in `docs/acb4000-host-adapter.md` §1 — including
+  that `base+2` reading `04h` is "exactly one controller on-line", and that
+  `30h`–`33h` **alias onto the on-board 2-bit I/O decode** (so the adapter must
+  own the bus for those ports; §2).
 - **Host software:** `HARD.COM` installs; `HARDBIOS.SPR`, `HARDBDOS.SPR` and
   `HARDCCP.SPR` overlay BIOS/BDOS/CCP (the same *shape* as the ACT, but over a
   documented controller).
@@ -439,6 +443,198 @@ harness, with a `peek` directive — that is what made the in-memory table
 checkable), `md10patch.py` (patch a file inside the image, by name; the three
 patches above) and `drivetbl.py` (dump the table).
 
+### 7.3 The DPB — the mechanism, and why the archive cannot give the numbers (#178)
+
+The second half of #178's acceptance is "the DPB for each logical drive is written
+down with its source offset".  The **mechanism** is read and the **source offsets**
+are pinned; the **numbers** are not obtainable from the files in the archive, and
+this section says exactly why.
+
+#### The chain, with source offsets
+
+All offsets are file offsets into `HARDBIOS.SPR`, which maps to `0xE000 + offset`.
+It is a **relocatable** image: the BIOS jump table is at file offset `0x100`
+(`0xE100`) and its operands — and the routine's own internal `JP`/`CALL` targets —
+are *offsets from the table*, not addresses.  Read it linearly and the
+disassembler drifts through the data and invents instructions; `tools/research/
+hardbios.py` resolves them the way the loader does.
+
+| Step | Offset | What it does |
+|---|---|---|
+| `SELDSK` entry | `0x11B` | jump table: operand `0x00D5` → target `0x1D5` |
+| drive range | `0x1D5` | `LD A,C` / `CP 010h` / `RET NC` — drives 0–15, else NULL |
+| type byte | `0x1DC`–`0x1E7` | saves the drive at `0x0180`, indexes `0x055E + drive`; `0FFh` = absent |
+| descriptor | `0x1F6`–`0x203` | `type * 8`, then ×3 more, then `+ 0x056E` → `0x056E + type*24` |
+| the DPH | `0x204`–`0x209` | `+ 8`, saved to `0x0555`, returned in `HL` |
+| **the DPB pointer** | `0x393`–`0x39C` | in READ/WRITE: `HL = (0x0555)` — the saved DPH — `+10`, dereference → **the DPB** |
+| block size | `0x39D`–`0x3A2` | `+3` into the DPB = **BLM**, `+1` = the deblocking count |
+| sector size | `0x3DA`–`0x3E4` | `SRL H` / `RR L` **twice** — the 128-byte CP/M record number shifts right two, so the physical sector is **512 bytes** |
+
+Three things follow, and they are the substance of the answer:
+
+1. **There is a DPB per logical drive, and it is an ordinary CP/M 2.2 DPB.**  The
+   driver reaches it at DPH+10 — the DPH's `DPB` field in the canonical layout
+   (XLT 0–1, scratch 2–7, DIRBUF 8–9, **DPB 10–11**, CSV 12–13, ALV 14–15) — and
+   then reads `DPB+3` as `BLM`.  So the descriptor points at a 15-byte DPB whose
+   fields are the usual SPT/BSH/BLM/EXM/DSM/DRM/AL0/AL1/CKS/OFF.
+2. **`SPT` is counted in 128-byte records, four to a physical sector.**  The
+   record→sector conversion is a two-bit shift (`0x3DA`), so a 17-sector track is
+   `SPT = 68`.  Whoever turns §7.2's geometry into a DPB needs that, and it is read
+   from the code rather than assumed.
+3. **A descriptor entry is 24 bytes with the DPH at `+8`**, so it carries eight
+   bytes *before* the DPH.  What those eight hold is not determined — nothing in
+   the archive reads them.
+
+#### Why the numbers are not in the archive
+
+`0x055E` (the per-drive type byte) and `0x056E` (the 24-byte descriptors) are
+**never written by any file in the archive**.  That is not an impression but an
+exhaustive search over every opcode that can store to an absolute address —
+`LD (nn),A` (`32`), `LD (nn),HL` (`22`), `LD (nn),BC/DE` (`ED 43`/`ED 53`) —
+across all 14 files of the MD utilities disk and the extracted ACT software.
+`tools/research/hardbios.py audit` reproduces it:
+
+```
+=== writers of 0x0500-0x0700 ===
+  HARDBIOS.SPR       0555@0x209 0557@0x18D 0557@0x217 0558@0x1E9
+  ...
+  0x055E / 0x056E writers: NONE
+```
+
+The only writes anywhere near are the BIOS's *own* variables — `0x0555` (the saved
+DPH), `0x0557` (a flag), `0x0558` (the saved type).  The two tables `SELDSK` *reads*
+have no writer at all.
+
+Two further checks close the alternatives:
+
+- **Not data carried by another overlay.**  If an overlay were loaded so that its
+  bytes landed on `0x055E`/`0x056E`, the table would be there as *data*.  It is
+  not: those offsets in `HARDBDOS.SPR` and `HARDCCP.SPR` are code, and neither file
+  contains a per-drive type run (`00 01 02 … FF`) or a 24-byte record table.
+- **Not in a system image.**  The MD utilities disk is a **data** disk — its system
+  tracks (tracks 0–2, 7680 bytes) are **all `0xE5`**, and no part of `HARDBIOS.SPR`
+  appears in them.  So the archive holds the MD-10 *utilities* and no MD-10 *system*
+  disk, and the system image is where the tables must live: the BIOS reads them at
+  run time and nothing in it writes them.
+
+The geometry the DPB is built from is **on the drive**, written by the last
+`FORMAT` — see the next subsection — and the routes that would recover the
+arithmetic are there too.
+
+#### Where the drive parameters live, and how they get written
+
+The manual answers the part the archive could not.  Three commands, read from the
+Mar84 OEM manual §6.3.1:
+
+- **`MODE SELECT` (15H)** — "is used in ACB controllers to specify FORMAT parameters
+  and should always precede the FORMAT command."  Byte 4 of the CDB is the byte
+  count: 12 (`0Ch`) minimum, **22 (`16h`) when the drive parameter list is
+  included**.  The list is the parameter list (4 bytes, format code `01`) + the
+  extent descriptor list (8) + the drive parameter list.
+- **`FORMAT UNIT` (04H)** — "will write from index to index all ID and data fields
+  with a block size as specified by an immediately previous MODE SELECT (15H)
+  command."
+- **`MODE SENSE` (1AH)** — "used to interrogate the ACB-4000 device parameter table
+  to determine the specific characteristics of any disk drive currently attached.
+  **The attached drive must have been formatted by an ACB-4000 for this to be a
+  legal command.**"
+
+And **where** on the drive — from the ACB-4000A user manual §2.3.1, which is an
+image-only scan (OCR committed beside it per `research/README.md`):
+
+> During FORMAT the disk parameters provided by the MODE SELECT command will be
+> encoded onto the disk.  **These parameters are written to the ID field of
+> cylinder 6.**  This information is then read to the controller during the
+> power-up initialization process.  Access to these parameters is also available
+> using the MODE SENSE command.
+>
+> This scheme obsoletes the need for the host software to initialize the
+> controller on power up.
+
+§3.7 adds that at power-up the controller "will seek the drive to the last cylinder
+and read the **largest block address** present.  The parameter information and
+largest block address are saved on the ... Controller" — so the **capacity** is read
+back at power-up as well as the geometry.
+
+The parameters **persist on the drive**, and the manual says so three ways:
+
+> If these parameters are not supplied the format operation will use **previously
+> supplied values if available** or the default values given below.
+
+> ...the controller being unable to read the drive information **from a drive
+> already formatted** *(the `1C` blown-format error)*
+
+> Note that it is possible to specify only the block size in a MODE SELECT.  In
+> this case **the previous drive parameters are preserved**.
+> *(May83 preliminary manual)*
+
+So the geometry is written **onto the drive** by the last `FORMAT` and read back by
+`MODE SENSE` — precisely the factory-assembled case, where an ACB and its drive were
+paired and formatted before an end user saw either, so the drive already carries its
+parameters and a later `FORMAT` without a `MODE SELECT` keeps them.
+`docs/acb4000-firmware.md`'s inference is now **read, not inferred**, which promotes
+`MODE SENSE` (1AH) and `READ CAPACITY` (25H) from "implement faithfully" to "the
+personality's correctness depends on these".
+
+The defaults, for a drive formatted with no parameter list at all — which is what an
+unparameterised volume reports:
+
+| Field | Default | Range |
+|---|---|---|
+| Cylinder count | **306** | 1–2048 |
+| Data head count | **2** | 1–16 |
+| Reduced-write-current cylinder | **150** | 0–2047 |
+| Write precompensation cylinder | *ignored on the ACB-4000* (tied to RWC) | — |
+| Landing zone | **0** (innermost) | 7 bits + direction bit |
+| Step rate code | `00` 3.0 ms unbuffered (ST-506); `01` 28 µs buffered (ST-412); `02` 12 µs buffered | — |
+
+#### Two DPB inputs the manual *does* pin
+
+The manual is about the ACB-4000, not about CP/M, so it carries no DPB.  It does
+carry two of its inputs, and with §7.3's code they are enough to fix `SPT`:
+
+- **Sectoring.**  `FORMAT` writes "**the normal 32 sectors**" of 256 bytes per track
+  — **33** when the interleave is ≥ 2 — and the block size is 256, 512 or 1024 B.
+  32 × 256 = **8192 bytes per track**; the driver's record→sector conversion is a
+  two-bit shift (`record >> 2`), i.e. 512-byte physical sectors, 16 of them.  Either
+  way the track is 8 KiB, so **`SPT` = 64** in 128-byte records.  Derived from the
+  manual *and* the code, not assumed.
+- **Capacity.**  `READ CAPACITY` (25H) returns "the address of the last block on the
+  unit" plus the block size, in an 8-byte data field.  That is a `DSM` input the
+  driver can take straight from the controller, and the first place to look before
+  assuming `DSM` is computed from cylinders × heads.
+
+#### What that leaves, and how to watch it
+
+The DPB is still the host driver's arithmetic over `MODE SENSE` + `READ CAPACITY` +
+the format's sectoring, and the *values* are still not in the archive.  But the
+search has changed shape: it is no longer "find the table", it is "watch the driver
+do the arithmetic" — and this repo has already done that once:
+
+1. **A stub ACB-4000 in MAME.**  `tools/research/drive-c-box.lua` is a Lua model of
+   the Drive C box, and with it present "the 1983 loader completes and PIP writes to
+   `C:`" — the same move, for the same reason.  A stub answering
+   `MODE SENSE`/`READ CAPACITY`/`FORMAT` on ports `30h`–`33h` would let `MD10.COM`
+   and its overlay run for real, and `o1keys.lua`'s `peek` would then show what the
+   utility writes and what the driver builds from it.  **Try this first.** *Tried —
+   and it is blocked: MAME's `osborne1` decodes only two I/O address bits, so
+   `30h`–`33h` alias onto the ROM-bank ports and a Lua stub cannot reach the adapter.
+   It needs a MAME driver change. See `docs/acb4000-host-adapter.md` §2.*
+2. **A bootable MD-10 system disk**, whose system tracks would carry the low-RAM
+   tables outright.  *Also bounded: a stock O1 system image loads `[CCP][BDOS][BIOS]`
+   at the CCP, far above `0x055E`, so this too depends on the MD-10's memory map
+   being unlike the stock one — which its own `BOOT` suggests it is. See
+   `docs/acb4000-host-adapter.md` §3–§4.*
+
+The host-adapter register protocol is read out in `docs/acb4000-host-adapter.md`; §6's
+open question #2 (the status bit map) is answered there — the driver polls `01h`,
+`02h`, `20h`, `40h`.
+
+`research/harddisk/OCC1_HARDDISK.IMD` is a *different* controller — Australian
+Computer & Telecommunications, port `00` — i.e. the RT-60A situation again: recorded
+as incompatible in `docs/occ1-harddisk-analysis.md` §3, moved past, and not part of
+this question.
+
 ## 8. Coexistence — the A/B→E/F remap and the CoPower-88
 
 The MD-10 moves the O1's floppies from `A:`/`B:` to `E:`/`F:` (§6). Does that
@@ -534,10 +730,14 @@ if a driver turns out to depend on undocumented controller behaviour.
 ## 10. Open questions
 
 1. **The MD-10 DPB** — the numeric SPT/DSM/DRM/AL0 the driver builds at run time.
-   The geometry it is built from is read (§7.2); the descriptor template in low
-   RAM (`0x055E`, `0x056E`) is not (§9.4 item 1).
+   The mechanism and its source offsets are read (§7.3) and the geometry it is
+   built from is read (§7.2), but the **values are not in the archive**: no file
+   initialises `0x055E`/`0x056E`, and the utilities disk carries no system image
+   (§7.3). It needs an MD-10 system disk or a `peek` under MAME.
 2. **The MD-10 host-adapter bit map** — which observed status bit is `REQ`, which
-   is `BSY`, which is phase (§6). Bounded, because the *protocol* is known.
+   is `BSY`, which is phase (§6). Bounded, because the *protocol* is known; the four
+   bits the driver polls are now read out in `docs/acb4000-host-adapter.md` §1
+   (`01h`/`02h`/`20h`/`40h`).
 3. **"36 user areas"** — a driver extension, or advertising copy?
 4. **Is the MD-10's drive-letter assignment reconfigurable?** It decides whether
    we can leave the floppies at `A:`/`B:` (§8).

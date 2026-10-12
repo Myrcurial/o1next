@@ -21,6 +21,10 @@
 --     peek  <addr> <n>  print n bytes of guest memory from addr (hex or dec)
 --   Lines starting with # and blank lines are ignored.
 --
+-- ENVIRONMENT
+--   O1_ACB=<mode>   load acb4000.lua (a trace of the ACB-4000 host-adapter ports
+--                   30h-33h) before the guest runs. See acb4000.lua / #178.
+--
 -- GOTCHAS (docs/mame-emulation.md section 6)
 --   * natkeyboard:post() drops a character posted while the previous one is
 --     still being typed, and the guest flushes input around disk I/O -- pace at
@@ -34,6 +38,11 @@ local MACHINE = manager.machine
 local scr = MACHINE.screens[":screen"]
 local space = MACHINE.devices[":maincpu"].spaces["program"]
 local kb = MACHINE.natkeyboard
+
+-- Optional ACB-4000 host-adapter model/trace on I/O ports 30h-33h (#178).
+-- Loaded here so the taps are installed before the guest runs. See acb4000.lua.
+local ACB_LUA = os.getenv("O1_ACB_LUA")
+if os.getenv("O1_ACB") and ACB_LUA then dofile(ACB_LUA) end
 local VRAM, STRIDE = 0xF000, 128
 local KEYS = os.getenv("O1_KEYS") or ""
 local WAIT = tonumber(os.getenv("O1_WAIT") or "30")
