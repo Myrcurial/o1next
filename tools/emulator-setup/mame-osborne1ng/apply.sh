@@ -66,7 +66,7 @@ if [ "$PROBE" = 1 ]; then
     echo "==> probing the decode and the card"
     ( cd /tmp && O1NG_LOG=/tmp/o1ng.log "$BIN" "$SUBTARGET" \
         -rompath "$REPO/tools/emulator-setup/roms" \
-        -video none -sound none -nothrottle \
+        -video none -sound none -window -nothrottle \
         -autoboot_script "$HERE/o1ng-probe.lua" -seconds_to_run 6 )
 fi
 

@@ -46,6 +46,14 @@ mame osborne1ng -rompath tools/emulator-setup/roms \
     -flop1 research/shipped-software/OS1UTLS.IMD
 ```
 
+**Headless runs need `-window` on macOS.** `-video none` picks the *renderer*,
+not the window: the window belongs to the OSD, and MAME's default is full screen
+(`-window`: *"otherwise, full screen mode is assumed"*). The mac OSD — what a
+macOS source build uses, because it otherwise wants SDL3 — has no
+`SDL_VIDEODRIVER=dummy` to hide behind, so a headless run without `-window`
+takes the whole display with a grey window until it exits. `-numscreens 0` is
+rejected (`must be between 1 and 4`). Full note in `docs/mame-emulation.md` §6.
+
 `osborne1ng` runs the **1.44 ROM only** (`3a10082-00rev-e.ud11`, with the
 `7a3007-00.ud15` character generator). It does not carry the `osborne1` family's
 other BIOS slots, on purpose: the MD-10's software is what it exists to run.
@@ -78,7 +86,7 @@ The data phase needs a drive image mounted, and the slot's option is **`-hard`**
 chdman createhd -o /tmp/md10/hd.chd -c none -chs 321,4,18 -ss 512
 O1NG_LOG=/tmp/o1ng-dataphase.log mame osborne1ng \
   -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
-  -video none -sound none -nothrottle -seconds_to_run 6 \
+  -video none -sound none -window -nothrottle -seconds_to_run 6 \
   -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
 ```
 

@@ -8,8 +8,11 @@
 --   chdman createhd -o /tmp/md10/hd.chd -c none -chs 321,4,18 -ss 512
 --   O1NG_LOG=/tmp/o1ng-dataphase.log mame osborne1ng \
 --     -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
---     -video none -sound none -nothrottle -seconds_to_run 6 \
+--     -video none -sound none -window -nothrottle -seconds_to_run 6 \
 --     -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
+--
+-- `-window` matters on the mac OSD: `-video none` picks the renderer, not the
+-- window, and MAME's default is full screen (docs/mame-emulation.md section 6).
 --
 --   O1NG_CHS=<c>,<h>,<s>   the geometry the mounted CHD carries (321,4,18)
 --

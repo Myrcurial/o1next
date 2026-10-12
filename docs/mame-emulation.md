@@ -427,8 +427,17 @@ SDL_VIDEODRIVER=dummy mame MACHINE -flop1 IMAGE -video none -sound none \
 
 - `SDL_VIDEODRIVER=dummy` is **mandatory** from a pure terminal session on
   macOS; without it MAME aborts with "Could not initialize SDL".
-- `-video none -sound none` — no window, no audio. The emulated screen still
+- `-video none -sound none` — no *renderer*, no audio. The emulated screen still
   renders into VRAM, which is all a test reads.
+  - **`-video none` is not "no window". Add `-window`.** `-video none` picks the
+    renderer; the window belongs to the OSD, and MAME's default is **full
+    screen** (`-window`: *"enable window mode; otherwise, full screen mode is
+    assumed"*). On the SDL OSD `SDL_VIDEODRIVER=dummy` covers it, but the **mac
+    OSD** — which is what `osborne1ng` is built with, because a macOS source
+    build wants SDL3 — has no such switch, so a headless run there takes the
+    whole display with a grey full-screen window until it exits. `-window` is
+    what stops it; `-numscreens 0` is rejected (`must be between 1 and 4`).
+    Measured on the `osborne1ng` build, 2026-10-12.
 - The screen is read straight from video RAM: base `0xF000`, **128 bytes per
   row**, 32 rows. Character codes are readable directly; the 9th (attribute) bit
   lives in a separate bank and can be ignored for text.
