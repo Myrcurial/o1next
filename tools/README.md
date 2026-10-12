@@ -18,8 +18,37 @@ Run everything: `tools/extract_all.sh [path-to-samdisk]`
   (missing sectors -> 0xE5).
 - **cpmfs.py** — read-only CP/M 2.x list/extract (`ls`, `get`,
   `getall`). Explicit geometry presets: `osb1sssd` (Osborne 1 SD:
-  40x10x256B FM, boottrk 3, 2K blocks), `kp2x`/`kpiv` (Kaypro DSDD:
-  80 logical trk side-per-track x 10 x 512B, boottrk 1, 2K blocks).
+  40x10x256B FM, boottrk 3, 2K blocks, **skew 2**), `kp2x`/`kpiv`
+  (Kaypro DSDD: 80 logical trk side-per-track x 10 x 512B, boottrk 1,
+  2K blocks), `drivec` (the Drive C RAM disk blob). Each preset carries
+  the format's `skew`; see "Sector skew" below.
+
+## Sector skew — why a raw image needs it, and why it bit us
+
+A raw image stores each track's sectors in **physical** order, but CP/M numbers
+them in **logical** order; on an interleaved disk the two differ, and the format
+describes the mapping with a `skew` factor (cpmtools' diskdef field of the same
+name). `cpmfs.py` reproduces cpmtools' table generation exactly — for the
+Osborne 1 SD format (`skew 2`, 10 sectors/track) it is
+
+```
+logical  0 1 2 3 4 5 6 7 8 9
+physical 0 2 4 6 8 1 3 5 7 9
+```
+
+so consecutive logical sectors sit two physical sectors apart. Without it,
+`osb1sssd` still listed the right files — because the three directory sectors in
+use all happened to land inside block 0 in *some* order — while every **file
+body** was read from sectors that were never written, i.e. a uniform `0xE5`.
+That is what made `research/roms/OZROM-1E/OZROM_1E_Utilities.IMD` look
+"partially erased"; with the skew, all twenty files extract whole. Full story in
+`docs/ozrom-1e.md` §10.2/§10.4 and **#170**.
+
+`skew` defaults to 1 (identity) for the non-interleaved presets (`kp2x`,
+`drivec`), so their output is byte-for-byte what it always was. `osb1sssd` is
+checked against cpmtools on the three in-archive SD images
+(`OZROM_1E_Utilities.IMD`, `DRIVE_C.IMD`, `OCC1_HARDDISK.IMD`): every file
+matches `cpmcp -T raw -f osb1sssd` exactly.
 
 ## cpmtools against a raw image: always pass `-T raw`
 
@@ -232,7 +261,8 @@ set `KICAD_CLI` if it is not on PATH. Standard library only.
 
 ## Disk format cheat sheet (learned during #2)
 
-- Osborne 1 SD: FM, 40 cyl, 10x256B sectors, R=1..10, boottrk 3,
+- Osborne 1 SD: FM, 40 cyl, 10x256B sectors, R=1..10, **2:1 sector
+  skew** (logical→physical `0 2 4 6 8 1 3 5 7 9`), boottrk 3,
   dir 64 entries (2K blocks).
 - Kaypro 2X/4/10: MFM, 40 cyl x 2 heads, 10x512B per side, R 0-based
   continuous across sides (0-9 / 10-19), physical interleave in R,

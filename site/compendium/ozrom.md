@@ -468,6 +468,18 @@ because the directory survived and the result looked like physical damage rather
 than a misread. **A reader that returns plausible garbage is more dangerous than
 one that errors.**
 
+**Fixed in #170.** `osb1sssd` now carries `skew=2`, and `cpmfs.py` generates the
+logical→physical table the same way `cpmtools` does (`cpmfs.c`): for this format,
+`0 2 4 6 8 1 3 5 7 9`. The directory read goes through the same mapping, so the
+old off-by-one phantom entry is gone as well. Checked against
+`cpmcp -T raw -f osb1sssd` on all three in-archive SD images — this disk,
+`DRIVE_C.IMD` and `OCC1_HARDDISK.IMD` — where **every file matches byte for
+byte**. The two other archived `osb1sssd` extractions ([`research/drive_c/extracted/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/extracted/),
+[`research/harddisk/extracted/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/harddisk/extracted/)) were made with `cpmtools`, which always had the
+skew, and are unchanged: **nothing already archived rested on the bad read** —
+this disk was the only casualty. Formats that are not interleaved default to
+`skew 1`, so `kp2x` and `drivec` output is unchanged.
+
 ### 10.5 What it changes for #81
 
 Less than the file count suggests, and that is the honest answer: the ROM is the
