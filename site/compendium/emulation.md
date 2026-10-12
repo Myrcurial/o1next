@@ -493,11 +493,11 @@ SDL_VIDEODRIVER=dummy mame osborne1nv -flop1 IMAGE -video none -sound none \
    A small disassembly job against the CBIOS in the system tracks.
 4. **ROM 1.3 is undumped** and we hold its source disk — see
    [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md).
-5. **OZROM 1E as a tool (#81).** It boots on all three machines (§5) and its
-   manual is now indexed in **[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md)** — memory map, ROM jump table,
-   keytable, the 52/80/104-column switch, the clock and the memory tester. The one
-   measurement still missing is driving the ctrl-shift column keys from the
-   harness (`ozrom-1e.md` §7/§9).
+5. **OZROM 1E as a tool (#81)** — **closed.** It boots on all three machines (§5)
+   and its manual is indexed in **[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md)**: memory map, ROM jump
+   table, keytable, the 52/80/104-column switch and its mechanism, the clock and
+   the memory tester. The one measurement still missing — driving the ctrl-shift
+   column keys from the harness — is routed to **#167**.
 
 ## 8. Sources
 
