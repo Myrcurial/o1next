@@ -71,6 +71,14 @@ scratch programs, "figuring it out" notebooks/scripts.
   usable** — posting `\27` segfaults MAME's Lua layer — and `peek` is the
   directive that made the editor's in-memory table checkable. Note
   `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
+- **`acb4000.lua`** — a MAME-side *trace* of the MD-10's ACB-4000 host-adapter
+  ports (`30h`–`33h`), loaded by `o1keys.lua` when `O1_ACB=trace`. Written for
+  #178 to watch the driver build its DPB, and it produced the finding instead:
+  MAME's `osborne1` decodes only two I/O address bits, so `30h`–`33h` alias onto
+  the ROM-bank ports and a Lua stub cannot reach the adapter — the "stub it in
+  MAME" route needs a driver change. Two traps worth knowing: a tap callback that
+  touches `cpu.state["PC"]` throws (and the log line vanishes), and the guest's
+  console output floods these ports. See `docs/acb4000-host-adapter.md`.
 - **`md10patch.py`** — patches a file *inside* a raw Osborne image, addressed by
   name and file offset. Written for #178: `MD10.COM` refuses to start without an
   ACB-4000 on ports `30h`–`33h`, and MAME cannot emulate one, so three 3-byte
