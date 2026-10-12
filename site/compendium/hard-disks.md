@@ -5,6 +5,9 @@ subtitle: "Peripherals and storage · partially solved"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
+**Status: the decision is taken** — emulate the **Adaptec ACB-4000**, not the
+ACT. See [`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md). This doc remains the product analysis.
+
 Source: research/harddisk/OCC1_HARDDISK.IMD (Osborne 1 SSDD, FM 10x256).
 Extracted to research/harddisk/extracted/ via disk-analyse + cpmtools
 (`osb1sssd`).
@@ -74,18 +77,29 @@ without unobtainable hardware (#84).
 | RESTORE.COM, SAVEFILE.COM | Backup/restore to floppy |
 | AUTOST.COM, SYSGEN.COM, PIP.COM, XDIR.COM | Standard |
 
-## Hardware interface (from HARDBIOS.HEX disassembly)
+## Hardware interface (from HARDBIOS.HEX disassembly) — **corrected**
+
+The register claim below was re-derived by disassembling `HARDBIOS.HEX`
+(`z80dasm`, `org 0xDF00`, 0xDF00–0xEB00). The original reading was wrong; see
+[`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md) §3.
 
 - Same Osborne bank discipline as Drive C: **OUT (0x00) = bank 2 (IO),
   OUT (0x01) = bank 1 (RAM)**, DI/EI bracketed (subroutines at 0xEA6A /
   0xEA75 wrap all IO accesses).
-- Device registers are memory-mapped in bank 2:
-  - **0x2A00** — command/data register (written with a command byte
-    after bank select)
-  - **0x2C01** — status register (read; bit 5 (0x20) = status flag
-    tested after rrca; merged into a saved status byte)
-- Also `OUT (C),A` with port value cached at 0xEF08 — indirect port
-  write, target TBD (possibly NMI control or bank-related).
+- **The disk transport is the IEEE-488 PIA at `2900–2903`**, bit-banged:
+  `set 3,(02902h)` / `res 3,(02902h)` is a **PB3 strobe** around
+  `ld a,(02900h)` (read) and `ld (02900h),a` (write), with `cpl` for
+  active-low. It is the only device routine in the image, reached from the
+  disk path READ (`E32A`) → `sub_e448h` → `E475` → `sub_e520h` → `sub_e58fh`
+  (`E58F`).
+- **`0x2A00`/`0x2C01` are not the disk.** `0x2A00`/`0x2A01` are the console
+  **ACIA** (`0x2A00` status read / control write, `0x2A01` RX/TX — the console
+  helpers `sub_e992h`/`sub_e99bh` test bit 1 = TDRE, bit 0 = RDRF) and `0x2C01`
+  is the **video PIA** ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3). The image contains **no
+  floppy-controller references at all**: it is a hard-disk-only BIOS.
+- The "indirect `OUT (C),A`, target TBD" is resolved: `C` comes from
+  `[0xEF08]`, which the bank helpers set to `0` or `1` — it is the **bank
+  restore** on exit, not a disk port.
 - The BIOS preserves a full register environment (pushes IX/IY/HL/DE/
   BC/AF, switches to a private stack at 0xEFC1) around hard-disk calls
   — it hooks deep into the 17-entry BIOS jump table as a full BIOS
@@ -95,7 +109,7 @@ without unobtainable hardware (#84).
 
 | | Drive C (RAM disk) | ACT hard disk |
 |---|---|---|
-| Physical interface | IEEE-488 port (6821 PIA bit-bang @ 0x2900-0x2903) | Custom host adapter, regs @ 0x2A00 / 0x2C01 |
+| Physical interface | IEEE-488 port (6821 PIA bit-bang @ 0x2900-0x2903) | IEEE-488 PIA @ 0x2900-0x2903, bit-banged (PB3 strobe) |
 | Host code | Driver wedge (DCL/DFD.SPR) | Full BIOS replacement @ 0xDF00 |
 | Boot | QUICKPAC autoload from floppy | BOOTHd.COM + SYSGEN to winchester |
 
@@ -104,29 +118,27 @@ without unobtainable hardware (#84).
 1. **The ACT product validates the whole interposer concept on this
    exact machine** — a Z80-socket interposer was a shipping commercial
    Osborne 1 peripheral in 1982.
-2. Its register interface (0x2A00 command/data, 0x2C01 status) is a
-   clean, tiny target: a Pico 2 W could emulate the ACT host adapter
-   purely in bank-2 memory space, no PIA bit-banging needed.
-3. For the mass-storage personality we therefore have two documented
-   paths: emulate the Drive C GPIB RAM-disk protocol (docs/drive-c-
-   protocol.md), or emulate the ACT adapter (this note). The ACT path
-   looks simpler electrically but needs the interface hardware
-   reverse-engineered (photos / unit access); the Drive C path is
-   fully observable from software alone.
+2. Its transport is the **same PIA bit-bang as Drive C** (`2900–2903`), so an
+   ACT personality would reuse that machinery — but its command protocol is
+   undocumented and would have to be reverse-engineered from `HARDBIOS.HEX`
+   ([`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md) §3).
+3. The mass-storage decision is **made**: emulate the Adaptec ACB-4000 (the
+   controller inside the Media Distributing **MD-10**), not the ACT. See
+   [`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md) for the reasoning and the plan.
 
 ## Open questions
 
-1. Which ACT product exactly (model no./capacity)? MOVCPM10 vs
-   MOVCPM5 suggests 10MB and 5MB volume support.
-2. Command set at 0x2A00 (sector read/write/format, geometry
-   reporting) — needs annotated disassembly of the HARDBIOS driver
-   routines around 0xE000-0xEA0A.
-3. The `OUT (C)` target port at 0xEF08.
-4. Whether any ACT hardware photos/schematics survive online.
-5. **Re-derive the port claim.** `0x2A00`/`0x2C01` are the serial ACIA and the
-   video PIA, and both hard-disk products describe their controller port as
-   *configurable* — so the addresses in "Hardware interface" above need checking
-   against the ACT disk's own prompt and stored value before they are relied on.
-6. **The second product** (Media Distributing / Adaptec ACB-4000): its command
-   set, its default port, and what `DRIVETBL.DAT` contains. See "Two products,
-   not one" above.
+The ACT-specific questions are **closed or superseded** — the ACT is not being
+emulated ([`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md) §3):
+
+1. ~~Which ACT product exactly?~~ **Superseded.** `MOVCPM10/5/F.COM` are stock
+   Digital Research `MOVCPM.COM` builds, not volume sizes.
+2. ~~Command set at 0x2A00~~ — **resolved as not the disk.** The transport is the
+   `2900–2903` PIA and its protocol is undocumented.
+3. ~~The `OUT (C)` target port at 0xEF08~~ — **resolved**: the bank restore.
+4. Whether any ACT hardware photos/schematics survive online — still unattested,
+   and now only of archival interest.
+5. ~~Re-derive the port claim~~ — **done** (above; `harddisk-decision.md` §3).
+6. **The MD-10 / ACB-4000's** remaining questions — the DPB, the host-adapter bit
+   map, the drive letters, "36 user areas" — are in [`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md)
+   §10.

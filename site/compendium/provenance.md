@@ -222,6 +222,26 @@ Archive, [`md-utilities-adaptec-4000-controller-ver.-1.93-osborne`](https://arch
 Together with `acb4000a.rom` (Maslin's archive) this identifies the controller
 behind `harddisk/OCC1_HARDDISK.IMD` — issue #8.
 
+## adaptec/acb4000/ — Adaptec ACB-4000 controller hardware (2026-10)
+
+The controller itself — schematics, board photographs, the controller's own
+firmware ROMs, and two OEM manuals. Archived because #8 **selected this
+controller** ([`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md)). Source:
+[bitsavers `pdf/adaptec/ACB-4000/`](https://www.bitsavers.org/pdf/adaptec/ACB-4000/).
+
+| Path | What it is |
+|---|---|
+| `500504-00_ACB-4000_OEM_Manual_Mar84.pdf` (9.8 MB) | OEM manual — the command set (Table 6-1), the reference host-adapter register model, a sample Z80 driver and a sample format sequence |
+| `400003-00A_ACB-4000A_Users_Manual_Oct85.pdf` (7.1 MB) | ACB-4000A user manual |
+| `ACB_4000_and_5000_Disk_Controllers_OEM_Manual_Preliminary_May83.pdf` (2.6 MB) | preliminary OEM manual (ACB-4000 + ACB-5000) |
+| `ACB4000A_Schematic_ARD_2025.pdf` (2.4 MB) | board schematic |
+| `firmware/` | six 8 KiB controller ROM images + an Intel-HEX build (`ACB-4000A-rev-B.hex`) |
+| `pictures/` | seven board photographs |
+
+The `adaptec/*.img` software above is the **host** side (the MD-10 driver); this
+folder is the **controller** side. The personality needs both: the host side is
+what it must answer, the controller side is what it must be.
+
 ## diagnostics/ — Osborne 1 confidence tests (2026-10)
 
 | File | Label comment |
