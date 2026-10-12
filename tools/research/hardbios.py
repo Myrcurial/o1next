@@ -35,10 +35,20 @@ WHAT IT FOUND (2026-10-12, #178)
 USAGE
     hardbios.py jump  SPR_FILE             jump table + SELDSK (relocatable image)
     hardbios.py jump  IMAGE --hex          ... for an absolute Intel-HEX image
-    hardbios.py audit SPR_FILE [DIR ...]   who writes the low-RAM tables
+    hardbios.py audit [DIR_OR_FILE ...]    who writes the low-RAM tables
 
-    The MD utilities disk is a raw `.img`; extract the overlays with
-        tools/cpmfs.py 'research/adaptec/MD Utilities ... .img' osb1sssd get 0:HARDBIOS.SPR /tmp/
+    The MD utilities disk is a raw `.img`; extract its members first, then audit
+    them (the default path is `/tmp/md/*`):
+        mkdir -p /tmp/md
+        for f in HARDBIOS.SPR HARDBDOS.SPR HARDCCP.SPR HD00BIOS.SPR HD04BIOS.SPR \\
+                 MD10.COM MD20.COM HARD.COM CNTLRCOD.OVL PORTCHNG.COM; do
+            tools/cpmfs.py 'research/adaptec/MD Utilities ... - MD-10 MD-20.img' \\
+                osb1sssd get "0:$f" "/tmp/md/$f"
+        done
+
+    The **ACT** software on `research/harddisk/OCC1_HARDDISK.IMD` is deliberately
+    *not* scanned: it is a different controller (Australian Computer &
+    Telecommunications, port `00`) and is out of scope for the MD-10 question.
 """
 import glob
 import os
@@ -144,13 +154,17 @@ def seldsk(buf, file_off):
 
 
 def audit(paths, lo=0x0500, hi=0x0700):
-    """Every writer of a low-RAM address in [lo, hi).
+    """Every writer of a low-RAM address in [lo, hi), and every pointer to it.
 
-    LD (nn),A = 32 nn nn ; LD (nn),HL = 22 nn nn ; LD (nn),BC/DE = ED 43/53 nn nn.
-    This is the search that returned the negative result: the DPH/DPB tables at
-    0x055E and 0x056E have no writer anywhere in the archive.
+    Stores:  LD (nn),A = 32 nn nn ; LD (nn),HL = 22 nn nn ; LD (nn),BC/DE = ED 43/53 nn nn.
+    Pointers: LD HL,nn = 21 nn nn ; LD DE,nn = 11 nn nn -- because a table can be
+              filled by a block copy (`LDIR`) rather than by a scalar store, and a
+              search for stores alone would miss `LD DE,056Eh` + `LDIR`.
+
+    This is the search behind the negative result: the DPH/DPB tables at 0x055E and
+    0x056E have no writer *and no block-copy destination* anywhere in the archive.
     """
-    print('=== writers of 0x%04X-0x%04X ===' % (lo, hi))
+    print('=== writers of and pointers to 0x%04X-0x%04X ===' % (lo, hi))
     total, table = 0, []
     for f in paths:
         if not os.path.isfile(f):
@@ -158,13 +172,15 @@ def audit(paths, lo=0x0500, hi=0x0700):
         d = open(f, 'rb').read()
         hits = []
         for i in range(len(d) - 3):
-            nn = None
+            nn, kind = None, None
             if d[i] in (0x32, 0x22):
-                nn = d[i + 1] | (d[i + 2] << 8)
+                nn, kind = d[i + 1] | (d[i + 2] << 8), 'store'
             elif d[i] == 0xED and d[i + 1] in (0x43, 0x53):
-                nn = d[i + 2] | (d[i + 3] << 8)
+                nn, kind = d[i + 2] | (d[i + 3] << 8), 'store'
+            elif d[i] in (0x21, 0x11):
+                nn, kind = d[i + 1] | (d[i + 2] << 8), 'ptr'
             if nn is not None and lo <= nn < hi:
-                hits.append('%04X@0x%X' % (nn, i))
+                hits.append('%04X@0x%X(%s)' % (nn, i, kind))
         if hits:
             total += len(hits)
             print('  %-18s %s' % (os.path.basename(f), ' '.join(sorted(set(hits)))))
@@ -174,11 +190,11 @@ def audit(paths, lo=0x0500, hi=0x0700):
         print('  none')
     print()
     if table:
-        print('  0x055E / 0x056E writers: %s' % ', '.join(table))
+        print('  0x055E / 0x056E touched by: %s' % ', '.join(table))
     else:
-        print('  0x055E / 0x056E writers: NONE -- no archived file initialises the')
-        print('  per-drive type byte or the 24-byte descriptor table, so the DPB')
-        print('  cannot be read from the files we hold.')
+        print('  0x055E / 0x056E: no writer and no pointer anywhere -- no archived')
+        print('  file initialises the per-drive type byte or the 24-byte descriptor')
+        print('  table, so the DPB cannot be read from the files we hold.')
 
 
 def main(argv):
@@ -188,7 +204,7 @@ def main(argv):
     mode = argv[1]
     if mode == 'audit':
         args = [a for a in argv[2:] if not a.startswith('--')]
-        expanded = [p for pat in (args or ['/tmp/md/*', 'research/harddisk/extracted/*'])
+        expanded = [p for pat in (args or ['/tmp/md/*'])
                     for p in (glob.glob(pat) or [pat])]
         audit(expanded)
         return 0
