@@ -2,7 +2,9 @@
 
 **Status: partially solved.** The ROMs, the command set and the "why there is no
 literal DPB" argument are read; the geometry round-trip itself is inferred, not
-traced. The controller is a small computer
+traced. The *host* side — the Z80-visible register protocol on ports `30h`–`33h` — is
+now read too, together with the measurement that blocks the MAME-stub route:
+`docs/acb4000-host-adapter.md`. The controller is a small computer
 running its own firmware; the ROMs are archived at
 `research/adaptec/acb4000/firmware/`. This note records what the firmware *is*,
 and what it tells us about the personality — in particular **why the MD-10

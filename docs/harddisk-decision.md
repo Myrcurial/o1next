@@ -181,7 +181,11 @@ From the MD-10 software (`research/adaptec/`, disassembled):
   edits.
 - **Registers:** `base+0` data (also the `OUTI`/`INI` block port), `base+1`
   control, `base+2` status read / control write, `base+3` control. Status bits
-  the driver polls: `01h`, `02h`, `20h`, `40h`.
+  the driver polls: `01h`, `02h`, `20h`, `40h`. The probe, the transaction and
+  the bit meanings are read out in `docs/acb4000-host-adapter.md` §1 — including
+  that `base+2` reading `04h` is "exactly one controller on-line", and that
+  `30h`–`33h` **alias onto the on-board 2-bit I/O decode** (so the adapter must
+  own the bus for those ports; §2).
 - **Host software:** `HARD.COM` installs; `HARDBIOS.SPR`, `HARDBDOS.SPR` and
   `HARDCCP.SPR` overlay BIOS/BDOS/CCP (the same *shape* as the ACT, but over a
   documented controller).
@@ -612,9 +616,19 @@ do the arithmetic" — and this repo has already done that once:
    `C:`" — the same move, for the same reason.  A stub answering
    `MODE SENSE`/`READ CAPACITY`/`FORMAT` on ports `30h`–`33h` would let `MD10.COM`
    and its overlay run for real, and `o1keys.lua`'s `peek` would then show what the
-   utility writes and what the driver builds from it.  **Try this first.**
+   utility writes and what the driver builds from it.  **Try this first.** *Tried —
+   and it is blocked: MAME's `osborne1` decodes only two I/O address bits, so
+   `30h`–`33h` alias onto the ROM-bank ports and a Lua stub cannot reach the adapter.
+   It needs a MAME driver change. See `docs/acb4000-host-adapter.md` §2.*
 2. **A bootable MD-10 system disk**, whose system tracks would carry the low-RAM
-   tables outright.
+   tables outright.  *Also bounded: a stock O1 system image loads `[CCP][BDOS][BIOS]`
+   at the CCP, far above `0x055E`, so this too depends on the MD-10's memory map
+   being unlike the stock one — which its own `BOOT` suggests it is. See
+   `docs/acb4000-host-adapter.md` §3–§4.*
+
+The host-adapter register protocol is read out in `docs/acb4000-host-adapter.md`; §6's
+open question #2 (the status bit map) is answered there — the driver polls `01h`,
+`02h`, `20h`, `40h`.
 
 `research/harddisk/OCC1_HARDDISK.IMD` is a *different* controller — Australian
 Computer & Telecommunications, port `00` — i.e. the RT-60A situation again: recorded
@@ -721,7 +735,9 @@ if a driver turns out to depend on undocumented controller behaviour.
    initialises `0x055E`/`0x056E`, and the utilities disk carries no system image
    (§7.3). It needs an MD-10 system disk or a `peek` under MAME.
 2. **The MD-10 host-adapter bit map** — which observed status bit is `REQ`, which
-   is `BSY`, which is phase (§6). Bounded, because the *protocol* is known.
+   is `BSY`, which is phase (§6). Bounded, because the *protocol* is known; the four
+   bits the driver polls are now read out in `docs/acb4000-host-adapter.md` §1
+   (`01h`/`02h`/`20h`/`40h`).
 3. **"36 user areas"** — a driver extension, or advertising copy?
 4. **Is the MD-10's drive-letter assignment reconfigurable?** It decides whether
    we can leave the floppies at `A:`/`B:` (§8).

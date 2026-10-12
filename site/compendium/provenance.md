@@ -232,7 +232,8 @@ controller** ([`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextg
 | Path | What it is |
 |---|---|
 | `500504-00_ACB-4000_OEM_Manual_Mar84.pdf` (9.8 MB) | OEM manual — the command set (Table 6-1), the reference host-adapter register model, a sample Z80 driver and a sample format sequence |
-| `400003-00A_ACB-4000A_Users_Manual_Oct85.pdf` (7.1 MB) | ACB-4000A user manual |
+| `400003-00A_ACB-4000A_Users_Manual_Oct85.pdf` (7.1 MB) | ACB-4000A user manual. **Image-only scan** — `pdftotext` returns nothing. Carries **§2.3.1** (device independence / auto-configuration) and **§3.7** (power-up operation): the drive parameters are encoded onto the disk at `FORMAT`, **in the ID field of cylinder 6**, and read back at power-up — see [`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md) §7.3 |
+| `400003-00A_ACB-4000A_Users_Manual_Oct85.ocr.txt` (177 KB) | OCR text layer for the above (per the convention at the top of this file), generated 2026-10-12 at 120 dpi with [`tools/ocr_pdf.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/ocr_pdf.sh). Good enough to grep — §2.3.1's "ID field of cylinder 6" is legible — but the OCR mangles part numbers (`ACB-4000` renders as `ACB-4909`/`ACB-4990` in places), so read the PDF for anything load-bearing |
 | `ACB_4000_and_5000_Disk_Controllers_OEM_Manual_Preliminary_May83.pdf` (2.6 MB) | preliminary OEM manual (ACB-4000 + ACB-5000) |
 | `ACB4000A_Schematic_ARD_2025.pdf` (2.4 MB) | board schematic |
 | `firmware/` | six 8 KiB controller ROM images + an Intel-HEX build (`ACB-4000A-rev-B.hex`) |
