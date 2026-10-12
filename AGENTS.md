@@ -52,6 +52,11 @@ agent working in `o1nextgen`. Follow it over generic defaults.
    2026-10-09**, six of them bare `Merge feature/X` with no PR reference at all.
    Nothing since 2026-10-10 11:32 has been. Prefer `gh pr merge` or the web
    button; delete the local branch after merge.
+   - **Stacked PRs: retarget before you delete.** If PR *B* is based on branch
+     *A*, merging *A* with `--delete-branch` **auto-closes *B*** — GitHub deletes
+     *B*'s base out from under it. Merge *A* without deleting, retarget *B* at
+     `main`, then delete *A*'s branch. The other order means recreating the
+     deleted base branch by hand.
 7. Never commit directly to `main`; never force-push `main`.
 
 ## When a tool is missing, ask — do not engineer around it
@@ -59,7 +64,9 @@ agent working in `o1nextgen`. Follow it over generic defaults.
 Host tooling is cheap and usually much better than a workaround. If the shape of
 the work is being set by the *absence* of a program, stop and ask about installing
 it (`brew install …`, `pip3 install …`, `gem install …`). The answer is usually
-yes, and asking costs one message.
+yes, and asking costs one message. **`REQUIREMENTS.md` is the running list** of
+what the machine has, what needs it, and what is not installed yet — add a row
+there in the same PR that installs something new.
 
 Examples from this repo, including the ones that should have been asked earlier:
 
