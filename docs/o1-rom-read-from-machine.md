@@ -12,9 +12,17 @@ Nothing here writes to a diskette. Every route below is read-only on the media.
 
 The sign-on has two lines and **they are framed by different video escapes** —
 the upper one by `ESC 'l'` … `ESC 'm'`, the lower one by `ESC ')'` … `ESC '('`.
-The lower one is the **half-intensity** pair, which is why the revision line is
-the dim one and why a machine with a faulty dim bit loses *that* line and not
-the rest of the screen.
+They are the **underline** pair and the **half-intensity** pair respectively, and
+that is why a machine with a faulty dim bit loses exactly the revision line and
+nothing else. Confirmed on a real machine: the upper line renders
+**underlined**, and the revision line is the one that goes.
+
+The two attributes live in different places, which is the whole reason the
+fault is so selective. Underline is **bit 7 of the main video RAM**; dim is
+**bit 8 — the dedicated 4116 in bank 3** (`docs/o1-memory-io-map.md` §2). So a
+fault in the bank-3 attribute path (that 4116, or the `BIT 9` latch that maps
+it) costs the dim line and leaves the underlined one perfectly legible. One
+chip, not the video RAM.
 
 So: **the upper line is readable even when the version line is not, and the
 upper line differs by revision.**
@@ -150,6 +158,13 @@ Offsets are into the 4096-byte image.
 | **1.3** | `0x1D2` | `20 4D 4F 4E 49 54 4F 52 20 31 2E 33 20 20` | ` MONITOR 1.3  ` |
 | **1.3** | `0x0F4` | `63 2E 20 31 39 38 31 20 4F 43 43` | `c. 1981 OCC` |
 | rev B | — | from `occrom1b.asm` | `OSBORNE SYSTEM ONE.` (caps) |
+
+**And check the encoding, not just the text.** rev B and 1.3 store their strings
+with the `DBE`/`DCE` pseudo-ops, i.e. **every byte doubled** (each string byte is
+`value * 2`); 1.40, 1.43 and 1.44 store theirs **plain**. So a dump full of
+readable ASCII is 1.4-era, and a dump whose "text" is all even bytes at roughly
+twice the expected length is rev-B/1.3-era — shift it right one bit to read it.
+See `docs/rom-13-reconstruction.md` §4.
 
 The 1.3 offsets come from the reconstructed image, and **not** from the damaged
 regions (`0x1F0`, `0x8B0`, `0xA80`, `0xAB0`, `0xFA0`, `0xFD0` — see
