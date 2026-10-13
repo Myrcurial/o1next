@@ -20,6 +20,14 @@
 --     shot  <path>      write a PNG of the screen
 --     peek  <addr> <n>  print n bytes of guest memory from addr (hex or dec)
 --     poke  <addr> <hh>...  write bytes to guest memory (hex, space-separated)
+--     pc                print the guest's PC and AF/BC/DE/HL/SP
+--
+--   `pc` was added chasing the MD-10's boot (#179): a hang that shows no screen
+--   change is ambiguous between "spinning in the loader" and "jumped into a
+--   system that never printed", and one line of PC answers it.  Sampling it a
+--   few times is what showed the guest executing inside the MD-10 BIOS's block
+--   read, i.e. CP/M running out of the emulated hard disk -- see
+--   docs/md10-system.md 7.
 --   Lines starting with # and blank lines are ignored.
 --
 -- ENVIRONMENT
@@ -131,6 +139,24 @@ for line in KEYS:gmatch("[^\n]+") do
       local b = {}
       for i = 0, n - 1 do b[#b + 1] = string.format("%02x", space:read_u8(a + i)) end
       print(string.format("PEEK %04x (%d): %s", a, n, table.concat(b, " ")))
+    elseif verb == "pc" then
+      -- Where is the guest?  Reading `cpu.state` from a *tap* throws (see the
+      -- GOTCHAS), but between directives the guest is idle and it is fine.
+      -- Written chasing the MD-10's boot (#179): a hang that shows no screen
+      -- change is ambiguous between "spinning in the loader" and "jumped into
+      -- a system that never printed", and the PC tells them apart in one line.
+      local cpu = MACHINE.devices[":maincpu"]
+      local ok, val = pcall(function() return cpu.state["PC"].value end)
+      if ok then
+        local regs = {}
+        for _, r in ipairs({ "AF", "BC", "DE", "HL", "SP" }) do
+          local okr, v = pcall(function() return cpu.state[r].value end)
+          regs[#regs + 1] = string.format("%s=%04x", r, okr and v or 0)
+        end
+        print(string.format("PC: %04x  %s", val, table.concat(regs, " ")))
+      else
+        print("PC: unavailable (" .. tostring(val) .. ")")
+      end
     elseif verb == "poke" then
       -- Patching a *file* inside an image (md10patch.py) only reaches bytes the
       -- loader copies verbatim; a run-time variable -- e.g. the MD-10 host

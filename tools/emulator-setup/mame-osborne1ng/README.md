@@ -132,7 +132,7 @@ loader**, not an installer. It reads LBA 5 for 11 blocks (`0x1600` bytes = the
 jumps into what it read — so the drive has to *already* carry an MD-10 system.
 
 `PREP.COM` option 1 would write one, but it cannot finish: the verify pass after
-the format is `SEARCH DATA EQUAL` (`2F`), which `t10spc`/`t10sbc` do not
+the format is `VERIFY` (`2F`), which `t10spc`/`t10sbc` do not
 implement at all, so the driver never sees its match and loops (measured: 600
 emulated seconds at *"Verifying disk (first pass)..."*, 1 772 618 `2F` commands
 over LBA `0`–`0xFF`). That is why the drive is **built** rather than formatted —

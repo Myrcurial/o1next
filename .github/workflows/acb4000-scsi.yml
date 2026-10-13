@@ -1,0 +1,35 @@
+name: acb4000-scsi check
+
+# The ACB-4000 personality is host-testable C with no board and no SDK, so the
+# whole thing is a seconds-long compile and run -- the same shape as the
+# rom-ident job.  What it buys: the register handshake is replayed from the
+# driver's own routine, so a change to the status bit map fails here rather than
+# in a MAME session three days later.
+
+on:
+  push:
+    paths:
+      - 'firmware/acb4000-scsi/**'
+      - '.github/workflows/acb4000-scsi.yml'
+  pull_request:
+    paths:
+      - 'firmware/acb4000-scsi/**'
+      - '.github/workflows/acb4000-scsi.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: SCSI target + shim host tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Host tests (the target, the shim, the store)
+        run: firmware/acb4000-scsi/run_tests.sh
+
+      - name: shellcheck the test runner
+        run: shellcheck -S warning firmware/acb4000-scsi/run_tests.sh
