@@ -233,24 +233,20 @@ care.
 ## 7a. Status: the machine this was written for is out of play
 
 The single-density machine that prompted this doc is **out of play** — it blew
-a RIFA capacitor, a mains-side EMI suppression capacitor in the PSU and a
-well-known age failure in this era of hardware. The `^D` test in §1a was
-**never run**, so its ROM was **never identified**, and the question of whether
-it held a `NO_DUMP` revision is still open. The other two machines on hand are
-1.44, which is already held (`docs/o1-rom-variants.md`), so there is at present
-**no hardware route to any `NO_DUMP` slot**.
+a RIFA capacitor in the PSU. The `^D` test in §1a was **never run**, so its ROM
+was **never identified**, and the question of whether it held a `NO_DUMP`
+revision is still open. The other two machines on hand are 1.44, which is
+already held (`docs/o1-rom-variants.md`), so there is at present **no hardware
+route to any `NO_DUMP` slot** — §1a and §4 are procedures waiting on a machine,
+not instructions for one.
 
-Worth recording alongside it: **the repository holds no power-supply
+One repository fact worth recording with it: **the tree holds no power-supply
 material.** The Osborne 1 Technical Manual in-repo
-(`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`) turns out to
-have only **§1.2 "Power On"**, two pages of power-up procedure — not supply
-theory and not a schematic. The only mention of the PSU anywhere in the tree is
-a design note in `docs/design/o1ng-lunchbox-concept.svg` recording that the
-original supply "and its RIFA caps" are retired in that concept. So a repair is
-off-repo work: there is nothing here to read first.
-
-This is the maintainer's to decide on — a physical machine is their call, and
-nothing in the project depends on this one either way.
+(`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`) has only
+**§1.2 "Power On"** — two pages of power-up procedure, no supply theory and no
+schematic. The only mention of the PSU anywhere in the tree is a design note in
+`docs/design/o1ng-lunchbox-concept.svg` recording that the original supply "and
+its RIFA caps" are retired in that concept.
 
 ## 8. What the result would settle
 
