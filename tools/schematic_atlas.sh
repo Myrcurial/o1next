@@ -97,6 +97,9 @@ p=$FIRST
 while [ "$p" -le "$LAST" ]; do
     dir=$(printf '%s/sheet-%02d' "$OUTDIR" "$p")
     mkdir -p "$dir"
+    # page_px prints "W H" and both are wanted as separate positional parameters,
+    # so the word split is deliberate.
+    # shellcheck disable=SC2046
     set -- $(page_px "$p")
     W=$1; H=$2
 

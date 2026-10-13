@@ -260,6 +260,13 @@ check_required() {
         add_formula z80dasm
     fi
 
+    if have shellcheck; then
+        ok_row shellcheck "$(which_of shellcheck) — $(shellcheck --version 2>/dev/null | awk '/version:/ {print $2}')"
+    else
+        miss_row shellcheck 'brew install shellcheck'
+        add_formula shellcheck
+    fi
+
     if have disk-analyse; then
         ok_row disk-analyse "$(which_of disk-analyse) — built from source, not in Homebrew"
     else
@@ -347,6 +354,10 @@ do_install() {
         say "  would run: brew install$FORMULAE"
     else
         say "  brew install$FORMULAE"
+        # FORMULAE is a space-separated list, so the word splitting is the point
+        # rather than an accident -- which is exactly the case SC2086 warns about
+        # and cannot tell apart from a bug.
+        # shellcheck disable=SC2086
         brew install $FORMULAE
     fi
 
