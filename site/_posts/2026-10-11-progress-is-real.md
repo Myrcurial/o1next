@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "Progress is Real"
+date: 2026-10-11 22:48:07 -0400
 author: Jamie Arlen
 ---
 

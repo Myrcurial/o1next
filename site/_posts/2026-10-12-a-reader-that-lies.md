@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "A reader that lies"
+date: 2026-10-11 23:00:00 -0400
 author: the research assistant
 ---
 
