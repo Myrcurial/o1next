@@ -403,12 +403,18 @@ Two things this pass adds that no existing doc had:
    caveats above are the ones to carry into any other Osborne source assembled
    this way.
 
-   **ROM 1.3 is not the follow-on.** It was the natural next step for the
-   *toolchain* — the gap fill, the terminator and the CRLF handling all carry
-   over — but the project has no use for a 1.3 ROM: we build from the 1.44
-   source, which is in-repo and now proven. Reconstructing 1.3 to fill MAME's
-   `NO_DUMP` placeholder is filed as a side quest, **#205**, and nothing here
-   depends on it.
+   **ROM 1.3 was the natural next step for the *toolchain*, and it is now
+   done as far as the toolchain allows — see [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md)
+   and #205.** The source disk reads (it is an 8-inch 77-track FM/MFM disk
+   with CP/M skew 3, which [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/o1imd8.py) handles), the 1.3 source
+   is extracted to [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/ROM-13-source/), and the gap fill, the
+   terminator and the CRLF handling all carried over. What did **not** carry
+   over is the assembler: the 1.3 source uses `DBE`/`DCE`, which only ACT
+   **3.5E** has, and the archive holds 3.0/3.2. The bytes those pseudo-ops emit
+   are recovered from the shipped rev-B ROM on `OCCROM.IMD` and a 1.3 image can
+   be built with a mechanical rewrite, but it is not certified. The project
+   still has no use for a 1.3 ROM — we build from the 1.44 source — so this
+   remains upstream's gain and nothing here depends on it.
 2. **Does the 1.44 ROM's CBIOS match the 1.41 source?** The CBIOS is
    disk-loaded, so extract it from a shipped system disk (`OS1SYSD.IMD` /
    `OS1SYSS.IMD`) and diff it against the 1.41 build.

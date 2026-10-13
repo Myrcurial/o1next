@@ -41,11 +41,21 @@ WHY THIS EXISTS
 
 USAGE
     acthex.py IN.hex OUT.bin [--fill 00] [--size 4096] [--reference ROM]
-                             [--recover-ff]
+                             [--recover-ff] [--merge OTHER.hex ...]
 
     --reference compares the built image against a known-good ROM: CRC32s, the
     differing offsets and their bytes. Exits 1 if they differ, so the shell
     pipeline can gate on it.
+
+    --merge takes further runs of the *same* build and fills in records the
+    first one lacks.  It exists for a second, unrelated failure: the MAME
+    emulation writes the guest's hex file back to the floppy image
+    incompletely, damaging a handful of records per build
+    (docs/rom-13-reconstruction.md 7).  As measured, that damage is identical
+    between runs, so a merge does not currently rescue anything -- the option
+    is here because it costs only time and is the fix if the damage ever moves.
+    A record two runs disagree about is reported, not silently resolved, so a
+    merge cannot hide a real difference.
 """
 import argparse
 import binascii
@@ -93,7 +103,20 @@ def recover_ff(line, size):
     return addr, count
 
 
-def build(path, size, fill, recover=False):
+def record_map(path, size):
+    """{addr: data} for every record in `path` that validates."""
+    out = {}
+    for _, _, b in read_records(path):
+        if b is None or len(b) < 5 or b[3] != 0:
+            continue
+        count, addr = b[0], (b[1] << 8) | b[2]
+        if len(b) != 5 + count or (sum(b) & 0xFF) != 0:
+            continue
+        out[addr] = b[4:4 + count]
+    return out
+
+
+def build(path, size, fill, recover=False, merge=()):
     img = bytearray([fill]) * size
     covered = set()
     records = malformed = badsum = recovered = 0
@@ -144,6 +167,26 @@ def build(path, size, fill, recover=False):
     print(f"acthex.py: {records} records, {len(covered)}/{size} bytes covered, "
           f"{malformed} malformed ({recovered} recovered), "
           f"{badsum} bad checksum", file=sys.stderr)
+    # Merge further runs of the same build.  MAME's floppy write-back loses or
+    # corrupts a handful of records per run, and it does so *differently* each
+    # time -- see docs/rom-13-reconstruction.md 7 -- so the union of a few runs
+    # covers what one run cannot.  A record that two runs disagree about is
+    # reported rather than silently resolved.
+    for extra in merge:
+        added = 0
+        for addr, data in record_map(extra, size).items():
+            if all(addr + i in covered for i in range(len(data))):
+                got = bytes(img[addr:addr + len(data)])
+                if got != data:
+                    print(f"acthex.py: {extra}: record at {addr:04x} disagrees "
+                          f"with the first run ({got.hex()} vs {data.hex()})",
+                          file=sys.stderr)
+                continue
+            img[addr:addr + len(data)] = data
+            covered.update(range(addr, addr + len(data)))
+            added += 1
+        print(f"acthex.py: {extra}: {added} additional records merged "
+              f"({len(covered)}/{size} bytes covered)", file=sys.stderr)
     return bytes(img)
 
 
@@ -158,9 +201,13 @@ def main():
     ap.add_argument("--recover-ff", action="store_true",
                     help="recover a damaged record as FF when its own checksum "
                          "agrees (see the docstring)")
+    ap.add_argument("--merge", action="append", default=[], metavar="HEX",
+                    help="another run's hex file; records it holds that the "
+                         "first does not are merged in (repeatable).  For the "
+                         "flaky MAME write-back -- see the docstring.")
     a = ap.parse_args()
 
-    img = build(a.hexfile, a.size, int(a.fill, 16), a.recover_ff)
+    img = build(a.hexfile, a.size, int(a.fill, 16), a.recover_ff, a.merge)
     open(a.out, "wb").write(img)
     print(f"acthex.py: wrote {a.out} ({len(img)} bytes, fill {a.fill})")
     print(f"acthex.py: CRC32 {binascii.crc32(img):08x}")
