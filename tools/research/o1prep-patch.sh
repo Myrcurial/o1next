@@ -56,13 +56,41 @@ mkdir -p "$OUT"
 # md10patch.py rewrites it through the image's skew table so the patch lands on
 # the file's own bytes and not on a physical sector.
 #
-#   PREP.COM +0x0EE4   CD 9F 31   CALL sub_319fh     -- the "1\r\n\n" echo
-#                  ->  C3 BA 12   JP   12BAh         -- the Disk initialization menu
+#   PREP.COM +0x0EE4   CD 9F 31   CALL sub_319fh   -- the "1\r\n\n" echo, 3 bytes
+#                      and the string "1\r\n\n\0" that follows it, 5 more
+#                  ->  CD A8 19   CALL sub_19a8h   -- probe, drive address, and
+#                                                 --   the card's select byte
+#                      C3 00 12   JP   1200h       -- the label build + header write
+#                      00 00        padding
 #
-# 12BAh is the menu's entry: it parks its own address in 320Ah (so a sub-menu
-# returns to it) and prints the menu.  Main-menu option 1 jumps here from 0335h,
-# so this replaces the first instruction of its handler and nothing else.
-PATCHES="PREP.COM 0x0EE4:c3ba12"
+# Two things about that landing point, both measured (docs/osborne1ng-machine.md 6):
+#
+#   * It has to be **1200h**, not the Disk initialization menu.  The menu path
+#     never builds the label, so the partition table at 36FE is left
+#     uninitialised -- not the FFh terminator the walker at 23E6 stops on -- and
+#     "Initializing all partitions..." walks off the end of memory for ever,
+#     writing E5h with a block count derived from garbage.  Landing on 1200h
+#     builds the label (which writes that FFh) *and* writes the header.
+#   * 1200h is the label build, so 11FDh -- "Formatting disk (first pass)..." and
+#     the verify loop MAME cannot finish -- is skipped.  That is the whole point:
+#     the header is written without the format.
+#
+# The two bytes of the CDB's LBA high half (8014h/8015h) are left over from
+# whatever ran before, so the harness pokes them to zero before pressing 1:
+#
+#       poke 0x8014 00
+#       poke 0x8015 00
+#
+# The archive image is never modified; the output is a new file.  This script is
+# the durable form of the work: the patched image itself is a 100 KiB derivative
+# that regenerates in under a second, so it is *not* committed (research/ is for
+# primary sources -- AGENTS.md).
+
+# The patch, as FILE:OFFSET:HEX.  OFFSET is a file offset inside the named member
+# (md10patch.py's convention: for a .COM, memory address minus 0x100), and
+# md10patch.py rewrites it through the image's skew table so the patch lands on
+# the file's own bytes and not on a physical sector.
+PATCHES="PREP.COM 0x0EE4:cda819c300120000"
 
 cp "$SRC" "$OUT/prep.img"
 # shellcheck disable=SC2086
@@ -76,19 +104,20 @@ cat > "$OUT/prep.recipe.txt" <<'EOF'
 # 1. a drive to write on (tools/research/mkdrive.py needs chdman)
 CHDMAN=/path/to/chdman tools/research/mkdrive.py --out /tmp/o1prep/hd.chd
 #
-# 2. the keys script.  main-menu 1 lands on the Disk initialization menu; the
-#    poke is the select byte the patch stepped over; 5 = Change disk label,
-#    or 1 = Format disk using present parameters (then the password
-#    "It's OK to destroy all data" and a bare RETURN for the interleave).
+# 2. the keys script.  Main-menu 1 runs the probe, asks the drive address, then
+#    builds the label and writes the header -- so it reaches "Initializing disk
+#    header... Disk initialization complete" and stops at the Disk initialization
+#    menu.  The two pokes are the CDB's LBA high half, which nothing has set.
 wait A>
 type PREP
 wait Main function
+poke 0x8014 00
+poke 0x8015 00
 key 1
-sleep 2
-poke 0x8023 01
-key 5
-sleep 2
-type MYLABEL
+sleep 1
+key cr
+sleep 8
+dump header
 #
 # 3. run it (osborne1ng is the built binary, not `mame osborne1ng`)
 cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/o1prep/prep.imd \
@@ -98,7 +127,7 @@ cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/o1prep/prep.imd \
   -autoboot_script /path/to/o1nextgen/tools/research/o1keys.lua \
   -seconds_to_run 90 -rompath /path/to/o1nextgen/tools/emulator-setup/roms
 #
-# 4. read the label back -- its text sits at offset 14 of LBA 0
+# 4. read the header back: LBA 0 is the label ('M','D' at +0, FFh at +48)
 chdman extracthd -i /tmp/o1prep/hd.chd -o /tmp/o1prep/hd.raw -f
 xxd -l 64 /tmp/o1prep/hd.raw
 EOF
@@ -108,7 +137,7 @@ echo "patched : $OUT/prep.patched.img"
 echo "for MAME: $OUT/prep.imd"
 echo "recipe  : $OUT/prep.recipe.txt"
 echo
-echo "the image differs from the archive only in the three bytes above:"
+echo "the image differs from the archive only in the bytes above:"
 python3 - "$SRC" "$OUT/prep.patched.img" <<'PY'
 import sys
 a = open(sys.argv[1], 'rb').read()

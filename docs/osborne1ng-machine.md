@@ -475,10 +475,12 @@ overlay's CDB is the six bytes at `0x8013`):
 | 2 | `0x126B` | `0A 00 00 02 02 00` | 2 | 2 | `0x32CD` | the 1 KiB partition block |
 | 3 | `0x1282` | `0A 00 00 00 01 00` | 0 | 1 | `0x36CE` | **the disk label** |
 
-So the header is four 512-byte blocks at **LBA 0–3**, and the recognisability
-check that runs *before* `PREP.COM` offers to format reads it back — `READ`
-(`08`), LBA 2, into `0x32CD` (`0x0FF4`–`0x1003`); on failure it prints *"Disk has
-unrecognizable format (or none)"*.
+So the header is four 512-byte blocks at **LBA 0–3**.
+
+There are two checks in that path, and only one of them decides "recognisable".
+`0x0FF4` — `READ` of LBA 2 into `0x32CD` — only has to *succeed*; its result is
+never looked at. The check that prints *"Disk has unrecognizable format (or
+none)"* is at `0x1B37`, and it is read out below.
 
 The CDB is six bytes at the overlay's `0x8013`: **opcode, byte 1, byte 2, LBA
 low, block count, control**. `0x8016` is the LBA's low byte and `0x8017` the
@@ -520,6 +522,41 @@ the same 1 KiB work area; the only other reference to it is the write itself, an
 the tail `0x3A47`–`0x3ACD` is zeroed by the same routine (`0x1200`). Its fields
 are not read anywhere in the archive, so nothing is claimed for them here.
 
+### What "recognisable" actually means
+
+`0x1B37`, read out and then measured against three drives:
+
+```
+1b37  ld hl,03ACEh / ld a,025h / call 08028h   ; READ CAPACITY
+1b3f  jr nz,l1BA7h                             ; no answer -> unrecognizable
+1b41  ld hl,(03AD4h) / ld bc,0002h / sbc hl,bc
+1b49  jr nz,l1BA7h                             ; block size != 512 -> unrecognizable
+1b4b  ld a,002h / ld (08017h),a                ; 2 blocks ...
+1b50  ld hl,036CEh / ld a,008h / call 08030h   ; ... READ of LBA 0 into the label
+1b58  jr nz,l1BA7h                             ; no answer -> unrecognizable
+1b5a  ld hl,(036CEh) / ld bc,0444Dh / sbc hl,bc
+1b62  jr nz,l1BA7h                             ; label[0:2] != "MD" -> unrecognizable
+1b64  ld a,(036EAh) / cp 020h / ret c          ; label[+28] < 20h -> OK
+```
+
+`(03AD4h)` is the low half of the 4-byte big-endian block size the controller
+returns, so `block size / 256 == 2` is just "512-byte blocks". `0444Dh` is `M`,`D`
+little-endian.
+
+Measured, by building drives and asking the **unpatched** `PREP.COM`:
+
+| drive | LBA 0 | LBA 2–3 | verdict |
+|---|---|---|---|
+| PREP's own header | the label | zeros | **recognisable** |
+| LBA 0 = PREP's label, everything else the `6C` fill | the label | `6C` | **recognisable** |
+| LBA 0 = `6C` fill, LBA 2–3 = zeros | `6C` | zeros | *unrecognizable* |
+
+So **LBA 0 is the only sector that matters**, and what matters in it is `M`,`D` at
+`+0` (with `+28 < 20h`). `tools/research/mkdrive.py --label TEXT` writes exactly
+that — which is what turns a built drive into one `PREP.COM` will initialise
+rather than reject, and it is the precondition the handoff's step 2 was waiting
+on.
+
 ### Confirmed on the drive, not only in the listing
 
 The card's **select byte is a run-time variable**, and that is the trap. The
@@ -543,6 +580,10 @@ label comes straight back out of the CHD:
 
 — the text at `+14`, NUL-padded, exactly as the listing says.
 
+That test used the *menu* landing point, which writes LBA 0 alone. The label
+build at `0x1200` writes all four blocks, and its output is in *What that leaves*
+below.
+
 The **format is not a no-op either.** The menu's format-only option runs the
 whole flow — password (`It's OK to destroy all data`, compared at `0x1528`),
 interleave, `FORMAT`, then *"Initializing all partitions..."* — and writes `E5h`
@@ -553,17 +594,19 @@ program's own doing and not the controller's.
 ### The recipe, so it reproduces
 
 ```sh
-# 1. build the patched disk.  One 3-byte jump -- PREP.COM's main-menu option 1
-#    (0x0FE4: CALL sub_319fh) becomes JP 12BAh, the Disk initialization menu --
-#    applied to a copy of the archived 2.01 image and wrapped for MAME.
+# 1. build the patched disk.  One 8-byte patch over PREP.COM's main-menu option 1
+#    handler and the echo string behind it: CALL sub_19a8h (the probe, the drive
+#    address prompt, and the card's select byte) then JP 1200h -- the label build
+#    and the header write, with the format/verify in front of it skipped.
 tools/research/o1prep-patch.sh /tmp/o1prep
 
 # 2. a drive to write on
 CHDMAN=/path/to/chdman tools/research/mkdrive.py --out /tmp/o1prep/hd.chd
 
-# 3. run it: main-menu 1 lands on the Disk initialization menu; set the select
-#    byte the patch stepped over; then 5 = Change disk label (or 1 = format)
-printf 'wait A>\ntype PREP\nwait Main function\nkey 1\nsleep 2\npoke 0x8023 01\nkey 5\nsleep 2\ntype MYLABEL\n' > /tmp/o1prep/keys.txt
+# 3. run it: main-menu 1 runs the probe, asks the drive address, then writes the
+#    header and stops at the Disk initialization menu.  The pokes are the CDB's
+#    LBA high half, which nothing has set by then.
+printf 'wait A>\ntype PREP\nwait Main function\npoke 0x8014 00\npoke 0x8015 00\nkey 1\nsleep 1\nkey cr\nsleep 8\ndump header\n' > /tmp/o1prep/keys.txt
 cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/o1prep/prep.imd \
   O1_KEYS="$(cat /tmp/o1prep/keys.txt)" SDL_VIDEODRIVER=dummy \
   /path/to/osborne1ng osborne1ng -flop1 /tmp/o1prep/prep.imd -hard /tmp/o1prep/hd.chd \
@@ -571,15 +614,30 @@ cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/o1prep/prep.imd \
   -autoboot_script /path/to/o1nextgen/tools/research/o1keys.lua \
   -seconds_to_run 90 -rompath /path/to/o1nextgen/tools/emulator-setup/roms
 
-# 4. read it back
+# 4. read the header back: LBA 0 is the label ('M','D' at +0, FFh at +48)
 chdman extracthd -i /tmp/o1prep/hd.chd -o /tmp/o1prep/hd.raw -f
-xxd -l 64 /tmp/o1prep/hd.raw     # the label text sits at offset 14
+xxd -l 64 /tmp/o1prep/hd.raw
 ```
 
+The screen at step 3 reads *"Initializing disk header... Disk initialization
+complete"* and then the Disk initialization menu. Two traps in getting there:
+
+1. **Landing on the menu is not enough, and that was the first cut of this.**
+   The menu path never builds the label, so the partition table at `0x36FE` is
+   left uninitialised — not the `FFh` terminator the walker at `0x23E6` stops on
+   — and *"Initializing all partitions..."* walks off the end of memory for ever,
+   writing `E5h` with a block count derived from garbage (measured: `E5h` over
+   LBA `0`–`3369`, twice, on fresh drives). It looks exactly like a card or
+   emulator failure and is neither: it is the harness skipping an initialiser.
+2. **Do not read guest memory from a `frame_done` callback.** A sampler that
+   polled `0x8013`/`0x8314` every 30 frames segfaulted MAME's Lua layer within
+   seconds, twice. `o1keys.lua`'s `peek` directive is fine — it reads *between*
+   directives, when the guest is idle — but a per-frame read is not.
+
 `o1prep-patch.sh` also writes `/tmp/o1prep/prep.recipe.txt` with the same steps,
-and prints the three bytes it changed — the patched image is a 100 KiB derivative
-that regenerates in under a second, so it is not committed (`research/` is for
-primary sources).
+and prints the bytes it changed — the patched image is a 100 KiB derivative that
+regenerates in under a second, so it is not committed (`research/` is for primary
+sources).
 
 The path to `osborne1ng` is the built binary, not `mame osborne1ng` (the machine
 is not in a stock MAME's driver list). `-nothrottle` keeps the run to seconds, and
@@ -589,10 +647,37 @@ The format path adds `key 1` after the poke and then the password
 
 ### What that leaves
 
-The header is a known quantity now, and `mkdrive.py` can be handed it. What still
-stops a boot is upstream of the header: the partition initialiser does not
-complete under MAME (`2Ah`), and the verify pass (`2F`) still has no handler.
-Both are `#179`'s ACB-4000 target — not the card, and not `mkdrive.py`.
+**The header is now *written*, not just read.** `PREP.COM` runs its own label build
+and header write to completion on the emulated card — *"Initializing disk header…
+Disk initialization complete"* — and the drive comes out carrying it:
+
+```
+LBA 0  4d 44 00 00 00 00 00 6c 6c 6c 6c 6c 6c 6c 00 6c   MD.....lllllll.l
+       ...                                          ff   ...  FFh at +30h
+LBA 1  6c 6c ...                                          the 6Ch fill
+LBA 2  00 00 ...  LBA 3  00 00 ...                        zeros
+```
+
+and a drive carrying that header is accepted by the **unpatched** `PREP.COM` —
+which is the precondition the handoff's step 2 was waiting on.
+`mkdrive.py --label TEXT` builds one.
+
+Note what the label's bytes *are*: `M`,`D`, the fields the build sets, and
+elsewhere the `6C` fill and zeros that happened to be in RAM. **`PREP.COM` does
+not zero the label before building it**, so its own labels differ run to run —
+which is the other reason the check can only be looking at `M`,`D` and a
+threshold, and not at a checksum or a magic block.
+
+What is still not reached is `peek 0x055E` / `0x056E`, and the reason has not
+changed: it needs an MD-10 *system* on the drive, not just a header. The two
+things that stop `PREP.COM` putting one there belong to `#179`:
+
+- the verify pass (`2F`) has no handler, so "Format and verify" cannot finish; and
+- the partition initialiser (`2Ah`, `WRITE EXTENDED`, `E5h` as its fill) needs the
+  label built first — now understood, and it is what the patch does.
+
+So the card and the disk header are both done. The controller personality is the
+next thing, and it is a firmware deliverable rather than more archaeology.
 
 ## 7. Open questions this leaves
 
