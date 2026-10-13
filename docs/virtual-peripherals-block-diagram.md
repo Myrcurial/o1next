@@ -14,12 +14,12 @@ drive) every bus cycle.
 flowchart TB
     subgraph MB["Osborne 1 mainboard"]
         ZSKT["40-pin Z80 socket<br/>(A0-A15, D0-D7,<br/>MREQ/IORQ/RD/WR/M1,<br/>RFSH, HALT, INT, NMI, RESET, CLK)"]
-        ROM["4KB BIOS ROM<br/>0000-0FFF"]
+        ROMSKT["Main ROM socket<br/>UD11, 24-pin<br/>(4KB BIOS at 0000-0FFF)"]
         RAM["64KB DRAM<br/>(banked)"]
         VRAM["Video RAM<br/>F000-FFFF window"]
         IO["Onboard I/O<br/>(FDC, PIO, SIO, KBD)"]
         CG["Char-gen ROM socket<br/>UA15, 24-pin<br/>(font data + scan lines)"]
-        ZSKT --- ROM & RAM & VRAM & IO
+        ZSKT --- ROMSKT & RAM & VRAM & IO
     end
 
     subgraph INTP["RP2350 Interposer (in Z80 socket)"]
@@ -36,14 +36,30 @@ flowchart TB
     end
 
     ZSKT <-."A/D/MREQ/IORQ/RD/WR<br/>tapped + can be driven".-> BUF
+    ROMSKT <-."main ROM socket tap<br/>(A12/A13 + bank latch, #83)".-> BUF
     CG <-."char-gen socket tap<br/>(ScreenPac-style, #24)".-> VID
 ```
 
-**Second tap point (#24):** like the ScreenPac, the interposer taps the
-Z80 socket **and** the character-generator ROM socket (UA15, 24-pin). The
-Z80 tap gives it every bus cycle (including all video-RAM writes); the
-char-gen tap captures the font. Together they feed the HDMI video-output
-personality described in §5.
+**Tap points: three.** The interposer sits in the Z80 socket, so it already has
+the bus; the other two are socket lead-sets, and between them they supply the two
+things the bus cannot.
+
+| Tap | Socket | Gives | Serves |
+|---|---|---|---|
+| bus | Z80, 40-pin | every cycle, including all video-RAM writes | all personalities |
+| **ROM** *(added 2026-10-13)* | **main ROM, UD11, 24-pin** | `A12`/`A13` and a bank-latch strobe — the lines a 24-pin 2732 socket does not carry | **ROM 2.00 (#83)**, one image, any OEM-faithful mainboard |
+| font | char-gen, UA15, 24-pin | the font, read-only | the HDMI video personality (§5), #44 |
+
+The ROM tap is what makes a banked ROM possible at all: a part in the 24-pin
+socket can never be more than 4 KB on its own, because the socket has no `A12`,
+no `A13` and no write strobe. With the tap, the interposer can either serve the
+ROM 2.00 image from its own flash or drive a 27128 in the socket. The SFF board
+grafts the same decode in, so it runs the same image with no interposer.
+
+**One host to design for.** An existing **OEM board + interposer** is equivalent to
+an **LFF board + interposer**, because the LFF board is a faithful recreation of
+*just* the OEM board with the Dual Density upgrade built in. Nothing in this
+document needs a separate LFF case.
 
 **Level shifting note (#11):** the host Z80A is NMOS (confirmed, date
 8408). NMOS outputs are TTL-ish; NMOS inputs have ~2.0–2.4 V high
@@ -56,6 +72,14 @@ for margin across all three target machines.
 The O1 banks ROM, RAM, and video in a 64KB space. The interposer claims
 a small decode window by **snooping MREQ and either passing through or
 overriding** the onboard response.
+
+**The ROM window is claimable too, and that is new.** With the main-ROM socket
+tap (§1) the interposer holds the ROM window's `A12`/`A13` and a bank-latch
+strobe, so **`1000–1FFF` becomes a 4 KB banked window** the interposer can fill —
+which is how ROM 2.00 (#83) fits 11776 bytes of monitor + CCP + BDOS + CBIOS into
+a machine whose ROM window is only 8 KB. The latch is written at **`2300h`** while
+bank 2 is selected (`docs/o1-rom-2.0.md` §4.3). The 4 KB the video RAM does not
+use is not the only spare space on this machine; the ROM mirror is another.
 
 ```mermaid
 flowchart LR
