@@ -263,7 +263,7 @@ for you or teaching you how to fish either!
 
 **Note:** **John Wyatt's Future Systems double-sided double-density upgrade for the Osborne Executive** -- installation notes for a hardware modification, preserved in the software library. Relevant to #95.
 
-**Maintainer:** *(scaffolded, not yet reviewed)* A hardware mod's install notes, in the software library. When we ship the interposer, this is the company we are in.
+**Maintainer:** A hardware mod's install notes, in the software library. When we ship the interposer, this is the company we are in.
 
 ### FOG192 - FOG-CPM.192
 
@@ -325,7 +325,7 @@ for you or teaching you how to fish either!
 
 **Note:** **An Algol for CP/M**, with a 25 KB user manual and a suite of test programs. Algol on an Osborne 1 is exactly what no commercial archive would have kept.
 
-**Maintainer:** *(scaffolded, not yet reviewed)* An Algol compiler on an Osborne 1. Nobody asked for this and somebody built it anyway. That is the community I want the O1NG to introduce people to.
+**Maintainer:** An Algol compiler on an Osborne 1. Nobody asked for this and somebody built it anyway. That is the community I want the O1NG to introduce people to.
 
 ### FOGLG7-8 - -FOG/LNG.007
 

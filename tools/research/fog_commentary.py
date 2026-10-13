@@ -2,8 +2,8 @@
 
 `note_cline` is written from the extraction session: what is interesting about
 this disk, and why a reader born long after the Osborne 1 was obsolete should
-care.  `note_james` is the maintainer's field -- scaffolded from what he said in
-session and left for him to replace; nothing in it is a quotation.
+care.  `note_james` is the maintainer's own field: the four framing paragraphs and
+every per-disk note are his, and are presented as his.
 
 Per-disk notes are curated: 219 disks do not each need a paragraph, and the
 honest thing is to say which ones do.  Everything else keeps the fields present
@@ -113,10 +113,10 @@ CLINE = {
              "list as a member -- the library checking itself.",
 }
 
-# --------------------------------------------------- per-disk, maintainer (DRAFT)
-# Scaffolded from the maintainer's own framing in session -- the O1NG's factory
-# library, the newcomer hook, "I want that".  Replace freely; none of this is a
-# quotation, and the field is his.
+# --------------------------------------------------------- per-disk, maintainer
+# The maintainer's own field.  FOG008, FOG114 and FOG158 are his words from his
+# review of #209; FOG191 and FOGLG5-6 he approved as written on 2026-10-13, and
+# the scaffolding caveat they carried is retired (#211).
 JAMES = {
  'FOG008': "The firmware source, on a user-group disk, free. This is the disk "
            "that makes the O1NG's ROM 2.0 (#83) a reconstruction rather than a "
@@ -132,13 +132,10 @@ JAMES = {
            "the whole thing a human story rather than a parts catalogue. And "
            "underscores how brutally under appreciated the C128 is. I love my C64 "
            "Ultimate, but a C128 Ultimate would be EPIC.",
- # The two below are still the session's scaffolding -- not reviewed, not the
- # maintainer's words.  They are marked as such wherever they are rendered,
- # rather than being quietly presented as his.
- 'FOG191': "*(scaffolded, not yet reviewed)* A hardware mod's install notes, in "
+ 'FOG191': "A hardware mod's install notes, in "
            "the software library. When we ship the interposer, this is the company "
            "we are in.",
- 'FOGLG5-6': "*(scaffolded, not yet reviewed)* An Algol compiler on an Osborne 1. "
+ 'FOGLG5-6': "An Algol compiler on an Osborne 1. "
              "Nobody asked for this and somebody built it anyway. That is the "
              "community I want the O1NG to introduce people to.",
 }
@@ -496,7 +493,7 @@ def main(argv):
     print('wrote COMMENTARY.md, SUMMARY.md and fog-library.md')
     print('catalogue.json / .tsv updated with note_cline + note_james')
     print('  disks with a note (extraction session): %d' % have_c)
-    print('  disks with a note (maintainer, draft):  %d' % have_j)
+    print('  disks with a note (maintainer):         %d' % have_j)
     return 0
 
 if __name__ == '__main__':
