@@ -254,9 +254,19 @@ Two things this pass adds that no existing doc had:
    (CRC32 `c0596b14`).** A byte-for-byte match would prove the source *is* the
    shipped 1.44 ROM — and would validate the toolchain well enough to attempt
    **ROM 1.3** from `OSROM13.IMD`, which MAME carries as `NO_DUMP` (see
-   `docs/o1-rom-variants.md`). Blocker: the ACT 3.5e assembler named in
-   `bios141.gen` is not in the repo. It may be runnable **inside MAME** on a
-   CP/M system disk (`research/shipped-software/`), which is the cheapest route.
+   `docs/o1-rom-variants.md`).
+
+   **The blocker is narrowed, not removed.** `z80asm` is now installed
+   (`REQUIREMENTS.md`), but it does **not** accept this source as it stands: the
+   listing uses its own assembler's syntax — equates written `NAME = expr` (from
+   line 26 onward), and the macros `LK`, `STO`, `LDK`, `JZ`, `JRZ`, `CMP`, `MSG`,
+   `ECHO`, `DC`, `PROC` and the `*SET` / `*[n]` directives. Measured:
+   `z80asm -o out.bin rom144.asm` stops on the first equate and writes a
+   **0-byte** output. So the reassembly needs that layer ported to `z80asm`
+   macros first, or the original assembler — ACT 3.5e, named in `bios141.gen` —
+   obtained, which may be runnable **inside MAME** on a CP/M system disk
+   (`research/shipped-software/`). What the install *does* unblock is **writing**
+   ROM code, which is what #83's `HCBOOT` body and any ROM 2.0 build need.
 2. **Does the 1.44 ROM's CBIOS match the 1.41 source?** The CBIOS is
    disk-loaded, so extract it from a shipped system disk (`OS1SYSD.IMD` /
    `OS1SYSS.IMD`) and diff it against the 1.41 build.
