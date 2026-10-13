@@ -95,14 +95,16 @@ scratch programs, "figuring it out" notebooks/scripts.
 - **`o1prep-patch.sh`** — build a *runnable* `PREP.COM` disk for `osborne1ng`, and
   the durable record of what had to be patched to get there (#191). The disk
   header `PREP.COM` writes is built at run time, so the only way to see it is to
-  make the program write it — and the *Disk initialization* menu that can do that
-  sits behind a format the emulator cannot finish, so one 3-byte jump
-  (`PREP.COM +0x0EE4`: `CALL` → `JP 12BAh`) lands main-menu option 1 on that menu
-  directly. The archive image is never modified, the output is a new file, and the
-  script prints the three bytes that differ. It deliberately does **not** set the
-  card's select byte, because that is a run-time variable — see the `poke`
-  directive above and `docs/osborne1ng-machine.md` 6. Written as the seed of the
-  bootstrap floppy the interposer will have to ship (#138, #191).
+  make the program write it — and the format/verify in front of it cannot finish
+  under MAME, so an 8-byte patch over main-menu option 1 (`PREP.COM +0x0EE4`:
+  `CALL sub_19a8h` — the probe, the drive address, and the card's select byte —
+  then `JP 1200h`, the label build and the header write) takes it there. It has to
+  be `1200h` and **not** the Disk initialization menu: the menu path never builds
+  the label, so the partition table is left unterminated and *"Initializing all
+  partitions..."* walks off the end of memory for ever. The archive image is never
+  modified, the output is a new file, and the script prints the bytes that differ.
+  Written as the seed of the bootstrap floppy the interposer will have to ship
+  (#28, part of the interposer deliverable #136).
 - **`drivetbl.py`** — dumps the whole MD-10 drive table out of `DRIVETBL.DAT`.
   Written for #178 because `cpmfs.py get` cannot: the file's directory entry says
   128 bytes while it holds 16 512, so the table is only reachable by walking the
@@ -117,6 +119,13 @@ scratch programs, "figuring it out" notebooks/scripts.
   `PREP.COM`'s initialize loops at *"Verifying disk (first pass)..."*. Needs
   `chdman` (`REQUIREMENTS.md`). See `docs/harddisk-decision.md` 7.2 and
   `docs/osborne1ng-machine.md` 5.
+  **`--label TEXT`** writes the MD-10 disk label into LBA 0 — `M`,`D` at `+0`, the
+  text at `+14`, `FFh` at `+48` — which is what makes `PREP.COM` treat the drive
+  as its own rather than answering *"Disk has unrecognizable format (or none)"*.
+  The rule is measured: the check at `0x1B37` wants 512-byte blocks from
+  `READ CAPACITY`, a successful `READ` of LBA 0, `M`,`D` at `+0`, and `+28 < 20h`.
+  Without `--label` the drive is still a fine target for the card; it is just not
+  one `PREP.COM` will initialise (`docs/osborne1ng-machine.md` 6).
 - **`hardbios.py`** — read the MD-10 hard-disk BIOS overlay. `jump` prints the
   CP/M 2.2 BIOS jump table with every target resolved and walks `SELDSK`'s DPH
   construction; `audit` searches the whole archive for writers of the low-RAM

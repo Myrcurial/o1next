@@ -90,9 +90,61 @@ patches to get them past the parts of the machine that are not there yet.
 
 So the patches have to be *written down as patches*, and they have to be
 reproducible from the archived original. `tools/research/o1prep-patch.sh` is that:
-it changes three bytes, prints which three, and the drive its disk produces ends
-up with a label whose text sits fourteen bytes in.
+it changes a handful of bytes, prints which ones, and never touches the archive.
 
-What it does not do is finish the job. The partition initialiser still stops under
-MAME, and the verify pass still has no handler. Both of those are the controller
-personality's problem, not the card's and not the disk's — and that is next.
+## Then it wrote the header.
+
+The first version of that patch landed on the menu that *offers* to initialise a
+disk. That was the wrong door, and the way it was wrong is worth keeping.
+
+The menu path never builds the label. So the partition table — which lives in the
+tail of the label and ends in a byte of `FF` — was never terminated, and the
+routine that walks it walked off the end of memory for ever, writing `E5` with a
+block count computed from whatever it found there. It looked *exactly* like a card
+or emulator failure. It was neither. I had skipped an initialiser.
+
+Move the patch eight bytes earlier, to the label build itself, and the program
+says:
+
+> Initializing disk header... Disk initialization complete
+
+and the drive has a header on it: `M`,`D` at the start of the first block, the
+`FF` terminator at `+48`, a kilobyte of zeros where the partition table would go.
+It had been able to do that all along.
+
+## And then the question I actually wanted answered.
+
+What makes a disk *recognisable* to this program? Not what it writes — what it
+will *accept*. I had been assuming it was some structure I had to reproduce
+exactly, which is the sort of assumption that costs a week.
+
+It is three tests, and they are four instructions wide. `READ CAPACITY` has to
+answer, and report 512-byte blocks. A `READ` of the first block has to answer.
+And **the first two bytes of that block have to be `M`,`D`.**
+
+That is all. I confirmed it the way you confirm a thing you have guessed: by
+building three drives and asking the *unpatched* program about each.
+
+| the drive | what the program said |
+|---|---|
+| the header it wrote itself | fine, here is the menu |
+| only the first block filled in, rest left as `6C` | fine, here is the menu |
+| only the second and third blocks zeroed | *"Disk has unrecognizable format (or none)"* |
+
+So it is one sector, two bytes. `mkdrive.py --label` writes them, and now a drive
+we build is one the 1984 software will work with instead of refusing.
+
+I had also assumed it would be a *checksum*, or a magic block. It cannot be: the
+program does not clear the label before filling it in, so the bytes around the
+signature are whatever was left in RAM. Its own labels differ run to run. A check
+that survived that could only ever have been looking at two bytes and a
+threshold.
+
+## What is left is not the disk.
+
+The header is written and accepted. What is still missing is a *system* on the
+drive — and the two things that stop the program putting one there are the
+controller personality's: the verify pass has no handler, and the partition
+initialiser needs the label built first, which is now understood.
+
+That is firmware, not archaeology. Which is the right place for this to end up.
