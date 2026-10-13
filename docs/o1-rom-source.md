@@ -247,12 +247,18 @@ that produced it runs under MAME.
 
 | | |
 |---|---|
-| Assembler | `ACT80.COM`, SORCIM "Assembly Code Translator", **version 3.0** |
+| Assembler | `ACT80.COM` — SORCIM "Assembly Code Translator", **version 3.0**, safety copy in `research/act-assembler/` |
 | Command | `ACT80 B:ROM144 H=B:` — the vendor's own, from `tran.txt` |
 | Reported | `no ERRORs,  473 Labels`, `Program LWA = 0FFFh` |
 | Output | 11 520 bytes of Intel HEX, 255 records, `ROM144.HEX` on drive B |
 | Image | 4096 bytes, CRC32 **`c0596b14`** — the shipped ROM |
-| Reproduce | `tools/research/rom144-reassemble.sh` |
+| Reproduce | `tools/research/rom144-reassemble.sh` — the happy path, end to end |
+
+**This is the happy path, and it is now self-contained in the repository.** The
+assembler is the vendor's own, the command is the vendor's own, and both live
+here: `research/act-assembler/ACT80.COM` and `tran.txt`. No substitution, no
+porting, no search for a missing version — the toolchain that built the part is
+the toolchain that rebuilds it.
 
 ### ACT 3.0 and 3.2 — and no 3.5e
 
@@ -271,6 +277,14 @@ tree found by name, hashed and string-searched for its banner, and the tree
 searched for an ACT `.DOC` or manual — the only hit was an unrelated
 accounts-receivable file. `READ.ME` in the kit lists the 3.0 files exactly as
 the archive holds them.
+
+**3.0 is now a safety copy in this repository** — `research/act-assembler/`,
+with the kit's own `READ.ME`, `DOCOP80.ASM` (every ACT mnemonic, which is the
+file to diff against if a future source is rejected) and its `LINK` include
+files; the provenance row is in `research/README.md`, and the licence notice in
+the kit's `READ.ME` is recorded there rather than quietly dropped.
+`tools/research/rom144-reassemble.sh` now defaults to that copy, so the build no
+longer needs the local archive to be present.
 
 **The version gap turns out not to matter for this source.** 3.2 assembles
 `rom144.asm` to a **byte-identical** hex file — same `no ERRORs`, same 473

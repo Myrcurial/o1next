@@ -160,14 +160,14 @@ scratch programs, "figuring it out" notebooks/scripts.
   `docs/o1-mainboard-schematic.md` §7a, which is why the probe is the tool and
   this is the notebook. Still useful for poking at any MAME driver from Lua.
 - **`rom144-reassemble.sh`** — the whole #203 job in one script: build a CP/M
-  system disk carrying the archive's `ACT80.COM` and a second disk carrying
-  `rom144.asm`, assemble `ACT B:ROM144 H=B:` under MAME, and compare the result
-  with `research/roms/os1-144.rom`. It is mostly a record of what each step cost
-  to learn — `AUTOST.COM` must come off the system disk (it runs HELP.COM's menu
-  and ESC is unusable in the harness), the source must be normalised to CRLF, and
-  drive B needs room for 83 KB of source *and* a 12 KB hex file. Result: the
-  assembled image is identical to the shipped ROM, CRC32 `c0596b14`. See
-  `docs/o1-rom-source.md`.
+  system disk carrying the safety copy of `ACT80.COM` (`research/act-assembler/`)
+  and a second disk carrying `rom144.asm`, assemble `ACT B:ROM144 H=B:` under
+  MAME, and compare the result with `research/roms/os1-144.rom`. It is mostly a
+  record of what each step cost to learn — `AUTOST.COM` must come off the system
+  disk (it runs HELP.COM's menu and ESC is unusable in the harness), the source
+  must be normalised to CRLF, and drive B needs room for 83 KB of source *and* a
+  12 KB hex file. Result: the assembled image is identical to the shipped ROM,
+  CRC32 `c0596b14`. See `docs/o1-rom-source.md`.
 - **`acthex.py`** — the last step of that job: SORCIM ACT's `H=` output back into
   a flat ROM image. `LOAD.COM` cannot do it (an ORG-0 hex file is *"INVERTED LOAD
   ADDRESS, LOAD ADDRESS 0000"* to it), so it happens on the host. Three ACT
