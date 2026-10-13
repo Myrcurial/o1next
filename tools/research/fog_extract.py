@@ -31,6 +31,7 @@ import os
 import shutil
 import struct
 import subprocess
+import time
 import sys
 
 def crc16_arc(data):
@@ -61,6 +62,26 @@ def unar(archive, outdir):
                        capture_output=True, text=True)
     return r.returncode, (r.stdout + r.stderr).strip()
 
+def wipe(path):
+    """Remove a directory, and *verify* it is gone.
+
+    `shutil.rmtree(..., ignore_errors=True)` was here first, and it silently left
+    the tree behind on a volume where Finder keeps recreating `.DS_Store`
+    mid-delete.  unar does not overwrite on a name collision even with -f, so the
+    next run wrote `NAME 2` beside every file instead of replacing it: a doubled
+    tree that passed every check the script made, because nothing was checking
+    the thing that had actually gone wrong.  Retry a few times, then raise.
+    """
+    if not os.path.exists(path):
+        return
+    for _ in range(5):
+        shutil.rmtree(path, ignore_errors=True)
+        if not os.path.exists(path):
+            return
+        time.sleep(0.5)
+    raise RuntimeError('could not remove %s -- refusing to extract into it' % path)
+
+
 def main(argv):
     src = argv[0]
     out = os.path.join(src, 'extracted')
@@ -69,12 +90,9 @@ def main(argv):
             out = argv[i + 1]
     tmp = os.path.join(out, '.patch')
     lbrdir = os.path.join(out, 'lbr')
-    # Start clean, both of them.  unar does not overwrite on a name collision
-    # even with -f -- it writes `NAME 2` beside the original -- so a second run
-    # against a dirty directory silently doubles the tree instead of replacing
-    # it.  That is how this script first produced 423 LBRs from 219 archives.
+    # Start clean, and *prove* it.  See wipe() for why this matters.
     for d in (tmp, lbrdir):
-        shutil.rmtree(d, ignore_errors=True)
+        wipe(d)
     for d in (tmp, lbrdir, os.path.join(out, 'log')):
         os.makedirs(d, exist_ok=True)
 
