@@ -413,8 +413,9 @@ hangs:
 |---|---|
 | `A>` reached | the probe sees the banner and an `A>` prompt |
 | **No FDC access** | the harness sees **no access to `2100–2103`** from reset to the prompt — this is the "no disk access at all" of the issue title, asserted rather than implied |
-| A program runs | a `DIR` typed at the prompt returns a directory listing (proves the BDOS is live, not just the CCP banner) |
+| The BDOS is live, without a disk | a **nonsense command** typed at the prompt is echoed and answered `?`. The CCP reads the line with BDOS function 10 and prints the reply with function 9, so this exercises the CCP→BDOS path end to end — and unlike `DIR`, it does not need a disk, which is the whole point |
 | Warm boot works | a `Ctrl-C` (or a program exit) returns to `A>` **without** an FDC access |
+| *(CBIOS-ND build only)* the gate holds | `DIR A:` returns `Bdos Err on A: Select` rather than hanging in the FDC retry loop — the §5-question-4 null-DPH gate doing its job |
 
 The mechanism is the one #191 already built: `tools/emulator-setup/mame-osborne1ng/`
 is a MAME patch that adds a machine and a device, and the natural extension is a
