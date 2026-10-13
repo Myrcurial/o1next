@@ -7,12 +7,14 @@
 -- and writes adjacent -- Lua runs between CPU timeslices, so a write and the
 -- read that follows it in the same callback cannot be interleaved by the guest.
 --
---   O1NG_LOG=/tmp/o1ng.log mame osborne1ng -video none -sound none -window \
---     -nothrottle -rompath tools/emulator-setup/roms -autoboot_script o1ng-probe.lua \
---     -seconds_to_run 6
+--   SDL_VIDEODRIVER=dummy O1NG_LOG=/tmp/o1ng.log mame osborne1ng -video none \
+--     -sound none -nothrottle -rompath tools/emulator-setup/roms \
+--     -autoboot_script o1ng-probe.lua -seconds_to_run 6
 --
--- `-window` matters on the mac OSD: `-video none` picks the renderer, not the
--- window, and MAME's default is full screen (docs/mame-emulation.md section 6).
+-- `SDL_VIDEODRIVER=dummy` is what makes this headless: `-video none` picks the
+-- renderer, not the window, and MAME's default is full screen.  It works because
+-- the machine is built with the tree's default OSD (sdl3 on macOS), which needs
+-- pkg-config (REQUIREMENTS.md, docs/mame-emulation.md section 6).
 --
 -- It answers three questions, in order:
 --   1. does the mainboard's 2-bit decode still bank-switch (ports 00h-03h)?

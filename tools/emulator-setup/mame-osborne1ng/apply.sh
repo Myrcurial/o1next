@@ -77,11 +77,15 @@ if [ "$PROBE" = 1 ]; then
     [ -x "$BIN" ] || { echo "apply.sh: no $BIN -- run with --build first" >&2; exit 1; }
     echo "==> probing the decode and the card"
     # SDL_VIDEODRIVER=dummy is what makes an SDL build headless
-    # (docs/mame-emulation.md section 6); -window is what makes the mac OSD
-    # stop taking the display, and is harmless to an SDL build.
+    # (docs/mame-emulation.md section 6).  -window is only for the mac fallback
+    # above, where it is the one thing that keeps MAME off the display.
+    WINDOW_OPT=""
+    if [ "$OSD_OPT" = "OSD=mac" ]; then
+        WINDOW_OPT="-window"
+    fi
     ( cd /tmp && SDL_VIDEODRIVER=dummy O1NG_LOG=/tmp/o1ng.log "$BIN" "$SUBTARGET" \
         -rompath "$REPO/tools/emulator-setup/roms" \
-        -video none -sound none -window -nothrottle \
+        -video none -sound none $WINDOW_OPT -nothrottle \
         -autoboot_script "$HERE/o1ng-probe.lua" -seconds_to_run 6 )
 fi
 

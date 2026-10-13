@@ -89,7 +89,7 @@ The data phase needs a drive image mounted, and the slot's option is **`-hard`**
 tools/research/mkdrive.py --out /tmp/md10/hd.chd                # PYXIS13, 321/4/18
 O1NG_LOG=/tmp/o1ng-dataphase.log SDL_VIDEODRIVER=dummy mame osborne1ng \
   -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
-  -video none -sound none -window -nothrottle -seconds_to_run 6 \
+  -video none -sound none -nothrottle -seconds_to_run 6 \
   -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
 ```
 

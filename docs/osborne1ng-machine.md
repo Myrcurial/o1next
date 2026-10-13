@@ -321,13 +321,15 @@ instance's brief name):
 chdman createhd -o /tmp/md10/hd.chd -c none -chs 321,4,18 -ss 512
 O1NG_LOG=/tmp/o1ng-dataphase.log mame osborne1ng \
   -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
-  -video none -sound none -window -nothrottle -seconds_to_run 6 \
+  -video none -sound none -nothrottle -seconds_to_run 6 \
   -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
 ```
 
-`-window` is not decoration: `-video none` picks the renderer, not the window,
-and MAME's default is full screen, so a headless run without it takes the display
-(`docs/mame-emulation.md` §6).
+`SDL_VIDEODRIVER=dummy` is what makes this headless, and it works because the
+machine is built with the tree's default OSD (`sdl3` on macOS) — which needs
+`pkg-config` so MAME can find SDL3 (`REQUIREMENTS.md`). `-video none` alone is
+not enough: it picks the renderer, not the window, and MAME's default is full
+screen (`docs/mame-emulation.md` §6).
 
 `321/4/18` is `PYXIS13` — the drive-table entry `MD10.COM` offers a new drive
 (`docs/harddisk-decision.md` §7.2), and the geometry the DPB is built from:
