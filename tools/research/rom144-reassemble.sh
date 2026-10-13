@@ -28,17 +28,17 @@
 #     used as-is (it never calls os.exit()).
 #
 # ENVIRONMENT
-#   O1_ACT80    path to the archive's ACT80.COM (required unless the default
-#               archive location exists). Both the SORCIM kit and LOOSECPM/119
-#               work: 3.0 and 3.2 produce byte-identical hex for this source.
+#   O1_ACT80    path to an ACT80.COM to use instead of the safety copy in
+#               research/act-assembler/ (#203). The archive's SORCIM kit and
+#               LOOSECPM/119 both work: 3.0 and 3.2 produce byte-identical hex
+#               for this source.
 #   O1_WORK     default work directory (default /tmp/o1-rom144)
 set -eu
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 WORK="${1:-${O1_WORK:-/tmp/o1-rom144}}"
-ARCHIVE="$HOME/Documents/00-Projects/01-Osborne 1/archives/cpmarchives.classiccmp.org/cpm/Software/rlee"
-ACT80="${O1_ACT80:-$ARCHIVE/S/SORCIM/ACT Cross Assemblers/ACT80.COM}"
+ACT80="${O1_ACT80:-$REPO/research/act-assembler/ACT80.COM}"
 SRC="$REPO/research/source-code/BIOS-144-source/rom144.asm"
 SYS="$REPO/research/shipped-software/OS1SYSD.IMD"
 REF="$REPO/research/roms/os1-144.rom"

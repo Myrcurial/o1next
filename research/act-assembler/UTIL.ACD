@@ -1,0 +1,262 @@
+	IF	@ILIST = 0
+	LIST	-L,-R
+	ENDIF
+	TITLE	'UTIL.ACD - General memory utitity subroutines.'
+;UTIL.ACD - General memory utility subroutines.
+;		79/07/22 rhf.
+;		Uses @CPU definition =0 8080, =1 Z80
+;		79-11-05, phm: Change DELAY to use SCLFRE.
+;		79-11-22, phm: Fix Z80 CPYC for count = 0.
+;		79-12-17, seh: Fix CPY to correctly reverse direction
+
+
+;CDEHL	Compare DE to HL as unsigned integers.
+;	Entry	DE,HL set to values to compare
+;	Exit	Zbit set if DE = HL
+;		Cbit set if DE < HL.
+;	Uses	AF.
+CDEHL:
+	MOV	A,D
+	CMP	H
+	RNZ		;If D .ne. H
+	MOV	A,E
+	CMP	L
+	RET		;Zbit set if equal
+
+
+
+
+;CMPB	Compare Bytes
+;	Entry	HL-> 1st pattern address
+;		DE-> 2nd pattern address
+;		C = Number of bytes to compare
+;	Exit	Cbit=> no match
+CMPB:
+	LK	B,0
+CMPBC:			;Entry here if BC length
+	MOV	A,B
+	OR	C
+	RZ		;If all done
+	LD	A,[de]
+	CMP	[hl]
+	STC
+	RNZ		;If difference found
+	INC	DE
+	INC	HL
+	DEC	BC
+	JMP	CMPBC	;Continue
+
+
+
+
+;CPY	Copy bytes, general.
+;	Entry	See CPYC.
+;	Exit	depends on move direction.
+;	Uses	all.
+;	This routine handles overlapping moves correctly, by reversing
+;	the move direction when necessary.
+CPY:
+	LK	B,0
+CPYGB:
+	CALL	CDEHL	;compare DE - HL
+	RZ		;if Source = Destination
+	JC	CPYBC	;if downward move (Dest < Source)
+	ADD	HL,BC	;Lwas = Fwas + Len
+	EX	DE,HL
+	ADD	HL,BC	;Lwad = Fwad + Len
+	EX	DE,HL
+CPYG2:
+	DEC	HL
+	LD	A,[hl]
+	DEC	DE
+	STO	A,[de]
+	DEC	BC
+	MOV	A,B
+	OR	C
+	JNZ	CPYG2	;if more bytes to move
+	RET
+
+
+
+
+;CPYC	Copy counted bytes.
+;	Entry	C= byte count.
+;		DE= destination address.
+;		HL= source address.
+;	Exit	HL-> next source address.
+;		DE-> LWA+1 of destination area.
+;	Note that over-lapping moves will not work if HL < DE.
+;	Length of zero moves nothing.
+;	Distance of zero (HL = DE) is an expensive no-op.
+CPYC:	Proc
+	LK	B,0
+
+;	Enter here with BC= byte count.
+CPYBC:
+#2:
+	MOV	A,B
+	OR	C
+	RZ		;If all done
+.cpu	IF	@CPU = 0
+	LD	A,[hl]
+	STO	A,[de]
+	INC	HL
+	INC	DE
+	DEC	BC
+	JMP	#2	;loop..
+.cpu	else
+	LDIR
+	RET
+.cpu	ENDIF
+	space	4,10
+;CPYN	Copy/normalize counted bytes.
+;	Same function as CPYB(C) except normalization of
+;	characters is performed - Entry/Exit conditions
+;	ARE IDENTICAL.
+
+CPYN:	Proc
+	LK	B,0
+
+;	Enter here with BC= byte count.
+CPYNC:
+#2:
+	MOV	A,B
+	OR	C
+	RZ		;If all done
+	LD	A,[hl]
+	CMP	'A' xor @CASE
+	JC	#3		;If below wrong case
+	CMP	('Z'+1) xor @CASE
+	JNC	#3		;If already normalized
+.case	IF	@CASE = 0
+	OR	'a'-'A'		;normalize lower
+.case	else
+	AND	not ('a'-'A')	;normalize UPPER
+.case	endif
+#3:	STO	A,[de]
+	INC	HL
+	INC	DE
+	DEC	BC
+	JMP	#2	;loop..
+	RET
+	SPACE	4,10
+;CPYS	Copy delimited string.
+;	Entry	HL-> source string.
+;		DE-> destination.
+;	Exit	HL advanced-> EOS (zero byte) of source.
+;		DE advanced-> EOS stored.
+;	Uses	AF, DE.
+CPYS:
+	LD	A,[hl]
+	STO	A,[de]
+	OR	A
+	RZ		;if EOM copied
+	INC	HL
+	INC	DE
+	JMP	CPYS	;loop..
+
+
+
+
+
+;CMPS	Compare delimited strings.
+;	Entry	DE-> String 1.
+;		HL-> String 2.
+;	Exit	Cbit=> no match.
+;		DE, HL advanced until at least one of the strings
+;			is terminated.
+;		If match, DE=HL.
+;		If no match, DE<>HL.
+;	Uses	AF,DE,HL.
+CMPS:
+	LD	A,[de]
+	CMP	[hl]
+	STC
+	RNZ			;if difference found
+	OR	A
+	RZ			;if still equal at EOS
+	INC	DE
+	INC	HL
+	JMP	CMPS
+ 
+ 
+
+
+;FILLC	Fill block of memory with byte value.
+;	Entry	DE=LENGTH TO broadcast character
+;		C =character TO broadcast
+;		HL=FWA TO START broadcast
+;	EXIT	FILL DONE
+FILLZ:
+	LK	C,0	;FILL WITH ZERO
+FILLC:
+	MOV	A,D
+	OR	E
+	RZ		;IF ALL DONE
+	STO	C,[hl]
+	INC	HL
+	DEC	DE
+	JMP	FILLC	;CONTINUE
+ 
+ 
+ 
+ 
+;	DELAY 'N' MILLISECONDS
+;	Entry	A=NUMBER OF MILLISECONDS TO DELAY
+;		SCLFRE= (Freq/1000)/25
+;	Exit	Time passed.
+
+DELAY:	Proc
+	PUSH	BC
+	MOV	C,A
+#1:	LD	A,SCLFRE
+ 
+#2:	DEC	A	;(5 tics)
+	MOV	B,B	;(5 tics)
+	MOV	C,C	;(5 tics)
+	JNZ	#2	;(10 tics) If 1 ms not elapsed
+	DEC	C
+	JNZ	#1	;If requested msec not done
+	POP	BC	;restore registers
+	RET
+
+	IF	not (DEF SCLFRE)
+SCLFRE:	DB	2174/25	;(default = 8080)
+	ENDIF
+	PAGE
+;CBWA	Convert Binary word to ASCII hex.
+;	Entry	HL= 16-bit value.
+;		DE-> destination of conversion.
+;	Exit	DE advanced-> Lwa+1.
+;	Uses	AF, DE.
+CBWH:
+	MOV	A,H	;convert MSB
+	CALL	CBBH
+	MOV	A,L
+
+
+;	Entry	A= byte value
+CBBH:
+	PUSH	AF
+	RRC ! RRC ! RRC ! RRC
+	CALL	CBNH	;convert upper nibble
+	POP	AF
+
+
+;	Entry	A= 4\**, 4\value
+CBNH:
+	AND	0Fh	;isolate lower nibble
+	ADD	A,90h
+	DAA
+	ADC	A,40h
+	DAA
+	STO	A,[de]	;store converted results
+	INC	DE
+	RET
+
+
+	IF	@ILIST = 0
+	LIST	*
+	ENDIF
+;	Endx	UTIL
+
