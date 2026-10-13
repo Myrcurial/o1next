@@ -677,6 +677,17 @@ The host-adapter register protocol is read out in [`docs/acb4000-host-adapter.md
 open question #2 (the status bit map) is answered there — the driver polls `01h`,
 `02h`, `20h`, `40h`.
 
+**Correction (2026-10-13): the values *are* in the archive.** The negative
+result above searched for a writer of `0x055E` as a *low-RAM* address. It is not
+one: `0x055E` is an offset from the **BIOS's base**, and the MD-10 BIOS loads at
+`0xD800`, so the per-drive type byte table is at **`0xDD5E`**, the 24-byte
+descriptors at **`0xDD6E`** and the **DPB itself at `0xDDB6`** — all *static data
+inside the BIOS image*, readable from `HARD.COM` at file offsets `0x998`, `0x9A8`
+and `0x09F0`. `DPB+3` is `31`, which is the `BLM` this section read out of the
+*code* before the data was found. [`docs/md10-system.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/md10-system.md) §9 has the tables and the
+one field (`SPT`) that still needs explaining; §7.2's drive-table work stands.
+
+
 [`research/harddisk/OCC1_HARDDISK.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/harddisk/OCC1_HARDDISK.IMD) is a *different* controller — Australian
 Computer & Telecommunications, port `00` — i.e. the RT-60A situation again: recorded
 as incompatible in [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/occ1-harddisk-analysis.md) §3, moved past, and not part of
