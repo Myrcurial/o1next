@@ -38,6 +38,8 @@ them goes stale on every other one.
 | `mame` | `brew install mame` | `tools/check_o1_map.sh`, `tools/research/*.lua`; the ROMs are in-repo (`tools/emulator-setup/roms/`) |
 | `cpmtools` + `libdsk` | `brew install cpmtools` | `cpmls`/`cpmcp`/`mkfs.cpm`; the Drive C blob round trip |
 | `z80dasm` | `brew install z80dasm` | the disassemblies under `research/*/disasm/` |
+| `shellcheck` | `brew install shellcheck` | every shell script in `tools/`, `tools/research/` and `tools/emulator-setup/` — the shell half of the pipeline, held to the same bar as the Python half. `shellcheck -S warning tools/*.sh tools/research/*.sh tools/emulator-setup/mame-osborne1ng/apply.sh firmware/rom-ident/run_tests.sh` is the invocation; the few sites where word splitting is deliberate carry a `# shellcheck disable=` with the reason |
+| `pkg-config` | `brew install pkg-config` | the MAME **source** build's SDL OSD — it is how MAME finds `sdl3` (`/opt/homebrew/lib/pkgconfig/sdl3.pc`). Without it the build cannot find `<SDL3/SDL.h>` and the only OSD left is `OSD=mac`, which creates a window whatever `-video` says (`docs/mame-emulation.md` §6) |
 | `disk-analyse` | Disk-Utilities, built from source | IMD ↔ raw, IMD ↔ HFE |
 | `ghostscript` (`gs`) | `brew install ghostscript` | no repo script calls it; PDF inspection and rasterising |
 
@@ -60,6 +62,8 @@ them goes stale on every other one.
 
 | Tool | Used by | Notes |
 |---|---|---|
+| **MAME source tree** | `tools/emulator-setup/mame-osborne1ng/apply.sh` — the `osborne1ng` machine (#191) | `brew install mame` gives a *binary*; a machine that is not upstream needs a source tree to patch and rebuild. GNU make, a C++20 compiler (Xcode CLT) and **`pkg-config`** (so the tree's default SDL3 OSD can be found) are all it wants. The OSD is left at the tree's default — `sdl3` on macOS — so the repo's documented headless recipe applies unchanged. |
+| **`chdman`** | the same MAME source tree — *not* a separate install | the drive image the `osborne1ng` card talks to (`-hard /tmp/md10/hd.chd`, #191). `make SUBTARGET=chdman` does not work (there is no `scripts/target/mame/chdman.lua`); the tools are generated with **`TOOLS=1`** and then built on their own: `make OSD=mac TOOLS=1 SOURCES=src/mame/osborne SUBTARGET=osborne1ng` (generates `chdman.make`), then `make -C build/projects/mac/mameosborne1ng/gmake-osx-clang -j18 config=release64 chdman`. `brew install mame` also provides a `chdman` if the tree is not to hand. |
 | **SAMdisk 4** (Simon Owen) | `tools/extract_all.sh` — the TD0 → EDSK leg | cmake on macOS; decodes TeleDisk including advanced compression. **Not installed by `bootstrap.sh`** — the archive is already extracted, so this only matters if the pipeline has to be re-run. `brew install cmake`, then build from source. |
 | **disk-analyse** (Keir Fraser, Disk-Utilities) | IMD ↔ raw, IMD ↔ HFE | built from source, not in Homebrew; `bootstrap.sh` checks for it but cannot install it |
 

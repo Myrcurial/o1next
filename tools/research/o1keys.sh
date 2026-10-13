@@ -25,7 +25,10 @@ FLOP2="${3:-}"
 BUDGET="${4:-300}"
 ROMPATH="${O1_ROMPATH:-$REPO/tools/emulator-setup/roms}"
 BIOS="${O1_BIOS:-}"
-KEYS="${O1_KEYS:?set O1_KEYS to a keystroke script (see o1keys.lua)}"
+# Validated, not stored: O1_KEYS is already in the environment and is inherited by
+# MAME below, so this line's only job is to fail fast when it is unset.  (Storing
+# it in a variable that nothing reads is what SC2034 flags, and it is right.)
+: "${O1_KEYS:?set O1_KEYS to a keystroke script (see o1keys.lua)}"
 
 [ -f "$FLOP1" ] || { echo "o1keys.sh: no such image: $FLOP1" >&2; exit 1; }
 FLOP1="$(cd "$(dirname "$FLOP1")" && pwd)/$(basename "$FLOP1")"

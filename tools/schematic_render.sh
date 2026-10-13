@@ -76,6 +76,8 @@ mkdir -p "$OUTDIR"
 # 12-page PDF lands as sheet-12.png, same as a full run would.
 set -- -r "$DPI" -gray -png
 [ -n "$SHEET" ] && set -- "$@" -f "$SHEET" -l "$SHEET"
+# CROP is "X Y W H" and each is a separate argument, so the split is deliberate.
+# shellcheck disable=SC2086
 [ -n "$CROP" ] && set -- "$@" $CROP
 pdftoppm "$@" "$PDF" "$OUTDIR/sheet"
 

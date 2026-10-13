@@ -69,8 +69,13 @@ scratch programs, "figuring it out" notebooks/scripts.
   prompt, which is not enough for a program that never returns to `A>` until you
   walk its menus. Written for #178 to run `MD10.COM`. **`key esc` is not
   usable** — posting `\27` segfaults MAME's Lua layer — and `peek` is the
-  directive that made the editor's in-memory table checkable. Note
-  `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
+  directive that made the editor's in-memory table checkable. **`poke` was added
+  for #191**: patching a *file* in an image (`md10patch.py`) only reaches bytes
+  the loader copies verbatim, so a run-time variable the program computes — the
+  MD-10 host adapter's select byte at `0x8023`, say — has to be written while it
+  runs. Without it the patched flow leaves the select byte `00h`, every
+  transaction is delivered to no target, and the guest reports no error at all.
+  Note `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
 - **`acb4000.lua`** — a MAME-side *trace* of the MD-10's ACB-4000 host-adapter
   ports (`30h`–`33h`), written for #178 to watch the driver build its DPB. It
   produced the finding instead: MAME's `osborne1` decodes only two I/O address
@@ -87,10 +92,31 @@ scratch programs, "figuring it out" notebooks/scripts.
   menu — the overlay init call at `0x0219`, the probe at `0x15AF` and the branch
   at `0x0EE8` — and nothing else is touched. See
   `docs/harddisk-decision.md` 7.2.
+- **`o1prep-patch.sh`** — build a *runnable* `PREP.COM` disk for `osborne1ng`, and
+  the durable record of what had to be patched to get there (#191). The disk
+  header `PREP.COM` writes is built at run time, so the only way to see it is to
+  make the program write it — and the *Disk initialization* menu that can do that
+  sits behind a format the emulator cannot finish, so one 3-byte jump
+  (`PREP.COM +0x0EE4`: `CALL` → `JP 12BAh`) lands main-menu option 1 on that menu
+  directly. The archive image is never modified, the output is a new file, and the
+  script prints the three bytes that differ. It deliberately does **not** set the
+  card's select byte, because that is a run-time variable — see the `poke`
+  directive above and `docs/osborne1ng-machine.md` 6. Written as the seed of the
+  bootstrap floppy the interposer will have to ship (#138, #191).
 - **`drivetbl.py`** — dumps the whole MD-10 drive table out of `DRIVETBL.DAT`.
   Written for #178 because `cpmfs.py get` cannot: the file's directory entry says
   128 bytes while it holds 16 512, so the table is only reachable by walking the
   block list. Prints each entry's name, description and geometry.
+- **`mkdrive.py`** — builds a **blank but formatted** ST-506/MFM hard-disk image
+  for any geometry, byte-wise, for the `osborne1ng` card to talk to (#191). The
+  ACB-4000's `FORMAT` writes a fill pattern into every data field — `6C` hex
+  unless the command says otherwise — so that is what this writes, and the
+  geometry goes to `chdman`, whose `GDDD` metadata is the same record the
+  controller keeps in the disk's ID fields. It exists because MAME's `SCSIHD`
+  cannot finish a format (no `FORMAT UNIT`, no `SEARCH DATA EQUAL`), so
+  `PREP.COM`'s initialize loops at *"Verifying disk (first pass)..."*. Needs
+  `chdman` (`REQUIREMENTS.md`). See `docs/harddisk-decision.md` 7.2 and
+  `docs/osborne1ng-machine.md` 5.
 - **`hardbios.py`** — read the MD-10 hard-disk BIOS overlay. `jump` prints the
   CP/M 2.2 BIOS jump table with every target resolved and walks `SELDSK`'s DPH
   construction; `audit` searches the whole archive for writers of the low-RAM

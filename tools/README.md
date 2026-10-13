@@ -231,6 +231,14 @@ The ROMs duplicate `research/roms/` deliberately: `research/` is the
 provenance-tracked archive, this directory is a working rompath. If the two
 ever disagree, `docs/o1-rom-variants.md` is the tie-breaker.
 
+- `emulator-setup/mame-osborne1ng/` — the **fourth machine** (#191), as a patch
+  against a stock MAME source tree: `osborne1ng`, a clone of `osborne1` whose Z80
+  sits behind an emulated card that decodes the full 8-bit I/O address, so the
+  MD-10's ACB-4000 host adapter can answer on `30h`–`33h`. `apply.sh` patches a
+  tree, builds the `osborne` subtarget and runs `o1ng-probe.lua`; the whole
+  story is `docs/osborne1ng-machine.md`. It is *not* part of `research/` and not
+  a fork — five files, shaped to be sent upstream.
+
 Full setup, launch, disk-tool and headless-testing instructions:
 **`docs/mame-emulation.md`**.
 

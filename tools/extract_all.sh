@@ -35,4 +35,4 @@ echo "== copower88/kaypro/copwrcpm (kp2x)";  do_td0 "$ROOT/research/copower88/ka
 echo "== rtc RT-60A (osb1sssd)";             do_td0_pad "$ROOT/research/rtc/RT-60A.TD0" osb1sssd "$ROOT/research/rtc/extracted"
 echo "== drive_c (osb1sssd)";                do_imd "$ROOT/research/drive_c/DRIVE_C.IMD" osb1sssd "$ROOT/research/drive_c/extracted"
 echo "== occ1 harddisk (osb1sssd)";          do_imd "$ROOT/research/harddisk/OCC1_HARDDISK.IMD" osb1sssd "$ROOT/research/harddisk/extracted"
-echo done
+echo 'done'

@@ -33,14 +33,22 @@ CoPower-88 sets).
 
 ## 2. The three machines
 
-MAME models three Osborne 1 variants. Two are clones of the stock machine; one
-has its own ROMs:
+MAME models three Osborne 1 variants — and this project adds a fourth (below).
+Two are clones of the stock machine; one has its own ROMs:
 
 | MAME machine | Description | Year | Parent | Relationship | Display (measured) |
 |---|---|---|---|---|---|
 | `osborne1` | Osborne-1 | 1981 | — | the stock machine | 416×240 = **52 columns** |
 | `osborne1sp` | Osborne-1 with SCREEN-PAC | 1983 | `osborne1` | clone — **no ROM differences at all** | 832×240 = **104 columns** |
 | `osborne1nv` | Osborne-1 (Nuevo Video) | 1984 | `osborne1` | own BIOS **and** own character generator | 640×240 = **80 columns** |
+
+This project adds a **fourth** (`tools/emulator-setup/mame-osborne1ng/`, #191):
+`osborne1ng` is a clone of `osborne1` whose Z80 sits behind an emulated card
+that decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
+answer on ports `30h`–`33h`. It is not in MAME; it is a patch, and it runs the
+**1.44 ROM only**. Banking and video are identical to `osborne1` — measured, not
+assumed — and the presence check the MD-10 driver demands now passes. See
+`docs/osborne1ng-machine.md`.
 
 **Yes, the Nuevo machine really is 80 columns.** The display width is a property
 of the emulated *machine*, not of the disk, and it was measured by booting the
@@ -419,8 +427,20 @@ SDL_VIDEODRIVER=dummy mame MACHINE -flop1 IMAGE -video none -sound none \
 
 - `SDL_VIDEODRIVER=dummy` is **mandatory** from a pure terminal session on
   macOS; without it MAME aborts with "Could not initialize SDL".
-- `-video none -sound none` — no window, no audio. The emulated screen still
+- `-video none -sound none` — no *renderer*, no audio. The emulated screen still
   renders into VRAM, which is all a test reads.
+  - **`-video none` is not "no window"; `SDL_VIDEODRIVER=dummy` is what makes a
+    run headless, and it only works for an SDL build.** The window belongs to the
+    OSD, and MAME's default is **full screen** (`-window`: *"enable window mode;
+    otherwise, full screen mode is assumed"*). The **mac OSD** has no
+    `SDL_VIDEODRIVER` to hide behind, so a run there takes the whole display with
+    a grey window until it exits — `-window` is the only thing that stops it, and
+    `-numscreens 0` is rejected (`must be between 1 and 4`). The fix is not to add
+    `-window` everywhere: it is to build with the SDL OSD, which is the tree's
+    default on macOS, and that needs **`pkg-config`** so MAME can find `sdl3`
+    (`REQUIREMENTS.md`). A source build without pkg-config cannot find
+    `<SDL3/SDL.h>` and falls back to the mac OSD — `apply.sh` says so out loud
+    when it does. Measured on the `osborne1ng` build, 2026-10-12.
 - The screen is read straight from video RAM: base `0xF000`, **128 bytes per
   row**, 32 rows. Character codes are readable directly; the 9th (attribute) bit
   lives in a separate bank and can be ignored for text.
