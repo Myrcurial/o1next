@@ -101,8 +101,15 @@ def build_config(path):
             'clusterBkg': '#12161a', 'clusterBorder': BLUE,
             'titleColor': INK,
         },
-        'flowchart': {'curve': 'basis', 'nodeSpacing': 45, 'rankSpacing': 55,
-                      'padding': 12, 'useMaxWidth': False},
+        'flowchart': {'curve': 'basis', 'nodeSpacing': 45, 'rankSpacing': 45,
+                      'padding': 12, 'useMaxWidth': False,
+                      # Mermaid wraps labels at 200px by default, and the machine's
+                      # face is wide -- so labels broke into four or five short
+                      # lines and the diagram grew tall and thin.  Wider nodes wrap
+                      # less *and* make the image wider, which matters: the reading
+                      # column is ~624px, so a narrow image is upscaled and its
+                      # height grows with it.
+                      'wrappingWidth': 340},
     }, open(path, 'w'), indent=1)
 
 
