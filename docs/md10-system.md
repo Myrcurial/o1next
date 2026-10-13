@@ -337,6 +337,49 @@ blocks** — the trace catches `READ LBA 83`, the last block of `20 … 83` — 
 exactly the `E5h` region §3 records. So the drive and the driver *do* agree about
 drive A.
 
+### 7.1 The drive letters, and the floppy the hard disk displaced
+
+The MD-10 takes `A:`/`B:` for the hard disk, so the floppies move — and *where the
+boot floppy went* is the check that the floppy half of the relocation works, not
+just the hard-disk half. Measured at the `A0>` prompt with the 2.01 utilities disk
+in physical drive A and **nothing in drive B**:
+
+| Letter | What it is | How it answers |
+|---|---|---|
+| `A:` | the hard disk, `CP/M-A` (LBA 20) | the prompt itself |
+| `B:` | the hard disk, `CP/M-B` (LBA 11564) | `B0>` |
+| `C:` | the hard disk, the *third* descriptor — not configured on this drive | `C0>`, and no further |
+| **`D:`** | **the floppy that was drive A** | `DIRA` lists all 23 files of the 2.01 disk |
+| `E:` | the floppy in physical drive B, which is empty | `Unformatted diskette on drive B` / `Bdos Err On E: Select` |
+
+So the boot floppy is **`D:`**, not `E:`: the hard disk takes *three* letters, not
+two, because the driver's type table gives drives 0–2 the three hard-disk
+descriptors (`00 01 02`) and the floppies begin at drive 3 (`80h`, `81h`, …).
+`E:` is the *second* floppy — the one with no disk in it — which is why it is the
+letter that errors.
+
+`DIRA` is the disk's own lister (`DIR` is a transient program in CP/M 2.2, and
+this disk has no `DIR.COM`, so `DIR E:` answers `DIR?` on the hard disk and
+cannot be used for this). From `D0>` it prints exactly the archive's contents:
+
+```
+D:  0:PORTCHNG COM  0:HD04BIOS SPR  0:HD00BIOS SPR  0:DRST     COM
+D:  0:FREEDIR  COM  0:FSET     COM  0:ERQ      COM  0:DIRS     COM
+D:  0:GET      COM  0:PUT      COM  0:CNT04COD OVL  0:NS       COM
+D:  0:CNT00COD OVL  0:SUBMIT   COM  0:DRIVETBL DAT  0:DIRA     COM
+D:  0:HARDBIOS SPR  0:HARDBDOS SPR  0:HARDCCP  SPR  0:PREP     COM
+D:  0:CNTLRCOD OVL  0:AREN     COM  0:HARD     COM
+```
+
+— the 23 files `tools/cpmfs.py … ls` reports for `research/adaptec/Osborne Hard
+Disk Control Software Version 2.01 (1984).img`, name for name, and nothing extra.
+`PREP` also **runs** from `D:`, printing its own `PREP version 2.01` banner and
+main menu.
+
+That is the proof that the floppy the hard disk displaced is still fully readable
+through the MD-10's relocated floppy driver: its directory, and a 12 KB program
+loaded and executed out of it.
+
 #179's acceptance — *boots CP/M from the emulated hard disk* — is met, and so is
 #198's: the prompt appears, and it answers.
 
