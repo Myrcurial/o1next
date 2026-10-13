@@ -418,18 +418,20 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
 
 ## 5. What is not, yet
 
-1. **Nothing writes through the card, so `PREP.COM` cannot finish a format.**
-   `MODE SELECT` and `SEND DIAGNOSTIC` complete their data-out phases, but MAME's
-   `SCSIHD` drops what it is given (`t10sbc.cpp` `case
-   T10SPC_CMD_MODE_SELECT_6: break;`) and its `FORMAT UNIT` is a status-only
-   no-op. The verify pass that follows is `SEARCH DATA EQUAL` (`2F`), which
-   `t10spc`/`t10sbc` have no constant for at all — so the card answers with a
-   status phase and no data phase, the driver never sees the match it is looking
-   for, and it loops. Measured: `PREP.COM` option 1 reaches *"Verifying disk
-   (first pass)..."* and stays there for 600 emulated seconds, issuing 1 772 618
-   `2F` commands over LBA `0`–`0xFF` — walking that range and starting again.
-   The card's part of a write is exercised; the *store* is MAME's gap, not the
-   card's.
+1. **`PREP.COM` cannot finish a format — but the card writes, and the store
+   works.** Corrected in §6: a write through the card lands on the drive, and
+   `PREP.COM`'s own writes are *not* MAME no-ops (its label write and its format
+   fill both reach the CHD). What stops it is the *verify* pass that follows the
+   format: it is `SEARCH DATA EQUAL` (`2F`), which `t10spc`/`t10sbc` have no
+   constant for at all — so the target answers with a status phase and no data
+   phase, the driver never sees the match it is looking for, and it loops.
+   Measured: `PREP.COM` option 1 reaches *"Verifying disk (first pass)..."* and
+   stays there for 600 emulated seconds, issuing 1 772 618 `2F` commands over LBA
+   `0`–`0xFF` — walking that range and starting again. `MODE SELECT` and
+   `SEND DIAGNOSTIC` do complete their data-out phases, and MAME's `SCSIHD`
+   drops what `MODE SELECT` is given (`t10sbc.cpp` `case
+   T10SPC_CMD_MODE_SELECT_6: break;`) — but the format fill is the *driver's*,
+   not the controller's, so that loss does not stop a format either.
 
    So the formatted disk is built rather than formatted:
    `tools/research/mkdrive.py` writes the ACB-4000's own fill byte (`6C`) into
@@ -444,15 +446,151 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
    all zeros, so the guest NOPs to the top of memory, wraps, and the patched warm
    vector runs the loader again — the `READ LBA 5 ×11` loop, seen 4 673 times in
    one run. So the drive has to already carry an MD-10 system, and nothing in the
-   archive writes one: `PREP.COM` option 1 formats (all of its writes are MAME
-   no-ops) and option 3, *Configure operating system*, refuses a drive whose first
-   two sectors are not a format it recognises (`Disk has unrecognizable format
-   (or none)`). This is a *media* question — what the system tracks of an MD-10
-   disk contain — not a card question.
+   archive writes one: `PREP.COM` option 1 formats, and every path that would put
+   a system on the drive refuses a disk whose header is not one it recognises
+   (`Disk has unrecognizable format (or none)` — the check is a `READ` of LBA 2
+   into `0x32CD`, §6). This is a *media* question — what the system tracks of an
+   MD-10 disk contain — not a card question. §6 reads the header `PREP.COM`
+   writes out of the program and confirms it on the emulated drive.
 3. **`2Dh` — "cable connected backwards" — is not modelled.** Both overlays test
    for it; it is a wiring condition, and it is recorded rather than invented.
 
-## 6. Open questions this leaves
+## 6. The MD-10's on-disk header, read out of `PREP.COM` (#191 → #178)
+
+§5 said the drive has to already carry an MD-10 system, and that `PREP.COM`'s
+writes were MAME no-ops. The second half of that is wrong, and the structure it
+writes is now read out of the program and confirmed against the emulated drive.
+This is the handoff's step 1 for #191.
+
+### What it writes, and where
+
+`PREP.COM`'s Initialize ends in the routine at `0x1238`, whose message is
+*"Initializing disk header..."*. It issues three writes back to back, in this
+order. Addresses are memory addresses (`PREP.COM` loads at `0x0100`; the
+overlay's CDB is the six bytes at `0x8013`):
+
+| # | at | CDB (`0x8013`) | LBA | blocks | buffer | what |
+|---|---|---|---|---|---|---|
+| 1 | `0x125A` | `0A 00 00 01 01 00` | 1 | 1 | `0x38CE` | the block after the label |
+| 2 | `0x126B` | `0A 00 00 02 02 00` | 2 | 2 | `0x32CD` | the 1 KiB partition block |
+| 3 | `0x1282` | `0A 00 00 00 01 00` | 0 | 1 | `0x36CE` | **the disk label** |
+
+So the header is four 512-byte blocks at **LBA 0–3**, and the recognisability
+check that runs *before* `PREP.COM` offers to format reads it back — `READ`
+(`08`), LBA 2, into `0x32CD` (`0x0FF4`–`0x1003`); on failure it prints *"Disk has
+unrecognizable format (or none)"*.
+
+The CDB is six bytes at the overlay's `0x8013`: **opcode, byte 1, byte 2, LBA
+low, block count, control**. `0x8016` is the LBA's low byte and `0x8017` the
+block count, which is why the three writes are `LD HL,0101h` / `0202h` / `0100h`
+straight into `0x8016` (`0x125D`, `0x126E`, `0x1285`). The commands this driver
+uses are `READ` `08`, `WRITE` `0A`, `FORMAT` `04`, `MODE SELECT` `15` and
+`WRITE EXTENDED` `2A` — and for `FORMAT` the same two bytes are reused:
+byte 1 (`0x8014`) gets `1Eh` OR'd in (the "unique fill byte" flag) and byte 2
+(`0x8015`) is the fill (`6Ch` at `0x167C`, `D9h` at `0x15C6`), while byte 4 is
+the interleave the operator was asked for (`0x1676`).
+
+### The label, field by field
+
+The label is built at `0x36CE` (512 bytes; `0x1200`–`0x1238`) and its tail is a
+partition table:
+
+| offset | set at | what |
+|---|---|---|
+| `+0` | `0x120D` | `M`,`D` — the signature |
+| `+6` | `0x1213` | zero |
+| `+14` | `0x1468` | the label text, up to 11 characters, NUL-padded |
+| `+25` | `0x121A` | zero |
+| `+26` | `0x1063`, `0x168D` | a word the format uses (`× 8` → the FORMAT CDB's block address) |
+| `+27` | `0x1599`, `0x1676` | the interleave, straight into the FORMAT CDB's byte 4 |
+| `+28` | `0x1221` | zero |
+| `+29`–`+38` | `0x1227` | ten bytes copied from `0x4332` |
+| `+39` | `0x122F` | zero |
+| `+40`–`+47` | `0x1231` | eight zero bytes |
+| `+48` | `0x121E` | `FFh` — the end marker of the partition table |
+| `+48`… | | N × **28-byte partition records**, walked by `0x23E6` (`ADD IX,1Ch`, stopping on a record whose first byte is `FFh`) |
+
+The 28-byte record is also the program's scratch unit: `0x4332` is one record and
+`0x434E` the next (`0x4332 + 0x1C`), and the password buffer *is* that second
+record borrowed (`0x14E1`). The label text and that scratch record share a
+11-byte field — `0x0C53` block-copies eleven bytes from `0x4332` to `0x433D`.
+
+The block written to LBA 1 (`0x38CE`) is the 512 bytes that follow the label in
+the same 1 KiB work area; the only other reference to it is the write itself, and
+the tail `0x3A47`–`0x3ACD` is zeroed by the same routine (`0x1200`). Its fields
+are not read anywhere in the archive, so nothing is claimed for them here.
+
+### Confirmed on the drive, not only in the listing
+
+The card's **select byte is a run-time variable**, and that is the trap. The
+overlay reads `0x8023` before every transaction (`0x8042`) and the program sets
+it in the controller/drive-address path (`0x1A85`). Patch past that path — as the
+first cut of this test did — and it stays `00h`, which is not a one-of-eight ID
+mask: **every transaction is accepted by the card and delivered to no target.**
+The program runs on, reports no error, and the drive is untouched. That is what
+the previous session's runs were doing, and it is why they concluded the writes
+were no-ops.
+
+With it set (`poke 0x8023 01` — now a directive in `tools/research/o1keys.lua`)
+and `PREP.COM` patched at `0x0FE4` to enter the *Disk initialization* menu
+directly, the menu's **Change disk label** writes 512 bytes to LBA 0 and the
+label comes straight back out of the CHD:
+
+```
+0000  00 00 00 00 00 00 00 00 00 00 00 00 00 00 54 45   ..............TE
+0010  53 54 4c 41 42 45 4c 00 00 00 00 00 00 00 00 00   STLABEL.........
+```
+
+— the text at `+14`, NUL-padded, exactly as the listing says.
+
+The **format is not a no-op either.** The menu's format-only option runs the
+whole flow — password (`It's OK to destroy all data`, compared at `0x1528`),
+interleave, `FORMAT`, then *"Initializing all partitions..."* — and writes `E5h`
+(CP/M's empty record) over LBA `0`–`3369` before stopping with a `WRITE
+EXTENDED` (`2Ah`) outstanding. Reproduced twice on fresh drives, so it is the
+program's own doing and not the controller's.
+
+### The recipe, so it reproduces
+
+```sh
+# 1. patch PREP.COM's main-menu option 1 to enter the Disk initialization menu
+#    directly (0x0FE4: CALL sub_319fh -> JP 12BAh), then wrap it for MAME
+cp 'research/adaptec/Osborne Hard Disk Control Software Version 2.01 (1984).img' /tmp/prep.img
+tools/research/md10patch.py /tmp/prep.img /tmp/prep-patched.img PREP.COM 0x0EE4:c3ba12
+tools/research/o1raw2imd.py /tmp/prep-patched.img /tmp/prep-patched.imd
+
+# 2. a drive to write on
+CHDMAN=/path/to/chdman tools/research/mkdrive.py --out /tmp/md10/hd.chd
+
+# 3. run it: main-menu 1 lands on the Disk initialization menu; set the select
+#    byte the patch stepped over; then 5 = Change disk label (or 1 = format)
+printf 'wait A>\ntype PREP\nwait Main function\nkey 1\nsleep 2\npoke 0x8023 01\nkey 5\nsleep 2\ntype MYLABEL\n' > /tmp/keys.txt
+cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/prep-patched.imd \
+  O1_KEYS="$(cat /tmp/keys.txt)" SDL_VIDEODRIVER=dummy \
+  /path/to/osborne1ng osborne1ng -flop1 /tmp/prep-patched.imd -hard /tmp/md10/hd.chd \
+  -video none -sound none -nothrottle \
+  -autoboot_script "$OLDPWD/tools/research/o1keys.lua" \
+  -seconds_to_run 90 -rompath "$OLDPWD/tools/emulator-setup/roms"
+
+# 4. read it back
+chdman extracthd -i /tmp/md10/hd.chd -o /tmp/hd.raw -f
+xxd -l 64 /tmp/hd.raw        # the label text sits at offset 14
+```
+
+The path to `osborne1ng` is the built binary, not `mame osborne1ng` (the machine
+is not in a stock MAME's driver list). `-nothrottle` keeps the run to seconds, and
+`SDL_VIDEODRIVER=dummy` is what makes it headless — `docs/mame-emulation.md` §6.
+The format path adds `key 1` after the poke and then the password
+`It's OK to destroy all data` followed by a bare RETURN for the interleave.
+
+### What that leaves
+
+The header is a known quantity now, and `mkdrive.py` can be handed it. What still
+stops a boot is upstream of the header: the partition initialiser does not
+complete under MAME (`2Ah`), and the verify pass (`2F`) still has no handler.
+Both are `#179`'s ACB-4000 target — not the card, and not `mkdrive.py`.
+
+## 7. Open questions this leaves
 
 - **The `base+2` register's full bit map.** Bit 2 is the controller field and
   bits 0/1/5/6 are the card's handshake, which is what the two overlays and the

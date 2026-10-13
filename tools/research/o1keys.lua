@@ -19,6 +19,7 @@
 --     dump  <tag>       print the screen
 --     shot  <path>      write a PNG of the screen
 --     peek  <addr> <n>  print n bytes of guest memory from addr (hex or dec)
+--     poke  <addr> <hh>...  write bytes to guest memory (hex, space-separated)
 --   Lines starting with # and blank lines are ignored.
 --
 -- ENVIRONMENT
@@ -130,6 +131,20 @@ for line in KEYS:gmatch("[^\n]+") do
       local b = {}
       for i = 0, n - 1 do b[#b + 1] = string.format("%02x", space:read_u8(a + i)) end
       print(string.format("PEEK %04x (%d): %s", a, n, table.concat(b, " ")))
+    elseif verb == "poke" then
+      -- Patching a *file* inside an image (md10patch.py) only reaches bytes the
+      -- loader copies verbatim; a run-time variable -- e.g. the MD-10 host
+      -- adapter's select byte at 0x8023, which the overlay reads before every
+      -- transaction -- is set by the program and has to be written while it
+      -- runs.  This is that lever; see docs/osborne1ng-machine.md.
+      local a, rest = arg:match("^(%S+)%s+(.*)$")
+      a = tonumber(a)
+      local b = {}
+      for hex in rest:gmatch("%S+") do
+        b[#b + 1] = string.format("%02x", tonumber(hex, 16))
+        space:write_u8(a + #b - 1, tonumber(hex, 16))
+      end
+      print(string.format("POKE %04x: %s", a, table.concat(b, " ")))
     end
   end
 end

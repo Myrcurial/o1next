@@ -463,8 +463,14 @@ specified in the format command" (`research/adaptec/acb4000/…Users_Manual_Oct8
 §4.4.5 and the FORMAT command reference) — and passes the geometry to `chdman`,
 whose `GDDD` metadata is the same record the controller keeps in the disk's ID
 fields. `PREP.COM` asks for a *unique* fill byte and sends `D9` in its FORMAT
-CDB, so `--fill d9` exists too. It is needed because MAME's `SCSIHD` cannot
-finish a format (`docs/osborne1ng-machine.md` §5).
+CDB, so `--fill d9` exists too. It is needed because `PREP.COM` cannot finish its
+own format under MAME — the verify pass that follows it (`2F`) has no handler
+(`docs/osborne1ng-machine.md` §5).
+
+The drive's *own* structure — what `PREP.COM` writes once it has finished a
+format — is no longer an unknown: it is the four-block header at LBA 0–3 read
+out of the program, with the disk label and its 28-byte partition records at
+LBA 0. `docs/osborne1ng-machine.md` §6 has the field map and the recipe.
 
 #### Running the editor
 
@@ -656,7 +662,11 @@ do the arithmetic" — and this repo has already done that once:
    tables outright.  *Also bounded: a stock O1 system image loads `[CCP][BDOS][BIOS]`
    at the CCP, far above `0x055E`, so this too depends on the MD-10's memory map
    being unlike the stock one — which its own `BOOT` suggests it is. See
-   `docs/acb4000-host-adapter.md` §3–§4.*
+   `docs/acb4000-host-adapter.md` §3–§4.* **Its first half is now answered**: the
+   *on-disk* half of that system — the disk header at LBA 0–3, the label at LBA 0
+   and the 28-byte partition records it carries — is read out of `PREP.COM` and
+   reproduced on the emulated drive (`docs/osborne1ng-machine.md` §6). What is
+   still missing is the *in-memory* half: the low-RAM DPH/DPB tables themselves.
 
 The host-adapter register protocol is read out in `docs/acb4000-host-adapter.md`; §6's
 open question #2 (the status bit map) is answered there — the driver polls `01h`,

@@ -131,15 +131,23 @@ loader**, not an installer. It reads LBA 5 for 11 blocks (`0x1600` bytes = the
 `CCP`+`BDOS` of the O1 system layout), patches page zero to point at itself and
 jumps into what it read — so the drive has to *already* carry an MD-10 system.
 
-`PREP.COM` option 1 would write one, but it cannot finish: MAME's `SCSIHD` drops
-the `MODE SELECT` parameters and its `FORMAT UNIT` is a status-only no-op, and
-the verify pass after it is `SEARCH DATA EQUAL` (`2F`) — which `t10spc`/`t10sbc`
-do not implement at all, so the driver never sees its match and loops (measured:
-600 emulated seconds at *"Verifying disk (first pass)..."*, 1 772 618 `2F`
-commands over LBA `0`–`0xFF`). That is why the drive is **built** rather than
-formatted — `tools/research/mkdrive.py` — and why what is still missing is the
-MD-10's own on-disk structure, which is written by the part of `PREP.COM` we
-cannot reach.
+`PREP.COM` option 1 would write one, but it cannot finish: the verify pass after
+the format is `SEARCH DATA EQUAL` (`2F`), which `t10spc`/`t10sbc` do not
+implement at all, so the driver never sees its match and loops (measured: 600
+emulated seconds at *"Verifying disk (first pass)..."*, 1 772 618 `2F` commands
+over LBA `0`–`0xFF`). That is why the drive is **built** rather than formatted —
+`tools/research/mkdrive.py`.
+
+**What the drive has to carry is no longer the open question.** The on-disk
+header `PREP.COM` writes is read out of the program and confirmed on the emulated
+drive: four 512-byte blocks at LBA 0–3 — the **disk label** at LBA 0 (built at
+`0x36CE`, `M`/`D` at `+0`, the label text at `+14`, a 28-byte partition table
+from `+48`), a block at LBA 1, and a 1 KiB partition block at LBA 2–3. The
+recognisability check is a `READ` of LBA 2 into `0x32CD`. `docs/osborne1ng-machine.md`
+§6 has the field map, the CDB layout, and the recipe that produced it — including
+the trap that made it look like a no-op (the card's select byte at `0x8023` is a
+run-time variable; if the flow skips the routine that sets it, every transaction
+is delivered to no target and the drive stays untouched).
 
 ## The two findings worth not rediscovering
 

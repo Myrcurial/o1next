@@ -69,8 +69,13 @@ scratch programs, "figuring it out" notebooks/scripts.
   prompt, which is not enough for a program that never returns to `A>` until you
   walk its menus. Written for #178 to run `MD10.COM`. **`key esc` is not
   usable** — posting `\27` segfaults MAME's Lua layer — and `peek` is the
-  directive that made the editor's in-memory table checkable. Note
-  `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
+  directive that made the editor's in-memory table checkable. **`poke` was added
+  for #191**: patching a *file* in an image (`md10patch.py`) only reaches bytes
+  the loader copies verbatim, so a run-time variable the program computes — the
+  MD-10 host adapter's select byte at `0x8023`, say — has to be written while it
+  runs. Without it the patched flow leaves the select byte `00h`, every
+  transaction is delivered to no target, and the guest reports no error at all.
+  Note `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
 - **`acb4000.lua`** — a MAME-side *trace* of the MD-10's ACB-4000 host-adapter
   ports (`30h`–`33h`), written for #178 to watch the driver build its DPB. It
   produced the finding instead: MAME's `osborne1` decodes only two I/O address
