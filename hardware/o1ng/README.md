@@ -38,12 +38,13 @@ of them becomes the O1NG.
 
 **And they share one ROM.** ROM 2.00 (#83) is a single image with a single layout,
 and it runs on all three paths — OEM board + interposer, LFF board + interposer,
-and the SFF board — because the ROM window's `A12`/`A13` and bank latch come from
-the interposer on the first two and are grafted in on the third. The LFF is a
-faithful recreation of *just* the OEM board (with Dual Density built in), so
-**LFF + interposer ≡ OEM + interposer** and there is no separate LFF ROM path to
-build or test. See `../interposer/README.md` (*Tap points*) and
-`docs/o1-rom-2.0.md`.
+and the SFF board. On the first two the interposer **serves the ROM window from the
+Pico**, through a daughterboard that takes the ROM socket, so no physical ROM part
+is needed at all; on the third the same capability is grafted in with the board's
+own flash. The LFF is a faithful recreation of *just* the OEM board (with Dual
+Density built in), so **LFF + interposer ≡ OEM + interposer** and there is no
+separate LFF ROM path to build or test. See `../interposer/README.md` (*Tap
+points*) and `docs/o1-rom-2.0.md`.
 
 1. **LFF board — the 1:1 mainboard replacement.** Drops into an
    otherwise-stock **OCC1 or OCC1A** chassis (the two share an
