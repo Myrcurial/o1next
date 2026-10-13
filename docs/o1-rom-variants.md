@@ -29,7 +29,7 @@ CRC is treated as positive identification; a CRC agreeing under two different
 | A (1981) | — | — | `osba.bin` | `vera` — **NO_DUMP** |
 | 1.2 | — | — | `osb12.bin` | `ver12` — **NO_DUMP** |
 | 1.2.1 | — | — | `osb121.bin` | `ver121` — **NO_DUMP** |
-| 1.3 | — | — | `osb13.bin` | `ver13` — **NO_DUMP** (source disk held: `research/source-code/OSROM13.IMD`) |
+| 1.3 | — (source extracted: `research/source-code/ROM-13-source/`) | — | `osb13.bin` | `ver13` — **NO_DUMP**; reconstructible in principle from the source disk `research/source-code/OSROM13.IMD`, blocked on ACT 3.5E — `docs/rom-13-reconstruction.md` (#205) |
 | 1.4 | `tools/emulator-setup/roms/rev1.40.ud11` | `3d966335` | `rev1.40.ud11` | `ver14` |
 | 1.43 | `research/roms/os1-143.rom` | `91a48e3c` | `rev1.43.ud11` | `ver143` |
 | 1.44 | `research/roms/os1-144.rom` | `c0596b14` | `3a10082-00rev-e.ud11` | `ver144` |
@@ -192,14 +192,22 @@ table is also the map from video mode to ROM set.
    ScreenPac genuinely ships an unmodified char-gen and does its 80-column work
    entirely in hardware. Settle against the ScreenPac install and service pages
    (`research/screenpac/`, `research/osborne1/`). Affects #24.
-3. **ROM 1.3 can probably be reconstructed — as a side quest (#205).** We hold
-   the 1.3 source disk (`research/source-code/OSROM13.IMD`, comment `rom 1.3,
-   cbios .3 osborne source 12/16/81`) while MAME carries 1.3 as `NO_DUMP`.
-   Reassembling it with the now in-repo ACT80 (`research/act-assembler/`) would
-   fill a real gap upstream, and would also give us BIOS A / 1.2 / 1.2.1 if
-   those sources exist on the other source disks. **The project itself has no
-   use for it** — everything we build is built from the 1.44 source — so this is
-   filed as a side quest rather than as work in the #72 tree.
+3. **ROM 1.3: the source is extracted, the ROM is not certified — and the
+   blocker is a missing assembler (#205).** We hold the 1.3 source disk
+   (`research/source-code/OSROM13.IMD`, comment `rom 1.3, cbios .3 osborne
+   source 12/16/81`) while MAME carries 1.3 as `NO_DUMP`. The disk is an
+   **8-inch** 77-track FM/MFM disk with CP/M **skew 3** and had never been read;
+   it now is, and the 19 files are in `research/source-code/ROM-13-source/`.
+   The source uses the `DBE`/`DCE` pseudo-ops, which only **ACT 3.5E** has —
+   every `ACT80.COM` in the local archive is 3.0/3.2 — so a byte-exact
+   reconstruction needs an assembler we do not have. What those pseudo-ops
+   emit *is* recovered (from the shipped rev-B ROM on `OCCROM.IMD`), and a 1.3
+   image can be built with a mechanical source rewrite, but it is **not
+   certified** and must not be presented as the real ROM. Full account,
+   including the control build that decides it:
+   `docs/rom-13-reconstruction.md`. **The project itself has no use for a 1.3
+   ROM** — everything we build is built from the 1.44 source — so this is
+   upstream's gain, not ours, and nothing here depends on it.
 4. **Confirm `swp-p88.rom` is host-independent.** The working assumption is
    that the co-processor board and interposer are common and only the host
    driver differs, which makes this the CoPower-88 ROM rather than a
