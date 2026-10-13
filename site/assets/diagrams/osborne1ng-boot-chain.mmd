@@ -1,0 +1,11 @@
+flowchart TD
+  P["power on"] --> ROM["monitor ROM 1.44"]
+  ROM --> CBOOT["CBOOT: system load"]
+  CBOOT --> FLOP["boot the utilities disk"]
+  FLOP --> HARD["HARD.COM"]
+  HARD --> READ["READ LBA 5, 11 blocks into 0xC200"]
+  READ --> CPM["CP/M runs, patches page zero"]
+  CPM --> A0["A0 prompt, and B: is the second partition"]
+  ROM -.-> HCB["HCBOOT: today a JMP START stub"]
+  ROM2["ROM 2.00: CP/M resident in the socket"] -.-> HC2["HCBOOT: the ACB-4000 driver"]
+  HC2 -.-> READ

@@ -1,0 +1,3 @@
+flowchart LR
+  Z["Z80"] -->|"OUT 30h"| M["io_map<br/>mask 0x03"]
+  M -->|"30h becomes 00h"| B["bank switch"]

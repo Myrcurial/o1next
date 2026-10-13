@@ -44,6 +44,10 @@ them goes stale on every other one.
 | `disk-analyse` | Disk-Utilities, built from source | IMD ↔ raw, IMD ↔ HFE |
 | `unar` | `brew install unar` | the FOG library pipeline (`tools/research/fog_*.py`, #207). It is the only available reader that handles **both** layers of that archive — ARC *and* the CP/M LBR container — and it handles ARC method 8 (crunched, dynamic LZW). Two cautions, both measured: its ARC **recogniser** rejects an archive whose compressed size exceeds its uncompressed size, which 10 of the 219 FOG archives legitimately do by as little as 32 bytes (`fog_extract.py` raises the field in a throwaway copy and verifies with the ARC's own CRC-16 instead); and it writes `NAME 2` rather than overwriting on a name collision **even with `-f`**, so any driver of it must clear its output directory first |
 | `lbrate` | built from source — ibiblio, `utils/compress/lbrate-1.1.tar.gz` | the **second decompressor**, for validation rather than extraction (#207). It is the only non-CP/M program that decompresses all three CP/M member schemes (Q, Z, Y). It recovered `FOG105/TYPELZ13.Z80` cleanly where unar's LZW decoder produced a bad checksum, which is how the two unrecoverable members were told apart from the one tool bug. **Not in Homebrew.** |
+| `node` + `npm` | `brew install node` | `tools/render_mermaid.py` — mermaid-cli is a Node package, so this is the site's build-time toolchain, not a runtime one |
+| `mermaid-cli` (`mmdc`) | `npm install @mermaid-js/mermaid-cli` | `tools/render_mermaid.py` — renders `site/assets/diagrams/*.mmd` to the PNGs the posts embed. A Mermaid code fence in a post does **not** render (see the note below) |
+| **Google Chrome** | the app — `/Applications/Google Chrome.app` | puppeteer's driver for `mmdc`; `CHROME_PATH` overrides. `mmdc`'s own browser is not downloaded here |
+| the diagram face | `cp site/assets/fonts/osborne1-80.ttf ~/Library/Fonts/` | `tools/render_mermaid.py` — the diagrams are set in the machine's own character generator, and Chrome has to be able to see the face **by family name**. User-scoped and reversible |
 | `ghostscript` (`gs`) | `brew install ghostscript` | no repo script calls it; PDF inspection and rasterising |
 
 ### Notes that have bitten us
@@ -53,6 +57,24 @@ them goes stale on every other one.
   directory"* on a file that is plainly there. `-T raw` names the driver the
   probe was supposed to pick. Fixed in libdsk 1.5.x; Homebrew still ships 1.4.2.
   Full story in `tools/README.md` and #157.
+- **A Mermaid code fence in a post does not render, and it fails silently.** Mermaid's
+  `startOnLoad` looks for elements with class `mermaid`; kramdown turns a
+  ```` ```mermaid ```` fence into `<pre><code class="language-mermaid">`, which it never
+  matches. So the page ships the diagram as a code block and *looks* like a rendering
+  problem rather than a wiring one. Two consequences, both learned the hard way:
+  - **`tools/render_mermaid.py` is how a diagram gets onto a page**, rendering
+    `site/assets/diagrams/*.mmd` to PNGs the post embeds. That is also what keeps the
+    page no-script, and it survives RSS and printing.
+  - **The compendium chapter pages keep their fences** (they are generated, so they
+    cannot be hand-edited) and rely on the shim in `_layouts/default.html`, which
+    rewrites the fences into the elements Mermaid wants. The shim is unverified
+    locally — see below.
+- **`mmdc` needs `-p` pointing at a real Chrome, or the diagrams come out in the
+  wrong face.** Without a puppeteer config, `mmdc` takes a path where the embedded
+  `@font-face` is not applied and every glyph renders in a serif fallback — while
+  looking perfectly fine otherwise. And with the face not *installed*, Chrome
+  half-loads it and draws tofu boxes with the right metrics. `render_mermaid.py`
+  checks both and refuses to render rather than producing either.
 - **`kicad-cli` is not on `PATH` here.** It lives inside the app bundle
   (`/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli`).
   `check_schematics.py` finds it; `KICAD_CLI` or `--kicad-cli` overrides.
