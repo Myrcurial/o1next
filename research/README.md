@@ -410,19 +410,38 @@ shipped ROM **byte for byte** (#203, `docs/o1-rom-source.md`).
 | Path | What it is | Sourced from |
 |---|---|---|
 | `ACT80.COM` (13 312 B) | **SORCIM ACT80, version 3.0** — 8080/8085 + Z80. md5 `4f76a911a66ddc8e1e02a1676c232d45`. The build the 1.44 reassembly was done with. | [cpmarchives.classiccmp.org](http://cpmarchives.classiccmp.org/cpm/Software/rlee/S/SORCIM/ACT%20Cross%20Assemblers/) — `cpm/Software/rlee/S/SORCIM/ACT Cross Assemblers/` |
+| `3.2/ACT80.COM` (13 312 B) | **SORCIM ACT80, version 3.2**, serial 279. md5 `cf73590466736fd1960e829b5f2221aa`. Held so the version question can be re-checked against a local file rather than the mirror: it assembles `rom144.asm` to output **byte-identical** to 3.0's. | same mirror, `cpm/Software/rlee/L/LOOSECPM/119/` — `073` and `087` hold the same bytes |
+| `3.2/ACT80-eca-bundle.COM` (13 312 B) | A **third, different 3.2 build**, the one that circulated inside a third-party software bundle. md5 `88256731a9399dee68a29054865d072c`. It reports `SORCIM 808x Assembler ver 3.2` in its listing banner, but carries **no SORCIM copyright or serial line at all**, and it differs from the SORCIM 3.2 in **13 112 of 13 312 bytes** — a redistribution rather than the release, kept as evidence of how many binaries claim to be 3.2. | same mirror, `cpm/Software/rlee/D/DIGITAL RESEARCH/ECA/` (it is named `ACT80.COM` there; renamed here so both 3.2 copies can sit side by side) |
 | `ACT65.COM`, `ACT68.COM`, `DOCOP65.ASM`, `DOCOP68.ASM` | The same kit's 6502 and 6800 translators and their mnemonic listings. Kept with the kit rather than dropped — they are 30 KB, and a hand-picked subset invites the question of what was left out. | same |
 | `DOCOP80.ASM` (8 192 B) | **Every ACT mnemonic, in alphabetical order** — the dialect reference, and the file to diff against if a future source is rejected. | same |
 | `READ.ME`, `INSTALLA.SUB` | The kit's own file list, and its `SUBMIT` script for moving the kit from B: to A:. | same |
 | `IPARAMS.ACD`, `UTIL.ACD`, `ACD-EG.ASM` | ACT's `LINK` include files, and an example program using them (`LINK IPARAMS.acd`). | same |
 
-**Versions.** The mirror holds nine copies of `ACT80.COM` in three distinct
-builds: **3.0** (md5 `4f76a911…` — also at `rlee/M/MORROW/OUTSIDE SOFTWARE/ACT/`
-and `rlee/L/LOOSECPM/{079,109,262}/`), **3.2 serial 279** (md5 `cf735904…`, at
-`rlee/L/LOOSECPM/{073,087,119}/`) and a serial-less **3.2** (md5 `88256731…`, at
-`rlee/D/DIGITAL RESEARCH/ECA/`). **3.5e — the version `bios141.gen` names — is
-not in the mirror**, and it does not need to be: 3.0 and 3.2 assemble
-`rom144.asm` to byte-identical output, so the copy kept here is 3.0 and the
-version question is settled (#203).
+**Versions.** The mirror holds nine copies of `ACT80.COM` in **three distinct
+builds, and all three are kept here** — so the version question can be re-checked
+against a local file rather than the mirror:
+
+| Build | md5 | Copies in the mirror | In-repo |
+|---|---|---|---|
+| 3.0 | `4f76a911…` | `S/SORCIM/ACT Cross Assemblers/`, `M/MORROW/OUTSIDE SOFTWARE/ACT/`, `L/LOOSECPM/{079,109,262}/` | the kit above |
+| 3.2, serial 279 | `cf735904…` | `L/LOOSECPM/{073,087,119}/` | `3.2/ACT80.COM` |
+| 3.2, no banner | `88256731…` | `D/DIGITAL RESEARCH/ECA/` | `3.2/ACT80-eca-bundle.COM` |
+
+**3.5e — the version `bios141.gen` names — is not in the mirror**, and it does not
+need to be, because the version does not change the answer: **3.0 and the SORCIM
+3.2 assemble `rom144.asm` to byte-identical output**, both re-checked against the
+in-repo copies (#203). Either one reproduces the shipped ROM:
+
+```sh
+O1_ACT80=research/act-assembler/3.2/ACT80.COM tools/research/rom144-reassemble.sh
+```
+
+The third build is a caution rather than a spare. On the same disk, with the same
+command, it returns to the `A>` prompt immediately and prints **nothing** — no
+banner, no `no ERRORs` line, no hex file — where both SORCIM builds assemble the
+source cleanly. Whatever it is (a relocation for one system size, a bundle
+installer's variant, or a patched copy), it is **not a drop-in ACT80**, and it is
+kept as evidence of how many different binaries claim to be version 3.2.
 
 **Licensing:** `READ.ME` is SORCIM's own 1980 notice — *"This disk contains
 software proprietary to SORCIM. It may NOT be copied other than for use by the

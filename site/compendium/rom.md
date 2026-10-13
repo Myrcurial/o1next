@@ -283,13 +283,23 @@ searched for an ACT `.DOC` or manual — the only hit was an unrelated
 accounts-receivable file. `READ.ME` in the kit lists the 3.0 files exactly as
 the archive holds them.
 
-**3.0 is now a safety copy in this repository** — [`research/act-assembler/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/act-assembler/),
-with the kit's own `READ.ME`, `DOCOP80.ASM` (every ACT mnemonic, which is the
-file to diff against if a future source is rejected) and its `LINK` include
-files; the provenance row is in [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md), and the licence notice in
-the kit's `READ.ME` is recorded there rather than quietly dropped.
-[`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom144-reassemble.sh) now defaults to that copy, so the build no
-longer needs the local archive to be present.
+**All three builds are now safety copies in this repository** —
+[`research/act-assembler/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/act-assembler/), with the 3.0 kit's own `READ.ME`, `DOCOP80.ASM` (every
+ACT mnemonic, which is the file to diff against if a future source is rejected)
+and its `LINK` include files; the provenance rows are in [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md),
+and the licence notice in the kit's `READ.ME` is recorded there rather than
+quietly dropped. The 3.2 builds sit beside it, so the byte-identical claim above
+can be re-checked against a local file rather than the mirror:
+
+```sh
+O1_ACT80=research/act-assembler/3.2/ACT80.COM tools/research/rom144-reassemble.sh
+```
+
+[`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom144-reassemble.sh) defaults to the 3.0 copy, so the build no
+longer needs the local archive to be present. The third build — the one that
+circulated inside a third-party bundle, `3.2/ACT80-eca-bundle.COM` — is **not a
+drop-in**: it returns to the prompt printing nothing, where both SORCIM builds
+assemble cleanly. It is held as a curiosity, not as a spare.
 
 **The version gap turns out not to matter for this source.** 3.2 assembles
 `rom144.asm` to a **byte-identical** hex file — same `no ERRORs`, same 473
