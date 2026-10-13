@@ -7,6 +7,22 @@ socketed DIP-40 Z80, interposer is the upgrade path). **This board is
 the restoration path, not the O1NG**: the O1NG is built on the SFF
 board, and this one does not become one.
 
+**This board is *only* the OEM board, recreated, with the Dual Density upgrade
+built in — and that has a consequence worth stating once:** because it is a
+faithful recreation rather than a new design, **LFF board + interposer ≡ OEM board
++ interposer**. Anything the interposer can do on an original machine it does
+here, and anything it needs from the host it finds identically. So there is one
+interposer brief, one ROM 2.00 image, and one test matrix — not two of each.
+
+**The ROM socket is part of that fidelity, and it stays that way.** It takes a
+**standard 1.44 ROM**, exactly as the OEM board does, so an LFF board on its own is
+a stock machine and the restoration path boots with the stock part — no interposer
+required, no new ROM required. The larger ROM is known to work in it as well. And
+when the interposer *is* fitted, **the socket can be left empty**: the daughterboard
+takes its place and the Pico serves the ROM window, so ROM 2.00 needs no physical
+part at all. See `../../interposer/README.md` (*Tap points*) and
+`docs/o1-rom-2.0.md` §4.1a.
+
 **Status: block-level skeleton.** The hierarchy and per-sheet design
 notes are the agreed decomposition; component-level capture (replacing
 the note text with real circuitry) is the next step, working from
@@ -17,7 +33,7 @@ modernizations.
 
 | Sheet | Block | Key modernizations vs. original |
 |---|---|---|
-| `cpu_mem` | CPU + memory | Z84C00 (socketed DIP-40); **64 KB SRAM replaces 16× 4116 DRAM + refresh**; 27C128/Flash BIOS; bank decode per `docs/o1-memory-io-map.md` |
+| `cpu_mem` | CPU + memory | Z84C00 (socketed DIP-40); **64 KB SRAM replaces 16× 4116 DRAM + refresh**; a **ROM socket that takes a standard 1.44 ROM** (see the note above — the socket is *not* modernized, so the board stays OEM-equivalent), carrying **ROM 2.00** (#83) when a part is wanted; bank decode per `docs/o1-memory-io-map.md` |
 | `video` | Display | original char-gen ROM socket retained; composite out; HDMI left to the interposer |
 | `floppy` | FDC | MB8877/179x-class FDC; DD data separator (PC 360K reads → FATCOPY #51); connector matches `hardware/floppy-adapter/` |
 | `io` | Serial + GPIB | 6850 ACIA (P1 TTL / P2 RS-232 per `docs/o1-modem-serial.md`), 6821 PIA, CTC 60 Hz |

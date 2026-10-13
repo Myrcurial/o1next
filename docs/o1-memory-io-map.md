@@ -416,7 +416,9 @@ connector that mates with the O1's Z80 socket.
 RAM sheet), *not* the video sheet; see `o1-mainboard-schematic.md` §4a for the
 extraction. 128 chars × 8×10 in an 8×10 box (7×9 visible), addressed by
 (char code + scan line), output to the video shift register (UA14, 74166).
-This is the second tap point the ScreenPac personality (#24) uses.
+This is the second tap point the ScreenPac personality (#24) uses. (It is the
+*third* tap on the interposer, which also leads to the main ROM socket UD11 —
+see `docs/virtual-peripherals-block-diagram.md` §1 and `docs/o1-rom-2.0.md` §4.1a.)
 
 | Pin | Signal |
 |---|---|
@@ -502,7 +504,8 @@ devices. Conservatively **free** (no onboard device) within `2000–2FFF`:
 - **Gap #11 (floppy variant):** → MB8877 ≡ WD1793 confirmed; registers at
   `2100–2103`; drive/density selects are PIA-driven (emulate via PIA shadow).
 - **#24 (ScreenPac):** → two tap points confirmed: Z80 DIP-40 (UC11) and
-  char-gen 24-pin (UA15).
+  char-gen 24-pin (UA15). The interposer adds a **third** — the main ROM socket
+  UD11 — for ROM 2.00 (#83); ScreenPac itself never needed it.
 
 ## Sources
 - OCC schematic `1A2011-00` Rev E (`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`),

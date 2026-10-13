@@ -17,12 +17,46 @@ interface spec), #13 (Rev A schematic + PCB), #15 (Rev B SMD).
 - Virtual CoPower-88 8088 emulation shim (#23)
 - SCREEN-PAC 80/104-column video + HDMI (#24; taps the char-gen socket
   UA15, reads whatever font ROM is installed — #44)
+- **ROM 2.00 (#83)** — the monitor ROM's replacement: CP/M 2.2 resident, booting
+  to `A>` with no disk. The interposer's **main-ROM socket tap** is what makes it
+  possible on a real machine (see *Tap points* below); the same image is what the
+  SFF board runs
 - Web KVM console (#45): video snoop + keyboard matrix poke
+
+## Tap points (three, and all of them socket leads)
+
+The interposer sits in the Z80 socket, so it already has the bus. Two further
+socket lead-sets give it the two things the bus alone cannot supply — the font,
+and the ROM window.
+
+| # | Socket | What the tap gives | Serves |
+|---|---|---|---|
+| 1 | **Z80, 40-pin DIP** (the interposer's own seat) | every bus cycle — address, data, `MREQ`/`IORQ`/`RD`/`WR`/`M1`, `RFSH`, `CLK`; sampled synchronously via PIO | everything: capture, drive, and every personality |
+| 2 | **Main ROM, UD11, 24-pin** *(added 2026-10-13)* | the ROM window itself. A daughterboard takes the socket — **DIP pins down, ribbon up** — and the Pico **serves the ROM**, so **no physical ROM part is needed** and the banking is a firmware register | **ROM 2.00 (#83)**: a banked ROM window, one image, on any OEM-faithful mainboard |
+| 3 | **Char-gen ROM, UA15, 24-pin** | the font (read-only, `ScreenPac`-style) — the ROM is permanently selected, so the tap reads whatever is fitted | video personality (#24), font capture (#44) |
+
+Tap 2 is what collapses #83's two routes into one. Note what it does *not* need:
+a 24-pin 2732 socket carries no `A12`, no `A13` and no write strobe, so a *part* in
+that socket could never exceed 4 KB — but when the Pico serves the window the
+address lines past `A11` are irrelevant, because the bank is which 4 KB the
+firmware chooses to present. That is why the interposer path needs **no new part
+and no programmer**, and why ROM 2.00 is updatable in flash. A physical 27128 is
+only for a board with no interposer.
+
+**The host board does not matter, and that is worth stating once:** an existing
+**OEM board + interposer** is the same thing as an **LFF board + interposer**,
+because the LFF board is a faithful recreation of *just* the OEM board with the
+Dual Density upgrade built in (`../o1ng/o1ng-lff/README.md`). So there is no
+separate LFF path to design, document or test for — one brief covers both.
 
 ## Electrical definition (settled decisions)
 
 - **CPU interface:** standard Z80 DIP40 socket + socket-safe pin header;
   4 MHz bus sampled synchronously via PIO.
+- **ROM interface (added 2026-10-13):** a second socket lead-set to the **main
+  ROM socket (UD11)**, by way of a daughterboard (DIP pins down, ribbon up). The
+  Pico then **serves the ROM window** and the bank is a firmware register, so
+  ROM 2.00 (#83) needs no physical ROM part at all — see *Tap points*.
 - **Level shifting:** 74AHCT (or 74HCT) both directions — all O1s are
   NMOS Z80s; AHCT/HCT matches NMOS I/O thresholds. (Decision
   2026-10-09, research-gaps #2; supersedes "74LVC245-class".)
@@ -105,9 +139,11 @@ with no card or stick inserted (and the O1NG can boot
 - Ribbon-cable header to the front-panel UI pod (`../front-panel-ui/`),
   which also carries the second-keyboard USB-A path (see
   `../front-panel-ui/`).
-- Optional second tap: 24-pin char-gen socket (UA15) for the video
-  personality — pinout confirmation from ScreenPac install pages +
-  mainboard schematic (research-gaps #3).
+- Two socket lead-sets beyond the Z80 seat, both now first-class rather than
+  optional: **UD11** (main ROM, via a DIP-down/ribbon-up daughterboard — the Pico
+  serves the window) and **UA15** (char-gen, font capture). Pinout confirmations:
+  mainboard schematic §4a for UA15, `docs/o1-memory-io-map.md` §2 for the ROM
+  window (research-gaps #3). The daughterboard's signal list is #12's.
 
 ## Open questions
 
