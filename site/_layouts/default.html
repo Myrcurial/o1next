@@ -60,21 +60,32 @@
 </footer>
 
 {%- comment -%}
-  Mermaid, but only on the pages that use it.  The site's whole character is
-  no-script (the SCREEN PAC switch is pure CSS), so loading a diagram engine
-  everywhere would be out of keeping -- and pointless.  Five compendium pages and
-  a handful of posts carry mermaid blocks, and until this existed they rendered as
-  plain code blocks on the live site, because nothing ever loaded the library.
+  Mermaid, for the pages that carry a diagram.  Only the compendium chapter pages
+  need this now: the blog's diagrams are rendered to PNG at build time by
+  tools/render_mermaid.py, because a code fence does not render on its own.
 
-  The test is deliberately loose: how kramdown wraps a fenced block depends on
-  whether a syntax highlighter is present, so matching the class name is fragile.
-  A false positive costs one unused script tag.
+  Which is the bug this fixes.  Mermaid's `startOnLoad` looks for elements with
+  class `mermaid`; kramdown turns a ```mermaid fence into
+  `<pre><code class="language-mermaid">`, which it never matches -- so the first
+  version of this loaded Mermaid and nothing happened, and five compendium
+  diagrams kept shipping as code blocks.  The shim below rewrites the fences into
+  the elements Mermaid is actually looking for.
+
+  The test is loose on purpose: how kramdown wraps a fence depends on whether a
+  syntax highlighter is present, so matching a class name is fragile, and a false
+  positive costs one unused script tag.
 {%- endcomment -%}
 {%- if content contains 'mermaid' -%}
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  // `dark`, because the reading column is white on black, like the machine.
-  mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  for (const code of document.querySelectorAll('code.language-mermaid')) {
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = code.textContent;
+    (code.closest('pre') || code).replaceWith(div);
+  }
+  await mermaid.run({ querySelector: '.mermaid' });
 </script>
 {%- endif -%}
 

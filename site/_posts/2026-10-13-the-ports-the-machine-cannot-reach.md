@@ -32,19 +32,11 @@ really cannot address a device at `30h`, and that is why the MD-10 shipped with 
 **card** — a host adapter that sits between the Z80 and the SCSI controller and
 does the decoding the mainboard will not.
 
-```mermaid
-flowchart LR
-  subgraph S["stock osborne1: what the mainboard does"]
-    Z1["Z80"] -->|"OUT 30h"| M["io_map 0x00-0x03<br/>global_mask 0x03"]
-    M -->|"30h AND 03h is 00h"| B1["bankswitch_w<br/>offset 0"]
-  end
-  subgraph N["osborne1ng: the card decodes first"]
-    Z2["Z80"] -->|"OUT 30h"| F["full 8-bit<br/>address decode"]
-    F -->|"00h-03h"| B2["bankswitch_w"]
-    F -->|"30h-33h"| C["ACB-4000<br/>host adapter"]
-    C --> D["SCSI-1 target"]
-  end
-```
+![The stock machine's I/O decode: OUT 30h is masked to 00h and lands on the bank switch]({{ '/assets/osborne1ng-io-stock.png' | relative_url }})
+
+And here is the same instruction with the card in the socket:
+
+![osborne1ng: the card decodes the full 8-bit address, so 30h-33h reach the ACB-4000]({{ '/assets/osborne1ng-io-card.png' | relative_url }})
 
 ## So we built the card into the emulator.
 
@@ -98,19 +90,7 @@ terminated, the routine that walks it walks off the end of memory forever, and i
 looks exactly like a hardware failure. It is not. It is a menu item in the wrong
 order, and it is now written down.
 
-```mermaid
-flowchart TD
-  P["power on"] --> ROM["monitor ROM 1.44"]
-  ROM --> CBOOT["CBOOT: system load"]
-  CBOOT --> FLOP["boot the utilities disk"]
-  FLOP --> HARD["HARD.COM"]
-  HARD --> READ["READ LBA 5, 11 blocks into 0xC200"]
-  READ --> CPM["CP/M runs, patches page zero"]
-  CPM --> A0["the A0 prompt, and B: is the second partition"]
-  ROM -.-> HCB["HCBOOT: today a JMP START stub"]
-  ROM2["ROM 2.00: CP/M resident in the socket"] -.-> HC2["HCBOOT: the ACB-4000 driver"]
-  HC2 -.-> READ
-```
+![The boot chain: today it goes through a floppy and HARD.COM; ROM 2.00 puts CP/M in the socket and gives HCBOOT a real driver]({{ '/assets/osborne1ng-boot-chain.png' | relative_url }})
 
 Note the dotted line. `HCBOOT` is the monitor's **hard-disk boot entry point**, and
 in the shipped 1.44 source it is a `JMP START` stub: the vector exists and it does
