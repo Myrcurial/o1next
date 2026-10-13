@@ -102,6 +102,14 @@ local function key(token)
   else kb:post(token) end
 end
 
+-- Addresses in a `peek`/`poke` directive are hex or decimal, and bare hex is
+-- the common case (`peek dd5e 4`, not `peek 0xdd5e 4`).  Lua's tonumber()
+-- refuses a bare `dd5e`, so try decimal first and fall back to base 16: a
+-- string that parses as decimal is decimal, and anything else is hex.
+local function num(s)
+  return tonumber(s) or tonumber(s, 16)
+end
+
 print(string.format("MACHINE: %s  flop1: %s  flop2: %s",
                     tostring(os.getenv("O1_MACHINE")),
                     tostring(os.getenv("O1_FLOP1")),
@@ -135,7 +143,7 @@ for line in KEYS:gmatch("[^\n]+") do
       print("SNAPSHOT: " .. tostring(scr:snapshot(arg)))
     elseif verb == "peek" then
       local a, n = arg:match("^(%S+)%s+(%S+)")
-      a, n = tonumber(a), tonumber(n) or 1
+      a, n = num(a), tonumber(n) or 1
       local b = {}
       for i = 0, n - 1 do b[#b + 1] = string.format("%02x", space:read_u8(a + i)) end
       print(string.format("PEEK %04x (%d): %s", a, n, table.concat(b, " ")))
@@ -164,11 +172,11 @@ for line in KEYS:gmatch("[^\n]+") do
       -- transaction -- is set by the program and has to be written while it
       -- runs.  This is that lever; see docs/osborne1ng-machine.md.
       local a, rest = arg:match("^(%S+)%s+(.*)$")
-      a = tonumber(a)
+      a = num(a)
       local b = {}
       for hex in rest:gmatch("%S+") do
-        b[#b + 1] = string.format("%02x", tonumber(hex, 16))
-        space:write_u8(a + #b - 1, tonumber(hex, 16))
+        b[#b + 1] = string.format("%02x", num(hex))
+        space:write_u8(a + #b - 1, num(hex))
       end
       print(string.format("POKE %04x: %s", a, table.concat(b, " ")))
     end
