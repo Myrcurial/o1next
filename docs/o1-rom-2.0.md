@@ -252,6 +252,13 @@ The mechanical form of the lead-set (flying leads to the socket pins, a piggybac
 socket, or a daughterboard the leads land on) is **#12's interface spec**, not
 this document's; what matters here is that the lines exist and who drives them.
 
+**And the mechanism is already demonstrated on real hardware.** `docs/o1-rom-variants.md`
+records **BrettHallen's 2732→2764 daughterboard image** (8 KiB, CRC32 `edc31846`):
+OCC 1.44 and OZROM 1E in one 2764, **with `A12` selecting between them**. That is
+banking in the ROM socket, built and tested, passively. ROM 2.0 needs the same
+lines plus a latch rather than a strap — but the part, the pin and the decode are
+not speculative. #12 should start from that board.
+
 **The minimum viable part is a 2764.** The diskless-CP/M goal — deliverable 3 —
 needs **only banks 0 and 1: 8 KB**. The 27128 buys banks 2 and 3 (the MD-10 image
 and diagnostics). So the first build and the full build share one layout and differ
