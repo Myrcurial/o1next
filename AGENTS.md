@@ -44,6 +44,13 @@ agent working in `o1nextgen`. Follow it over generic defaults.
      `part of #N` for partial progress. Never claim `closes` prematurely —
      issue #40 sat open while its "closes #40" commit was stranded on an
      unmerged branch.
+   - **And the keyword fires wherever it appears, including inside a sentence
+     that denies it.** GitHub's closing keywords are `close`/`closes`/`closed`,
+     `fix`/`fixes`/`fixed` and `resolve`/`resolves`/`resolved`, and a PR body
+     reading *"**This does not close #179**"* **closes #179** on merge. That is
+     not hypothetical: it happened on 2026-10-13 and #179 had to be reopened.
+     If you need to say an issue is *not* finished, say `part of #N` and stop —
+     do not use the closing verb at all, not even to negate it.
 5. **Push the branch, then open a PR** (`gh pr create`) with a title
    mirroring the commit message and a body linking the issues.
 6. **Merge through the GitHub PR**, not local merges pushed to `main`. A merge
