@@ -378,7 +378,7 @@ manual's §4.4 describes:
 | `04 1E D9 00 00 00` | `FORMAT` | status |
 | `15 00 00 00 16 00` | `MODE SELECT`, 22 B | **data out** |
 | `1D 00 00 00 04 00` | `SEND DIAGNOSTIC`, 4 B | **data out** |
-| `2F 00 00 …` | `SEARCH DATA EQUAL` (the verify pass) | — |
+| `2F 00 00 …` | `VERIFY` (the verify pass) | — |
 
 and the screen reaches `Formatting disk (first pass)...` /
 `Verifying disk (first pass)...` with the drive table's own geometry:
@@ -422,7 +422,7 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
    works.** Corrected in §6: a write through the card lands on the drive, and
    `PREP.COM`'s own writes are *not* MAME no-ops (its label write and its format
    fill both reach the CHD). What stops it is the *verify* pass that follows the
-   format: it is `SEARCH DATA EQUAL` (`2F`), which `t10spc`/`t10sbc` have no
+   format: it is `VERIFY` (`2F`), which `t10spc`/`t10sbc` have no
    constant for at all — so the target answers with a status phase and no data
    phase, the driver never sees the match it is looking for, and it loops.
    Measured: `PREP.COM` option 1 reaches *"Verifying disk (first pass)..."* and
