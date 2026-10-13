@@ -15,8 +15,23 @@ that wants the same ROM window), #24 (the column mode), #81 (OZROM, the pattern)
 
 The goal from #83 is unchanged: **an O1 ROM that boots to a working `A>` with no
 disk access at all** — real or virtual. It is a *replacement part*, not a patch:
-optional, socket-reversible, legitimate on the replica and (with a daughterboard)
-on a real O1.
+optional, socket-reversible, legitimate on the replica and (with the interposer's
+ROM lead-set, below) on a real O1.
+
+**One ROM, two hosts (recorded 2026-10-13).** The two routes this issue used to
+carry — "a bigger ROM of our own" and "the interposer serves the system image in a
+memory window" — have **collapsed into one design**. The interposer now carries a
+lead-set to the **main ROM socket (UD11)** as well as the character-generator
+socket (UA15), so the ROM window is the interposer's to fill on any OEM-faithful
+mainboard, and the SFF board grafts the same capability in. **There is one ROM
+2.00** — one image, one layout — and it runs on either.
+
+That also settles a documentation question that would otherwise duplicate this
+whole document: **OEM board + interposer ≡ LFF board + interposer**, because the
+LFF board is a faithful recreation of *just* the OEM board with the Dual Density
+upgrade built in (`hardware/o1ng/o1ng-lff/README.md`). There is no separate "LFF
+path" to design for — one interposer brief covers both, and "the stock machine" in
+this document means the mainboard-plus-interposer combination.
 
 **OZROM 1E is the pattern, not the feature set.** Per the direction recorded on
 #83, and the measured shortcomings in `docs/ozrom-1e.md`:
@@ -204,26 +219,43 @@ exactly the two the diskless build wants to change (§4.5), and both are changed
 
 | | |
 |---|---|
-| Part | **27128** (16 KB, 28-pin) — the same 28-pin JEDEC package the existing 2732→2764 daughterboard accepts. **Not a drop-in for it:** pin 27 is `A13` on a 27128 where a 2764 has `/PGM`, so the adapter has to *drive* that pin rather than tie it high. That is the daughterboard's one electrical change |
+| Part | **27128** (16 KB, 28-pin) in the monitor socket, or the same image served from the interposer's flash. A 2764 (8 KB) is enough for the diskless-CP/M goal alone. **Pin 27 is `A13` on a 27128** where a 2764 has `/PGM`, so whatever carries it must *drive* that pin rather than tie it high — which is one of the things the ROM lead-set below supplies |
 | Window | the monitor stays at `0000–0FFF`; **`1000–1FFF` becomes a 4 KB banked window** |
 | Banks | 4 × 4 KB: the system image (2 banks), the MD-10 BIOS image (1), diagnostics + spare (1) |
 | Latch | one write-only latch supplying A12/A13 (and A14 for a 27512) |
+| Who supplies it | **the interposer**, over its UD11 lead-set; the SFF board has the same decode grafted in (§4.1a) |
+
+### 4.1a The ROM lead-set, and why the socket cannot do it alone
 
 The electrical problem, stated plainly because it decides the build: **a 24-pin
 2732 socket has `A0–A11`, `/CE`, `/OE` and the data bus — no `A12`, no `A13`, and
-no write strobe.** A 27128 needs all three. So the daughterboard is not passive:
-it has to take `A12`/`A13` and the latch strobe from elsewhere on the board, which
-is the "ROM-socket hijack" of #83's design discussion and, on the O1NG, the
-interposer's job. On the stock machine this is the one part of ROM 2.0 that is not
-a drop-in — and it is why the emulator build comes first (§6).
+no write strobe.** A 27128 needs all three, and a bank latch needs somewhere to
+be written from. So a part in that socket cannot be more than 4 KB however large
+it is, unless something *outside* the socket supplies the missing lines.
 
-**The minimum viable part is a 2764, and that de-risks the first build.** The
-diskless-CP/M goal — deliverable 3 — needs **only banks 0 and 1: 8 KB**, which is
-exactly what a 2764 provides and what the existing daughterboard already takes.
-The 27128 buys banks 2 and 3 (the MD-10 image and diagnostics). So the first build
-and the full build share one layout and differ only in the part, and the first one
-can be tested on real hardware with the adapter that already exists — no new board
-spin before the design is proven.
+**The interposer is that something, and this is now settled rather than a choice
+between two routes.** It already taps the character-generator socket (UA15) for
+the video personality; it now carries a second lead-set to the **main ROM socket
+(UD11)**, so `A12`/`A13` and the latch strobe come from the board that is already
+sitting on the bus with the address lines on it. The consequences:
+
+- **One ROM 2.00 image, host-independent.** The interposer's flash can serve it
+  (no part in the socket at all) or drive a 27128 fitted in the socket with the
+  lead-set supplying the extra lines. Either way the *image* is one artefact.
+- **The SFF board is not a second design.** It grafts the same decode in, so it
+  runs the same image with no interposer present.
+- **The emulator build still comes first** (§6), but for the ordinary reason —
+  it is cheaper — not because hardware needs a new board spin before the design
+  is proven.
+
+The mechanical form of the lead-set (flying leads to the socket pins, a piggyback
+socket, or a daughterboard the leads land on) is **#12's interface spec**, not
+this document's; what matters here is that the lines exist and who drives them.
+
+**The minimum viable part is a 2764.** The diskless-CP/M goal — deliverable 3 —
+needs **only banks 0 and 1: 8 KB**. The 27128 buys banks 2 and 3 (the MD-10 image
+and diagnostics). So the first build and the full build share one layout and differ
+only in the part.
 
 **Where the latch lives.** A write to **`2300h`** while bank 2 is selected. That
 address is the free block `docs/o1-memory-io-map.md` §7 recommends for virtual
@@ -372,7 +404,7 @@ at the cost of one bank. `MEMTEST` is the first thing to move there.
 | 2 | Warm boot, when there are no system tracks | **Already solved by the machine.** The CBIOS's `WBOOT` calls ROM vector 1; ROM 2.0 points it at `SYSLD`. No CBIOS change, no new mechanism (§4.5) |
 | 3 | Does the CCP need to be relocatable? | **No — pin it.** `MSIZE = 59`, `CCP = CB00h`, `BDOS = D300h`, `BIOS = E100h`, all as the vendor shipped them. `MOVCPM`/`SYSGEN` are disk-build tools for a disk build; a ROM build wants the layout fixed so the ROM's copy loop can be two `LDIR`s with literal addresses. It also keeps the CBIOS's `ROMCDE` arithmetic valid, which *requires* `BIOS & 0FFh == 00h` |
 | 4 | Keep floppy support, or drop it? | **Keep it.** The ROM carries the vendor's CBIOS unchanged, so a real disk still boots. The diskless case is handled at `SELDSK` by returning a **null DPH** when no media is present, which is documented CP/M behaviour (the BDOS then reports `Bdos Err on X: Select` for that drive) rather than a hang in the FDC retry loop. Deleting the drivers would save ROM space we do not need to save — the CBIOS is 2048 bytes either way, and it is already written |
-| 5 | Which socket/part on the replica? | **27128 in the monitor socket**, with the latch and `A12`/`A13` from the hijack/interposer (§4.1). The O1NG's SFF board is a new design and could put the ROM anywhere, but keeping the *monitor socket* means the same build drops into a real O1 with the existing daughterboard — which is the only way to test it on hardware |
+| 5 | Which socket/part on the replica? | **The monitor socket (UD11), and one image.** The interposer's ROM lead-set supplies `A12`/`A13` and the latch, so the same ROM 2.00 runs on a mainboard-plus-interposer and on the SFF board, which grafts the same decode in (§4.1a). A 2764 covers the diskless goal; a 27128 covers the full bank map. Because OEM board + interposer ≡ LFF board + interposer, there is one host to design for and one to test on |
 | 6 | What can we borrow from OZROM's memory map? | The **shape**, not the contents: a documented table and map, a documented version, a column switch, a memory test. Its specific choices — video RAM at `FC00–FFFF`, keyboard redefinition, IEEE-488 removed — are the ones #83 rules out. `docs/ozrom-1e.md` §5–§8 has the detail |
 
 
@@ -435,7 +467,9 @@ test rather than a result.
 2. **The bank latch on real hardware.** `2300h` is free per the schematic and the
    ROM source, but the *write* has never been measured on a real machine — the
    decode is described as sloppy (`docs/o1-memory-io-map.md` §7) and this needs a
-   scope before a board is spun. `hardware-gated`.
+   scope before a board is spun. `hardware-gated`. The interposer's UD11 lead-set
+   (§4.1a) is what will carry it, so #12's interface spec is where the mechanical
+   question lands.
 3. **Does the CBIOS really never call ROM vectors 10–12 and 16?** §3.2 says the
    labels do not line up and that nothing breaks; that is read from the sources,
    not traced. A MAME trace of a boot with a breakpoint on those addresses would
