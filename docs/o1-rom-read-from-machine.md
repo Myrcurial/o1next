@@ -230,6 +230,28 @@ dump from the screen, or a serial capture — the ROM's own SIO init is
 a file to `PUN:`/`LST:`, but binary down a 1200-baud line wants a cable and
 care.
 
+## 7a. Status: the machine this was written for is out of play
+
+The single-density machine that prompted this doc is **out of play** — it blew
+a RIFA capacitor, a mains-side EMI suppression capacitor in the PSU and a
+well-known age failure in this era of hardware. The `^D` test in §1a was
+**never run**, so its ROM was **never identified**, and the question of whether
+it held a `NO_DUMP` revision is still open. The other two machines on hand are
+1.44, which is already held (`docs/o1-rom-variants.md`), so there is at present
+**no hardware route to any `NO_DUMP` slot**.
+
+Worth recording alongside it: **the repository holds no power-supply
+material.** The Osborne 1 Technical Manual in-repo
+(`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`) turns out to
+have only **§1.2 "Power On"**, two pages of power-up procedure — not supply
+theory and not a schematic. The only mention of the PSU anywhere in the tree is
+a design note in `docs/design/o1ng-lunchbox-concept.svg` recording that the
+original supply "and its RIFA caps" are retired in that concept. So a repair is
+off-repo work: there is nothing here to read first.
+
+This is the maintainer's to decide on — a physical machine is their call, and
+nothing in the project depends on this one either way.
+
 ## 8. What the result would settle
 
 - **A 1.3 dump fills `osb13.bin`** and closes the `NO_DUMP` slot outright.
