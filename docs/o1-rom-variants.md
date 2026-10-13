@@ -34,6 +34,26 @@ CRC is treated as positive identification; a CRC agreeing under two different
 | 1.43 | `research/roms/os1-143.rom` | `91a48e3c` | `rev1.43.ud11` | `ver143` |
 | 1.44 | `research/roms/os1-144.rom` | `c0596b14` | `3a10082-00rev-e.ud11` | `ver144` |
 
+**A rev-B image, from the OCC source disk (#205).** `research/source-code/OCCROM.IMD`
+carries `OCCROM0B.COM` — a **vendor-built** 4096-byte monitor ROM, rev B, dated
+9/12/81 — together with its source (`occrom0b.asm` plus nine modules) and its
+full listing (`OCCROM0B.PRN`). CRC32 **`f5f697c7`**, SHA1
+`212b7992db91225909f47972799eeb878d9ed806`. It is **not a chip dump**: it is
+Osborne's own build output, shipped on their own source disk. It is consistent
+with both the source and the listing on that disk, and it **boots** under
+`mame osborne1`, printing `OSBORNE SYSTEM ONE.M / REV B  227` and
+`INSERT DISK IN DRIVE ... AND PRESS RETURN.`
+
+Its CRC is not one of the three known dumps, and rev B (9/12/81) sits between
+BIOS A and 1.3 — so it is a **candidate for the `osba.bin` / `osb12.bin` /
+`osb121.bin` `NO_DUMP` slots**, and *which* one is MAME's call, not ours. That
+question is filed upstream as #222. Two cautions: it is a vendor build artifact
+rather than a dump, and under MAME's `osborne1` video model the banner shows two
+stray `L`s — rev B emits `ESC`+letter video escapes where 1.3/1.44 use single
+control bytes, and the model does not decode the older form (recorded, not
+explained). Extract it with `tools/research/o1imd8.py` + `cpmcp`; see
+`docs/rom-13-reconstruction.md` §6.1.
+
 Corroboration: BrettHallen's `ROM/OCC1_v140.BIN`, `OCC1_v143.BIN` and
 `OCC1_v144.BIN` are byte-identical to the three we hold (same CRCs), and
 `research/source-code/BIOS-144-source/rom144.asm` is the original ACT80 source
