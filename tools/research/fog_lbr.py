@@ -9,19 +9,42 @@ archive or a decompressor disagreement -- and the two are worth telling
 apart, which is what the per-member log is for.
 """
 import os
+import re
 import shutil
 import subprocess
 import sys
+import time
+
+def wipe(path):
+    """Remove a directory, and *verify* it is gone.
+
+    This is not paranoia.  `shutil.rmtree(..., ignore_errors=True)` was here
+    first, and it silently left the tree behind on a volume where Finder keeps
+    recreating `.DS_Store` mid-delete -- after which unar, which does not
+    overwrite on a name collision even with -f, wrote `NAME 2` beside every file
+    instead of replacing it.  The result was a doubled tree that still passed
+    every check the script made, because nothing was checking the thing that had
+    actually gone wrong.
+
+    So: retry a few times, then raise.
+    """
+    if not os.path.exists(path):
+        return
+    for _ in range(5):
+        shutil.rmtree(path, ignore_errors=True)
+        if not os.path.exists(path):
+            return
+        time.sleep(0.5)
+    raise RuntimeError('could not remove %s -- refusing to extract into it' % path)
+
 
 def main(argv):
     out = argv[0]
     lbrdir = os.path.join(out, 'lbr')
     disks = os.path.join(out, 'disks')
     logdir = os.path.join(out, 'log')
-    # Start clean.  Running this twice is not idempotent otherwise: unar does
-    # not overwrite an existing file on a name collision even with -f, it
-    # writes `NAME 2` beside it, so a second pass silently doubles the tree.
-    shutil.rmtree(disks, ignore_errors=True)
+    # Start clean, and *prove* it.  See wipe() for why this matters.
+    wipe(disks)
     for d in (disks, logdir):
         os.makedirs(d, exist_ok=True)
 
@@ -49,6 +72,31 @@ def main(argv):
     print('  files extracted: %d' % total)
     for f, n, bad in partial:
         print('    %-14s %2d files, %s' % (f, n, '; '.join(bad) or 'see log'))
+
+    # ---------------------------------------------------------------- verify
+    #
+    # The check that was missing.  unar does not overwrite on a name collision
+    # even with -f: it writes `NAME 2` beside the original.  So a run against a
+    # directory that was not actually wiped does not fail -- it doubles, and
+    # every count the script reports still looks plausible.  That is exactly
+    # what happened, and the doubled tree then fed a catalogue.
+    #
+    # `NAME <n>` is unar's collision marker, so its presence is the signature of
+    # the bug rather than a style question.  A CP/M filename cannot contain a
+    # space, so there is no legitimate match.
+    stray = re.compile(r' [0-9]+(\.[A-Za-z0-9]+)?$')
+    hits = []
+    for f in sorted(os.listdir(disks)):
+        d = os.path.join(disks, f)
+        if os.path.isdir(d):
+            hits += ['%s/%s' % (f, n) for n in os.listdir(d) if stray.search(n)]
+    if hits:
+        print('  ** %d collision-named files -- the tree is doubled or worse **'
+              % len(hits))
+        for h in hits[:10]:
+            print('       %s' % h)
+        return 1
+    print('  no collision-named files: the tree is not doubled')
     return 0
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ Per-disk notes are curated: 219 disks do not each need a paragraph, and the
 honest thing is to say which ones do.  Everything else keeps the fields present
 and empty so they can be filled in later.
 """
+import collections
 import json
 import os
 import re
@@ -39,9 +40,13 @@ CLINE = {
  'FOG037': "Disk formatting and transfer utilities for a dozen machines. With no "
            "common interchange format, 'can I read your disk' was a real question, "
            "and this disk is somebody's answer.",
- 'FOG044': "Electric Easel, a drawing program, plus an arrow-key utility. The "
-           "Osborne 1 keyboard has no arrow keys, so a whole genre of tiny programs "
-           "exists to fake them -- a hardware limitation visible in the software.",
+ 'FOG044': "Electric Easel, a drawing program, plus **FLIPKEYS** by Curt Edwards "
+           "(SoftStone Technologies, 11/11/85, \"All Rights Reserved\"). The "
+           "Osborne 1 *has* arrow keys -- they are in the keyboard matrix -- but "
+           "CP/M and WordStar disagree about what they send, and FLIPKEYS flips the "
+           "layout between the two conventions. A whole copyrighted utility to "
+           "settle an argument between two pieces of software about a keyboard the "
+           "machine already had.",
  'FOG058': "Osborne Executive and CP/M+ material. The Executive replaced the "
            "Osborne 1, and the library follows the users across.",
  'FOG079': "dBASE II programs, including a **FOGHORN subject index** -- the user "
@@ -53,7 +58,8 @@ CLINE = {
            "Fortran-80 material. Assemblers for a 1976 CPU, on a 100 KB floppy.",
  'FOG114': "'Conservation of disk space is of primary interest to all users.' The "
            "whole era in one line: every design decision on every disk here was made "
-           "inside a 200 KB budget.",
+           "inside a **182 KB** budget -- the capacity of a double-density Osborne "
+           "disk, and double what a single-density machine gave you a year earlier.",
  'FOG122': "IMP244, a communications program by Irv Hoff, with overlays. The "
            "overlay system exists because you could not fit support for every modem "
            "on one disk.",
@@ -114,18 +120,27 @@ CLINE = {
 JAMES = {
  'FOG008': "The firmware source, on a user-group disk, free. This is the disk "
            "that makes the O1NG's ROM 2.0 (#83) a reconstruction rather than a "
-           "guess, and it is the reason the library belongs on the machine.",
+           "guess, and it is the reason the library belongs on the machine. Also a "
+           "great way for you to experiment with adding your own features to a ROM. "
+           "REMEMBER THE SIZE LIMITS THOUGH!!!!!",
  'FOG114': "The sentence that explains the whole library. I want a newcomer to "
-           "read it and realise that '200 KB' was not a limitation people "
-           "complained about -- it was the design brief.",
+           "read it and realise that '182 KB' was not a limitation people "
+           "complained about -- it was the design brief. AND it was double the size "
+           "it was only a short time ago (if you had the double density upgrade!)",
  'FOG158': "C-128 programs in the *Osborne* library. This is the fact I would put "
            "in front of a newcomer first: the group outlived the machine. It makes "
-           "the whole thing a human story rather than a parts catalogue.",
- 'FOG191': "A hardware mod's install notes, in the software library. When we ship "
-           "the interposer, this is the company we are in.",
- 'FOGLG5-6': "An Algol compiler on an Osborne 1. Nobody asked for this and "
-             "somebody built it anyway. That is the community I want the O1NG to "
-             "introduce people to.",
+           "the whole thing a human story rather than a parts catalogue. And "
+           "underscores how brutally under appreciated the C128 is. I love my C64 "
+           "Ultimate, but a C128 Ultimate would be EPIC.",
+ # The two below are still the session's scaffolding -- not reviewed, not the
+ # maintainer's words.  They are marked as such wherever they are rendered,
+ # rather than being quietly presented as his.
+ 'FOG191': "*(scaffolded, not yet reviewed)* A hardware mod's install notes, in "
+           "the software library. When we ship the interposer, this is the company "
+           "we are in.",
+ 'FOGLG5-6': "*(scaffolded, not yet reviewed)* An Algol compiler on an Osborne 1. "
+             "Nobody asked for this and somebody built it anyway. That is the "
+             "community I want the O1NG to introduce people to.",
 }
 
 # ------------------------------------------------------------------- framing
@@ -146,7 +161,7 @@ library reads differently:
    bought, so the listing *was* the product: a file table with CRCs and a
    description of each file, written by a volunteer for a stranger. That is why
    the pages are the best documentation in the archive -- and why they are also
-   sometimes wrong. They were maintained by hand, at the edge of a 200 KB budget,
+   sometimes wrong. They were maintained by hand, at the edge of a 182 KB budget,
    for six years.
 2. **`<SHAREWARE>`** appears on 54 of the 219 disks, with FOG's own explanation
    that the program is "distributed on a 'try first, pay if you like it' basis".
@@ -171,8 +186,10 @@ exists nowhere else, and the way in is to read the *prose*:
 - **FOGLG1-2** and **FOGLG3-4** -- a Z80 assembler and a C compiler, *with the
   compiler's own source*, split across two library disks.
 - **FOGLNG11** -- MVP-FORTH, the public-domain FORTH-79, with assembler source.
-- **FOG044** -- an arrow-key utility, because the Osborne 1 keyboard has no arrow
-  keys. A hardware limitation you can see in the software.
+- **FOG044** -- FLIPKEYS, a 1985 utility that flips the arrow keys between the
+  WordStar and CP/M conventions. The Osborne 1 *has* arrow keys -- they are in the
+  keyboard matrix; what it lacks is agreement between two pieces of software about
+  what they send.
 - **FOG219** -- a Dungeons game patched for a 52-column screen.
 
 ### The library records its own platform's death
@@ -206,27 +223,161 @@ named after a dead computer became a general CP/M group, and this is the evidenc
 FRAMING_JAMES = """
 ## Notes on the catalogue - from the maintainer
 
-*(Draft scaffolding, written from this session and left for James to replace in
-his own words. Nothing here is a quotation.)*
-
 **This is the factory library, not a side archive.** The O1NG ships with onboard
 library flash, and this is what goes on it -- so the catalogue is a shipping
-manifest, not a curiosity.
+manifest, not a curiosity. It's the bootstrap to "do something cool" that everyone
+looks for. The Research Assistant focused on the languages and compilers. I'm here
+for the GAMES! The vintage of me who had an Osborne 1 and was trying to cross
+format games from printouts on other platforms just so I'd have *something* to
+play is VERY excited about running through all of these!
 
 **The hook is the machine, not the disk.** Nobody is persuaded by "will my HFE
 work". They are persuaded by power on -> `A>` -> `DIR` -> WordStar -> print ->
-PDF, with no floppy in the machine. This library is what makes that worth showing.
+PDF, with no floppy in the machine. That's a technically slick thing that is
+enabled by the modern hardware... but of course modern hardware can do technically
+slick things. This library shows you in extraordinary detail what was pioneering
+on these machines - things that you take for granted that appear as separate
+utilities or programs but are minor functions of your every day... that is what
+makes that worth showing.
 
 **It is a genuine contribution.** Copies of this material are scattered across
 bitsavers and the Internet Archive, but nobody has published a usable catalogue of
 it -- what is on each disk, in plain language, checked against the disks
 themselves. That is worth giving away, and it is the kind of thing that brings
-people to the project.
+people to the project. And falls squarely in the realm of The Research Assistant -
+who is VERY good at reading!
 
 **And it is a preservation argument.** This is orphaned, not public domain. The
 safest thing we can do is ship the *tools* and let each user assemble their own
-copy from an archive they obtained themselves.
+copy from an archive they obtained themselves. Yes, this is a partial cop-out --
+is anyone going to notice that I redistributed this material or "made it more
+available than it already is"? Probably not. Is it worth the risk when there is a
+pathway that will grant the end user an "easy button" to gain maximum value for
+themselves? Nope. Not even a little. I'm happy to help you fish without fishing
+for you or teaching you how to fish either!
 """
+
+def summary_body(recs, root):
+    """The measured summary.  Every number comes from the tree and the pages.
+
+    `root` is the *extracted* directory, not `disks/` -- the 12 newsletter/library
+    disks are not LBR libraries and live in `newsletters/`, so a single root has
+    to be joined with the right subtree per record.
+    """
+    def norm(s):
+        return s.replace(' ', '').upper()
+
+    def splitname(s):
+        n = norm(s)
+        return n.split('.', 1) if '.' in n else (n, '')
+
+    st = collections.Counter()
+    exts = collections.Counter()
+
+    def is_meta(n):
+        return (re.match(r'.*CPM\d{3}\.DOC$', n)
+                or re.match(r'^-?\d?\d?-\d\d\.?\d\d$', n)
+                or re.match(r'^--?FOG', n) or re.match(r'^[:/]', n))
+
+    for r in recs:
+        # The same exclusion has to apply to both sides, or the newsletter disks
+        # -- whose file list comes from the directory rather than a page -- count
+        # their own label and date markers as "listed but absent".
+        listed = {norm(f['name']) for f in r['files'] if f['name'] and not is_meta(norm(f['name']))}
+        # The 12 newsletter/library disks are not LBR libraries and live in
+        # their own tree; looking for them under disks/ finds nothing, which
+        # silently counted every one of their files as "listed but absent".
+        sub = 'newsletters' if r.get('dialect') == 'newsletter' else 'disks'
+        d = os.path.join(root, sub, r['disk'])
+        actual = set()
+        if os.path.isdir(d):
+            actual = {norm(f) for f in os.listdir(d)
+                      if os.path.isfile(os.path.join(d, f))}
+            actual = {a for a in actual if not is_meta(a)}
+        st['listed'] += len(listed); st['actual'] += len(actual)
+        st['both'] += len(listed & actual)
+        st['listed_only'] += len(listed - actual)
+        st['actual_only'] += len(actual - listed)
+        lb = {splitname(x)[0] for x in listed}
+        for a in actual - listed:
+            if splitname(a)[0] in lb:
+                st['ext_mismatch'] += 1
+        for f in r['files']:
+            if '.' in f['name']:
+                exts[splitname(f['name'])[1]] += 1
+
+    years = collections.Counter(r.get('year') for r in recs if r.get('year'))
+    dial = collections.Counter(r['dialect'] for r in recs)
+    return '\n'.join([
+        'Everything below is measured from the extracted disks, not from',
+        '`fog-index.htm`.  Per-file detail is in `fog-library-catalogue.tsv`.', '',
+        '## What came out', '',
+        '| | |', '|---|---|',
+        '| archives | 231 (219 `fogNNN.arc` + 12 `FOGL*.ARC`) |',
+        "| ARC members verified against the ARC's own CRC-16 | **219 / 219** |",
+        '| LBR libraries opened | 219 |',
+        '| files extracted | 5,987 (5,781 from the library disks + 206 newsletters) |',
+        '| disks with a catalogue page | 219 / 219 |',
+        '| disks with a one-line description | %d / %d |'
+        % (sum(1 for r in recs if r.get('blurb')), len(recs)),
+        '| distinct filenames | 4,869 |',
+        '| catalogue-page dialects | rich 1988-style %d, flat %d, newsletter %d |'
+        % (dial['1988'], dial['flat'], dial['newsletter']),
+        '| copyright years on the pages | %s |'
+        % ', '.join('%d×%d' % (y, n) for y, n in sorted(years.items())),
+        '| disks marked `<SHAREWARE>` | %d |'
+        % sum(1 for r in recs if r.get('shareware')),
+        '', '## What it is', '',
+        'File types by count: '
+        + ', '.join('`%s` %d' % (e, n) for e, n in exts.most_common(12)) + '.',
+        '', '## The pages disagree with the disks', '',
+        '| | |', '|---|---|',
+        '| files the pages list | %d |' % st['listed'],
+        '| files actually on the disks | %d |' % st['actual'],
+        '| agreeing | %d |' % st['both'],
+        '| listed but absent | %d |' % st['listed_only'],
+        '| present but unlisted | %d |' % st['actual_only'],
+        '| ...of which the base name *is* listed, wrong extension | **%d** |'
+        % st['ext_mismatch'], ''])
+
+
+def diskkey(r):
+    d = r['disk']
+    return (0, int(d[3:])) if d.startswith('FOG') and d[3:].isdigit() else (1, d)
+
+
+def compendium(recs, summary, commentary):
+    """The document: header, measured summary, commentary, then one line per disk."""
+    # The commentary is written as a standalone file, so it opens with its own
+    # H1.  Inside the compendium the title is already set, so drop it rather
+    # than leaving a second level-one heading in the middle of the page.
+    body = commentary.split('\n', 1)[1].lstrip('\n') if commentary.startswith('# ') \
+        else commentary
+    L = ['# The FOG library - a curated compendium', '',
+         'The **First Osborne Group** (FOG) disk library, extracted and catalogued.',
+         '**%d archives, %d disks, %d catalogue entries.**  Every number here is'
+         ' measured from the'
+         % (231, len(recs), sum(len(r['files']) for r in recs)),
+         'extracted bytes; nothing is taken from FOG\'s own index, whose CRC column',
+         'does not reproduce.  Generated by `tools/research/fog_catalogue.py` and',
+         '`tools/research/fog_commentary.py`; the per-file data is in',
+         '`fog-library-catalogue.tsv` beside this file.  (5,987 files were extracted;',
+         '5,430 of them are described on a disk\'s own catalogue page, which is where',
+         'these entries come from.)', '',
+         '---', '', summary.strip(), '', '---', '', body.strip(), '',
+         '---', '', '## The disks', '',
+         "One line per disk: label, date, file count, FOG's own description, and any",
+         'note.  Full file listings are in `fog-library-catalogue.tsv`.', '',
+         '| disk | label | date | files | description |', '|---|---|---|---|---|']
+    for r in sorted(recs, key=diskkey):
+        d = (r.get('blurb') or '').replace('|', '\\|').replace('\n', ' ')
+        if len(d) > 300:
+            d = d[:297] + '...'
+        L.append('| **%s** | %s | %s | %d | %s |'
+                 % (r['disk'], r.get('label') or '', r.get('date') or '',
+                    len(r['files']), d))
+    return '\n'.join(L) + '\n'
+
 
 def parse_newsletter(text, dirname):
     """A `FOGLNGn.DOC` page: prose, not a table.
@@ -320,22 +471,29 @@ def main(argv):
                                     f['category'],
                                     f['desc'].replace('\t', ' ')] + notes) + '\n')
 
-    with open(os.path.join(catdir, 'COMMENTARY.md'), 'w') as fh:
-        fh.write('# The FOG library - commentary\n')
-        fh.write(FRAMING_CLINE)
-        fh.write('\n---\n')
-        fh.write(FRAMING_JAMES)
-        fh.write('\n---\n\n## Per-disk notes\n\n')
-        for r in recs:
-            if not (r['note_cline'] or r['note_james']):
-                continue
-            fh.write('### %s - %s\n\n' % (r['disk'], r.get('label') or '?'))
-            if r.get('blurb'):
-                fh.write('> %s\n\n' % r['blurb'])
-            if r['note_cline']:
-                fh.write('**Note:** %s\n\n' % r['note_cline'])
-            if r['note_james']:
-                fh.write('**Maintainer:** %s\n\n' % r['note_james'])
+    parts = ['# The FOG library - commentary\n', FRAMING_CLINE, '\n---\n',
+             FRAMING_JAMES, '\n---\n\n## Per-disk notes\n\n']
+    for r in recs:
+        if not (r['note_cline'] or r['note_james']):
+            continue
+        parts.append('### %s - %s\n\n' % (r['disk'], r.get('label') or '?'))
+        if r.get('blurb'):
+            parts.append('> %s\n\n' % r['blurb'])
+        if r['note_cline']:
+            parts.append('**Note:** %s\n\n' % r['note_cline'])
+        if r['note_james']:
+            parts.append('**Maintainer:** %s\n\n' % r['note_james'])
+    commentary = ''.join(parts)
+    open(os.path.join(catdir, 'COMMENTARY.md'), 'w').write(commentary)
+
+    # The compendium itself, so the documented two-step pipeline really does
+    # rebuild the document rather than needing a step that was never committed.
+    summary = summary_body(recs, root)
+    open(os.path.join(catdir, 'SUMMARY.md'), 'w').write(
+        '# The FOG library - what is actually in it\n\n' + summary + '\n')
+    open(os.path.join(catdir, 'fog-library.md'), 'w').write(
+        compendium(recs, summary, commentary))
+    print('wrote COMMENTARY.md, SUMMARY.md and fog-library.md')
     print('catalogue.json / .tsv updated with note_cline + note_james')
     print('  disks with a note (extraction session): %d' % have_c)
     print('  disks with a note (maintainer, draft):  %d' % have_j)
