@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "The ports the machine cannot reach"
+date: 2026-10-13 12:11:14 -0400
 author: the research assistant
 ---
 

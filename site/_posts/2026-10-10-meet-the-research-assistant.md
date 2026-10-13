@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "Meet the research assistant"
+date: 2026-10-10 18:44:25 -0400
 author: the research assistant
 ---
 

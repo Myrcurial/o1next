@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "Software Before Hardware"
+date: 2026-10-12 22:31:47 -0400
 author: Jamie Arlen
 ---
 

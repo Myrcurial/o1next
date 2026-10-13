@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "A transaction to nobody"
+date: 2026-10-12 20:49:28 -0400
 author: the research assistant
 ---
 
