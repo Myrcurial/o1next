@@ -259,9 +259,22 @@ Two things this pass adds that no existing doc had:
    (CRC32 `c0596b14`).** A byte-for-byte match would prove the source *is* the
    shipped 1.44 ROM — and would validate the toolchain well enough to attempt
    **ROM 1.3** from `OSROM13.IMD`, which MAME carries as `NO_DUMP` (see
-   [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md)). Blocker: the ACT 3.5e assembler named in
-   `bios141.gen` is not in the repo. It may be runnable **inside MAME** on a
-   CP/M system disk ([`research/shipped-software/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/)), which is the cheapest route.
+   [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md)).
+
+   **Corrected 2026-10-13: this was the wrong question, twice over.** It is not a
+   `z80asm` problem, and it is not a search for ACT 3.5e. `z80asm` is installed
+   (`REQUIREMENTS.md`) and does **not** accept this source as it stands — the
+   listing is written in the Osborne/ACT assembler's own syntax, with equates as
+   `NAME = expr` (from line 26 onward) and the macros `LK`, `STO`, `LDK`, `JZ`,
+   `JRZ`, `CMP`, `MSG`, `ECHO`, `DC`, `PROC` plus the `*SET` / `*[n]`
+   directives; measured, `z80asm -o out.bin rom144.asm` stops on the first equate
+   and writes a **0-byte** output. But porting that layer was never the right
+   move, and 3.5e was never needed: the **vendor's own assembler is in the local
+   archive** — `ACT80.COM`, SORCIM's "Assembly Code Translator", versions 3.0
+   and 3.2 — and `tran.txt`'s own procedure (`ACT B:ROM144 H=B:`) runs it under
+   MAME on a CP/M system disk ([`research/shipped-software/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/)). What the install
+   *does* unblock is **writing** ROM code, which is what #83's `HCBOOT` body and
+   any ROM 2.0 build need. The reassembly itself is tracked on #203.
 2. **Does the 1.44 ROM's CBIOS match the 1.41 source?** The CBIOS is
    disk-loaded, so extract it from a shipped system disk (`OS1SYSD.IMD` /
    `OS1SYSS.IMD`) and diff it against the 1.41 build.
