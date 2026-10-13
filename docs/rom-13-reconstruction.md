@@ -41,8 +41,8 @@ trying to turn it into the missing `osb13.bin`.
    done and committed; what is left is two *tooling* defects (§6, §7) whose
    clean fix is the assembler we cannot get. Nothing in the project needs a 1.3
    ROM, and the durable half of the result — the disk read, the source, the
-   recovered `DBE`/`DCE` semantics, and a toolchain that reproduces a shipped
-   Osborne ROM byte for byte — is already banked. §10.
+   recovered `DBE`/`DCE` semantics, and a control build that reproduces **3759
+   of a shipped Osborne ROM's 4096 bytes exactly** — is already banked. §10.
 
 ## 1. What the disk is
 
@@ -208,9 +208,10 @@ with a leading colon.
 | The disk reads and the source is complete | 19 files, sizes matching the directory, all clean text, all `; END OCCROMn?.???` terminators |
 | The format is skew 3 | every sector boundary in `occrom33.asm` chains mid-token at skew 3 and nowhere else; matches `cpmfs.py`/`cpmtools`' own table |
 | `DBE` = value×2, `DCE` = value×2 with the last byte +1 | 15/15 lines in the rev-B listing against the shipped `OCCROM0B.COM` |
-| **The translated rev-B build reproduces the shipped rev-B ROM** | `no ERRORs`, `LENGTH OF THIS ROM IS = 0FC6` — the shipped listing's own number — and **every record it emits is byte-identical to the shipped hex**. The only gap is the write-back damage in §7, which is not the assembler's doing |
-| The translated 1.3 build is **the ROM** | **NOT VERIFIED** — 3 errors remain and the write-back damage is still there; see §6 |
-| The image boots under `-bios ver13` | **NOT VERIFIED** — see §6 |
+| **The translated rev-B build reproduces the shipped rev-B ROM, as far as its output survives** | `no ERRORs`; `LENGTH OF THIS ROM IS = 0FC6`, the shipped listing's own number; and **0 differing records** against the shipped hex — **3759 of the shipped image's 4096 bytes byte-identical**. The other 337 bytes are the 16 records lost to §7, so they are *unverified*, not verified |
+| The translated 1.3 build is **the ROM** | **NO** — 3 errors remain and 337 bytes are lost to §7; see §6 |
+| The built 1.3 image boots | **NO — run, and it fails.** MAME renders it as a full screen of block glyphs, no banner. Method and screenshot: §6.1 |
+| The vendor-built rev-B image boots | **YES** — `OCCROM0B.COM` (CRC32 `f5f697c7`) prints `OSBORNE SYSTEM ONE.M / REV B  227` and `INSERT DISK IN DRIVE ... AND PRESS RETURN.` under MAME. §6.1 |
 
 ## 6. The control build, and what still stands in the way
 
@@ -233,8 +234,66 @@ the ROM resolving 28 bytes low. Fixing it (`label or ''`) gives, for rev B:
 
 `0FC6` is the shipped listing's own number, and **every record the build emits
 is byte-identical to the shipped hex** — 0 differing records, checked record by
-record. So ACT 3.0 plus `actdbe.py` does reproduce a shipped Osborne ROM, and
-the `DBE`/`DCE` recovery is sound.
+record. That is **3759 of the shipped image's 4096 bytes verified identical**,
+and the 337 bytes that are not are the 16 records §7 loses: unverified, not
+verified. So ACT 3.0 plus `actdbe.py` reproduces a shipped Osborne ROM *as far
+as its output survives*, and the `DBE`/`DCE` recovery is sound.
+
+**Why that is checkable for rev B and not for 1.3 is the whole point.** The
+rev-B disk carries the *answer*: `OCCROM0B.COM`, 4096 bytes, CRC32 `f5f697c7`.
+So the damage shows up as a discrepancy against a reference, and what it ate can
+be read off that reference. Our own build of the same source is CRC32
+`5f48a26a`, and the 337 bytes between the two are exactly §7's damage — nothing
+else differs. **For 1.3 there is no reference.** The same defect eats the same
+kind of bytes and nothing can tell us what they were.
+
+So the toolchain is *verified* for rev B and only *trusted* for 1.3, and that
+difference is not a property of the toolchain — it is a property of whether the
+answer already exists. A control build is a check, not a generator: it can tell
+you that a build is right, and it cannot supply the bytes a build failed to
+produce.
+
+There is a second, independent blocker: **the 1.3 build carries three errors
+that the rev-B build of the same code does not.** Even with a clean output path
+the 1.3 image would not be right until those are found.
+
+### 6.1 The boot test, which the issue makes the pass/fail
+
+It runs, and it says no. Two things had to be learned to run it at all:
+
+- **`o1keys.sh` segfaults whenever `-bios` is passed** — with *any* ROM,
+  including the stock `rev1.40.ud11`. MAME itself runs fine with `-bios`
+  (`exit 0`), so it is the harness's VRAM reader, not the guest. The way round
+  it is the one `docs/mame-emulation.md` §4 already uses: put the candidate ROM
+  in as the **default** BIOS file (`3a10082-00rev-e.ud11`) in a scratch rompath
+  and pass no `-bios` at all. MAME prints `WRONG CHECKSUMS` and continues.
+- **A screenshot is the only readable output**, since the harness cannot be
+  used. A four-line Lua script — `emu.register_frame_done`, then
+  `screen:snapshot()` — writes a PNG that can be looked at.
+
+With that, booting a scratch rompath whose default BIOS is **the vendor-built
+rev-B image** (`OCCROM0B.COM`, CRC32 `f5f697c7`, extracted from `OCCROM.IMD`)
+gives its own sign-on and prompt:
+
+```
+ LOSBORNE SYSTEM ONE.M
+     REV B   227
+
+ INSERT DISK IN DRIVE LAM AND PRESS RETURN.
+```
+
+That is a boot, and it is worth noting that the banner matches the rev-B
+source's own `;VER = REV B` / `;DATE = 227`. (The stray `L`s are the ROM's
+`DB ESC,'L'` / `DB ESC,'M'` video escapes printing literally; rev B escapes with
+`ESC`+letter where 1.3 and 1.44 use single control bytes, and MAME's `osborne1`
+video model does not decode the older form. Unexplained beyond that, and it is
+recorded rather than guessed at.)
+
+Booting **our built 1.3 image** the same way gives a full screen of block
+glyphs and no banner. **So the 1.3 image fails its own pass/fail**, which is
+what the issue asks for and is now on the record — and the failure is
+consistent with the two defects above rather than with anything about the
+source.
 
 **What stops the comparison passing outright is §7**: the emulated write-back
 damages six hex records per build, and the damage is identical on every run, so
@@ -322,11 +381,12 @@ note to the MAME devs is:
 > was itself built with `ver 3.5E`. We recovered what those two pseudo-ops
 > emit (each byte is the value shifted left one; `DCE` sets bit 0 of the last
 > byte) from that disk's own `OCCROM0B.COM`, and can build a 1.3 image with
-> ACT 3.0 and a mechanical source rewrite. The toolchain is sound: a control
-> build of the rev-B ROM from that same disk reproduces the shipped rev-B image
-> byte for byte. But the emulation we build under damages a handful of hex
-> records on the way back out, so the 1.3 image is **not certified**, and it
-> should not go into a romset as if it were a dump.
+> ACT 3.0 and a mechanical source rewrite. The toolchain checks out: a control
+> build of the rev-B ROM from that same disk gives no errors and reproduces 3759
+> of the shipped image's 4096 bytes byte for byte — the other 337 are lost to a
+> defect in the emulation we build under, which damages a handful of hex records
+> on the way back out. So the 1.3 image is **not certified**, and it should not
+> go into a romset as if it were a dump.
 >
 > So: this is a *reconstruction recipe*, not a dump. If you have ACT 3.5E the
 > rewrite is unnecessary and it finishes in one run — **we have stopped looking
@@ -379,9 +439,9 @@ fix for both is an assembler that is unobtainable:
   same code has none (§6).
 
 Against that, the durable half is already banked: the disk reads, the source is
-committed, the `DBE`/`DCE` semantics are recovered and verified, the toolchain
-reproduces a **shipped** Osborne ROM byte for byte, and the recipe is written
-down. None of that needs a 1.3 ROM to be useful, and no project path does
+committed, the `DBE`/`DCE` semantics are recovered and verified, the control
+build reproduces 3759 of a **shipped** Osborne ROM's 4096 bytes exactly, and the
+recipe is written down. None of that needs a 1.3 ROM to be useful, and no project path does
 either — we build from the 1.44 source.
 
 **What would justify picking it up again:** a clean output path (a fixed
