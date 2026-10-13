@@ -553,29 +553,33 @@ program's own doing and not the controller's.
 ### The recipe, so it reproduces
 
 ```sh
-# 1. patch PREP.COM's main-menu option 1 to enter the Disk initialization menu
-#    directly (0x0FE4: CALL sub_319fh -> JP 12BAh), then wrap it for MAME
-cp 'research/adaptec/Osborne Hard Disk Control Software Version 2.01 (1984).img' /tmp/prep.img
-tools/research/md10patch.py /tmp/prep.img /tmp/prep-patched.img PREP.COM 0x0EE4:c3ba12
-tools/research/o1raw2imd.py /tmp/prep-patched.img /tmp/prep-patched.imd
+# 1. build the patched disk.  One 3-byte jump -- PREP.COM's main-menu option 1
+#    (0x0FE4: CALL sub_319fh) becomes JP 12BAh, the Disk initialization menu --
+#    applied to a copy of the archived 2.01 image and wrapped for MAME.
+tools/research/o1prep-patch.sh /tmp/o1prep
 
 # 2. a drive to write on
-CHDMAN=/path/to/chdman tools/research/mkdrive.py --out /tmp/md10/hd.chd
+CHDMAN=/path/to/chdman tools/research/mkdrive.py --out /tmp/o1prep/hd.chd
 
 # 3. run it: main-menu 1 lands on the Disk initialization menu; set the select
 #    byte the patch stepped over; then 5 = Change disk label (or 1 = format)
-printf 'wait A>\ntype PREP\nwait Main function\nkey 1\nsleep 2\npoke 0x8023 01\nkey 5\nsleep 2\ntype MYLABEL\n' > /tmp/keys.txt
-cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/prep-patched.imd \
-  O1_KEYS="$(cat /tmp/keys.txt)" SDL_VIDEODRIVER=dummy \
-  /path/to/osborne1ng osborne1ng -flop1 /tmp/prep-patched.imd -hard /tmp/md10/hd.chd \
+printf 'wait A>\ntype PREP\nwait Main function\nkey 1\nsleep 2\npoke 0x8023 01\nkey 5\nsleep 2\ntype MYLABEL\n' > /tmp/o1prep/keys.txt
+cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/o1prep/prep.imd \
+  O1_KEYS="$(cat /tmp/o1prep/keys.txt)" SDL_VIDEODRIVER=dummy \
+  /path/to/osborne1ng osborne1ng -flop1 /tmp/o1prep/prep.imd -hard /tmp/o1prep/hd.chd \
   -video none -sound none -nothrottle \
-  -autoboot_script "$OLDPWD/tools/research/o1keys.lua" \
-  -seconds_to_run 90 -rompath "$OLDPWD/tools/emulator-setup/roms"
+  -autoboot_script /path/to/o1nextgen/tools/research/o1keys.lua \
+  -seconds_to_run 90 -rompath /path/to/o1nextgen/tools/emulator-setup/roms
 
 # 4. read it back
-chdman extracthd -i /tmp/md10/hd.chd -o /tmp/hd.raw -f
-xxd -l 64 /tmp/hd.raw        # the label text sits at offset 14
+chdman extracthd -i /tmp/o1prep/hd.chd -o /tmp/o1prep/hd.raw -f
+xxd -l 64 /tmp/o1prep/hd.raw     # the label text sits at offset 14
 ```
+
+`o1prep-patch.sh` also writes `/tmp/o1prep/prep.recipe.txt` with the same steps,
+and prints the three bytes it changed — the patched image is a 100 KiB derivative
+that regenerates in under a second, so it is not committed (`research/` is for
+primary sources).
 
 The path to `osborne1ng` is the built binary, not `mame osborne1ng` (the machine
 is not in a stock MAME's driver list). `-nothrottle` keeps the run to seconds, and

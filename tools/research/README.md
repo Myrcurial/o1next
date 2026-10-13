@@ -92,6 +92,17 @@ scratch programs, "figuring it out" notebooks/scripts.
   menu — the overlay init call at `0x0219`, the probe at `0x15AF` and the branch
   at `0x0EE8` — and nothing else is touched. See
   `docs/harddisk-decision.md` 7.2.
+- **`o1prep-patch.sh`** — build a *runnable* `PREP.COM` disk for `osborne1ng`, and
+  the durable record of what had to be patched to get there (#191). The disk
+  header `PREP.COM` writes is built at run time, so the only way to see it is to
+  make the program write it — and the *Disk initialization* menu that can do that
+  sits behind a format the emulator cannot finish, so one 3-byte jump
+  (`PREP.COM +0x0EE4`: `CALL` → `JP 12BAh`) lands main-menu option 1 on that menu
+  directly. The archive image is never modified, the output is a new file, and the
+  script prints the three bytes that differ. It deliberately does **not** set the
+  card's select byte, because that is a run-time variable — see the `poke`
+  directive above and `docs/osborne1ng-machine.md` 6. Written as the seed of the
+  bootstrap floppy the interposer will have to ship (#138, #191).
 - **`drivetbl.py`** — dumps the whole MD-10 drive table out of `DRIVETBL.DAT`.
   Written for #178 because `cpmfs.py get` cannot: the file's directory entry says
   128 bytes while it holds 16 512, so the table is only reachable by walking the
