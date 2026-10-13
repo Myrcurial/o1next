@@ -34,10 +34,15 @@ trying to turn it into the missing `osb13.bin`.
    **it is not certified**, and it must not be handed upstream as the real
    1.3 until the control build passes. That is stated plainly below rather
    than glossed.
-5. **MAME's floppy write-back damages the assembler's hex output** — about six
-   records per build, deterministically — so no build can be compared against a
-   reference until that is dealt with. It is a separate tooling hazard and it
-   is recorded in §7.
+5. **The hex output arrives damaged at about six fixed *file offsets* per
+   build** — identically on a double-density disk and on a single-density one,
+   and on drive A or drive B — so it is not the disk layer. §7.
+6. **Recommendation: stop here, as "record it and stop".** The source work is
+   done and committed; what is left is two *tooling* defects (§6, §7) whose
+   clean fix is the assembler we cannot get. Nothing in the project needs a 1.3
+   ROM, and the durable half of the result — the disk read, the source, the
+   recovered `DBE`/`DCE` semantics, and a toolchain that reproduces a shipped
+   Osborne ROM byte for byte — is already banked. §10.
 
 ## 1. What the disk is
 
@@ -245,16 +250,24 @@ tested directly. Its `LENGTH` comes out `0FFA`, inside the 4 KB window, so no
 overflow error is firing.
 
 **So: a 1.3 image can be built, and `rom13-reassemble.sh` builds one, but it is
-not the shipped 1.3 ROM and must not be presented as one.** What would settle
-it, in order of preference:
+not the shipped 1.3 ROM and must not be presented as one.**
 
-1. **ACT 3.5E** — then no translation is needed and the whole question
-   disappears. It is not in the local archive (nine `ACT80.COM` copies checked,
-   plus `act.dsk` from schorn.ch) and not on bitsavers.
-2. **The write-back damage in §7** — one fixed emulation bug and the control
-   build passes.
+**ACT 3.5E is the clean answer and it is unobtainable — the maintainer has
+said so, and it is recorded here so nobody goes looking again.** It is in no
+local archive (nine `ACT80.COM` copies checked, plus the schorn.ch `act.dsk`)
+and not on bitsavers. That matters because it means the two defects below have
+no clean fix available, which is the whole basis of the recommendation in
+§10.
+
+What is left, in order of how much it would buy:
+
+1. **The output damage in §7** — locate it and the rev-B control build passes,
+   and the 1.3 image falls out of the same toolchain.
+2. **The three 1.3 errors** — a source-level difference from rev B, still
+   unidentified; the rev-B build has none.
 3. The **`OCCTXT` revision contemporary with 12/16/81**, in case the equates
-   differ from `occtxt6.ast`.
+   differ from `occtxt6.ast` (the choice is inert for this source, but a later
+   revision is not guaranteed to be).
 4. The **`OCCRAM2.ASM` from the 1.3 era** — the copy used here is from
    10/9/81.
 
@@ -269,21 +282,28 @@ one truncated mid-record with the next record's text running on behind it:
 ```
 
 `acthex.py` reports them as `not a usable record`; a clean build has none.
-Three facts pin it to the emulated write path rather than to ACT:
+Five measurements narrow it down, and the last two are what close the
+question:
 
 - the *source* files and `ACT80.COM` read back off the same floppy **byte
-  identical** to what was written, so the disk is not generally corrupt;
-- the damaged records contain the same pattern every time, and **three runs of
-  the same build are byte-identical files** (`md5` equal) — so it is
-  deterministic, not flaky, and a union of runs recovers nothing;
-- the same damage appears in *both* the 1.3 and the rev-B builds, at different
-  records, so it follows the write path and not either source.
+  identical** to what was written, so the disk is not generally corrupt, and
+  the guest's *read* path is sound;
+- **three runs of the same build are byte-identical files** (`md5` equal) —
+  deterministic, not flaky, so a union of runs recovers nothing;
+- the damaged bytes land at the same **output-file offsets** in both builds
+  (0x480 in each) while the *object addresses* underneath them differ (0x1C0
+  for rev B, 0x1F0 for 1.3) — so it follows the output stream, not the object;
+- every damaged run starts on a **128-byte boundary inside its sector**, i.e. a
+  CP/M record boundary;
+- it is **identical on a single-density disk (256-byte sectors) and on a
+  double-density one (1024-byte sectors)**, and on drive A or drive B — so it
+  is not the disk format, the sector size, or the image layout.
 
-This is the same class as the transport damage `acthex.py` already documents
-from #203, where one record of ACT's output arrived with six non-hex bytes in
-it — this is a worse case of it. It means a single run is not trustworthy
-output, and a build that "passes" must be checked record by record, which is
-what §6 does.
+That leaves the output path *above* the disk layer: the bytes are already
+wrong when they are handed to the emulated controller. It is the same class as
+#203's one damaged record — `acthex.py`'s `--recover-ff` exists for the shape
+seen there — but this is six records, and their content is not FF, so that
+recovery does not apply.
 
 ## 8. What upstream gets, and what it should be told
 
@@ -308,8 +328,9 @@ note to the MAME devs is:
 > records on the way back out, so the 1.3 image is **not certified**, and it
 > should not go into a romset as if it were a dump.
 >
-> So: this is a *reconstruction recipe*, not a dump. Anyone with ACT 3.5E can
-> finish it in one run, and we will update this note the moment it is done.
+> So: this is a *reconstruction recipe*, not a dump. If you have ACT 3.5E the
+> rewrite is unnecessary and it finishes in one run — **we have stopped looking
+> for it ourselves**, and we will update this note if it ever turns up.
 
 The point of handing that over rather than a hopeful 4 KB blob is that a wrong
 `osb13.bin` in a romset is worse than a placeholder: it would be
@@ -341,8 +362,33 @@ control build does not match, which is the honest state today.
 | `research/source-code/*.IMD` are readable | **Closed** — `tools/research/o1imd8.py`; all seven disks, not just 1.3 |
 | The 1.3 source is extracted and indexed | **Closed** — `research/source-code/ROM-13-source/` |
 | `DBE`/`DCE` semantics | **Closed** — recovered and verified against the shipped rev-B ROM |
-| MAME's `osb13.bin` | **Open** — blocked on ACT 3.5E (§6) |
+| MAME's `osb13.bin` | **Open, and recommended to stay so** — see below |
 | The other `NO_DUMP` slots (A, 1.2, 1.2.1) | **Open, and closer than they were** — `OSBROM.IMD`, `OCCROM.IMD` and `OSBIOSSR.IMD` hold the rev A/rev B source sets and `OCCROM.IMD` even carries a *shipped* rev-B image (`OCCROM0B.COM`, 4096 B). Whether that image is one of MAME's missing slots is a separate question and is not answered here. |
+
+### Recommendation: stop here
+
+**We do not have a 1.3 ROM, and the side quest should stop at this point** —
+"record it and stop", which is what #205 allows for.
+
+The reason is not that the source is short of anything. It is that the two
+things still in the way are **tooling defects, not knowledge**, and the clean
+fix for both is an assembler that is unobtainable:
+
+- the hex output is damaged before it reaches the disk (§7), and
+- three errors in the 1.3 build are unidentified while the rev-B build of the
+  same code has none (§6).
+
+Against that, the durable half is already banked: the disk reads, the source is
+committed, the `DBE`/`DCE` semantics are recovered and verified, the toolchain
+reproduces a **shipped** Osborne ROM byte for byte, and the recipe is written
+down. None of that needs a 1.3 ROM to be useful, and no project path does
+either — we build from the 1.44 source.
+
+**What would justify picking it up again:** a clean output path (a fixed
+emulation, or any environment where ACT's hex file survives), or the
+`OCCTXT`/`OCCRAM2` of the right vintage. Both are cheap to test and both are
+written down here. Until then, more hours buy nothing, and a *wrong* `osb13.bin`
+in a romset would be worse than the placeholder it replaced.
 
 Related: #72 (the ROM source index), #70 (ROM inventory), #203 (the 1.44
 reassembly and the ACT80 safety copy), `docs/o1-rom-variants.md`.
