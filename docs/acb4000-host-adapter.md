@@ -169,7 +169,13 @@ archive). §7.3's two routes stand, with the first now carrying a dependency:
    SCSI routine at file `0x285`; nothing in the archive writes `0x0559`–`0x055D`
    either. If the MD-10's CCP is low enough, that block *and* the tables at `0x055E`
    would be part of its system image — which is exactly what a bootable MD-10 disk
-   would carry.
+   would carry. *Resolved 2026-10-12: the block is not unwritten at all. It is
+   the MD-10 BIOS's own data at base+`0x559`, and it arrives inside `HARD.COM`,
+   which carries a relocated copy of the BIOS at file offset `0x053A` and copies
+   it to `0xD800` — so `0x0559` is `0xD800 + 0x559` = `0xDD59` and its writer is
+   `HARD.COM`'s own data at file offset `0x0993`, not any low-RAM store. The
+   values are the select byte `01`, LBA `5` and count `11`. See
+   `docs/md10-system.md` §4–§6.*
 
    The MD-10 `BOOT` also sets page zero to `JP 0003h` (warm vector) and
    `JP 0F206h` (BDOS entry) — neither matches the stock `CCP+1600h` layout, so **the

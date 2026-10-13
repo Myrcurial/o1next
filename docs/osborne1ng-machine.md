@@ -444,6 +444,11 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
    page zero to point at itself (`JP 0xD803`, the body's own jump table, which is
    its install entry) and jumps into the buffer. On a blank drive that code is
    all zeros, so the guest NOPs to the top of memory, wraps, and the patched warm
+   boot restarts it — *measured again 2026-10-12 on a drive that does carry a
+   system: it is also a **carrier**, its tail `0x053A`–`0x0AFF` being a relocated
+   copy of the MD-10 BIOS that it installs at `0xD800` and patches from the
+   running ROM's jump table, so the "boot loader" is a boot loader **and** the
+   BIOS. `docs/md10-system.md` has the chain.*
    vector runs the loader again — the `READ LBA 5 ×11` loop, seen 4 673 times in
    one run. So the drive has to already carry an MD-10 system, and nothing in the
    archive writes one: `PREP.COM` option 1 formats, and every path that would put
