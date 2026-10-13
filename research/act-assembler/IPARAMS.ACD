@@ -1,0 +1,275 @@
+	IF	@ILIST = 0
+	LIST	-L,-R
+	ENDIF
+	TITLE	'IPARAMS.ACD - Installation Parameter Configuration.'
+;IPARAMS.ACD - Installation Parameter Configuration.
+;		79/07/25
+;		79/08/11	;change SYSCAL parms = SYSTEM, rhf.
+;		79/08/12	;Added SYSDAT, SYSTIM defs, rhf.
+;		79-09-17	;bring PHOENIX defs up to date, phm.
+;		79-09-30	;Make CONIN redefinable for @CROM, phm.
+;		79-11-06	;LFCB to 36 for comp with cpm 2.0
+;		79-11-09	;Added cpm 2.0 names, rhf.
+;	This Comdeck provides definitions of system configuration,
+;	and Ascii control characters for the DigiCon Phoenix
+;	product set.
+;	NOTE: The user of this deck must have previously defined
+;	the symbols @SYS and @CASE.
+	space	4,10
+
+;	True/False definitions
+FALSE	EQU	0
+TRUE	EQU	not FALSE
+
+
+;	Processor type.
+Z80	EQU	FALSE
+Z8000	EQU	FALSE
+I8080	EQU	TRUE
+I8085	EQU	FALSE
+
+
+;	List output page/line/column definitions
+MLPP	EQU	66	;Number of lines per physical page
+LLP	EQU	60	;NUMBER OF LINES TO PRINT PER PAGN
+PCOL	EQU	80-(24*@SYS)	;Column for current page.
+
+
+;	Define Ascii Control Codes.
+;		Value	;^Control	Meaning in Phoenix
+EOS	EQU	0	;^@, NUL = End of String
+
+TBFCHR	EQU	'A'-40h	;^A, SOH = Tab with fill
+BTBCHR	EQU	02h	;^B, STX = BACK TAB CHARACTER
+ABTCHR	EQU	03h	;^C, ETX = ABORT CHARACTER
+BELCHR	EQU	07h	;^G, BEL = Audible Alarm
+BKSCHR	EQU	08h	;^H, BS  = PHYSICAL BACKSPACE CHARACTER
+TABCHR	EQU	09h	;^I, HT  = Tab 
+LF	EQU	0Ah	;^J, LF  = Line Feed
+CR	EQU	0Dh	;^M, CR  = Carriage Return
+LITCHR	EQU	0Eh	;^N, SO  = Literal next character
+SUSCHR	EQU	0Fh	;^O, SI  = SUSPEND CHARACTER
+RTYCHR	EQU	12h	;^R, DC2 = RE-TYPE LINE CHARACTER
+CTRU	EQU	15h	;^U, NAK = Cancel Line char
+BWDCHR	EQU	17h	;^W, ETB = Backspace ONE word
+CANCHR	EQU	18h	;^X, CAN = CANCEL LINE CHARACTER
+ESC	EQU	1Bh	;^[, ESC = Escape
+
+RUBOUT	EQU	7Fh	;    DEL = Rubout (accepted as Backspace)
+	space	4,10
+;	Set CP/M symbols.
+
+
+
+
+.cpm	IF	@SYS = 0
+SYS	EQU	5	;CPM Monitor call address
+SYSL	EQU	SYS+1	;(lwa of CP/m)
+OM#LRAM	EQU	SYSL
+SYSR	EQU	0	;return to system
+SYSDSK	EQU	04h	;Contains current system disk #
+SYSDAT	EQU	10h	;Date in BCD mmddyy
+SYSTIM	EQU	SYSDAT+3 ;Time in BCD hhmmss
+ORGP	EQU	100h	;Transient program origin
+;EOL	does not exist in CP/M
+EOM	EQU	'$'		;End of Message (for system function)
+EOF	EQU	'Z'-40h		;End of File
+L$PRU	EQU	128	;Bytes per floppy sector
+
+FCB	EQU	5Ch	;SYSTEM DEFAULT FILE CONTROL BLOCK
+FCB_NR	EQU	FCB+32	;Next Record = LRN
+F_NR	EQU	32	;Next record ordinal in FCB
+F_RRF	EQU	33	;Random record field (r0,r1,r2)
+L_FILEN	EQU	8	;length of File name
+L_FILEX	EQU	3	;length of filename suffix
+L_FCB	EQU	36	;length of entire FCB
+DMA	EQU	80h	;WHERE SECTORS ARE READ
+TBUFF	EQU	DMA	;where CCP puts command line
+
+OS#RCO	EQU	1	;Read character from CRT:
+OS#WCO	EQU	2	;Write character to CRT: device
+OS#RRO	EQU	3	;Read character from RDR:
+OS#WPO	EQU	4	;Write character to PUN:
+OS#WLO	EQU	5	;Write character to LST: device
+OS#OST	EQU	9	;Write string on CRT:
+OS#RCB	EQU	10	;Read Console Buffer
+OS#CABT	EQU	11	;Get Console status
+OS#IND	EQU	13	;Initialize/Reset Disk system
+OS#DSEL	EQU	14	;Select disk unit
+OS#OPEN	EQU	15	;Open file
+OS#CLOS	EQU	16	;Close file
+OS#SDIR	EQU	17	;Search directory
+OS#NDIR	EQU	18	;next entry in directory
+OS#DEL	EQU	19	;Delete a file
+OS#READ	EQU	20	;READ next pru from file
+OS#WRT	EQU	21	;Write one PRU to file
+OS#CRE	EQU	22	;Create a file
+OS#REN	EQU	23	;Rename a file
+OS#RLV	EQU	24	;Return login vector
+OS#RCD	EQU	25	;Return current disk
+OS#SDMA	EQU	26	;Set DMA address
+
+;	CPM 2.0 functions
+OS#DIO	EQU	6	;Console direct I/O
+OS#GAA	EQU	27	;Get adr (alloc)
+OS#SWP	EQU	28	;Set write protect for disk
+OS#GRO	EQU	29	;Get r/o vector
+OS#SFA	EQU	30	;Set File attributes
+OS#GAD	EQU	31	;Get disk parms address
+OS#USC	EQU	32	;Get/set user code
+OS#RRD	EQU	33	;Read random
+OS#WRD	EQU	34	;Write random
+OS#FIZ	EQU	35	;Get file size in records
+OS#SRD	EQU	36	;Set random record
+
+;	Direct BIO call definitions
+CONST	EQU	6	;Console status
+CONIN	SET	9	;Console input
+; "	SET	6		;(for Cromemco)
+COUT	EQU	12	;Console output
+LIST	EQU	15	;List output
+PUNCH	EQU	18	;Punch output
+READER	EQU	21	;Reader input
+HOME	EQU	24	;Home disk drive
+SDSK	EQU	27	;Select Disk drive
+SETTRK	EQU	30	;Set track
+SETSEC	EQU	33	;Set sector
+SETDMA	EQU	36	;Set DMA
+READ	EQU	39	;READ disk pru
+WRITE	EQU	42	;WRITE disk pru
+
+
+;BIOCAL	Used to make calls directly to BIO
+
+BIOCAL	MACRO	NAME
+	LDK	HL,L%K
+	PUSH	HL	;return
+	LD	HL,SYSR+1
+	LDK	L,%1
+	JMP	[hl]
+L%K:
+	ENDM
+
+.cpm	ENDIF
+	space	4,10
+;	Set symbols for PHOENIX.
+
+.digi	IF	@SYS = 1
+	ORG	4000h	;RAM FWA
+	DS	0E0h	;(debugger & Fdisk)
+OP#SEQ	EQU	*+0	;System EST device number
+OP#LRAM	EQU	*+14h	;Lwa+1 available to user
+	DS	20h
+SYS	DS	3	;Program call entry point
+SYSR	DS	3	;Program exit
+OM#WDS	DS	3	;WarmStart
+	DS	3	;jump Debug Monitor
+OM#CDS	DS	3	;ColdStart
+OM#OFW	DS	2	;Fwa Sysovl
+OM#OLW	DS	2	;Lwa+1 Sysovl
+OM#LRAM	DS	2	;Lwa+1 available RAM
+OM#WBT	DS	2	;-> warmboot patch
+
+ORGP	EQU	SYS+3300h	;program origin
+
+EOF	EQU	1Eh	;^^, RS = End of File
+EOL	EQU	1Fh	;^_, US = End of Line
+EOM	EQU	0	;	  End of Message
+L$PRU	EQU	256	;bytes per sector
+
+OS#EXIT	EQU	0	;Exit back to system
+OS#OPEN	EQU	1	;Open file
+OS#CRE	EQU	2	;Create a file
+OS#CLOS	EQU	3	;Close file
+OS#READ	EQU	4	;Read next PRU from file
+OS#WRT	EQU	5	;Write next PRU
+OS#DEL	EQU	7	;Delete file
+OS#REN	EQU	9	;Rename
+OS#RDN	EQU	13	;read N bytes
+OS#WTN	EQU	14	;write N bytes
+OS#FMT	EQU	15	;Format disk
+OS#INT	EQU	16	;Initialize disk
+OS#PRD	EQU	17	;Physical read
+OS#PWT	EQU	18	;Physical write
+OS#RST	EQU	19	;reset system
+OS#WBT	EQU	20	;Write boot track
+OS#CLK	EQU	21	;Get clock
+OS#SCLK	EQU	22	;set clock
+OS#DATE	EQU	23	;Get system date
+OS#SDAT	EQU	24	;Set date
+OS#VFD	EQU	25	;Validate file descriptor
+OS#ARG	EQU	26	;crack string into arguments
+OS#NARG	EQU	27	;Get next argument
+OS#GDIR	EQU	28	;Get directory
+OS#RCO	EQU	33	;Read console
+OS#WCO	EQU	34	;Write console
+OS#ECO	EQU	35	;Read with echo console
+OS#CABT	EQU	36	;Check console abort flag
+OS#OST	EQU	37	;Output string to console
+	ENDIF
+
+
+;SAVRET and RETREG
+;	Saves and restores HL,DE,BC and optionally AF
+SAVREG	MACRO	AREG
+	PUSH HL ! PUSH DE ! PUSH BC
+.1	IF	' %1' <> ' '
+	PUSH	AF
+.1	ENDIF
+	ENDM
+
+RETREG	MACRO	AREG
+.1	IF ' %1' <> ' '
+	POP	AF
+.1	ENDIF
+	POP BC ! POP DE ! POP HL
+	ENDM
+
+
+;SYSCAL
+;	This macro is to be used when the common deck
+;	SYS<C or P>.ACD is used to make file action
+;	requests.
+SYSCAL	MACRO	NAME,ARG
+.1	IF	' %2' <> ' '
+	LXI	DE,%2
+.1	ENDIF
+	CALL	%1
+	ENDM
+
+
+;SYSTEM
+;	This macro provides a mechanism to call the
+;	system directly.
+SYSTEM	MACRO	FUN,ARG
+.2	IF	DEF OS#%1
+	MVI	C,OS#%1
+.1	IF	' %2' <> ' '
+	LXI	DE,%2
+.1	ENDIF
+	CALL	SYS
+.2	ELSE
+	CALL	%1
+.2	ENDIF
+	ENDM
+
+
+;NLINE	General macro to allow assemblies between CP/m
+;	and PHOENIX to output a new line and optionally
+;	indicate end of message or text
+NLINE	MACRO	CHR
+.2	IF	@SYS = 0
+	DB	CR,LF
+.2	ELSE
+	DB	EOL
+.2	ENDIF
+.1	IF	' %1' <> ' '
+	DB	%1
+.1	ENDIF
+	ENDM
+
+	IF	@ILIST = 0
+	LIST	*	;restore list
+	ENDIF
+;	Endx	IPARAMS
+

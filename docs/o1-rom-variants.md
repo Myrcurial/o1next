@@ -45,7 +45,10 @@ Two things worth noting:
   "1.44". The revision and the part number are two names for one image.
 - **BIOS A, 1.2, 1.2.1 and 1.3 have never been dumped** (MAME carries them as
   `NO_DUMP` placeholders). We hold the **ROM 1.3 source disk**, so 1.3 is
-  potentially reconstructible — see "Open questions".
+  potentially reconstructible — but **not for us**: we build from the 1.44
+  source, which is in-repo and now proven to reassemble to the shipped part
+  (#203). Reconstructing 1.3 would fill an *upstream* gap, so it is filed as a
+  side quest, **#205**, and nothing in this project depends on it.
 
 ## Character generator (UA15, 2 KiB)
 
@@ -189,12 +192,14 @@ table is also the map from video mode to ROM set.
    ScreenPac genuinely ships an unmodified char-gen and does its 80-column work
    entirely in hardware. Settle against the ScreenPac install and service pages
    (`research/screenpac/`, `research/osborne1/`). Affects #24.
-3. **ROM 1.3 can probably be reconstructed.** We hold the 1.3 source disk
-   (`research/source-code/OSROM13.IMD`, comment `rom 1.3, cbios .3 osborne
-   source 12/16/81`) while MAME carries 1.3 as `NO_DUMP`. Reassembling it from
-   the ACT80 sources would fill a real gap upstream, and would also give us
-   BIOS A / 1.2 / 1.2.1 if those sources exist on the other source disks.
-   Part of #72.
+3. **ROM 1.3 can probably be reconstructed — as a side quest (#205).** We hold
+   the 1.3 source disk (`research/source-code/OSROM13.IMD`, comment `rom 1.3,
+   cbios .3 osborne source 12/16/81`) while MAME carries 1.3 as `NO_DUMP`.
+   Reassembling it with the now in-repo ACT80 (`research/act-assembler/`) would
+   fill a real gap upstream, and would also give us BIOS A / 1.2 / 1.2.1 if
+   those sources exist on the other source disks. **The project itself has no
+   use for it** — everything we build is built from the 1.44 source — so this is
+   filed as a side quest rather than as work in the #72 tree.
 4. **Confirm `swp-p88.rom` is host-independent.** The working assumption is
    that the co-processor board and interposer are common and only the host
    driver differs, which makes this the CoPower-88 ROM rather than a

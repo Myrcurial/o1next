@@ -405,6 +405,37 @@ are retained. FOG is long defunct and this material is already public in
 several places — this copy came from a public GitHub repository. The notice is
 retained verbatim; if the terms ever need re-examination, that is the file.
 
+## act-assembler/ — SORCIM ACT80, the assembler the firmware source needs (2026-10)
+
+The Osborne firmware source in `source-code/` is written for **SORCIM's ACT**
+("Assembly Code Translator"), not for any assembler we had. This is that
+assembler, kept as a safety copy because `rom144.asm` reassembles with it to the
+shipped ROM **byte for byte** (#203, [`docs/o1-rom-source.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-source.md)).
+
+| Path | What it is | Sourced from |
+|---|---|---|
+| `ACT80.COM` (13 312 B) | **SORCIM ACT80, version 3.0** — 8080/8085 + Z80. md5 `4f76a911a66ddc8e1e02a1676c232d45`. The build the 1.44 reassembly was done with. | [cpmarchives.classiccmp.org](http://cpmarchives.classiccmp.org/cpm/Software/rlee/S/SORCIM/ACT%20Cross%20Assemblers/) — `cpm/Software/rlee/S/SORCIM/ACT Cross Assemblers/` |
+| `ACT65.COM`, `ACT68.COM`, `DOCOP65.ASM`, `DOCOP68.ASM` | The same kit's 6502 and 6800 translators and their mnemonic listings. Kept with the kit rather than dropped — they are 30 KB, and a hand-picked subset invites the question of what was left out. | same |
+| `DOCOP80.ASM` (8 192 B) | **Every ACT mnemonic, in alphabetical order** — the dialect reference, and the file to diff against if a future source is rejected. | same |
+| `READ.ME`, `INSTALLA.SUB` | The kit's own file list, and its `SUBMIT` script for moving the kit from B: to A:. | same |
+| `IPARAMS.ACD`, `UTIL.ACD`, `ACD-EG.ASM` | ACT's `LINK` include files, and an example program using them (`LINK IPARAMS.acd`). | same |
+
+**Versions.** The mirror holds nine copies of `ACT80.COM` in three distinct
+builds: **3.0** (md5 `4f76a911…` — also at `rlee/M/MORROW/OUTSIDE SOFTWARE/ACT/`
+and `rlee/L/LOOSECPM/{079,109,262}/`), **3.2 serial 279** (md5 `cf735904…`, at
+`rlee/L/LOOSECPM/{073,087,119}/`) and a serial-less **3.2** (md5 `88256731…`, at
+`rlee/D/DIGITAL RESEARCH/ECA/`). **3.5e — the version `bios141.gen` names — is
+not in the mirror**, and it does not need to be: 3.0 and 3.2 assemble
+`rom144.asm` to byte-identical output, so the copy kept here is 3.0 and the
+version question is settled (#203).
+
+**Licensing:** `READ.ME` is SORCIM's own 1980 notice — *"This disk contains
+software proprietary to SORCIM. It may NOT be copied other than for use by the
+purchaser."* It is retained verbatim and recorded here rather than quietly
+dropped. The kit has been publicly mirrored since 2011, and this copy exists to
+read the firmware source the project already holds; if the terms ever need
+re-examining, that file is where to start.
+
 ## pictures/ — machine photographs
 
 `IMG_4856.jpeg` … `IMG_4871.jpeg` — disassembly/mainboard/upgrade-board

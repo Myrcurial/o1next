@@ -1,10 +1,12 @@
 # Osborne 1 ROM 1.44 / CBIOS source — index, and what it confirms
 
-**Issue:** #72. **Status:** first pass. The source has been indexed and its
-port/vector tables extracted; every one of them **agrees with**
-`docs/o1-memory-io-map.md` §3, which had been derived from the schematic and
-from the running machine. That is the headline result: the map survives contact
-with the primary source.
+**Issue:** #72. **Status:** first pass, and the reassembly is done. The source has
+been indexed and its port/vector tables extracted; every one of them **agrees
+with** `docs/o1-memory-io-map.md` §3, which had been derived from the schematic
+and from the running machine. That is the headline result: the map survives
+contact with the primary source. And `rom144.asm` now **reassembles with the
+vendor's own assembler to the shipped ROM, byte for byte** (#203) — see
+"The 1.44 reassembly" below.
 
 This is Osborne's own source for the machine's firmware — the thing the rest of
 the project had been inferring. It is a safety copy of material already public
@@ -234,6 +236,131 @@ IEEE-488 device speaking Centronics on the same PIA, not a separate port.
 Individual register semantics stay in `docs/o1-memory-io-map.md` §3; this pass
 records what the ROM does with them, not a re-derivation.
 
+## The 1.44 reassembly: the source *is* the shipped ROM (#203)
+
+**Measured 2026-10-13.** `rom144.asm` assembles with the vendor's own assembler —
+SORCIM's ACT80 — to an image **identical, byte for byte, to
+`research/roms/os1-144.rom` (CRC32 `c0596b14`)**. That is this document's open
+question 1 and #83's deliverable 2, and it settles both: the source in this
+repository *is* the source of the shipped 1.44 monitor ROM, and the toolchain
+that produced it runs under MAME.
+
+| | |
+|---|---|
+| Assembler | `ACT80.COM` — SORCIM "Assembly Code Translator", **version 3.0**, safety copy in `research/act-assembler/` |
+| Command | `ACT80 B:ROM144 H=B:` — the vendor's own, from `tran.txt` |
+| Reported | `no ERRORs,  473 Labels`, `Program LWA = 0FFFh` |
+| Output | 11 520 bytes of Intel HEX, 255 records, `ROM144.HEX` on drive B |
+| Image | 4096 bytes, CRC32 **`c0596b14`** — the shipped ROM |
+| Reproduce | `tools/research/rom144-reassemble.sh` — the happy path, end to end |
+
+**This is the happy path, and it is now self-contained in the repository.** The
+assembler is the vendor's own, the command is the vendor's own, and both live
+here: `research/act-assembler/ACT80.COM` and `tran.txt`. No substitution, no
+porting, no search for a missing version — the toolchain that built the part is
+the toolchain that rebuilds it.
+
+### ACT 3.0 and 3.2 — and no 3.5e
+
+The archive holds nine copies of `ACT80.COM`, and they are **three distinct
+binaries over two versions**:
+
+| Version | Copies under `…/rlee/` | md5 |
+|---|---|---|
+| **3.0** | `S/SORCIM/ACT Cross Assemblers/`, `M/MORROW/OUTSIDE SOFTWARE/ACT/`, `L/LOOSECPM/{079,109,262}/` | `4f76a911a66ddc8e1e02a1676c232d45` |
+| **3.2** (serial 279) | `L/LOOSECPM/{073,087,119}/` | `cf73590466736fd1960e829b5f2221aa` |
+| **3.2** (no serial line) | `D/DIGITAL RESEARCH/ECA/` | `88256731a9399dee68a29054865d072c` |
+
+**`ACT 3.5e`, the version `bios141.gen` names, is not in the archive.** The
+search was bounded rather than open-ended: every `ACT80.COM` under the archive
+tree found by name, hashed and string-searched for its banner, and the tree
+searched for an ACT `.DOC` or manual — the only hit was an unrelated
+accounts-receivable file. `READ.ME` in the kit lists the 3.0 files exactly as
+the archive holds them.
+
+**3.0 is now a safety copy in this repository** — `research/act-assembler/`,
+with the kit's own `READ.ME`, `DOCOP80.ASM` (every ACT mnemonic, which is the
+file to diff against if a future source is rejected) and its `LINK` include
+files; the provenance row is in `research/README.md`, and the licence notice in
+the kit's `READ.ME` is recorded there rather than quietly dropped.
+`tools/research/rom144-reassemble.sh` now defaults to that copy, so the build no
+longer needs the local archive to be present.
+
+**The version gap turns out not to matter for this source.** 3.2 assembles
+`rom144.asm` to a **byte-identical** hex file — same `no ERRORs`, same 473
+labels, same `LWA = 0FFFh`, same 11 520 bytes. The only difference visible at
+all is one line of the summary, where 3.2 says `8230h bytes not used` and 3.0
+says `8232h`; that is ACT's own bookkeeping, not the object code. So 3.0 is not
+merely "close enough" — for 1.44 it is exact, and the question of searching
+further for 3.5e can be closed as not-needed.
+
+### How the build is driven
+
+The vendor's procedure (`tran.txt`) assumes two floppies: ACT80 in drive A, the
+source in drive B, `ACT B:ROM144 H=B:`. Reproduced under MAME with two DD
+images, and `tools/research/rom144-reassemble.sh` is the whole of it:
+
+1. `research/shipped-software/OS1SYSD.IMD` → raw (`imdinfo.py --raw`),
+   `AUTOST.COM` removed, `ACT80.COM` added → **drive A**. It is a 250 kbps MFM
+   40 × 5 × 1024 disk, and `cpmtools`' `osborne1` diskdef is the right
+   description of it: the CBIOS's own DPB agrees field for field (`occbio95.asm`,
+   `DPBGEN DSKD1,8*5,3,7,0,D1DSM,64,1100000000000000B,3` — 1 K blocks, `AL0/AL1`
+   marking the two directory blocks, offset 3 tracks).
+2. The same disk emptied of files, with `rom144.asm` normalised to CRLF and
+   written as `ROM144.ASM` → **drive B**. The source is 83 KB and the hex file is
+   12 KB; a full system disk has room for neither, which is the one thing that
+   has to be arranged deliberately.
+3. `o1raw2imd.py --dd` wraps both raw images (MAME will not open a bare sector
+   image), `o1keys.sh` boots A with B in drive B and types the command, and
+   `acthex.py` turns the hex back into an image and compares it against the
+   shipped ROM.
+
+### Four things the emulated build teaches about the source
+
+- **`rom144.asm` as captured is LF-only, with three stray CRs** (offsets
+  56 819, 59 483, 60 178 — lines 3198, 3334, 3383) where a line break lost its
+  LF: `\tRET\r\tPAGE` is two lines, and so are the other two. CP/M text wants
+  CRLF, so the *disk copy* is normalised CRLF → LF → CRLF, treating each stray CR
+  as the break it was — **4658 lines rather than 4655**. The repository file is
+  left exactly as captured.
+- **The hex records do not cover the whole address space.** ACT emits a record
+  only where the source put a byte, so `0x005C–0x0065`, `0x00E1–0x00FF` and
+  `0x0FFF` are *gaps* — and the ROM holds **`00`** there, not `FF`. Filling the
+  gaps with `FF` instead leaves 42 bytes wrong (`acthex.py --fill`). Worth
+  knowing before the same exercise is run against ROM 1.3.
+- **ACT's terminator is not Intel's.** The file ends with `:00010010` — a
+  four-byte record carrying no data — rather than `:00000001FF`. Both 3.0 and 3.2
+  emit it identically, so it is ACT's.
+- **The program is `ACT80.COM`, not `ACT.COM`.** The vendor's memo says to type
+  `ACT`, which on this kit is CP/M's `<name>?` — command not found — and reads
+  exactly like an ACT usage error. It is not one.
+
+### The one record that arrives damaged, and why it does not matter
+
+On the floppy image, one record — `:100FC000…`, ROM addresses `0FC0–0FCF` —
+reaches the host with **six non-hex bytes in place of six characters**
+(`c0 de c0 de c0 0d`, at file offset 11 264: the first bytes of the file's last
+1024-byte sector). The line is still 43 characters long, so nothing looks wrong
+at a glance. Three facts pin it down:
+
+- **It is not the assembler's doing.** ACT 3.0 and ACT 3.2 are different
+  binaries and produce byte-identical output, *including those six bytes*. Two
+  assemblers do not invent the same garbage.
+- **It is not a general fault in the floppy path.** A `PIP` copy of the 83 KB
+  *source* through the same disk — guest write, MAME image save — came back
+  byte-identical, so writing a file whose last sector is partial is fine.
+- **The intended content is fixed by ACT's own bytes.** The record's checksum is
+  intact, and it is exactly the value 16 bytes of `FF` at `0FC0` produce, as the
+  neighbouring all-`FF` records confirm (`41` at `0FB0`, `21` at `0FD0`, `11` at
+  `0FE0`). The record therefore says what it should have held, and the range is
+  restored from that (`acthex.py --recover-ff`).
+
+With the range restored, the assembled image is **identical to
+`research/roms/os1-144.rom` in all 4096 bytes** — and before the restore it
+already agreed in the other 4080. The cause of the six bytes is not isolated; it
+is deterministic, it lands in the file's last sector, and it is recorded here as
+an emulation observation rather than explained away.
+
 ## What this closes, and what it does not
 
 | Gap (`docs/research-gaps.md`) | Status after this pass |
@@ -250,26 +377,23 @@ Two things this pass adds that no existing doc had:
 
 ## Open questions / next steps
 
-1. **Reassemble `rom144.asm` and compare against `research/roms/os1-144.rom`
-   (CRC32 `c0596b14`).** A byte-for-byte match would prove the source *is* the
-   shipped 1.44 ROM — and would validate the toolchain well enough to attempt
-   **ROM 1.3** from `OSROM13.IMD`, which MAME carries as `NO_DUMP` (see
-   `docs/o1-rom-variants.md`).
+1. ~~**Reassemble `rom144.asm` and compare against `research/roms/os1-144.rom`
+   (CRC32 `c0596b14`).**~~ **Done — see "The 1.44 reassembly" above.** The source
+   is the shipped ROM, byte for byte, assembled by the vendor's own ACT80 (3.0;
+   3.2 gives the same bytes), which is now a safety copy in
+   `research/act-assembler/`. Two wrong readings are retired with it: that this
+   needed `z80asm` taught ACT's macro layer, and that it needed ACT 3.5e. Neither
+   was true — the assembler was in the local archive all along — and `z80asm`
+   stays what it is, the tool for *writing* new code (`REQUIREMENTS.md`). The four
+   caveats above are the ones to carry into any other Osborne source assembled
+   this way.
 
-   **Corrected 2026-10-13: this was the wrong question, twice over.** It is not a
-   `z80asm` problem, and it is not a search for ACT 3.5e. `z80asm` is installed
-   (`REQUIREMENTS.md`) and does **not** accept this source as it stands — the
-   listing is written in the Osborne/ACT assembler's own syntax, with equates as
-   `NAME = expr` (from line 26 onward) and the macros `LK`, `STO`, `LDK`, `JZ`,
-   `JRZ`, `CMP`, `MSG`, `ECHO`, `DC`, `PROC` plus the `*SET` / `*[n]`
-   directives; measured, `z80asm -o out.bin rom144.asm` stops on the first equate
-   and writes a **0-byte** output. But porting that layer was never the right
-   move, and 3.5e was never needed: the **vendor's own assembler is in the local
-   archive** — `ACT80.COM`, SORCIM's "Assembly Code Translator", versions 3.0
-   and 3.2 — and `tran.txt`'s own procedure (`ACT B:ROM144 H=B:`) runs it under
-   MAME on a CP/M system disk (`research/shipped-software/`). What the install
-   *does* unblock is **writing** ROM code, which is what #83's `HCBOOT` body and
-   any ROM 2.0 build need. The reassembly itself is tracked on #203.
+   **ROM 1.3 is not the follow-on.** It was the natural next step for the
+   *toolchain* — the gap fill, the terminator and the CRLF handling all carry
+   over — but the project has no use for a 1.3 ROM: we build from the 1.44
+   source, which is in-repo and now proven. Reconstructing 1.3 to fill MAME's
+   `NO_DUMP` placeholder is filed as a side quest, **#205**, and nothing here
+   depends on it.
 2. **Does the 1.44 ROM's CBIOS match the 1.41 source?** The CBIOS is
    disk-loaded, so extract it from a shipped system disk (`OS1SYSD.IMD` /
    `OS1SYSS.IMD`) and diff it against the 1.41 build.
