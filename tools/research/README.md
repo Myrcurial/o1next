@@ -57,12 +57,16 @@ scratch programs, "figuring it out" notebooks/scripts.
   not call `os.exit()`** — MAME only flushes a modified image on a clean
   shutdown, so `os.exit()` silently discards guest writes. See
   `docs/dd-upgrade-formats.md`.
-- **`o1raw2imd.py`** — wraps a bare raw Osborne 1 SD sector image in an
-  ImageDisk container. `imdmake.py` writes *blank* IMDs and `imdinfo.py` reads
-  them; nothing wrapped a raw one, and MAME will not open a raw sector image.
-  Written for #178, where the MD-10 utilities disks are held as raw 100 KiB
-  `.img` files. Convention is the archive's own: the image is in physical track
-  order with R = position+1, so the numbering map is the identity.
+- **`o1raw2imd.py`** — wraps a bare raw Osborne 1 sector image in an ImageDisk
+  container. `imdmake.py` writes *blank* IMDs and `imdinfo.py` reads them;
+  nothing wrapped a raw one, and MAME will not open a raw sector image. Written
+  for #178, where the MD-10 utilities disks are held as raw 100 KiB `.img`
+  files. Convention is the archive's own: the image is in physical track order
+  with R = position+1, so the numbering map is the identity. **`--dd`** wraps the
+  double-density format (250 kbps MFM, 40 × 5 × 1024) instead of the SD one, and
+  was added for #203: `cpmtools` writes *raw* volumes, so a CP/M disk built with
+  `cpmcp` had to be wrapped before MAME could mount it, and the archive's DD
+  images are already IMD — only a *new* DD volume needed this.
 - **`o1keys.lua` + `o1keys.sh`** — the scripted-keystroke harness: boot a disk,
   then drive the guest with a list of directives (`wait`, `type`, `key`, `sleep`,
   `dump`, `shot`, `peek`). `o1disk-copy` types one command and waits for the
@@ -155,3 +159,22 @@ scratch programs, "figuring it out" notebooks/scripts.
   graduated into `tools/o1_mame_probe.lua` and
   `docs/o1-mainboard-schematic.md` §7a, which is why the probe is the tool and
   this is the notebook. Still useful for poking at any MAME driver from Lua.
+- **`rom144-reassemble.sh`** — the whole #203 job in one script: build a CP/M
+  system disk carrying the archive's `ACT80.COM` and a second disk carrying
+  `rom144.asm`, assemble `ACT B:ROM144 H=B:` under MAME, and compare the result
+  with `research/roms/os1-144.rom`. It is mostly a record of what each step cost
+  to learn — `AUTOST.COM` must come off the system disk (it runs HELP.COM's menu
+  and ESC is unusable in the harness), the source must be normalised to CRLF, and
+  drive B needs room for 83 KB of source *and* a 12 KB hex file. Result: the
+  assembled image is identical to the shipped ROM, CRC32 `c0596b14`. See
+  `docs/o1-rom-source.md`.
+- **`acthex.py`** — the last step of that job: SORCIM ACT's `H=` output back into
+  a flat ROM image. `LOAD.COM` cannot do it (an ORG-0 hex file is *"INVERTED LOAD
+  ADDRESS, LOAD ADDRESS 0000"* to it), so it happens on the host. Three ACT
+  facts are baked in: records are ordinary Intel HEX and validate under the
+  standard checksum; they cover only the bytes the source wrote, so the *gaps*
+  need a `--fill` (the 1.44 ROM holds `00` there — `ff` leaves 42 bytes wrong);
+  and the file ends with ACT's own four-byte `:00010010` terminator rather than
+  `:00000001FF`. `--recover-ff` handles the one damage #203 actually saw — a
+  record that reaches the image with six non-hex bytes in it — and only when the
+  record's *own* checksum agrees that its content was 16 bytes of `FF`.
