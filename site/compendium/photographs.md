@@ -67,3 +67,30 @@ re-encode) — user to describe or retake.
    number and confirm the 0x7E/0x7F decode hypothesis.
 4. Photos of the other two machines' Z80 areas for the NMOS/CMOS
    matrix in #29.
+
+## Wanted: shot list for the next open-up session
+
+Compiled 2026-10-13, ahead of a session that opens all three machines and the
+upgrade boards together. Every row is something the tree is *missing*, and what
+it unblocks. Shoot each as its own frame, well lit and square on, file them in
+[`research/pictures/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/pictures/), and fold the findings back into this doc.
+
+| # | Shot | Why it is wanted | Serves |
+|---|---|---|---|
+| 1 | **UD11 monitor ROM label, each machine** | the 2732's printed label usually names the revision. This is now the *only* way to identify the oldest machine (its `^D` test was never run) and it confirms the other two are 1.44. | #205, #70, #222 |
+| 2 | **UA15 character-generator label, each machine** | the 2716 in the char-gen socket. Two images circulate and which one a machine carries tracks its BIOS revision. | #70, #24 |
+| 3 | **Mainboard revision silkscreen, each machine** | one board is marked `24187A`; the other two are unknown, and #39 cannot close without them. | #39, #29 |
+| 4 | **Z80 chip markings on the other two machines** | NMOS vs CMOS decides 74AHCT vs 74LVC in the level shifter. One machine is a plastic NMOS Z80A, date code 8408. | #39, #11, #12 |
+| 5 | **The Z80 socket area, interposer fitted *and* removed** | the interposer's mechanical fit, pin-1 orientation and ribbon routing. IMG_4870/4871 were meant to be this and failed the vision pipeline. | #12, #11, #39 |
+| 6 | **The character-generator socket and its pin-1 orientation, with the wiring around it** | gap 3 of [`docs/research-gaps.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/research-gaps.md) is literally "char-gen socket pinout", open and blocking. | #24 |
+| 7 | **The SCREEN-PAC board, fitted and loose** | its connection into the video circuit, and its own silkscreen. | #24 |
+| 8 | **The double-density upgrade board** | which machine carries one, and its part number and silkscreen. | #95, #70 |
+| 9 | **The video RAM and attribute chips** | the two 6116s and the bank-3 attribute device, for the video section of the memory map. | #97, #40 |
+| 10 | **The P8 floppy connector and the drive interface** | connector and cable detail the schematic sheets leave schematic-level. | #62, #20 |
+| 11 | **The power-supply board** | the tree holds **no** power-supply material at all (see [`docs/o1-rom-read-from-machine.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-read-from-machine.md) §7a), and the archive's stated position is that in-project photographs are the substitute. | repo archive |
+| 12 | **A lid-off board-stack view of each machine** | #39's own "board-stack overview" item, and the frame that makes every other shot locatable. | #39, #9 |
+
+One line of description per frame is worth the minute it costs: two of the
+existing sixteen (`IMG_4870`, `IMG_4871`) could not be processed by the vision
+pipeline even after EXIF strip and re-encode, and a description is what saved
+them from being unreadable *and* unidentifiable.
