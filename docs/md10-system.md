@@ -1,12 +1,17 @@
 # The MD-10's operating system, and the memory map that was missing (#179, #178)
 
-**Status: the system image exists and boots — and it was produced by the
-vendor's own tool, not synthesised.** `PREP.COM`'s option 3 configures an
-operating system onto the drive; `HARD.COM` then boots it from the emulated hard
-disk: it installs the MD-10 BIOS at `0xD800`, reads the system from **LBA 5, 11
-blocks** into `0xC200`, patches page zero, and CP/M runs. What is **not** yet
-solved is the last inch: the system does disk I/O but never prints a prompt, and
-§7 says what is known about why.
+**Status: solved — the system boots to a prompt.** `PREP.COM`'s option 3
+configures an operating system onto the drive; `HARD.COM` then boots it from the
+emulated hard disk: it installs the MD-10 BIOS at `0xD800`, reads the system from
+**LBA 5, 11 blocks** into `0xC200`, patches page zero, and CP/M runs — to `A0>`,
+with `B:` and `A:` switching drives against the drive's two partitions. The image
+is the vendor's own tool's output, not synthesised.
+
+The last inch was a **re-relocation**. The image `PREP.COM` wrote has its
+addresses **0x100 bytes above the address `HARD.COM` loads it at**, so its CCP
+jumped into the middle of an instruction, ran garbage and warm-booted for ever —
+which is what "boots but never reaches its prompt" (#198) actually was. §7 is the
+measurement; `tools/research/md10reloc.py` is the fix.
 
 This note also closes the question the hard-disk research left open twice over —
 **the MD-10's memory map**, and with it the meaning of the low-RAM block at
@@ -110,22 +115,44 @@ blocks):
 | LBA 1–3 | the rest of the four-block header (`docs/osborne1ng-machine.md` §6) |
 | LBA 4 | a table |
 | **LBA 5–15** | **the operating system — 11 blocks, `0x1600` bytes** |
-| LBA 20–83 | `E5h` — the first 64 blocks of the `CP/M-CCP` partition: CP/M's empty directory |
-| LBA 11564–11627 | `E5h` — the same for the `CP/M-A` partition |
+| LBA 20–83 | `E5h` — the first 64 blocks of the `CP/M-A` partition: CP/M's empty directory |
+| LBA 11564–11627 | `E5h` — the same for the `CP/M-B` partition |
 | everything else | the `6Ch` fill |
 
-The partition table, decoded (name at +0, a little-endian start at +13 and length
-at +16 inside each 28-byte record):
+The partition table, decoded — each 28-byte record is a flag byte, a
+little-endian 24-bit start at +1, a little-endian 16-bit length in 512-byte
+blocks at +4, ten bytes, then the name at +16:
 
 | Record | Name | Start (LBA) | Blocks |
 |---|---|---|---|
-| 0 | `CP/M-CCP` | 20 | 11544 |
-| 1 | `CP/M-A` | 11564 | 11544 |
-| 2 | `CP/M-B` | — | terminated (`FFh`) |
+| 0 | `CP/M-CCP` | 4 | 16 |
+| 1 | `CP/M-A` | 20 | 11544 |
+| 2 | `CP/M-B` | 11564 | 11544 |
+| 3 | — | — | terminator (`FFh`) |
 
-`CP/M-CCP` is the **O/S partition** option 3 insists on. The two records tile
-`20 … 23107`, which is the whole PYXIS13 drive bar the header — so the MD-10's
-"two logical drives" are `CP/M-CCP` (where the system lives) and `CP/M-A`.
+`CP/M-CCP` is the **O/S partition** option 3 insists on: sixteen blocks at LBA 4,
+and the operating system sits at LBA 5 — block 1 of that partition. The MD-10's
+two *logical drives* are `CP/M-A` and `CP/M-B`, which tile `20 … 23107`, the whole
+PYXIS13 drive bar the header. They are the `A0>` and `B0>` of §7.
+
+An earlier revision of this section had the records shifted by one — it read
+`CP/M-CCP` as the 11544-block record and dropped the 16-block O/S partition — and
+had the field offsets wrong, which put the start at +13 and the length at +16.
+The record *is* 28 bytes and *is* walked at `0x23E6` with `ADD IX,1Ch`; the walk
+stops on the `FFh` first byte, which is record 3.
+
+**LBA 4 is the runtime half of §9's table.** It is not an anonymous "table": it
+mirrors the partition geometry and then the **per-drive type bytes** the driver
+indexes —
+
+```
+10 00 00 | 14 00 00 | 18 2d 00 00 | 00 2c 2d 00 | 18 2d 00 | 80 00 … | 81 00 …
+16       | 20       | 11544       | 11564       | 11544    | type 0   | type 1
+```
+
+— so the drive, not the BIOS, carries the values the driver's `SELDSK` reads at
+run time. Who copies them into `0xDD5E`/`0xDD6E` is not yet chased; the login
+completes without it (§7), so it is not load-bearing for the boot.
 
 `tools/research/md10drive.py` reproduces the captured drive **byte for byte**
 from the two artifacts, and that is the check that the capture is complete: the
@@ -239,34 +266,122 @@ transaction routine at `0xD985`. The drive's bytes are confirmed in memory: at
 …` byte for byte. A drive rebuilt from the artifacts alone by
 `tools/research/md10drive.py` boots identically.
 
-**Does not.** No prompt is ever printed, and the screen still shows `HARD.COM`'s
-banner. The system is not crashed — it is *busy*: the PC sits at the BIOS's
-`inir` block-read pair (`0xD9F5`/`0xD9F6`) and walks the BDOS's buffer area.
+**Does not — and the reason is the CCP, not the drive.** It never prompts because
+the CCP the loader installs is **relocated 0x100 bytes too high**, so its first
+instruction jumps into the middle of another one and the system warm-boots for
+ever. That is the whole of it, and it is worth stating plainly because the
+earlier reading of this section — "the BDOS is stuck in a drive login" — was
+**wrong**, and so was the hypothesis that opened #198 (that the driver's static
+table and the drive's partition table disagree).
 
-What that rules out, and what it leaves:
+A transaction-level trace of the card (#198) is what settles it. Every
+transaction is byte-for-byte identical, **1 303 of them in 150 emulated
+seconds**:
 
-- It is **not** a load failure. `0xC200` and `0xCA00` both hold the drive's
-  bytes; the read completes.
-- It is **not** the console being unwired. The MD-10 BIOS's
-  `CONST`/`CONIN`/`CONOUT` are the ROM's own routines (`0xE72E`, `0xE733`,
-  `0xE738`), the ROM is always mapped, and `HARD.COM`'s own output proves the
-  path works.
-- It **is** consistent with the BDOS being stuck in a drive login — reading the
-  directory of the drive it was told to use — which is the one thing a CP/M cold
-  start does before the CCP can prompt.
+```
+SEL 01 / assert / release / CDB 08 00 00 05 0b 00    READ LBA 5, 11 blocks
+R32 42   -> the data phase
+R30 x5632                                            5632 bytes moved
+R32 60   -> the status phase
+STATUS 00                                            GOOD
+```
 
-The next step is to see *which* LBA the login is asking for and what status comes
-back, and the harness can now do that: `tools/research/o1keys.lua` gained a `pc`
-directive for this, and `peek`/`poke` reach the card's CDB at `0xD9FA` and the
-partition records at label+48. A login asking for a directory the capture does
-not carry is the first hypothesis to test — the captured partitions are
-`E5`-empty directories, and an empty directory is a legitimate CP/M state, so if
-the BDOS is unhappy it is more likely about *where* it is looking than *what* is
-there.
+So the read **succeeds**, there is no login, and the drive's partition table never
+enters into it: `BOOT` reads the system, jumps to `0xC200`, and the CCP
+immediately warm-boots — and a warm boot re-reads the system (§5 step 8), for
+ever. The PC histogram agrees: 95.5% of samples are inside the BIOS's `inir`
+block-read pair (`0xD9F4`–`0xD9F6`), with brief excursions into the CCP.
 
-Until that is answered this doc stays **partially solved**, and #179's acceptance
-— *boots CP/M from the emulated hard disk* — is met for the load-and-run half and
-not for the prompt.
+Why, measured rather than inferred:
+
+- `HARD.COM` reads the system to `0xC200` and patches page zero to `JP 0CA06h`,
+  so the CCP belongs at `0xC200` and the BDOS at `0xCA00`. That is also the only
+  placement that fits, because the BDOS ends exactly where the MD-10 BIOS starts
+  at `0xD800`.
+- The captured CCP's first instruction is `JP 0C5C8h` — and `0xC5C8` is the
+  *middle* of a `CP 20h`.
+- `0xC4C8`, exactly 0x100 lower, is `LD SP,0C8C5h` / `PUSH BC` / `LD A,C` /
+  `RRA ×4` / `AND 0Fh` / `LD E,A` / `LD C,0Dh` / `CALL 5` — CP/M's own
+  `COMMAND:` entry, ending in the BDOS reset-disk call. Its sibling
+  `JP 0C4C4h` lands on `XOR A` / `LD (nn),A`, which is `CLEARBUF`.
+
+The correction is **exact, not a patch**, because the two `.SPR` files on the 2.01
+utilities disk are the relocatable source `PREP.COM` relocates from. Comparing
+each SPR body against the matching half of the captured image, they differ **only
+in the high byte of relocated operands**, at one constant delta per file — `C3h`
+for the CCP (232 bytes) and `CBh` for the BDOS (558 bytes, plus four stamped
+serial-number bytes). Those are page deltas: `PREP.COM` added `0xC300`/`0xCB00`
+where the load addresses are `0xC200`/`0xCA00`. So the captured image is one
+uniform relocation of the SPRs at a base 0x100 too high, and re-applying it at
+the right base is exact.
+
+`tools/research/md10reloc.py` does that and checks itself — the CCP entry must
+land on `LD SP,nn` — and `tools/research/md10drive.py --os` lays the result on a
+drive. With that drive in `-hard`:
+
+```
+r21|A0>
+r21|A0>B:
+r22|B0>A:
+r23|A0>
+```
+
+`A0>` is the MD-10's own CP/M (the O1's CCP prompts `A>`; DRI's includes the user
+number). `B:` is the proof rather than decoration: **there is no floppy in drive
+B**, so only the hard disk's own CP/M can answer `B0>` — and it does, against the
+`CP/M-B` partition at LBA 11564. The drive letters are the two partitions, which
+is what `docs/harddisk-decision.md` §4 says they should be.
+
+One further measurement falls out: the BDOS's login reads the directory as **64
+blocks** — the trace catches `READ LBA 83`, the last block of `20 … 83` — which is
+exactly the `E5h` region §3 records. So the drive and the driver *do* agree about
+drive A.
+
+### 7.1 The drive letters, and the floppy the hard disk displaced
+
+The MD-10 takes `A:`/`B:` for the hard disk, so the floppies move — and *where the
+boot floppy went* is the check that the floppy half of the relocation works, not
+just the hard-disk half. Measured at the `A0>` prompt with the 2.01 utilities disk
+in physical drive A and **nothing in drive B**:
+
+| Letter | What it is | How it answers |
+|---|---|---|
+| `A:` | the hard disk, `CP/M-A` (LBA 20) | the prompt itself |
+| `B:` | the hard disk, `CP/M-B` (LBA 11564) | `B0>` |
+| `C:` | the hard disk, the *third* descriptor — not configured on this drive | `C0>`, and no further |
+| **`D:`** | **the floppy that was drive A** | `DIRA` lists all 23 files of the 2.01 disk |
+| `E:` | the floppy in physical drive B, which is empty | `Unformatted diskette on drive B` / `Bdos Err On E: Select` |
+
+So the boot floppy is **`D:`**, not `E:`: the hard disk takes *three* letters, not
+two, because the driver's type table gives drives 0–2 the three hard-disk
+descriptors (`00 01 02`) and the floppies begin at drive 3 (`80h`, `81h`, …).
+`E:` is the *second* floppy — the one with no disk in it — which is why it is the
+letter that errors.
+
+`DIRA` is the disk's own lister (`DIR` is a transient program in CP/M 2.2, and
+this disk has no `DIR.COM`, so `DIR E:` answers `DIR?` on the hard disk and
+cannot be used for this). From `D0>` it prints exactly the archive's contents:
+
+```
+D:  0:PORTCHNG COM  0:HD04BIOS SPR  0:HD00BIOS SPR  0:DRST     COM
+D:  0:FREEDIR  COM  0:FSET     COM  0:ERQ      COM  0:DIRS     COM
+D:  0:GET      COM  0:PUT      COM  0:CNT04COD OVL  0:NS       COM
+D:  0:CNT00COD OVL  0:SUBMIT   COM  0:DRIVETBL DAT  0:DIRA     COM
+D:  0:HARDBIOS SPR  0:HARDBDOS SPR  0:HARDCCP  SPR  0:PREP     COM
+D:  0:CNTLRCOD OVL  0:AREN     COM  0:HARD     COM
+```
+
+— the 23 files `tools/cpmfs.py … ls` reports for `research/adaptec/Osborne Hard
+Disk Control Software Version 2.01 (1984).img`, name for name, and nothing extra.
+`PREP` also **runs** from `D:`, printing its own `PREP version 2.01` banner and
+main menu.
+
+That is the proof that the floppy the hard disk displaced is still fully readable
+through the MD-10's relocated floppy driver: its directory, and a 12 KB program
+loaded and executed out of it.
+
+#179's acceptance — *boots CP/M from the emulated hard disk* — is met, and so is
+#198's: the prompt appears, and it answers.
 
 ## 8. What this changes elsewhere
 
@@ -278,9 +393,12 @@ not for the prompt.
   `firmware/acb4000-scsi/` and this image are two halves of the same test; the
   commands the period software issues (`VERIFY` `2F`, `SEARCH DATA EQUAL` `31`)
   are implemented there.
-- **#191's `peek 0x055E`/`0x056E` is now reachable in principle.** It needs an
-  MD-10 *system* on the drive, which this is; what it does not yet have is a
-  system that reaches its prompt.
+- **#191's `peek 0x055E`/`0x056E` is now reachable.** It needs an MD-10 *system* on
+  the drive, and the system now reaches its prompt (§7) — so the runtime tables
+  can be read against a *running* system rather than inferred. What that will
+  show is still open: the tables are static data in `HARD.COM` (§9), the drive's
+  LBA 4 carries its own copy of the geometry and type bytes (§3), and who copies
+  one into the other is not yet chased.
 - **`docs/osborne1ng-machine.md` §5's "`HARD.COM` is a hard-disk boot loader"
   is right, and now it is read end to end** — including that it *also carries the
   BIOS*, which that section did not know.
@@ -301,7 +419,18 @@ The negative result was an artefact of two things, and both are now measured:
    reported, at `hardbios.spr` offset `0x200`).
 2. **Both tables are static data inside the BIOS image**, so they are readable
    from the file — in `HARD.COM`'s embedded copy at file offsets `0x998` and
-   `0x9A8`, and in `HARDBIOS.SPR` at the matching offsets.
+   `0x9A8` (addresses `0xDD5E`/`0xDD6E` less the loader's `0x0100` origin), and
+   at `0x9F0` for the DPB.
+
+   They are **not** in `HARDBIOS.SPR`, which an earlier revision of this section
+   claimed "at the matching offsets". A byte search for the 16-byte type run, the
+   `01 14 00 00 27 3C` descriptor prefix and the ten-byte DPB prefix finds all
+   three in `HARD.COM` and in **none** of `HARDBIOS.SPR`, `HARDBDOS.SPR` or
+   `HARDCCP.SPR`. The `.SPR` is a *different, larger* build — its body is `0x880`
+   bytes against the embedded copy's `0x5C5` — so it is the same BIOS at the same
+   entry points but not the same image. The driver's fallback table therefore
+   lives only in the loader that installs it, which is why #178's audit of the
+   `.SPR` files found no writer.
 
 Read out of `HARD.COM` (2.01), the tables are:
 
@@ -339,34 +468,93 @@ front of it: three of those do not fit in PYXIS13's 23112 blocks. The
 *configured* drive carries two partitions of 11544 (§3), which is what
 `PREP.COM` wrote and what the drive's own partition table says.
 
-**So the two disagree**, and that is the most likely reason the system never
-reaches its prompt (§7): the BDOS logs in to a drive whose directory is not
-where the driver's table says it is. §10 is the test.
+**So the two disagree — and the fallback is a *drive*, not a guess.** The three
+descriptors are three partitions of 15399 blocks at `20`, `15419`, `30818`, and
+that is exactly the shape of **PYXIS27**:
 
-## 10. The next test, precisely
+| Entry | Cylinders | Heads | Sectors | Blocks | Size |
+|---|---|---|---|---|---|
+| `PYXIS13` | 321 | 4 | 18 | 23 112 | 11.8 MB |
+| `PYXIS27` | 321 | 8 | 18 | **46 224** | 23.7 MB |
 
-The drive is `LBA 20 … 11563` for `CP/M-CCP` and `11564 … 23107` for `CP/M-A`
-(§3). The driver's fallback table says `20`, `15419`, `30818`. If the login is
-looking at `15419` and finding `6Ch` rather than `E5h`, the fix is to make the
-drive match the table — or to work out what writes the *runtime* table from the
-label.
+The fallback's third partition ends at `30818 + 15399 = 46217`, and PYXIS27 holds
+`46224` — it fits with **seven blocks to spare**. So the static table is not "a
+fallback for a drive with no usable label" in the abstract: it is **PYXIS27's
+partitioning**, and 15399 × 512 = 7.88 MB is the same 7.88 MB the fallback DPB
+describes (`DSM = 1923` × 4096). Both entries are in the driver's own table
+(`DRIVETBL.DAT` indexes 53 and 55; `tools/research/drivetbl.py`), and PYXIS27 is
+PYXIS13 with the heads doubled — `321/4/18` against `321/8/18`.
 
-The harness can answer it in one run: `poke` the CDB at `0xD9FA` (the LBA is
-bytes `+3`/`+4`), or `peek` the partition records at label+48 and the type byte
-at `0xDD5E + drive` while the guest is at the login. `tools/research/o1keys.lua`
-has `pc`, `peek` and `poke` for exactly this.
+Which is also the answer to *where `C:` went*: on a **PYXIS13** only one
+15399-block partition fits, so `PREP.COM` wrote two of 11544 instead (§3) and the
+third descriptor has nothing behind it — `C0>` selects and no partition answers.
+On a **PYXIS27** the fallback's third partition is real and `C:` is a real drive.
+The MD-10 claims three letters because its type table gives drives 0–2 the three
+hard-disk descriptors (`00 01 02`, §7.1); the *drive* decides whether the third
+one has anything in it.
+
+**And the disagreement never mattered.** An earlier revision of this section
+concluded from it that the system could not prompt because the BDOS was logging in
+to the wrong directory. **That was wrong** (§7): there is no login at all before
+the prompt, the trace shows only the boot `READ LBA 5` with status GOOD, and the
+login that does happen — after the prompt, when `B:` is typed — reads LBA 83, the
+last block of drive A's own `E5h` directory. The fallback is never consulted on a
+drive that carries a label.
+
+## 10. The test that was named, and its answer
+
+An earlier revision of this section named a test: watch the card's CDB while the
+guest is at the login, or build a drive whose partition table matches the driver's
+static descriptors. **Neither was needed, and the premise was wrong.** The CDB is
+*always* `08 00 00 05 0b 00` — LBA 5, the boot read — and it comes back with
+status `00` (GOOD), so there is no login to watch and no partition-table
+disagreement to reconcile. The blocker was in the operating system's relocation
+(§7), which no amount of drive-building would have fixed.
+
+The answer, in the order it was measured:
+
+1. **The transaction trace** — every READ succeeds and repeats byte for byte, so
+   the failure is above the card, not in it.
+2. **The PC histogram** — 95.5% of the guest's time is inside the BIOS's block
+   read, with brief excursions into the CCP, which is a warm-boot loop and not a
+   stalled login.
+3. **The CCP's first instruction** — `JP 0C5C8h` lands mid-instruction; `0xC4C8`
+   is CP/M's `COMMAND:` entry.
+4. **The SPR diff** — the image is a uniform relocation of `HARDCCP.SPR` /
+   `HARDBDOS.SPR` at a base 0x100 too high, so the repair is exact.
+
+The recipe that produced a bootable disk, end to end:
+
+```sh
+# 1. re-relocate the captured O/S to the address HARD.COM loads it at
+tools/research/md10reloc.py --out /tmp/md10/md10-os.bin
+
+# 2. lay it on a drive (the partition table and the O/S come from the capture)
+tools/research/md10drive.py --out /tmp/md10/hd.chd --os /tmp/md10/md10-os.bin --force
+
+# 3. boot HARD.COM from the 2.01 utilities disk against it -- §2's recipe, with
+#    -harddisk /tmp/md10/hd.chd
+```
+
+The acceptance is the prompt, and `B:` from a machine with **no floppy in drive
+B** is what makes it a boot rather than a banner (§7).
 
 ## Sources
 
 - `research/adaptec/md10-system/` — the captured system: `lba0-15.bin`,
-  `md10-os.bin`, and the provenance note.
+  `md10-os.bin`, and the provenance note. **The capture is unmodified**; its
+  0x100 relocation is a property of what `PREP.COM` wrote, and the corrected
+  image is derived on demand rather than committed.
 - `research/adaptec/Osborne Hard Disk Control Software Version 2.01 (1984).img`
   — `PREP.COM`, `HARD.COM`, `HARDCCP.SPR`, `HARDBDOS.SPR`, `HARDBIOS.SPR`.
 - `research/adaptec/MD Utilities Adaptec 4000 Controller Ver. 1.93 Osborne -
   MD-10 MD-20.img` — the 1.93 copies, used to check the 2.01 ones.
 - `tools/research/o1keys.lua` — the scripted-keystroke harness, and its `pc`,
   `peek` and `poke` directives, which are how every "measured" above was taken.
-- `tools/research/md10drive.py` — lays the captured image onto a drive.
+  `peek`/`poke` take bare hex (`peek dd5e 4`) as well as `0x`-prefixed.
+- `tools/research/md10reloc.py` — re-applies the SPR relocation at the load
+  address, and checks that the CCP entry lands on `LD SP,nn`.
+- `tools/research/md10drive.py` — lays an O/S image onto a drive (`--os`).
 - `tools/emulator-setup/mame-osborne1ng/` — the `osborne1ng` machine (#191).
 - `docs/osborne1ng-machine.md` §6 (the header field map), §5 (the harness
   findings); `docs/harddisk-decision.md` §7.2–§7.3;

@@ -41,6 +41,12 @@ USAGE
     drive and the one the captured image was made with.  `--label` re-stamps the
     label, but the partition table and the O/S image are the captured ones.
 
+    --os lays a *different* operating system (default: the captured
+    `md10-os.bin`).  It exists because the captured image is relocated 0x100
+    bytes above the address `HARD.COM` loads it at -- its `JP COMMAND` lands
+    mid-instruction -- so a bootable drive needs the re-relocated image, and
+    this is how it gets one.  See docs/md10-system.md.
+
     Building the *captured* image needs MAME, the archive's utilities disk and
     `PREP.COM`; see `docs/md10-system.md`.  This tool only lays it down.
 """
@@ -82,7 +88,7 @@ def find_chdman(explicit):
 def build(args):
     with open(LBA0_15, "rb") as f:
         head = f.read()
-    with open(OS_IMAGE, "rb") as f:
+    with open(args.os or OS_IMAGE, "rb") as f:
         osimg = f.read()
 
     cyls, heads, spt = (int(x) for x in args.chs.split(","))
@@ -142,6 +148,9 @@ def main(argv):
     p.add_argument("--sectorsize", type=int, default=SECTOR_DEFAULT)
     p.add_argument("--label", default=None, metavar="TEXT",
                    help="re-stamp the disk label (default: the captured one)")
+    p.add_argument("--os", default=None, metavar="PATH",
+                   help="the O/S image to lay at LBA 5 (default: the captured "
+                        "md10-os.bin; see the header on the 0x100 relocation)")
     p.add_argument("--raw", action="store_true", help="write a raw image, not a CHD")
     p.add_argument("--chdman", default=None, help="path to chdman")
     p.add_argument("--keep-raw", metavar="PATH", default=None)
