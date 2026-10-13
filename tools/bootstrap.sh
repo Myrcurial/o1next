@@ -273,6 +273,20 @@ check_required() {
         miss_row disk-analyse 'Disk-Utilities, built from source — see REQUIREMENTS.md'
     fi
 
+    if have unar; then
+        ok_row unar "$(which_of unar) — $(unar -v 2>&1 | head -1 | cut -d, -f1)"
+    else
+        miss_row unar 'brew install unar'
+        add_formula unar
+    fi
+
+    # lbrate is not in Homebrew, so this can only report, not install.
+    if have lbrate; then
+        ok_row lbrate "$(which_of lbrate) — built from source, not in Homebrew"
+    else
+        miss_row lbrate 'ibiblio utils/compress/lbrate-1.1.tar.gz — built from source, see REQUIREMENTS.md'
+    fi
+
     # The corpse: a 2013 Ghostscript that `command -v gs` will hand you.
     p="$(unrunnable gs || true)"
     if [ -n "$p" ]; then
