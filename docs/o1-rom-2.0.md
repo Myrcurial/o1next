@@ -291,8 +291,9 @@ whole document.
 
 Bank 2 is the point of overlap with #179: `HCBOOT` needs the MD-10 BIOS at
 `0D800h` and a jump to `0D882h`, and the BIOS image is 1477 bytes — it fits in one
-4 KB bank with room for the patch shim. That is the "route 1" of #83's earlier
-discussion, and it needs no new part beyond the 27128 already specified here.
+4 KB bank with room for the patch shim. So the hard-disk boot and the diskless
+CP/M boot ride in the same ROM, which is the point of building one image rather
+than two.
 
 ### 4.4 Cold boot
 
