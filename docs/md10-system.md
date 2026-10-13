@@ -468,16 +468,38 @@ front of it: three of those do not fit in PYXIS13's 23112 blocks. The
 *configured* drive carries two partitions of 11544 (§3), which is what
 `PREP.COM` wrote and what the drive's own partition table says.
 
-**So the two disagree** — but it does not matter, and it never did. The static
-descriptors are a **fallback for a drive with no usable label**: three partitions
-of 15399 blocks do not fit in PYXIS13's 23112 blocks, and the configured drive
-carries two of 11544 (§3), which is what `PREP.COM` wrote and what the drive's own
-partition table says. An earlier revision of this section concluded from the
-disagreement that the system could not prompt because the BDOS was logging in to
-the wrong directory. **That was wrong** (§7): there is no login at all before the
-prompt, the trace shows only the boot `READ LBA 5` with status GOOD, and the login
-that does happen — after the prompt, when `B:` is typed — reads LBA 83, the last
-block of drive A's own `E5h` directory. The fallback table is never consulted.
+**So the two disagree — and the fallback is a *drive*, not a guess.** The three
+descriptors are three partitions of 15399 blocks at `20`, `15419`, `30818`, and
+that is exactly the shape of **PYXIS27**:
+
+| Entry | Cylinders | Heads | Sectors | Blocks | Size |
+|---|---|---|---|---|---|
+| `PYXIS13` | 321 | 4 | 18 | 23 112 | 11.8 MB |
+| `PYXIS27` | 321 | 8 | 18 | **46 224** | 23.7 MB |
+
+The fallback's third partition ends at `30818 + 15399 = 46217`, and PYXIS27 holds
+`46224` — it fits with **seven blocks to spare**. So the static table is not "a
+fallback for a drive with no usable label" in the abstract: it is **PYXIS27's
+partitioning**, and 15399 × 512 = 7.88 MB is the same 7.88 MB the fallback DPB
+describes (`DSM = 1923` × 4096). Both entries are in the driver's own table
+(`DRIVETBL.DAT` indexes 53 and 55; `tools/research/drivetbl.py`), and PYXIS27 is
+PYXIS13 with the heads doubled — `321/4/18` against `321/8/18`.
+
+Which is also the answer to *where `C:` went*: on a **PYXIS13** only one
+15399-block partition fits, so `PREP.COM` wrote two of 11544 instead (§3) and the
+third descriptor has nothing behind it — `C0>` selects and no partition answers.
+On a **PYXIS27** the fallback's third partition is real and `C:` is a real drive.
+The MD-10 claims three letters because its type table gives drives 0–2 the three
+hard-disk descriptors (`00 01 02`, §7.1); the *drive* decides whether the third
+one has anything in it.
+
+**And the disagreement never mattered.** An earlier revision of this section
+concluded from it that the system could not prompt because the BDOS was logging in
+to the wrong directory. **That was wrong** (§7): there is no login at all before
+the prompt, the trace shows only the boot `READ LBA 5` with status GOOD, and the
+login that does happen — after the prompt, when `B:` is typed — reads LBA 83, the
+last block of drive A's own `E5h` directory. The fallback is never consulted on a
+drive that carries a label.
 
 ## 10. The test that was named, and its answer
 
