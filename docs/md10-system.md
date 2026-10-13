@@ -285,6 +285,77 @@ not for the prompt.
   is right, and now it is read end to end** — including that it *also carries the
   BIOS*, which that section did not know.
 
+## 9. The DPB and the drive table are *in the archive* after all (#178)
+
+`docs/harddisk-decision.md` §7.3 concluded that the DPB's values "are not
+obtainable from the files in the archive", because `tools/research/hardbios.py
+audit` found **no writer and no pointer** to the tables at `0x055E`/`0x056E`.
+
+The negative result was an artefact of two things, and both are now measured:
+
+1. **`0x055E` is not a low-RAM address. It is an offset from the BIOS's base.**
+   The MD-10 BIOS loads at `0xD800` (§4), so the per-drive type byte table is at
+   **`0xDD5E`** and the 24-byte descriptor table at **`0xDD6E`**. The audit
+   searched `0x0500`–`0x0700`, which is why it found only the *relocatable
+   operands* inside the overlay (`LD BC,055E` / `LD DE,056E` — the latter **is**
+   reported, at `hardbios.spr` offset `0x200`).
+2. **Both tables are static data inside the BIOS image**, so they are readable
+   from the file — in `HARD.COM`'s embedded copy at file offsets `0x998` and
+   `0x9A8`, and in `HARDBIOS.SPR` at the matching offsets.
+
+Read out of `HARD.COM` (2.01), the tables are:
+
+| Address | `HARD.COM` file | What |
+|---|---|---|
+| `0xDD5E` | `0x0998` | 16 per-drive type bytes: `00 01 02 80 81 82 83 84 85 86 87 88 89 8A 8B 8C` |
+| `0xDD6E` | `0x09A8` | the 24-byte descriptors, `type × 24`, DPH at `+8` |
+| `0xDDB6` | `0x09F0` | **the DPB** — 15 bytes, reached at DPH+10 |
+
+The DPB itself:
+
+```
+file 0x09F0   9C F0 05 1F 01 83 07 FF 03 FF 00 00 00 00 00
+              SPT   BSH BLM EXM DSM   DRM   AL0 AL1 CKS   OFF
+              ?     5   31  1   1923  1023  FF  00  0     0
+```
+
+and **`DPB+3` is `31`** — which is exactly what §7.3 read out of the driver's
+*code* ("the driver reads `DPB+3` as `BLM`") before the data had been found. Two
+independent readings agreeing is what makes `0xDDB6` the DPB rather than a
+lookalike.
+
+`BLM = 31` gives 4096-byte blocks; `DSM = 1923` is therefore 7.88 MB per logical
+drive; `DRM = 1023` is 1024 directory entries; `AL0 = FFh` is the eight
+directory blocks; `CKS = 0` is a fixed disk, which is right. **`SPT` reads
+`F09Ch` and that is not a sector count** — the one field still to explain, and
+the likely answer is the one §7.3 already argued for: the driver patches `SPT`
+at run time from `MODE SENSE`, so the static value is a placeholder.
+
+**And that reconciles the residue.** The static descriptors carry three
+partitions — starts `20`, `15419`, `30818` (each entry's bytes 1–3 differ by
+`0x3C27` = 15399 blocks, and 15399 × 512 = 7.88 MB, the DPB's own `DSM × 4096`)
+— which is a **fallback for a drive with no usable label**, not the drive in
+front of it: three of those do not fit in PYXIS13's 23112 blocks. The
+*configured* drive carries two partitions of 11544 (§3), which is what
+`PREP.COM` wrote and what the drive's own partition table says.
+
+**So the two disagree**, and that is the most likely reason the system never
+reaches its prompt (§7): the BDOS logs in to a drive whose directory is not
+where the driver's table says it is. §10 is the test.
+
+## 10. The next test, precisely
+
+The drive is `LBA 20 … 11563` for `CP/M-CCP` and `11564 … 23107` for `CP/M-A`
+(§3). The driver's fallback table says `20`, `15419`, `30818`. If the login is
+looking at `15419` and finding `6Ch` rather than `E5h`, the fix is to make the
+drive match the table — or to work out what writes the *runtime* table from the
+label.
+
+The harness can answer it in one run: `poke` the CDB at `0xD9FA` (the LBA is
+bytes `+3`/`+4`), or `peek` the partition records at label+48 and the type byte
+at `0xDD5E + drive` while the guest is at the login. `tools/research/o1keys.lua`
+has `pc`, `peek` and `poke` for exactly this.
+
 ## Sources
 
 - `research/adaptec/md10-system/` — the captured system: `lba0-15.bin`,
