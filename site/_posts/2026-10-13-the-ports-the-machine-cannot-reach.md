@@ -96,6 +96,19 @@ Note the dotted line. `HCBOOT` is the monitor's **hard-disk boot entry point**, 
 in the shipped 1.44 source it is a `JMP START` stub: the vector exists and it does
 nothing with it. That is the next step.
 
+**And note what happens to the drive letters**, because it is the part that
+surprises people. The hard disk takes *three* of them — `A:`, `B:` and `C:` —
+because the driver's type table gives drives 0 to 2 the three hard-disk
+descriptors, and the floppies begin at drive 3. So the disk you just booted from
+is now `D:`, and the second physical drive is `E:`. The relocation is not
+cosmetic: from `D:` the floppy is fully readable, directory and all.
+
+`C:` is the third descriptor, and on the drive geometry in use it selects and
+nothing answers — there is only room for two partitions. That is the one letter
+in this diagram that is a promise rather than a description. Put a bigger drive
+underneath it — the drive table's `PYXIS27`, or any geometry with the room — and
+`C:` is a real drive. Which is exactly where the library goes.
+
 ## The next step is the ROM.
 
 The MD-10 experience as it stands still needs a floppy. You boot the utilities
