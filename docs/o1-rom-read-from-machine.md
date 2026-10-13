@@ -44,6 +44,33 @@ This is derived from the sources, not from a guess: `occrom1b.asm` line 338 is
 **If the upper line reads `Osborne System ONE.`, stop and dump it** — that is
 the ROM nobody has.
 
+## 1a. The second free test, and the one that matters most: press `^D`
+
+The early ROMs carry a **resident diagnostic section**, entered from the boot
+prompt with `^D` (the 1.3 source says so in `occrom73.asm`'s header). The later
+ones **do not have it at all**. Checked against every ROM we hold:
+
+| ROM | `^D` diagnostic menu? |
+|---|---|
+| rev B, 9/12/81 | **yes** — `   ROM DIAGNOSTICs` |
+| **1.3**, 12/16/81 | **yes** — `   ROM DIAGNOSTICs` |
+| 1.40 | **no** |
+| 1.43 | **no** |
+| 1.44 | **no** |
+
+So, at the boot prompt, before pressing RETURN:
+
+- **a `ROM DIAGNOSTICs` menu appears** → the ROM is an **early** one: rev B,
+  1.2, 1.2.1 or 1.3. Combined with the title test above, that excludes rev B and
+  1.3 — so it is **1.2 or 1.2.1, both of which are `NO_DUMP`.** Dump it.
+- **nothing happens** → it is 1.40, 1.43 or 1.44, all of which we already hold.
+  Nothing is gained and the trip is not worth making.
+
+The menu is bright text, so the faulty dim bit does not hide it, and the test
+needs no disk, no tool and no typing beyond `^D`. The 1.3-era menu reads
+`A,B Boot Sys / D isk / K ey-vdt / M emory / R ead in test`; a *different* set of
+entries is itself evidence of an earlier revision still.
+
 ## 2. Reading the bytes: the ROM is *not* visible from CP/M
 
 This is the part that catches people out. `DUMP.COM` and `DDT`'s `D` command
@@ -159,12 +186,13 @@ Offsets are into the 4096-byte image.
 | **1.3** | `0x0F4` | `63 2E 20 31 39 38 31 20 4F 43 43` | `c. 1981 OCC` |
 | rev B | — | from `occrom1b.asm` | `OSBORNE SYSTEM ONE.` (caps) |
 
-**And check the encoding, not just the text.** rev B and 1.3 store their strings
-with the `DBE`/`DCE` pseudo-ops, i.e. **every byte doubled** (each string byte is
-`value * 2`); 1.40, 1.43 and 1.44 store theirs **plain**. So a dump full of
-readable ASCII is 1.4-era, and a dump whose "text" is all even bytes at roughly
-twice the expected length is rev-B/1.3-era — shift it right one bit to read it.
-See `docs/rom-13-reconstruction.md` §4.
+**And check the encoding of the *messages*, not just the text.** The banner is
+plain ASCII in every revision. What differs is how the **message strings** are
+written: rev B and 1.3 use the `DBE`/`DCE` pseudo-ops, so each byte is stored
+**doubled** (`value * 2`, which is why `   ROM DIAGNOSTICs` appears as
+`40 40 40 A4 9E 9A …`), while 1.44 uses `DB`/`DC` throughout and stores plain
+ASCII. Shift a doubled string right one bit to read it. See
+`docs/rom-13-reconstruction.md` §4.
 
 The 1.3 offsets come from the reconstructed image, and **not** from the damaged
 regions (`0x1F0`, `0x8B0`, `0xA80`, `0xAB0`, `0xFA0`, `0xFD0` — see
