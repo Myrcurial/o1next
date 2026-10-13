@@ -13,23 +13,34 @@ author: Jamie Arlen
 Post body in Markdown.
 ```
 
-## `date:` is the merge timestamp
+## `date:` is stamped at merge time — 15 minutes is close enough
 
-**Every post carries an explicit `date:`**, set to the moment its pull request
-was merged to `main` — the merge commit's committer date, written
-`YYYY-MM-DD HH:MM:SS ±HHMM` with the timezone it was committed in.
+**Every post carries an explicit `date:`**, written `YYYY-MM-DD HH:MM:SS ±HHMM`
+with the timezone it was committed in. It records *publication*: a post is
+published when its pull request merges, so the date is stamped at the merge
+rather than when the file was written.
 
-It is the *merge* time, not the time the file was first written. A post is
-authored on a branch and published when its PR lands, so the date records
-publication. The date in the filename is the best guess at the publish day and
-is what the file is named by; the front-matter `date:` is the exact moment.
+**The exact merge timestamp cannot exist before the merge.** GitHub sets the
+merge commit's date, and its API does not accept one you supply — so an exact
+minute would mean merging and then pushing a second commit to correct the file,
+which costs more than it is worth. The rule is therefore a tolerance, not an
+equality:
+
+> **Make `date:` the last change before you merge, and merge promptly. Within 15
+> minutes of the merge is close enough.**
+
+In practice the stamp lands a few seconds *before* the merge, which is the right
+direction — the post is dated as of going live. The last commit on the branch
+should be the one that settles `date:`; nothing after it touches the file. The
+date in the filename remains the best guess at the publish day; the front-matter
+`date:` is the finer value.
 
 `site/_config.yml` permalinks on `/:year/:month/:day/:title/`, so `date:` also
 decides the post's URL — and a front-matter `date:` **wins over the date in the
 filename**. The two only agree when a post merged on its filename's day. When
 they disagree, `date:` is the truth and the URL follows it.
 
-To recover a post's merge timestamp:
+To see how close a post's stamp landed, compare it with its merge commit:
 
 ```
 git log --first-parent --diff-filter=A --format='%ci' main -- site/_posts/<file>
