@@ -480,8 +480,8 @@ Proposed extensions — short on purpose, each one justified by an issue:
 | # | Entry | Does | Serves |
 |---|---|---|---|
 | 0 | `SYSLD` | reload the system image from ROM (also ROM vector 1's target) | §4.5 |
-| 1 | `BANKSEL` | `A` = bank, write the latch | §4.3 |
-| 2 | `SCRMOD` | `A` = `0`/`1`/`3` → 52/104/80 columns, by writing `02400h` in bank 2 | #24, and the CBIOS's own `PLUGH` mechanism (`occbio55.asm`'s `MAGIC`) — no video RAM taken, per #83's constraint |
+| 1 | `BANKSEL` | `A` = the payload slot, write the selector | §4.3, §4.1a (the selector itself is open) |
+| 2 | `SCRMOD` | `A` = `0`/`1`/`3` → 52/104/80 columns, by the stock video-PIA write to `02C00h` with `EF61h` (`PIAAD`) as the cached copy | #24. The CBIOS's own `PLUGH` mechanism (`occbio55.asm`'s `MAGIC`), and the register and routine confirmed against `OZROM_1E.BIN` (§4.8) — **no video RAM taken**, per #83's constraint |
 | 3 | `MEMTEST` | chip-level memory test | §1 |
 | 4 | `HDBOOT` | install and enter the MD-10 BIOS from bank 2 | #179 |
 | 5 | `VERSION` | `HL` = version word | so a program can branch on the ROM, which is the OZROM property worth having |
