@@ -197,6 +197,11 @@ apart. The earlier wordmark — `assets/o1nextgen-logo.art.txt`, drawn by
 `tools/o1logo.py` to the geometry measured from AUTOCPM's logo art — is kept as
 the record of that approach; see below.
 
+It is a generated, committed file like the fonts and the book pages, so
+`.github/workflows/generated-artifacts.yml` runs
+`tools/research/rom2strokes.py --check` on every change and fails the build if it
+has drifted from the art.
+
 The letters are *drawn*, not downsampled: rasterising a traced outline at this
 size stair-steps badly, because the graphics set only resolves two sub-pixels per
 character cell. `assets/o1nextgen-wordmark.svg` is kept as the record of the

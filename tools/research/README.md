@@ -204,6 +204,10 @@ scratch programs, "figuring it out" notebooks/scripts.
   alphabet, so they are the boot screen's alone and do not belong on a wordmark.
   All 48 text cells in the art lie inside those two captions, and `a` — the blank
   cell — is itself in the text range, so a dropped cell draws the same nothing.
+  `--check` re-renders the masthead in memory and compares it with the committed
+  `site/assets/o1nextgen-logo.png`, byte for byte, exiting non-zero if it has gone
+  stale. It needs the standard library and two files in the repo, and nothing
+  else, so `.github/workflows/generated-artifacts.yml` runs it.
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
   **7681-byte image** from the repo's own files and re-checks every anchor the
   design quotes, exiting non-zero if one moves. In: the stock 1.44 monitor, the
