@@ -689,6 +689,23 @@ test rather than a result.
 6. **The 512 bytes of RAM residue.** Harmless to the build (we take a fixed 2048
    for the CBIOS), but it is a reminder that the *system image* is not a clean
    artefact and a future `SYSGEN`-equivalent should say so.
+7. **The memory map *at the moment the boot screen runs*.** §2.3 sizes what is
+   resident and §4.4 describes the copy, but neither states the map the monitor
+   sees when it decides to draw the screen — what is where, and what is safe to
+   overwrite. That is planning that has not been done, and §4.9's blit depends on
+   it: writing 4096 bytes to `F000h` is only safe if nothing else has claimed that
+   range yet.
+8. **Where the frame comes from in Pico-land, and how the ROM knows to ask for
+   it.** §4.9 says the frames live in the interposer's flash and that a marker
+   lets the ROM validate one — but not which flash slot, not what the ROM does to
+   make the Pico present it, and not how the ROM distinguishes "a frame is
+   available" from "the flash is empty". The page-select mechanism is §4.1a's and
+   is #12's; the rest is undesigned.
+9. **The mailbox protocol.** `docs/mailbox-protocol.md` is the interposer's
+   *host*↔firmware channel (#155) and does not cover what the ROM asks the Pico
+   for at boot. Nothing here defines that conversation, and the boot screen is the
+   first thing that needs it — so it will otherwise accrete out of the first
+   implementation, which is exactly what #155 exists to prevent.
 
 ## Sources
 
