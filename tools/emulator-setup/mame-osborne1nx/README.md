@@ -19,6 +19,7 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `apply.sh` | apply it to a source tree, optionally build the subtarget, optionally run the probe |
 | `o1next-probe.lua` | the headless check: the I/O decode, and the card's presence probe |
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
+| `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
 
 The patch touches five files:
 
@@ -45,6 +46,12 @@ Then run it:
 mame osborne1nx -rompath tools/emulator-setup/roms \
     -flop1 research/shipped-software/OS1UTLS.IMD
 ```
+
+**That is the headless shape and `mame` on `PATH` has no such machine** — it is a
+patch, so the binary is the one `apply.sh` built. To actually *use* the machine
+rather than test it, run `./boot-o1next.sh` instead: same machine, video and sound
+on, real time, up to two floppy images on the command line and a hard disk through
+`O1_HARD`. See `boot-o1next.sh`'s header, and AGENTS.md.
 
 **Headless means an SDL build.** `-video none` picks the *renderer*, not the
 window: the window belongs to the OSD, and MAME's default is full screen

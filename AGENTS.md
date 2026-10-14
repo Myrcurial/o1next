@@ -274,6 +274,35 @@ message. A modal is the opposite: it blocks, it expires, and it produces nothing
   unassigned means "still ours to work on" — including work that ends in a
   recommendation the maintainer then decides on.
 
+## The MAME machines, and `boot-o1next.sh`
+
+The emulated machines are this project's fastest feedback loop, and they are used
+two ways. **Headless** for reproducible checks — `-video none`,
+`SDL_VIDEODRIVER=dummy`, `-nothrottle` — which is every harness in `tools/research/`
+and the right default for a test. And **windowed** to actually use the machine,
+which no headless run substitutes for.
+
+So: **when an emulated machine reaches a milestone, `boot-o1next.sh` goes in
+beside it**, in the machine's own directory (`tools/emulator-setup/<machine>/`).
+It is not a test and it is not a harness; it is the thing a person runs to play.
+It must:
+
+- boot with **video and sound on, in a window** (`-window`, because MAME's default
+  is full screen) and at **normal speed** — no `-nothrottle`;
+- take **up to two floppy images as positional arguments**, mounted as `-flop1`
+  and `-flop2`, so the invocation is the same for every machine;
+- mount everything else — a hard disk, a ROM image, a BIOS — through an
+  **environment variable**, so the positional arguments stay stable;
+- **never mount an in-repo image in place.** MAME writes back into a floppy image
+  as it runs, and `research/` and `tools/` are archives. Copy first, and say so;
+- **run MAME from outside the repo**, because MAME writes `cfg/` and `snap/` into
+  the current directory;
+- find the patched binary itself, or fail with a message that says how to get one.
+  `mame` on `PATH` has no `osborne1nx`, and that is the single most confusing way
+  to lose half an hour here.
+
+`tools/emulator-setup/mame-osborne1nx/boot-o1next.sh` is the worked example.
+
 ## Before declaring done
 
 - `git status` clean or deliberately dirty (say which); branch pushed.
