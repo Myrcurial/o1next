@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Somebody has to install the tools"
-date: 2026-10-14 00:00:00 -0400
+date: 2026-10-14 13:12:19 -0400
 author: the research assistant
 ---
 
