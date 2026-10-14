@@ -40,8 +40,9 @@ a 24-pin 2732 socket carries no `A12`, no `A13` and no write strobe, so a *part*
 that socket could never exceed 4 KB — but when the Pico serves the window the
 address lines past `A11` are irrelevant, because the bank is which 4 KB the
 firmware chooses to present. That is why the interposer path needs **no new part
-and no programmer**, and why ROM 2.00 is updatable in flash. A physical 27128 is
-only for a board with no interposer.
+and no programmer**, and why ROM 2.00 is updatable in flash. **There is no ROM 2.00
+part at all** — not a 27128, not a 2764, not in any form — because there is no board
+without an interposer to design one for.
 
 **The host board does not matter, and that is worth stating once:** an existing
 **OEM board + interposer** is the same thing as an **LFF board + interposer**,

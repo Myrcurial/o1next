@@ -4,8 +4,10 @@
 are *measured* — from the shipped 1.44 bytes and from a shipped system disk's
 reserved tracks, with the tool in `tools/research/romvec.py` reproducing the
 interface half. The **bank map, boot path and jump table** (§4–§5) are the
-*design*: what we intend to build, with the reasoning that got us there. What is
-not done is stated in §8.
+*design*: what we intend to build, with the reasoning that got us there. The
+**hardware half of §4 is explicitly open** — there is no ROM 2.00 part (§4.1), and
+the window's address, paging and selector belong to #12's interface spec (§4.1a).
+What is not done is stated in §8.
 
 **Issues:** #83 (deliverable 1; deliverable 2's toolchain proof landed as #203/#204),
 #49 (the reproduction this ROM is for), #72 (the ROM source), #179 (the MD-10 boot
@@ -109,7 +111,7 @@ portable operation …"). Anyone who reads the system image as "the CBIOS" will
 count 2560 bytes and be wrong by 512. The 2048 figure is the source's own guard:
 `IF XXX > CCP + 1E00H / .9 ERROR SYSTEM SIZE TOO LARGE`.
 
-### 2.2 Why the 4 KB ROM cannot hold it, and the 16 KB one cannot either
+### 2.2 Why 4 KB cannot hold it, and why the ROM page is not one block
 
 Bank 2 is the only place the CPU reads ROM (`docs/o1-memory-io-map.md` §2):
 
@@ -121,13 +123,16 @@ Bank 2 is the only place the CPU reads ROM (`docs/o1-memory-io-map.md` §2):
 | `3000–3FFF` | Unused — mirror of `2000–2FFF` |
 | `4000–FFFF` | Mirrors bank 1 RAM |
 
-So the contiguous ROM window is **8 KB, and that is a hard ceiling**: a 27128
-wants `0000–3FFF` and `2000–3FFF` is the I/O window. 11776 bytes does not fit in
-8 KB, and the stock 2732 holds 4096 of which **150 bytes are free** (`0F6Ah–0FFFh`;
-the code ends at `0F69h` and the source's own guard is `IF RLWA > 0FFBH`).
+So the ROM page offers **8 KB contiguous** (`0000–1FFF`) and **4 KB more at
+`3000–3FFF`** — but only by jumping *past* the assigned I/O block at `2000–2FFF`,
+so the two runs are not one block. **11776 bytes fits neither way, and there is no
+16 KB ROM to put it in: there never will be** (§4.1). The stock 2732 holds 4096 of
+which **150 bytes are free** (`0F6Ah–0FFFh`; the code ends at `0F69h` and the
+source's own guard is `IF RLWA > 0FFBH`).
 
-**Therefore: banked, or nothing.** And the good news is that the mirror is the
-room — `1000–1FFF` is 4 KB nobody else wants.
+**Therefore the image cannot be presented as one contiguous block, and *how* it is
+presented is open** — see §4.1a. What *is* settled is that a larger physical part
+is not the answer.
 
 ## 3. The interface that already exists
 
@@ -215,84 +220,88 @@ exactly the two the diskless build wants to change (§4.5), and both are changed
   to `JP 0000h` at `0F67h`).
 ## 4. The design
 
-### 4.1 The part — or, on a real machine, no part at all
+### 4.1 The softROM serves the window — there is no ROM 2.00 part
+
+**There is no physical ROM 2.00 and there never will be** — not a 27128, not a
+2764, not a 16 KB part in any form (settled 2026-10-13). The ROM window is served
+by the interposer's **softROM**: the interposer already has the bus, and the ROM
+socket bridge gives it the window itself, so it presents the ROM in firmware.
 
 | | |
 |---|---|
-| The host's ROM socket | The **LFF board keeps a ROM socket that takes a standard 1.44 ROM**, exactly as the OEM board does — so an LFF board on its own is a stock machine and the restoration path boots with the stock part |
-| **With the interposer** | **No physical ROM part is needed.** A daughterboard occupies the socket and a ribbon carries its signals to the interposer; the **Pico serves the ROM window**, and the banking is internal to it. ROM 2.00 then needs no new part, no programmer and no socket to be re-stuffed, and the image is updatable in flash |
-| Standalone board, no interposer | A **27128** (16 KB, 28-pin), or a 2764 (8 KB) for the diskless goal alone — and *then* something has to supply `A12`/`A13` and the latch, which is the socket's own limit (§4.1a) |
-| Window | the monitor stays at `0000–0FFF`; **`1000–1FFF` becomes a 4 KB banked window** |
-| Banks | 4 × 4 KB: the system image (2 banks), the MD-10 BIOS image (1), diagnostics + spare (1) |
+| The host | **OEM board + interposer**, **LFF reproduction + interposer**, or the **SFF board**, where the interposer is built in as one unit. There is no third case and no part in the socket |
+| The LFF board on its own | Keeps a socket that takes a standard 1.44 ROM, so it is a stock machine and the restoration path boots stock. That is the *stock* part — not ROM 2.00 |
+| Window | the monitor stays at `0000–0FFF`; the rest of the ROM page is not one contiguous block (§2.2), and **where the payload goes is open** |
+| Banks | the intended *content* split is 4 × 4 KB (system image 2, MD-10 BIOS 1, diagnostics + spare 1). The content plan stands; **what selects a bank, and where it is presented, is open** |
 
-### 4.1a The socket's limit, and the three ways past it
+**What is deliberately not decided here.** The window's address, how the payload is
+paged, and what the selector is are **pseudo-hardware**, and this document does not
+settle them — they are **#12's interface spec**. An earlier draft of this section
+proposed a 27128 with `A12`/`A13` supplied from a latch at `2300h`; that route is
+**withdrawn** (there is no physical part to put in the socket, and no host without
+an interposer to design it for). The withdrawal is recorded rather than quietly
+deleted, because it was in a merged revision of this document.
 
-The limit, stated plainly because it decides the build: **a 24-pin 2732 socket has
-`A0–A11`, `/CE`, `/OE` and the data bus — no `A12`, no `A13`, and no write
-strobe.** So a part in that socket can never exceed 4 KB however large it is,
-unless something *outside* the socket supplies the missing lines. Three ways past
-it, and only the first matters on a real machine:
+### 4.1a The socket's limit, and why it does not bind
 
-1. **Serve the ROM from the Pico (the interposer path).** A daughterboard takes
-   the socket's place and a ribbon carries its signals back to the interposer, so
-   the ROM window is the interposer's to fill and **the banking lives inside the
-   Pico** — no `A12`/`A13` and no latch are needed at the socket at all. With the
-   part removed, nothing else drives those data lines either, which is what makes
-   this cheaper than the per-cycle bus race #83's earlier analysis worried about.
-2. **A larger part plus the missing lines.** A 27128 in the socket, with `A12`/
-   `A13` and the latch strobe coming from outside it. This is the path for a board
-   with **no** interposer.
-3. **The SFF board**, which has the decode grafted in and its own flash, so it runs
-   the same image with no interposer and no socket.
+The limit is real, and worth stating because it is what *would* bind if we were
+fitting a part: **a 24-pin 2732 socket has `A0–A11`, `/CE`, `/OE` and the data bus
+— no `A12`, no `A13`, and no write strobe.** A part in that socket could never
+exceed 4 KB however large it was.
 
-**The mechanical form is a working assumption, not a settled one:** a small
-daughterboard with **DIP pins on the bottom** into the ROM socket and a **ribbon
-connector on the top** to the interposer. Its exact signal list, and whether the
-ribbon also carries `A12`/`A13` for case 2, is **#12's interface spec**.
+It does not bind, because **we are not fitting a part.** The softROM is not in the
+socket's address space the way a part is: the Pico already sees every bus cycle and
+presents the ROM window itself, so the lines past `A11` are irrelevant — which is
+also why ROM 2.00 needs **no programmer** and is updatable in flash. With the part
+removed nothing else drives those data lines either, which is what makes this
+cheaper than the per-cycle bus race #83's earlier analysis worried about.
 
-**The mechanism is already demonstrated on real hardware**, for case 2.
+**The socket bridge is not speculative as a technique.**
 `docs/o1-rom-variants.md` records **BrettHallen's 2732→2764 daughterboard image**
 (8 KiB, CRC32 `edc31846`): OCC 1.44 and OZROM 1E in one 2764, **with `A12`
-selecting between them**. That is banking in the ROM socket, built and tested,
-passively. ROM 2.0 needs the same lines plus a latch rather than a strap — but the
-part, the pin and the decode are not speculative. #12 should start from that board.
+selecting between them** — banking in the ROM socket, built and tested, passively.
+That is prior art for the mechanical form, and it is why the bridge is a known-good
+shape. It is **not** the route ROM 2.00 takes.
 
-**The minimum viable part is a 2764, for case 2 only.** The diskless-CP/M goal —
-deliverable 3 — needs **only banks 0 and 1: 8 KB**. The 27128 buys banks 2 and 3
-(the MD-10 image and diagnostics). So the first build and the full build share one
-layout and differ only in the part — but on a machine with an interposer there is
-no part to choose at all.
+**Withdrawn (2026-10-13): the larger-part route.** An earlier revision of this
+section offered three ways past the socket limit, of which case 2 was *"a 27128 in
+the socket, with `A12`/`A13` and the latch strobe coming from outside it … the path
+for a board with no interposer"*, and nominated a write to **`2300h`** as the
+latch. That is withdrawn:
 
-**Where the latch lives.** A write to **`2300h`** while bank 2 is selected. That
-address is the free block `docs/o1-memory-io-map.md` §7 recommends for virtual
-peripherals, it is a clean gap (`2300–28FF`), it needs no port decode (the stock
-machine's port space is masked to two bits, so no `OUT` port is free), and it is
-only reachable while the ROM is live — which is exactly when it should be
-writable. On stock hardware a write there is currently a no-op, which is what lets
-it mean something.
+- there is no board with no interposer — the SFF has one built in, and the OEM and
+  LFF boards take one;
+- there is no physical part, so there is nothing for `A12`/`A13` to address;
+- `2300h` was chosen as a *latch* address; with no latch it is a candidate register
+  address and nothing more.
 
-When the **Pico serves the ROM, there is no hardware latch at all**: `2300h` is a
-firmware register, because the Pico already sees the bus and the bank is just which
-4 KB it presents. That is the same reason the interposer path needs no new part —
-the latch and the banking are both inside the firmware.
+**What is open, and where it lands.** The window's address, the payload's paging and
+the selector are **#12's interface spec** — not decisions this document makes. What
+is settled is the constraint from §2.2: the ROM page gives 8 KB contiguous plus
+4 KB beyond the assigned I/O block, 11776 bytes must be presented, and there is no
+larger part to put them in.
 
 ### 4.2 The invariant that keeps the CBIOS working
 
-**The monitor is never banked.** Only `1000–1FFF` moves. This is not a
-convenience — it is required, because the CBIOS calls ROM routines by *absolute
-address* (`LDK DE,SENDEN` in `occbio45.asm`, `LDK DE,ROMVEC+3*13` in
-`occbio65.asm`) while bank 2 is mapped, and the CBIOS's own `ROMCDE` arithmetic
-(`ROMVEC+3N`) depends on the monitor being where it always was. Bank the monitor
-and the CBIOS breaks in ways that look like data corruption.
+**The monitor is never banked.** Only the window moves, wherever it ends up
+sitting (§4.1a). This is not a convenience — it is required, because the CBIOS
+calls ROM routines by *absolute address* (`LDK DE,SENDEN` in `occbio45.asm`,
+`LDK DE,ROMVEC+3*13` in `occbio65.asm`) while bank 2 is mapped, and the CBIOS's
+own `ROMCDE` arithmetic (`ROMVEC+3N`) depends on the monitor being where it always
+was. Bank the monitor and the CBIOS breaks in ways that look like data corruption.
 
 The other invariant follows from it: **`0000–0FFF` must stay a 4 KB monitor**, so
 ROM 2.0's new monitor code has to fit in the **150 free bytes** of the 1.44
 layout. That budget is in §4.7, and it is the real design constraint of this
 whole document.
 
-### 4.3 The bank map
+### 4.3 The bank map — the content, not the addresses
 
-| Bank | Window `1000–1FFF` holds | Size used | Why |
+The split below is a **content** plan: what each 4 KB of payload is for. **Where
+those banks are presented, and what selects them, is open** (§4.1a), so read the
+"Bank" column as "payload slot" rather than as an address.
+
+| Bank | Holds | Size used | Why |
 |---|---|---|---|
 | 0 | system image bytes `0000–0FFF` (CCP first half + BDOS start) | 4096 | copied to `CB00h+` on cold boot |
 | 1 | system image bytes `1000–1DFF` (rest of the 7680) | 3584 | the rest; 512 bytes spare |
@@ -306,6 +315,10 @@ CP/M boot ride in the same ROM, which is the point of building one image rather
 than two.
 
 ### 4.4 Cold boot
+
+**The copy semantics below are the design; "latch bank *N*" is a placeholder for
+the open selector (§4.1a).** The destinations, the `LDIR` lengths and the final
+jump do not depend on how the window is paged.
 
 The copy is cheap because of a property of bank 2 that is easy to miss: **in bank
 2, `4000–FFFF` mirrors bank 1 RAM.** So while the monitor is running from the ROM
@@ -366,6 +379,9 @@ HCBOOT:  latch bank 2          ; the MD-10 BIOS image
          JP 0D882h             ; the MD-10 BIOS entry
 ```
 
+The `latch bank 2` step is the open selector (§4.1a); the copy, the patch and the
+jump are not.
+
 ### 4.7 The ROM 2.0 jump table, and the 150-byte budget
 
 The legacy table is preserved exactly — 53 entries, same numbers, same semantics
@@ -415,7 +431,7 @@ at the cost of one bank. `MEMTEST` is the first thing to move there.
 | 2 | Warm boot, when there are no system tracks | **Already solved by the machine.** The CBIOS's `WBOOT` calls ROM vector 1; ROM 2.0 points it at `SYSLD`. No CBIOS change, no new mechanism (§4.5) |
 | 3 | Does the CCP need to be relocatable? | **No — pin it.** `MSIZE = 59`, `CCP = CB00h`, `BDOS = D300h`, `BIOS = E100h`, all as the vendor shipped them. `MOVCPM`/`SYSGEN` are disk-build tools for a disk build; a ROM build wants the layout fixed so the ROM's copy loop can be two `LDIR`s with literal addresses. It also keeps the CBIOS's `ROMCDE` arithmetic valid, which *requires* `BIOS & 0FFh == 00h` |
 | 4 | Keep floppy support, or drop it? | **Keep it.** The ROM carries the vendor's CBIOS unchanged, so a real disk still boots. The diskless case is handled at `SELDSK` by returning a **null DPH** when no media is present, which is documented CP/M behaviour (the BDOS then reports `Bdos Err on X: Select` for that drive) rather than a hang in the FDC retry loop. Deleting the drivers would save ROM space we do not need to save — the CBIOS is 2048 bytes either way, and it is already written |
-| 5 | Which socket/part on the replica? | **The ROM socket, and on a real machine no part in it.** The LFF board keeps a socket that takes a standard 1.44 ROM, so it is a stock machine on its own; with the interposer fitted, a daughterboard takes the socket and the **Pico serves the ROM**, so ROM 2.00 needs no new part and is updatable in flash. A 27128/2764 is only for a board with no interposer. Because OEM board + interposer ≡ LFF board + interposer, there is one host to design for and one to test on |
+| 5 | Which socket/part on the replica? | **The ROM socket, and on a real machine no part in it.** The LFF board keeps a socket that takes a standard 1.44 ROM, so it is a stock machine on its own; with the interposer fitted, a daughterboard takes the socket and the **Pico serves the ROM**, so ROM 2.00 needs no new part and is updatable in flash. A **27128/2764 is only for a board with no interposer** — and there is no such board, so there is no larger part at all, not in any form. Every host (OEM + interposer, LFF + interposer, SFF) has the softROM. Because OEM board + interposer ≡ LFF board + interposer, there is one host to design for and one to test on |
 | 6 | What can we borrow from OZROM's memory map? | The **shape**, not the contents: a documented table and map, a documented version, a column switch, a memory test. Its specific choices — video RAM at `FC00–FFFF`, keyboard redefinition, IEEE-488 removed — are the ones #83 rules out. `docs/ozrom-1e.md` §5–§8 has the detail |
 
 
@@ -442,11 +458,12 @@ open risk with no payoff: the vendor's own 2048 bytes are on the disk, and the
 whole point of the design is that they do not need to change. The *monitor* is the
 part we are writing, and that is the part the toolchain is proven for.
 
-The build therefore produces **one 16 KB image = four 4 KB banks**. That single
-artefact is what a 27128 takes on a board with no interposer, what the SFF's flash
-holds, and what the interposer's flash serves to the Pico — and for the emulator it
-is the same image behind a banked-ROM device (§7). **One image, four consumers, no
-per-host variants.**
+The build therefore produces **one image, split into four 4 KB payload slots**
+(§4.3). That single artefact is what the SFF's flash holds, what the interposer's
+flash serves to the Pico, and what the emulator sees behind a banked-ROM device
+(§7). **One image, three consumers, no per-host variants.** How the slots are
+*presented* — and therefore what the emulator device has to model — is the open
+window decision (§4.1a); the image's content and its split are not.
 
 ## 7. The boot test (deliverable 3)
 
@@ -474,23 +491,25 @@ test rather than a result.
 
 ## 8. What is still open
 
-1. **Does ROM 2.0's monitor code fit in 150 bytes?** The estimate in §4.7 says yes
+1. **The window: address, paging and selector.** This is the largest open item, and
+   it is **#12's interface spec**, not this document's call (§4.1a). The constraint
+   is fixed (8 KB contiguous plus 4 KB beyond the assigned I/O block, §2.2; 11776
+   bytes to present); the answer is not.
+2. **Does ROM 2.0's monitor code fit in 150 bytes?** The estimate in §4.7 says yes
    with ~24 bytes to spare; the assembler's guard is the arbiter. Plan B is a
    banked loader.
-2. **The `2300h` write on real hardware.** `2300h` is free per the schematic and
-   the ROM source, but a write there has never been measured on a real machine —
-   the decode is described as sloppy (`docs/o1-memory-io-map.md` §7). It matters
-   less than it did: when the Pico serves the ROM the bank is a firmware register,
-   so nothing needs a *hardware* latch; what still needs checking is only that a
-   write to `2300h` is a no-op the interposer can claim. `hardware-gated`, and
-   #12's interface spec is where the daughterboard's signal list lands.
-3. **Does the CBIOS really never call ROM vectors 10–12 and 16?** §3.2 says the
+3. **If a register is wanted at `2300h`.** `2300h` is free per the schematic and the
+   ROM source, but a write there has never been measured on a real machine — the
+   decode is described as sloppy (`docs/o1-memory-io-map.md` §7). The *latch* it was
+   proposed for is withdrawn (§4.1a); what would still need checking is that a write
+   to `2300h` is a no-op the interposer can claim. `hardware-gated`.
+4. **Does the CBIOS really never call ROM vectors 10–12 and 16?** §3.2 says the
    labels do not line up and that nothing breaks; that is read from the sources,
    not traced. A MAME trace of a boot with a breakpoint on those addresses would
    settle it in an afternoon.
-4. **`MEMTEST`'s scope.** Chip-level means per-4116, which needs the refresh
+5. **`MEMTEST`'s scope.** Chip-level means per-4116, which needs the refresh
    timing and the bank-3 dim bit to be respected. Not designed here.
-5. **The 512 bytes of RAM residue.** Harmless to the build (we take a fixed 2048
+6. **The 512 bytes of RAM residue.** Harmless to the build (we take a fixed 2048
    for the CBIOS), but it is a reminder that the *system image* is not a clean
    artefact and a future `SYSGEN`-equivalent should say so.
 
