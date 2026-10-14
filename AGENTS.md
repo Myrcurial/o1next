@@ -69,77 +69,73 @@ agent working in `o1nextgen`. Follow it over generic defaults.
 ## Concurrent sessions — more than one agent in this repo
 
 More than one Cline session is run against this repository at the same time, on
-purpose, so that one long wait does not idle the project. The rule that makes
-that safe is **one worktree per session**. The shared working tree is the first
-hazard; the network is the second.
+purpose, so that one long wait does not idle the project. The rule that makes that
+safe is **one worktree per session**. The shared working tree is the first hazard;
+the second is any sync client that touches `.git`.
 
-### The repository is inside iCloud Drive
+### The repository is outside iCloud — moved there 2026-10-14
 
-**Corrected 2026-10-14 — an earlier version of this section said the opposite,
-and it was wrong.** Two machines, one iCloud account, Desktop & Documents in
-iCloud on both, so it is the *same synced folder* served from two different local
-paths:
+The clone lives at **`~/GitHub/o1next`**, which is outside `~/Documents` and
+therefore outside iCloud Drive's scope. It was `~/Documents/GitHub/o1nextgen`
+until 2026-10-14, and **that move is the fix for the whole problem below** — so
+the history is kept, because this section got the diagnosis wrong twice and the
+next agent will reach for the same evidence. *(The directory itself is still
+`o1nextgen` until #228 lands; the convention adopts the new name now, because
+making it the only name is what #228 is for.)*
 
-| machine | `$HOME` | Documents backed by | the repo at |
-|---|---|---|---|
-| **Cortexiphan** (mac studio) | `/Volumes/4TB/Users/jarlen` | `/Volumes/4TB/Users/jarlen/` | `/Volumes/4TB/Users/jarlen/Documents/GitHub/o1next` |
-| **glitchAIR** (macbook air) | `/Users/jarlen` | `/Users/jarlen/` | `/Users/jarlen/Documents/GitHub/o1next` |
+1. **The symlink is the mechanism, not the counter-evidence.**
+   `~/Library/Mobile Documents/com~apple~CloudDocs/Documents` is a symlink to
+   `/Volumes/4TB/Users/jarlen/Documents`, and that was read as proof the repo was
+   *not* synced. It is the opposite: it is macOS's own Desktop & Documents
+   redirection, and therefore the mechanism *of* sync. Both machines keep Desktop
+   & Documents in iCloud on one account, so `~/Documents/GitHub/` was the same
+   synced folder served from two local paths.
+2. **No `.icloud` placeholders means nothing was *evicted*.** It says nothing
+   about whether anything was *synced*.
 
-*(Paths below use the post-#228 name. Until that sweep lands the directory is
-still `o1nextgen`; the convention adopts the new name now, because making it the
-only name is what #228 is for.)*
-
-**The mistake is recorded because it is an easy one to repeat.**
-`~/Library/Mobile Documents/com~apple~CloudDocs/Documents` is a **symlink** to
-`/Volumes/4TB/Users/jarlen/Documents`, and that symlink was read as evidence
-*against* sync. It is the opposite: it is macOS's own Desktop & Documents
-redirection, and therefore the mechanism *of* sync. Likewise the absence of
-`.icloud` placeholders under `~/Documents/GitHub/` means nothing has been
-*evicted* — it does not mean nothing is *synced*.
-
-**What that means for git.** iCloud is a *file provider*, not a filesystem: it
+**Why out is the right place.** iCloud is a *file provider*, not a filesystem: it
 can evict a file to a dataless placeholder and re-materialize it later, it does
-not understand `.git`, and when two writers disagree it resolves the difference
-by leaving a conflict copy rather than by refusing. `.git/index.lock` is not a
-lock across two machines. So:
+not understand `.git`, and when two writers disagree it resolves the difference by
+leaving a conflict copy rather than by refusing. `.git/index.lock` is not a lock
+across two machines. One `mv` ends all of it:
 
-- **One worktree per session**, and the *worktree* is opened as that session's
-  workspace — Cline's edits and its terminal are rooted where the workspace was
-  opened, so a session opened on the main clone keeps editing the main clone.
-- **The main clone stays on `main` and is not worked in.** It is the object store
-  every worktree shares, and the one directory whose `.git` must not be
-  mid-rewrite.
-- **Never two machines in one clone.** Two machines writing one `.git` through a
-  sync client is the failure this section exists to prevent.
-- **GitHub is the transport.** Branches, commits and reviews move between the two
-  machines through `origin`. Nothing about sharing code needs iCloud, so running
-  both means two uncoordinated transports for the same bytes.
+- no eviction, no conflict copies, no sync client writing under `.git`;
+- **no sync cost** — a worktree was ~213 MB of iCloud upload each, and `research/`
+  alone is 194 MB of it (`.git` is 701 MB and is *shared* between worktrees, so
+  worktrees never duplicated it);
+- **the two machines stop sharing one `.git`**, which was the sharpest edge here.
+
+**What the move changes.** Each machine now has its **own** clone and its own
+worktrees, and **GitHub is the only transport between them** — which it always
+should have been, since a sync client and `origin` are two uncoordinated
+transports for the same bytes. So:
+
+- a session's work reaches the other machine by *pushing a branch*, never by
+  waiting for a folder to appear;
+- worktrees are per-machine, so `o1next-wt-<issue>-<slug>` is unique on its own
+  and the `-<machine>` suffix is no longer needed for correctness — keep it only
+  when two machines deliberately work the same issue, for clarity.
+
+**What it does not change.** One worktree per session, the main clone stays on
+`main` and is not worked in, and session identity stays machine-local (below).
 
 ### Naming, and where worktrees go
 
 Worktrees are siblings of the main clone, named **`o1next-wt-<issue>-<slug>`**:
 
 ```sh
-cd ~/Documents/GitHub/o1next
+cd ~/GitHub/o1next
 git fetch origin
 git worktree add ../o1next-wt-228-rename -b docs/rename-o1next origin/main
 ```
 
 The name comes from the **issue**, never the machine, so the same name is right
 whichever machine spawned it. Append `-<machine>` (lowercased
-`scutil --get ComputerName`) **only** when a second session deliberately takes
-the same issue on the other machine.
+`scutil --get ComputerName`) only when a second session deliberately takes the
+same issue on the other machine.
 
-**What a worktree costs, measured 2026-10-14.** The clone is **966 MB**: `.git`
-is 701 MB and is *shared* between worktrees, `.venv` (35 MB) and `build/` (16 MB)
-are gitignored and so are absent from a fresh one — which leaves **~214 MB per
-worktree**, and `research/` alone is 194 MB of it. Inside `~/Documents` that is
-also ~214 MB of iCloud upload per worktree. `git worktree add` accepts any path,
-so a worktree root outside `~/Documents` — `/Volumes/4TB/worktrees/` on
-Cortexiphan, `~/worktrees/` on glitchAIR — costs the same disk and none of the
-sync, and is the one change that takes worktrees out of iCloud's scope entirely.
-The sibling convention above is the default; this is the option.
-
+Siblings-of-the-clone is now a free choice rather than a compromise: `~/GitHub/`
+is outside iCloud, so a worktree costs disk and nothing else.
 
 ### Session identity lives outside the repo
 
@@ -150,12 +146,14 @@ must not sync, so it lives in `$HOME`, which is not under `~/Documents`.
 |---|---|---|
 | routing rule + machine identity | `~/.cline/rules/10-o1next-sessions.md` | Cline, as a **global rule** — documented global locations are macOS `~/Documents/Cline/Rules`, and Cline also searches `~/.cline/rules` |
 | the same rule, cross-tool | `~/.agents/AGENTS.md` | Cline, as cross-tool global AGENTS instructions |
-| the per-session brief | `~/.cline/o1nextgen/<worktree-directory-name>.md` | the session itself, before its first edit |
+| the per-session brief | `~/.cline/o1nextgen/<workspace-directory-name>.md` | the session itself, before its first edit |
 
-A brief names the machine, the worktree, the branch, the owned issue, the paths
-that session may touch, and the operations it may not perform. A session whose
-brief is missing **says so and stops** rather than inventing a scope — an
-unclaimed worktree is how two sessions end up on one branch.
+The brief is keyed to the **directory the session was opened on** — a worktree
+(`o1next-wt-228-rename`) or the main clone (`o1next`). A brief names the machine,
+the worktree, the branch, the owned issue, the paths that session may touch, and
+the operations it may not perform. A session whose brief is missing **says so and
+stops** rather than inventing a scope — an unclaimed worktree is how two sessions
+end up on one branch.
 
 **One known Cline defect, before anyone trusts this too far:** VS Code on macOS
 has an open report that global rules in `~/Documents/Cline/Rules`, `~/.clinerules`
@@ -165,20 +163,23 @@ the load-bearing instruction**, being the one mechanism that is demonstrably rea
 
 ### Ownership
 
-A session declares the issue it owns and the branch it is on: in its brief, and
-in the first commit it makes. Two sessions never share a branch, and no session
+A session declares the issue it owns and the branch it is on: in its brief, and in
+the first commit it makes. Two sessions never share a branch, and no session
 switches another session's branch.
 
 ### What cannot be parallelised
 
 - **Repo-wide sweeps.** #228 (the rename) and #200 (the `docs/` rewrite) touch
-  nearly every file, so they conflict with each other and with any session
-  editing `docs/`. One sweep at a time, alone — and #200 is deliberately *after*
-  #228.
-- **Renaming the clone directory** (`o1nextgen` → `o1next`, #228). Every
-  worktree's `.git` file holds an absolute path into the main clone's `.git`, so
-  one `mv` breaks them all at once. All sessions stopped, no worktree
-  outstanding, done last.
+  nearly every file, so they conflict with each other and with any session editing
+  `docs/`. One sweep at a time, alone — and #200 is deliberately *after* #228.
+- **Moving or renaming the clone directory.** Every worktree's `.git` **file**
+  holds an absolute path into the main clone's `.git`, so one `mv` breaks them all
+  at once. The 2026-10-14 move is the worked example: all sessions stopped, and
+  the worktree — which had nothing committed in it — was removed before the move
+  and recreated after, rather than repaired. Where a worktree *does* hold work,
+  `git worktree repair` (git ≥ 2.30) is the tool. **`.venv` never survives a
+  move**: its `bin/` shebangs and `pyvenv.cfg` hold absolute paths, so delete it
+  and re-run `tools/bootstrap.sh --install`.
 - **Renaming the GitHub repository** changes `origin` for every session. Land it
   when no other session is mid-push.
 - `git gc`, `git worktree prune` and `git worktree remove` are not
