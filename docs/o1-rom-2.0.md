@@ -178,6 +178,23 @@ the *list*. 11.2 KB was monitor + MD-10 + CCP/BDOS with **no CBIOS**; 11776 is
 monitor + CCP + BDOS + CBIOS with **no MD-10**. Neither is the boot described here.
 The boot described here is **7681**, and any figure quoted for it has to name the
 list it came from.
+**The boot screen does not come out of the 511-byte spare, and does not need to.**
+`research/boot-screen/` holds the authored art and `tools/research/rom2strokes.py`
+measures it: every raster-shaped encoding of the logo lands at **784–857 B** — raw
+striped bitmap 857, RLE 816, an exact rectangle cover 784 — because the letters are
+heavy and the cover is dominated by diagonals (the X is 72 rectangles where it is
+structurally two strokes). The geometric route was not converged, so it is
+estimated rather than demonstrated.
+
+What settles it is the architecture: **one window page is 4096 bytes and the video
+buffer is 128 × 32 = 4096 cells**, so **one page is exactly one screen**. In bank 2
+the window and the video RAM are both visible (§4.4), so a frame is one `LDIR` from
+`1000h` to `F000h` — about 40 bytes of ROM, with the frames in the interposer's
+flash, and the animation is the viewport slide, which is a register write. The one
+casualty is that the art is 153 columns and a screen is 128, so the 26 columns of
+hatch to the left of the O are dropped in favour of keeping the logo whole.
+
+
 
 ## 3. The interface that already exists
 
@@ -542,6 +559,45 @@ live in the window and are reached through the table.**
 the 4 KB video window stays, and the test of the design is that nothing in the
 "take" table above requires giving either one up.
 
+### 4.9 The boot screen: one page, and a fallback that pays for itself
+
+The screen is **one window page** — 4096 bytes, which is exactly the video buffer
+(128 × 32 cells). In bank 2 the window and the video RAM are both visible (§4.4),
+so a frame is one `LDIR` from `1000h` to `F000h`: **4096 × 21 T-states = 86016, or
+21.5 ms at 4 MHz.** A fiftieth of a second, against a floppy boot measured in
+seconds. The frames live in the interposer's flash, not the ROM, and the animation
+is the viewport slide — a register write.
+
+**The frame is someone else's file, so it validates itself.** The flash is
+updatable and a hand-built image will get it wrong, and a bad frame puts garbage
+on the screen with no way back. So the frame carries a marker in the rows nobody
+can see — rows 24–31 are off-screen:
+
+| offset | content |
+|---|---|
+| `0FF8h` | `O1NG`, the magic |
+| `0FFCh` | the 16-bit sum of `0FF8h` bytes, little-endian |
+| `0FFEh` | reserved, zero |
+
+**The fallback is `o1next - press return`, and it costs nothing** — because ROM 2.0
+*replaces* the stock sign-on rather than adding to it:
+
+| | bytes |
+|---|---|
+| the text (21 characters; the last carries bit 7, which is `OSTR`'s terminator) | 21 |
+| `LDK DE,MSG` / `CALL OSTR` | 6 |
+| **total** | **27** |
+| `IMSG`, which it replaces (§2.1) | 182 |
+
+So the fallback **frees 155 bytes**, and pays for its own validity check out of
+them. The order at boot is: **print the text first, then page the frame in and
+check the trailer; if it is right, blit over the text.** A missing or malformed
+image leaves the message on screen, which is the whole point of having it.
+
+`tools/research/rom2strokes.py --frame` writes a frame with its trailer:
+4096 bytes, and the art is placed by `--origin` — see §2.3 for why that is not
+cosmetic.
+
 ## 5. The six open questions from #83, answered
 
 | # | Question | Answer |
@@ -567,6 +623,7 @@ The `LDIR`/patch/jump body is **exactly 60 bytes**, not an estimate — measured
 | ROM 2.0's new monitor code assembles | ACT80 | Not started. New source, linked at the same addresses |
 | The system image's CCP+BDOS+CBIOS | **taken from the shipped disk**, not rebuilt | Available today — the reserved tracks of `research/shipped-software/OS1SYSD.IMD`, at image offsets `0000`, `0800` and `1600` (§2.1) |
 | The **ACB-4000 boot payload** (§2.3) | CBIOS + `HARD.COM`'s embedded BIOS at file offset `0x053A` + the 60-byte shim | Available — `tools/research/hardbios.py` already reads the BIOS; the shim is measured at `HARD.COM` `0x01E5`–`0x0220` |
+| **The image itself** | `tools/research/rom2image.py` | **Done** — **7681 bytes**, every anchor re-checked, CRC32 `aef92022`. It is a *content* image: the monitor is still the stock 1.44, so it does not boot until `rom2asm` lands and calls the shim at `1DC5` |
 | The no-disk payload (the *other* goal) | the 7680-byte system image split `4096 + 3584` | mechanical, from the above |
 
 **Why take the CCP/BDOS/CBIOS bytes rather than rebuild them:** the CBIOS's build
@@ -632,6 +689,23 @@ test rather than a result.
 6. **The 512 bytes of RAM residue.** Harmless to the build (we take a fixed 2048
    for the CBIOS), but it is a reminder that the *system image* is not a clean
    artefact and a future `SYSGEN`-equivalent should say so.
+7. **The memory map *at the moment the boot screen runs*.** §2.3 sizes what is
+   resident and §4.4 describes the copy, but neither states the map the monitor
+   sees when it decides to draw the screen — what is where, and what is safe to
+   overwrite. That is planning that has not been done, and §4.9's blit depends on
+   it: writing 4096 bytes to `F000h` is only safe if nothing else has claimed that
+   range yet.
+8. **Where the frame comes from in Pico-land, and how the ROM knows to ask for
+   it.** §4.9 says the frames live in the interposer's flash and that a marker
+   lets the ROM validate one — but not which flash slot, not what the ROM does to
+   make the Pico present it, and not how the ROM distinguishes "a frame is
+   available" from "the flash is empty". The page-select mechanism is §4.1a's and
+   is #12's; the rest is undesigned.
+9. **The mailbox protocol.** `docs/mailbox-protocol.md` is the interposer's
+   *host*↔firmware channel (#155) and does not cover what the ROM asks the Pico
+   for at boot. Nothing here defines that conversation, and the boot screen is the
+   first thing that needs it — so it will otherwise accrete out of the first
+   implementation, which is exactly what #155 exists to prevent.
 
 ## Sources
 

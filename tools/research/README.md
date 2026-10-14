@@ -178,3 +178,35 @@ scratch programs, "figuring it out" notebooks/scripts.
   `:00000001FF`. `--recover-ff` handles the one damage #203 actually saw — a
   record that reaches the image with six non-hex bytes in it — and only when the
   record's *own* checksum agrees that its content was 16 bytes of `FF`.
+- **`rom2strokes.py`** — reads the authored boot-screen art as *geometry*, to see
+  whether it fits ROM 2.00's **511-byte** window spare, and settles that it does
+  not need to. Three findings, all measured (#83):
+  **the stripes are free** — the art is 14 content rows interleaved with 14 blank
+  ones, so a stem spanning nine content rows is one continuous stem the machine
+  draws on alternate rows; fill the stripes back in, cover the letterform with
+  rectangles, draw them back through the mask and compare: **exact, 0 sub-pixels
+  wrong on every letter**; **but it does not fit anyway** — raw bitmap 857 B, RLE
+  816 B, the exact rectangle cover 784 B, because the letters are ~40% ink and the
+  cover is dominated by diagonals (the X is 72 rectangles where it is structurally
+  two strokes); **and a segment model would be smaller but was not converged** — a
+  greedy fit over the two diagonal families recovers only 56–76% of the ink, so
+  that route is estimated, not demonstrated. `--frame` writes the answer instead:
+  one window page is 4096 bytes and the video buffer is 128 × 32 = 4096 cells, so
+  **one page is exactly one screen** and a frame is one `LDIR` — about 40 bytes of
+  ROM, with the frames in the interposer's flash. `--origin` picks which 128
+  columns of the 153-column art survive; the default keeps the *logo* and drops
+  the hatch. See `research/boot-screen/README.md`.
+- **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
+  **7681-byte image** from the repo's own files and re-checks every anchor the
+  design quotes, exiting non-zero if one moves. In: the stock 1.44 monitor, the
+  CBIOS off `OS1SYSD.IMD`, and the MD-10 BIOS image plus its 60-byte
+  install/patch/jump block out of `HARD.COM` on the 2.01 utilities disk. Out:
+  monitor at `0000`, then the payload in the window — CBIOS `1000`, MD-10 BIOS
+  `1800`, shim `1DC5`, and **511 bytes spare** for the boot screen and the new
+  features. Two things worth knowing: **`HARD.COM` is a CP/M `.COM`, so its file
+  offset is its address minus `0x0100`** (reading the length operand at `0x0547`
+  as a file offset gives `0x6F3A` instead of `0x05C5`), and the shim is the
+  *vendor's own 60 bytes* with exactly two operands relocated — the `LD HL,nn`
+  source address and the `LD BC,(nn)` length. The monitor is still the stock
+  1.44, so the output is a **content image**: not bootable until `rom2asm` lands
+  and calls the shim. See `docs/o1-rom-2.0.md` §2.3 and §6.
