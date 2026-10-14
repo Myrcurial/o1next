@@ -96,7 +96,7 @@ scratch programs, "figuring it out" notebooks/scripts.
   menu — the overlay init call at `0x0219`, the probe at `0x15AF` and the branch
   at `0x0EE8` — and nothing else is touched. See
   `docs/harddisk-decision.md` 7.2.
-- **`o1prep-patch.sh`** — build a *runnable* `PREP.COM` disk for `osborne1ng`, and
+- **`o1prep-patch.sh`** — build a *runnable* `PREP.COM` disk for `osborne1nx`, and
   the durable record of what had to be patched to get there (#191). The disk
   header `PREP.COM` writes is built at run time, so the only way to see it is to
   make the program write it — and the format/verify in front of it cannot finish
@@ -114,7 +114,7 @@ scratch programs, "figuring it out" notebooks/scripts.
   128 bytes while it holds 16 512, so the table is only reachable by walking the
   block list. Prints each entry's name, description and geometry.
 - **`mkdrive.py`** — builds a **blank but formatted** ST-506/MFM hard-disk image
-  for any geometry, byte-wise, for the `osborne1ng` card to talk to (#191). The
+  for any geometry, byte-wise, for the `osborne1nx` card to talk to (#191). The
   ACB-4000's `FORMAT` writes a fill pattern into every data field — `6C` hex
   unless the command says otherwise — so that is what this writes, and the
   geometry goes to `chdman`, whose `GDDD` metadata is the same record the
@@ -122,14 +122,14 @@ scratch programs, "figuring it out" notebooks/scripts.
   cannot finish a format (no `FORMAT UNIT`, no `SEARCH DATA EQUAL`), so
   `PREP.COM`'s initialize loops at *"Verifying disk (first pass)..."*. Needs
   `chdman` (`REQUIREMENTS.md`). See `docs/harddisk-decision.md` 7.2 and
-  `docs/osborne1ng-machine.md` 5.
+  `docs/osborne1nx-machine.md` 5.
   **`--label TEXT`** writes the MD-10 disk label into LBA 0 — `M`,`D` at `+0`, the
   text at `+14`, `FFh` at `+48` — which is what makes `PREP.COM` treat the drive
   as its own rather than answering *"Disk has unrecognizable format (or none)"*.
   The rule is measured: the check at `0x1B37` wants 512-byte blocks from
   `READ CAPACITY`, a successful `READ` of LBA 0, `M`,`D` at `+0`, and `+28 < 20h`.
   Without `--label` the drive is still a fine target for the card; it is just not
-  one `PREP.COM` will initialise (`docs/osborne1ng-machine.md` 6).
+  one `PREP.COM` will initialise (`docs/osborne1nx-machine.md` 6).
 - **`hardbios.py`** — read the MD-10 hard-disk BIOS overlay. `jump` prints the
   CP/M 2.2 BIOS jump table with every target resolved and walks `SELDSK`'s DPH
   construction; `audit` searches the whole archive for writers of the low-RAM
@@ -205,7 +205,7 @@ scratch programs, "figuring it out" notebooks/scripts.
   All 48 text cells in the art lie inside those two captions, and `a` — the blank
   cell — is itself in the text range, so a dropped cell draws the same nothing.
   `--check` re-renders the masthead in memory and compares it with the committed
-  `site/assets/o1nextgen-logo.png`, byte for byte, exiting non-zero if it has gone
+  `site/assets/o1next-logo.png`, byte for byte, exiting non-zero if it has gone
   stale. It needs the standard library and two files in the repo, and nothing
   else, so `.github/workflows/generated-artifacts.yml` runs it.
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the

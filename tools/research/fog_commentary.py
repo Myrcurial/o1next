@@ -119,7 +119,7 @@ CLINE = {
 # the scaffolding caveat they carried is retired (#211).
 JAMES = {
  'FOG008': "The firmware source, on a user-group disk, free. This is the disk "
-           "that makes the O1NG's ROM 2.0 (#83) a reconstruction rather than a "
+           "that makes the O1NEXT's ROM 2.0 (#83) a reconstruction rather than a "
            "guess, and it is the reason the library belongs on the machine. Also a "
            "great way for you to experiment with adding your own features to a ROM. "
            "REMEMBER THE SIZE LIMITS THOUGH!!!!!",
@@ -137,7 +137,7 @@ JAMES = {
            "we are in.",
  'FOGLG5-6': "An Algol compiler on an Osborne 1. "
              "Nobody asked for this and somebody built it anyway. That is the "
-             "community I want the O1NG to introduce people to.",
+             "community I want the O1NEXT to introduce people to.",
 }
 
 # ------------------------------------------------------------------- framing
@@ -220,7 +220,7 @@ named after a dead computer became a general CP/M group, and this is the evidenc
 FRAMING_JAMES = """
 ## Notes on the catalogue - from the maintainer
 
-**This is the factory library, not a side archive.** The O1NG ships with onboard
+**This is the factory library, not a side archive.** The O1NEXT ships with onboard
 library flash, and this is what goes on it -- so the catalogue is a shipping
 manifest, not a curiosity. It's the bootstrap to "do something cool" that everyone
 looks for. The Research Assistant focused on the languages and compilers. I'm here

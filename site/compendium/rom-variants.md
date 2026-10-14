@@ -34,12 +34,12 @@ CRC is treated as positive identification; a CRC agreeing under two different
 | A (1981) | — | — | `osba.bin` | `vera` — **NO_DUMP** |
 | 1.2 | — | — | `osb12.bin` | `ver12` — **NO_DUMP** |
 | 1.2.1 | — | — | `osb121.bin` | `ver121` — **NO_DUMP** |
-| 1.3 | — (source extracted: [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/ROM-13-source/)) | — | `osb13.bin` | `ver13` — **NO_DUMP**; reconstructible in principle from the source disk [`research/source-code/OSROM13.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/OSROM13.IMD), blocked on ACT 3.5E — [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md) (#205) |
-| 1.4 | [`tools/emulator-setup/roms/rev1.40.ud11`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/emulator-setup/roms/rev1.40.ud11) | `3d966335` | `rev1.40.ud11` | `ver14` |
-| 1.43 | [`research/roms/os1-143.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-143.rom) | `91a48e3c` | `rev1.43.ud11` | `ver143` |
-| 1.44 | [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom) | `c0596b14` | `3a10082-00rev-e.ud11` | `ver144` |
+| 1.3 | — (source extracted: [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/ROM-13-source/)) | — | `osb13.bin` | `ver13` — **NO_DUMP**; reconstructible in principle from the source disk [`research/source-code/OSROM13.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OSROM13.IMD), blocked on ACT 3.5E — [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md) (#205) |
+| 1.4 | [`tools/emulator-setup/roms/rev1.40.ud11`](https://github.com/Myrcurial/o1next/blob/main/tools/emulator-setup/roms/rev1.40.ud11) | `3d966335` | `rev1.40.ud11` | `ver14` |
+| 1.43 | [`research/roms/os1-143.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-143.rom) | `91a48e3c` | `rev1.43.ud11` | `ver143` |
+| 1.44 | [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom) | `c0596b14` | `3a10082-00rev-e.ud11` | `ver144` |
 
-**A rev-B image, from the OCC source disk (#205).** [`research/source-code/OCCROM.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/OCCROM.IMD)
+**A rev-B image, from the OCC source disk (#205).** [`research/source-code/OCCROM.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OCCROM.IMD)
 carries `OCCROM0B.COM` — a **vendor-built** 4096-byte monitor ROM, rev B, dated
 9/12/81 — together with its source (`occrom0b.asm` plus nine modules) and its
 full listing (`OCCROM0B.PRN`). CRC32 **`f5f697c7`**, SHA1
@@ -56,12 +56,12 @@ question is filed upstream as #222. Two cautions: it is a vendor build artifact
 rather than a dump, and under MAME's `osborne1` video model the banner shows two
 stray `L`s — rev B emits `ESC`+letter video escapes where 1.3/1.44 use single
 control bytes, and the model does not decode the older form (recorded, not
-explained). Extract it with [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/o1imd8.py) + `cpmcp`; see
-[`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md) §6.1.
+explained). Extract it with [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/o1imd8.py) + `cpmcp`; see
+[`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md) §6.1.
 
 Corroboration: BrettHallen's `ROM/OCC1_v140.BIN`, `OCC1_v143.BIN` and
 `OCC1_v144.BIN` are byte-identical to the three we hold (same CRCs), and
-[`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/BIOS-144-source/rom144.asm) is the original ACT80 source
+[`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/rom144.asm) is the original ACT80 source
 for 1.44 (#72).
 
 Two things worth noting:
@@ -82,8 +82,8 @@ tracks the BIOS revision:
 
 | Image | CRC32 | Paired with | Our copies |
 |---|---|---|---|
-| Early | `5297c109` | BIOS A … 1.4 | [`tools/emulator-setup/roms/char.ua15`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/emulator-setup/roms/char.ua15) |
-| Late | `6c1eab0d` | BIOS 1.43, 1.44, and every ScreenPac / Nuevo machine | [`research/roms/os1-vid8.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-vid8.rom), [`research/roms/os1vid80.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1vid80.rom), [`research/roms/OCC1_ScreenPac_RevA.BIN`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OCC1_ScreenPac_RevA.BIN) |
+| Early | `5297c109` | BIOS A … 1.4 | [`tools/emulator-setup/roms/char.ua15`](https://github.com/Myrcurial/o1next/blob/main/tools/emulator-setup/roms/char.ua15) |
+| Late | `6c1eab0d` | BIOS 1.43, 1.44, and every ScreenPac / Nuevo machine | [`research/roms/os1-vid8.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-vid8.rom), [`research/roms/os1vid80.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1vid80.rom), [`research/roms/OCC1_ScreenPac_RevA.BIN`](https://github.com/Myrcurial/o1next/blob/main/research/roms/OCC1_ScreenPac_RevA.BIN) |
 
 MAME's driver carries the early image five times, once per BIOS slot 0–4, with
 the comment *"this is CHRROM from v1.4 BIOS MB"*, and the late image for slots
@@ -121,7 +121,7 @@ to `0xFF` when bit 7 of the character code is set.
 
 ### The two fonts really are different — 93 glyphs of 128
 
-Comparing the two images glyph by glyph ([`tools/romfont.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/romfont.py) decodes both):
+Comparing the two images glyph by glyph ([`tools/romfont.py`](https://github.com/Myrcurial/o1next/blob/main/tools/romfont.py) decodes both):
 
 | | Differing characters |
 |---|---|
@@ -158,9 +158,9 @@ implementation is a different design from the OCC one.
 
 | ROM | Size | CRC32 | Our copy | What it is |
 |---|---|---|---|---|
-| Micro Management **OZROM 1E** | 4 KiB | `ba1f6131` | [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN) | Third-party replacement monitor ROM, © 1984 Micro Management. Strings: `OZROM 1E #00187`, `(c) 1984 Micro Management`, `Slip disk in drive and press RETURN.` Manual in the same folder. |
-| Nuevo Electronics **Rev 1.51** | 4 KiB | `298da402` | [`tools/emulator-setup/roms/monrom-rev1.51-12.ud11`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/emulator-setup/roms/monrom-rev1.51-12.ud11) | Nuevo's replacement monitor ROM. Strings: `OSBORNE 1 COMPUTER`, `ROM Rev 1.51`, `COPYRIGHT 1983, OSBORNE COMPUTER CORP.`, `COPYRIGHT 1984, NUEVO ELECTRONICS CORP.` — i.e. an OCC ROM with Nuevo's DD/video patches. MAME name: `monrom-rev1.51-12.ud11`. |
-| **SWP co-processor** | 4 KiB | `948556db` | [`research/roms/swp-p88.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/swp-p88.rom) | The SWP co-processor board's own ROM. **This is 8088 code, not Z80** (`8C C8 8E D8` = `MOV AX,CS` / `MOV DS,AX`), and it carries the WD179x disk-BIOS error table (`Clock Error`, `Late DMA`, `ID CRC Error`, … `Type C to CANCEL`, `R to RETRY`, `I to IGNORE error`). Maslin's index describes it as "SWP Plus-88 card for Kaypro 2/4/10". The board and interposer card are common to every host machine and only the driver varies, so this is the 8088-side firmware of the CoPower-88 family — #3/#4/#5. |
+| Micro Management **OZROM 1E** | 4 KiB | `ba1f6131` | [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1next/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN) | Third-party replacement monitor ROM, © 1984 Micro Management. Strings: `OZROM 1E #00187`, `(c) 1984 Micro Management`, `Slip disk in drive and press RETURN.` Manual in the same folder. |
+| Nuevo Electronics **Rev 1.51** | 4 KiB | `298da402` | [`tools/emulator-setup/roms/monrom-rev1.51-12.ud11`](https://github.com/Myrcurial/o1next/blob/main/tools/emulator-setup/roms/monrom-rev1.51-12.ud11) | Nuevo's replacement monitor ROM. Strings: `OSBORNE 1 COMPUTER`, `ROM Rev 1.51`, `COPYRIGHT 1983, OSBORNE COMPUTER CORP.`, `COPYRIGHT 1984, NUEVO ELECTRONICS CORP.` — i.e. an OCC ROM with Nuevo's DD/video patches. MAME name: `monrom-rev1.51-12.ud11`. |
+| **SWP co-processor** | 4 KiB | `948556db` | [`research/roms/swp-p88.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/swp-p88.rom) | The SWP co-processor board's own ROM. **This is 8088 code, not Z80** (`8C C8 8E D8` = `MOV AX,CS` / `MOV DS,AX`), and it carries the WD179x disk-BIOS error table (`Clock Error`, `Late DMA`, `ID CRC Error`, … `Type C to CANCEL`, `R to RETRY`, `I to IGNORE error`). Maslin's index describes it as "SWP Plus-88 card for Kaypro 2/4/10". The board and interposer card are common to every host machine and only the driver varies, so this is the 8088-side firmware of the CoPower-88 family — #3/#4/#5. |
 | OCC 1.44 + OZROM combined | 8 KiB | `edc31846` | *not copied* | BrettHallen's 2764 image for the 2732→2764 daughterboard, holding OCC 1.44 and OZROM 1E with A12 selecting between them. Recorded here for completeness. |
 
 ## Personality-relevant properties
@@ -201,7 +201,7 @@ evidence about the upgrade boards:
 | `osborne1sp` "Osborne-1 with SCREEN-PAC" | 1983 | `osborne1` | **no ROM differences** — a clone, so the ScreenPac is modelled as hardware only |
 | `osborne1nv` "Osborne-1 (Nuevo Video)" | 1984 | `osborne1` | `monrom-rev1.51-12.ud11` + `7a3007-00.ud15` + `character_generator_6-29-84.14` — its own BIOS and chargen |
 
-[`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh) already selects a driver from the boot image's
+[`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) already selects a driver from the boot image's
 `52-`/`80-`/`104-` prefix (`osborne1` / `osborne1nv` / `osborne1sp`), so this
 table is also the map from video mode to ROM set.
 
@@ -210,19 +210,19 @@ table is also the map from video mode to ROM set.
 1. ~~**Do the two character generators actually differ in the font?**~~ **Answered
    — yes, substantially.** 93 of 128 glyphs differ, and the 32 graphics characters
    are byte-identical (see "The two fonts really are different" above). Only
-   space, apostrophe and backtick are shared. [`tools/romfont.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/romfont.py) decodes either
+   space, apostrophe and backtick are shared. [`tools/romfont.py`](https://github.com/Myrcurial/o1next/blob/main/tools/romfont.py) decodes either
    image to a font, so the comparison can be repeated.
 2. **What is BrettHallen's "Screen Pac BIOS Rev. A"?** It is byte-identical to
    the stock late character generator, so the label may be wrong — or the
    ScreenPac genuinely ships an unmodified char-gen and does its 80-column work
    entirely in hardware. Settle against the ScreenPac install and service pages
-   ([`research/screenpac/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/screenpac/), [`research/osborne1/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/)). Affects #24.
+   ([`research/screenpac/`](https://github.com/Myrcurial/o1next/blob/main/research/screenpac/), [`research/osborne1/`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/)). Affects #24.
 3. **ROM 1.3: the source is extracted, the ROM is not certified — and the
    blocker is a missing assembler (#205).** We hold the 1.3 source disk
-   ([`research/source-code/OSROM13.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/OSROM13.IMD), comment `rom 1.3, cbios .3 osborne
+   ([`research/source-code/OSROM13.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OSROM13.IMD), comment `rom 1.3, cbios .3 osborne
    source 12/16/81`) while MAME carries 1.3 as `NO_DUMP`. The disk is an
    **8-inch** 77-track FM/MFM disk with CP/M **skew 3** and had never been read;
-   it now is, and the 19 files are in [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/ROM-13-source/).
+   it now is, and the 19 files are in [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/ROM-13-source/).
    The source uses the `DBE`/`DCE` pseudo-ops, which only **ACT 3.5E** has —
    every `ACT80.COM` in the local archive is 3.0/3.2 — so a byte-exact
    reconstruction needs an assembler we do not have. What those pseudo-ops
@@ -230,7 +230,7 @@ table is also the map from video mode to ROM set.
    image can be built with a mechanical source rewrite, but it is **not
    certified** and must not be presented as the real ROM. Full account,
    including the control build that decides it:
-   [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md). **The project itself has no use for a 1.3
+   [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md). **The project itself has no use for a 1.3
    ROM** — everything we build is built from the 1.44 source — so this is
    upstream's gain, not ours, and nothing here depends on it.
 4. **Confirm `swp-p88.rom` is host-independent.** The working assumption is
@@ -248,5 +248,5 @@ table is also the map from video mode to ROM set.
 - ROM 1.44 source — `github.com/BrettHallen/Osborne_1` `ROM/Source_Code_v144/`; the OCC engineering source disks are from bitsavers.
 - Cross-reference data — MAME `src/mame/osborne/osborne1.cpp` (`ROM_START( osborne1 )`, `ROM_START( osborne1nv )`, and the `COMP()` lines).
 
-See [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) for the per-file archive provenance, and #74 for the
+See [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) for the per-file archive provenance, and #74 for the
 two images whose source is still unrecorded.

@@ -27,7 +27,7 @@ the people, and the build log.</p>
 
 <ul>
   <li>Code, research, and hardware definitions:
-<a href="https://github.com/Myrcurial/o1nextgen">github.com/Myrcurial/o1nextgen</a></li>
+<a href="https://github.com/Myrcurial/o1next">github.com/Myrcurial/o1next</a></li>
 </ul>"""
 
 POSTS = """<h2 class="post-list-heading">Posts</h2>
@@ -82,12 +82,12 @@ def build(mode):
                           'url(data:font/woff2;base64,%s) format("woff2")' % woff)
     # the masthead graphic is generated from the ROM's own glyphs by
     # tools/o1art.py, so it is a PNG rather than an inline SVG
-    logo = ('<img src="data:image/png;base64,%s" alt="o1nextgen" '
+    logo = ('<img src="data:image/png;base64,%s" alt="o1next" '
             'width="1224" height="270">' % base64.b64encode(
-                (SITE / "assets" / "o1nextgen-logo.png").read_bytes()).decode())
+                (SITE / "assets" / "o1next-logo.png").read_bytes()).decode())
 
     body = INTRO + POSTS if mode == "home" else POST_BODY
-    heading = ('<h1 class="sr-only">o1nextgen</h1>' if mode == "home" else "")
+    heading = ('<h1 class="sr-only">o1next</h1>' if mode == "home" else "")
     # The SCREEN PAC switch, with one radio pre-selected so the preview can
     # render any of the machine's three text modes: `home`, `home-52`, etc.
     columns = mode.split("-")[-1] if "-" in mode else "80"
@@ -97,7 +97,7 @@ def build(mode):
 
     return """<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<title>o1nextgen preview</title>
+<title>o1next preview</title>
 <style>
 %s
 </style></head>
@@ -136,7 +136,7 @@ def build(mode):
 %s
 </div></main>
 <footer class="site-footer"><div class="wrap">
-  <p>o1nextgen &mdash; keeping the Osborne 1 alive, in the open.</p>
+  <p>o1next &mdash; keeping the Osborne 1 alive, in the open.</p>
   <p class="colophon"><a href="#">GitHub</a> &middot; <a href="#">RSS</a></p>
 </div></footer>
 </body></html>

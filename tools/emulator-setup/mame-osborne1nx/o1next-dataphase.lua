@@ -1,25 +1,25 @@
--- o1ng-dataphase.lua -- headless check of the osborne1ng card's *data* phase.
--- Written for #191; see docs/osborne1ng-machine.md.
+-- o1next-dataphase.lua -- headless check of the osborne1nx card's *data* phase.
+-- Written for #191; see docs/osborne1nx-machine.md.
 --
 -- Run it as a *standalone* -autoboot_script with a drive image mounted.  The
 -- card is an ACB-4000 host adapter; the SCSI target behind it is MAME's
 -- SCSIHD, so the geometry this reports is the CHD's:
 --
 --   chdman createhd -o /tmp/md10/hd.chd -c none -chs 321,4,18 -ss 512
---   SDL_VIDEODRIVER=dummy O1NG_LOG=/tmp/o1ng-dataphase.log mame osborne1ng \
+--   SDL_VIDEODRIVER=dummy O1NEXT_LOG=/tmp/o1next-dataphase.log mame osborne1nx \
 --     -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
 --     -video none -sound none -nothrottle -seconds_to_run 6 \
---     -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
+--     -autoboot_script tools/emulator-setup/mame-osborne1nx/o1next-dataphase.lua
 --
 -- `SDL_VIDEODRIVER=dummy` is what makes this headless: `-video none` picks the
 -- renderer, not the window, and MAME's default is full screen.  It works because
 -- the machine is built with the tree's default OSD (sdl3 on macOS), which needs
 -- pkg-config (REQUIREMENTS.md, docs/mame-emulation.md section 6).
 --
---   O1NG_CHS=<c>,<h>,<s>   the geometry the mounted CHD carries (321,4,18)
+--   O1NEXT_CHS=<c>,<h>,<s>   the geometry the mounted CHD carries (321,4,18)
 --
 -- WHY IT EXISTS
---   o1ng-probe.lua answers "is the decode right and does the card answer?".
+--   o1next-probe.lua answers "is the decode right and does the card answer?".
 --   This one answers the next question: "does a *transfer* work?" -- and it
 --   answers it at the register level, so a failure is the card's and not the
 --   driver's.  The MD-10 driver's own transaction routine is the model: it
@@ -42,7 +42,7 @@ local cpu = M.devices[":maincpu"]
 local I = cpu.spaces["io"]
 
 io.stdout:setvbuf("no")
-local LOG = io.open(os.getenv("O1NG_LOG") or "/tmp/o1ng-dataphase.log", "w")
+local LOG = io.open(os.getenv("O1NEXT_LOG") or "/tmp/o1next-dataphase.log", "w")
 local function logf(s) print(s); if LOG then LOG:write(s .. "\n"); LOG:flush() end end
 
 -- the card's four registers, relative to the base port the MD-10 uses (30h)
@@ -122,10 +122,10 @@ emu.register_frame_done(function()
   if done then return end
   done = true
 
-  local chs = os.getenv("O1NG_CHS") or "321,4,18"
+  local chs = os.getenv("O1NEXT_CHS") or "321,4,18"
   local cyl, hd, sec = chs:match("^(%d+),(%d+),(%d+)$")
   cyl, hd, sec = tonumber(cyl), tonumber(hd), tonumber(sec)
-  logf(string.format("mounted geometry (O1NG_CHS): %d/%d/%d, 512-byte sectors", cyl, hd, sec))
+  logf(string.format("mounted geometry (O1NEXT_CHS): %d/%d/%d, 512-byte sectors", cyl, hd, sec))
 
   -- TEST UNIT READY: no data phase at all -- the shortest path through the card
   logf("TEST UNIT READY (00)")

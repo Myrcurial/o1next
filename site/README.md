@@ -165,7 +165,7 @@ the author's three Osborne machines (one extensive).
 
 ### The masthead is the boot screen's art, inverted
 
-`assets/o1nextgen-logo.png` is **the boot screen's own drawing** — the art in
+`assets/o1next-logo.png` is **the boot screen's own drawing** — the art in
 `research/boot-screen/o1next-art.txt`, rendered in the machine's graphics
 characters with the character generator, and **inverted**: light glyphs, on no
 ground at all.
@@ -188,12 +188,12 @@ Nothing is lost by dropping them, because the art spells a blank cell `a` — an
 blank one does. (That is also why no caption can contain the letter `a`.)
 
 ```
-tools/research/rom2strokes.py --logo site/assets/o1nextgen-logo.png
+tools/research/rom2strokes.py --logo site/assets/o1next-logo.png
 ```
 
 That is the point of drawing the screen in the machine's own characters: **one
 file is the boot screen and the wordmark**, so the site and the ROM cannot drift
-apart. The earlier wordmark — `assets/o1nextgen-logo.art.txt`, drawn by
+apart. The earlier wordmark — `assets/o1next-logo.art.txt`, drawn by
 `tools/o1logo.py` to the geometry measured from AUTOCPM's logo art — is kept as
 the record of that approach; see below.
 
@@ -204,7 +204,7 @@ has drifted from the art.
 
 The letters are *drawn*, not downsampled: rasterising a traced outline at this
 size stair-steps badly, because the graphics set only resolves two sub-pixels per
-character cell. `assets/o1nextgen-wordmark.svg` is kept as the record of the
+character cell. `assets/o1next-wordmark.svg` is kept as the record of the
 logotype's proportions, and `tools/o1art.py` is still the general tool for turning
 any image into Osborne graphics art.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Netlist regression checks for the o1nextgen KiCad schematics.
+"""Netlist regression checks for the o1next KiCad schematics.
 
 Why this exists
 ---------------
@@ -626,7 +626,7 @@ def check_reference_tables() -> list:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Netlist regression checks for the o1nextgen schematics.")
+        description="Netlist regression checks for the o1next schematics.")
     ap.add_argument("--board", action="append", metavar="NAME",
                     help="only check this board (repeatable)")
     ap.add_argument("--kicad-cli", metavar="PATH", help="path to kicad-cli")

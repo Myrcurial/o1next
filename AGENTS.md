@@ -1,16 +1,16 @@
 # AGENTS.md — working agreement for AI agents in this repo
 
 This file is the authoritative operating procedure for any AI coding/research
-agent working in `o1nextgen`. Follow it over generic defaults.
+agent working in `o1next`. Follow it over generic defaults.
 
 ## Issue tracking: GitHub ONLY
 
 - All issues, planning, phases, and task state for this project live in
-  **GitHub Issues** on `Myrcurial/o1nextgen`. Use `gh issue list`,
+  **GitHub Issues** on `Myrcurial/o1next`. Use `gh issue list`,
   `gh issue view #N`, `gh issue create`.
 - **Do NOT use the Linear MCP server for this project.** A Linear connection
   exists on this machine for unrelated work in other repos. Nothing in Linear
-  refers to o1nextgen. Never create, search, update, or reference Linear
+  refers to o1next. Never create, search, update, or reference Linear
   issues here — if the Linear MCP responds with issues about other products,
   that is expected; ignore it entirely.
 - Same for PRs: GitHub only, via `gh pr ...`.
@@ -80,8 +80,8 @@ therefore outside iCloud Drive's scope. It was `~/Documents/GitHub/o1nextgen`
 until 2026-10-14, and **that move is the fix for the whole problem below** — so
 the history is kept, because this section got the diagnosis wrong twice and the
 next agent will reach for the same evidence. *(The directory itself is still
-`o1nextgen` until #228 lands; the convention adopts the new name now, because
-making it the only name is what #228 is for.)*
+`o1nextgen` until step 5 of #228 renames the clone; the convention adopts the new
+name now, because making it the only name is what #228 is for.)*
 
 1. **The symlink is the mechanism, not the counter-evidence.**
    `~/Library/Mobile Documents/com~apple~CloudDocs/Documents` is a symlink to
@@ -147,6 +147,9 @@ must not sync, so it lives in `$HOME`, which is not under `~/Documents`.
 | routing rule + machine identity | `~/.cline/rules/10-o1next-sessions.md` | Cline, as a **global rule** — documented global locations are macOS `~/Documents/Cline/Rules`, and Cline also searches `~/.cline/rules` |
 | the same rule, cross-tool | `~/.agents/AGENTS.md` | Cline, as cross-tool global AGENTS instructions |
 | the per-session brief | `~/.cline/o1nextgen/<workspace-directory-name>.md` | the session itself, before its first edit |
+
+The brief directory keeps its old name until it is renamed by hand: it is
+machine-local and outside this repository, so the sweep does not reach it.
 
 The brief is keyed to the **directory the session was opened on** — a worktree
 (`o1next-wt-228-rename`) or the main clone (`o1next`). A brief names the machine,

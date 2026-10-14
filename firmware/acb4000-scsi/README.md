@@ -49,7 +49,7 @@ What the tests cover, and why each earns its place:
 - **the commands that blocked the harness.** `VERIFY` (`2F`) and the
   `SEARCH DATA EQUAL` family (`31`) have no handler in MAME's generic SCSI
   target, which is why `PREP.COM` could not finish a format
-  (`docs/osborne1ng-machine.md` §5).
+  (`docs/osborne1nx-machine.md` §5).
 - **`FORMAT`'s fill byte**, including `PREP.COM`'s unique-fill path — the
   property #180's sparse blob is built on.
 - **the expanded set behind jumper I-J**, refused rather than quietly accepted
@@ -62,7 +62,7 @@ What the tests cover, and why each earns its place:
 | Question | Source |
 |---|---|
 | command set, CDB lengths, data layouts, status and sense meanings | the OEM manual, `research/adaptec/acb4000/400003-00A_ACB-4000A_Users_Manual_Oct85.ocr.txt` (Table 5-1/5-2, sections 5.3–5.5) |
-| the `md10` register block and status bit map | the driver — `docs/acb4000-host-adapter.md` §1, `docs/osborne1ng-machine.md` §3–§4 |
+| the `md10` register block and status bit map | the driver — `docs/acb4000-host-adapter.md` §1, `docs/osborne1nx-machine.md` §3–§4 |
 | the default geometry (`PYXIS13`) | `docs/harddisk-decision.md` §7.2, read out of `MD10.COM` |
 | the controller's own firmware, as the oracle | `research/adaptec/acb4000/firmware/` (six 8 KiB ROMs) |
 

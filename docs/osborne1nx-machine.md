@@ -1,7 +1,7 @@
-# `osborne1ng` — the emulated interposer, and the ACB-4000 host adapter (#191)
+# `osborne1nx` — the emulated interposer, and the ACB-4000 host adapter (#191)
 
 **Status: the machine boots, the card answers, and a transfer works.**
-`osborne1ng` is a fourth `osborne1` machine in MAME whose Z80 sits behind a card
+`osborne1nx` is a fourth `osborne1` machine in MAME whose Z80 sits behind a card
 that decodes the full 8-bit I/O address, so the MD-10's host adapter can answer
 on ports `30h`–`33h` — the ports its driver demands and the stock machine cannot
 reach. The drive-table editor that #178 had to *patch around* now runs unpatched,
@@ -16,7 +16,7 @@ blocker), `docs/acb4000-firmware.md` (the controller) and
 `docs/harddisk-decision.md` §5 (the three layers).
 
 The patch, the apply script and the two probes live in
-`tools/emulator-setup/mame-osborne1ng/`.
+`tools/emulator-setup/mame-osborne1nx/`.
 
 ## 1. Why a new machine rather than a script
 
@@ -47,10 +47,10 @@ if it is got wrong: the card has to own `30h`–`33h`, **and** the mainboard's
 coarse 2-bit decode has to keep working, because the CBIOS banks and drives the
 video attribute bit through `0x00`–`0x03` on every character.
 
-`osborne1ng`'s I/O map:
+`osborne1nx`'s I/O map:
 
 ```cpp
-void osborne1ng_state::osborne1ng_io(address_map &map)
+void osborne1nx_state::osborne1nx_io(address_map &map)
 {
 	map.unmap_value_high();
 
@@ -60,7 +60,7 @@ void osborne1ng_state::osborne1ng_io(address_map &map)
 	// the 2-bit alias and put the card's window on top of it: 30h-33h is the
 	// one place where the card, not the mainboard, owns the bus.
 	map.global_mask(0xff);
-	map(0x00, 0x03).mirror(0xfc).w(FUNC(osborne1ng_state::bankswitch_w));
+	map(0x00, 0x03).mirror(0xfc).w(FUNC(osborne1nx_state::bankswitch_w));
 	map(0x30, 0x33).rw(m_acb4000, FUNC(acb4000_host_adapter_device::read), FUNC(acb4000_host_adapter_device::write));
 }
 ```
@@ -85,7 +85,7 @@ once the card owns the window.
 
 ### Measured
 
-`tools/emulator-setup/mame-osborne1ng/o1ng-probe.lua`, headless:
+`tools/emulator-setup/mame-osborne1nx/o1next-probe.lua`, headless:
 
 ```
 bank: rom=31 ram=00 alias05=00 alias3d=00 rom_again=31
@@ -97,7 +97,7 @@ presence probe: IN 30h=00  IN 32h=04  -> one controller on-line
 
 `rom=31` is the ROM's first byte with bank 2 selected, `ram=00` is RAM with bank
 1 selected, and `05h` and `3Dh` both reach the bank switch through the alias.
-Then a boot comparison, on the same disk, `osborne1` against `osborne1ng`:
+Then a boot comparison, on the same disk, `osborne1` against `osborne1nx`:
 `diff` clean, `416x240` (52 columns), `RESULT: BOOTED`.
 
 ## 3. The card — read out of the driver, not guessed
@@ -289,8 +289,8 @@ of splitting the personality into three layers (`docs/harddisk-decision.md` §5)
 
 Measured on MAME 0.289, macOS, `OSD=mac`, against the tree the patch was cut
 from. The evidence for each row is a headless run; the harnesses are
-`tools/emulator-setup/mame-osborne1ng/o1ng-probe.lua` (decode and card),
-`tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua` (transfers) and the
+`tools/emulator-setup/mame-osborne1nx/o1next-probe.lua` (decode and card),
+`tools/emulator-setup/mame-osborne1nx/o1next-dataphase.lua` (transfers) and the
 repo's own `tools/research/mame-boot-probe.sh`.
 
 | Check | Result |
@@ -310,7 +310,7 @@ repo's own `tools/research/mame-boot-probe.sh`.
 
 ### The data phase, driven at the register level
 
-`o1ng-dataphase.lua` is the check that made all four findings above: it drives
+`o1next-dataphase.lua` is the check that made all four findings above: it drives
 the card's four registers exactly as the driver's routine does, so a failure is
 the card's and not the driver's. With a drive image mounted — the slot's option
 is **`-hard`** (`-scsi:1:harddisk:image` is *not* a MAME option; the device tree
@@ -319,10 +319,10 @@ instance's brief name):
 
 ```sh
 chdman createhd -o /tmp/md10/hd.chd -c none -chs 321,4,18 -ss 512
-O1NG_LOG=/tmp/o1ng-dataphase.log mame osborne1ng \
+O1NEXT_LOG=/tmp/o1next-dataphase.log mame osborne1nx \
   -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
   -video none -sound none -nothrottle -seconds_to_run 6 \
-  -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
+  -autoboot_script tools/emulator-setup/mame-osborne1nx/o1next-dataphase.lua
 ```
 
 `SDL_VIDEODRIVER=dummy` is what makes this headless, and it works because the
@@ -335,7 +335,7 @@ screen (`docs/mame-emulation.md` §6).
 (`docs/harddisk-decision.md` §7.2), and the geometry the DPB is built from:
 
 ```
-mounted geometry (O1NG_CHS): 321/4/18, 512-byte sectors
+mounted geometry (O1NEXT_CHS): 321/4/18, 512-byte sectors
 TEST UNIT READY (00)
   ok   6 CDB bytes sent -- sent 6
   ok   no data phase -- 0 bytes
@@ -612,12 +612,12 @@ CHDMAN=/path/to/chdman tools/research/mkdrive.py --out /tmp/o1prep/hd.chd
 #    header and stops at the Disk initialization menu.  The pokes are the CDB's
 #    LBA high half, which nothing has set by then.
 printf 'wait A>\ntype PREP\nwait Main function\npoke 0x8014 00\npoke 0x8015 00\nkey 1\nsleep 1\nkey cr\nsleep 8\ndump header\n' > /tmp/o1prep/keys.txt
-cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/o1prep/prep.imd \
+cd /tmp && O1_MACHINE=osborne1nx O1_FLOP1=/tmp/o1prep/prep.imd \
   O1_KEYS="$(cat /tmp/o1prep/keys.txt)" SDL_VIDEODRIVER=dummy \
-  /path/to/osborne1ng osborne1ng -flop1 /tmp/o1prep/prep.imd -hard /tmp/o1prep/hd.chd \
+  /path/to/osborne1nx osborne1nx -flop1 /tmp/o1prep/prep.imd -hard /tmp/o1prep/hd.chd \
   -video none -sound none -nothrottle \
-  -autoboot_script /path/to/o1nextgen/tools/research/o1keys.lua \
-  -seconds_to_run 90 -rompath /path/to/o1nextgen/tools/emulator-setup/roms
+  -autoboot_script /path/to/o1next/tools/research/o1keys.lua \
+  -seconds_to_run 90 -rompath /path/to/o1next/tools/emulator-setup/roms
 
 # 4. read the header back: LBA 0 is the label ('M','D' at +0, FFh at +48)
 chdman extracthd -i /tmp/o1prep/hd.chd -o /tmp/o1prep/hd.raw -f
@@ -644,7 +644,7 @@ and prints the bytes it changed — the patched image is a 100 KiB derivative th
 regenerates in under a second, so it is not committed (`research/` is for primary
 sources).
 
-The path to `osborne1ng` is the built binary, not `mame osborne1ng` (the machine
+The path to `osborne1nx` is the built binary, not `mame osborne1nx` (the machine
 is not in a stock MAME's driver list). `-nothrottle` keeps the run to seconds, and
 `SDL_VIDEODRIVER=dummy` is what makes it headless — `docs/mame-emulation.md` §6.
 The format path adds `key 1` after the poke and then the password
@@ -714,7 +714,7 @@ next thing, and it is a firmware deliverable rather than more archaeology.
   `src/devices/machine/t10sbc.cpp`, `src/emu/addrmap.cpp` (entry precedence).
 - `docs/acb4000-host-adapter.md` §1–§2 (the protocol and the blocker);
   `docs/acb4000-firmware.md`; `docs/harddisk-decision.md` §5–§6, §7.2–§7.3.
-- `tools/emulator-setup/mame-osborne1ng/` — the patch, `apply.sh`,
-  `o1ng-probe.lua`, `o1ng-dataphase.lua`.
+- `tools/emulator-setup/mame-osborne1nx/` — the patch, `apply.sh`,
+  `o1next-probe.lua`, `o1next-dataphase.lua`.
 - `tools/research/{acb4000.lua,mame-boot-probe.sh,o1keys.sh,md10patch.py}`.
 

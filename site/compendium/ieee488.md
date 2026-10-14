@@ -10,8 +10,8 @@ port** — Scientific interfacing with the Osborne 1" by **Wayne Kogachi** and
 **Shahriar Kianersi**, PDF pp. 38–41 (printed 36–39), and "**Interfacing
 External Devices** — add a game joystick to the Osborne 1" by **Kelly Smith**,
 PDF pp. 44–49 (printed 42–47). Archived in-repo at
-[`research/technical-articles/TPC-Issue08-1983-pp38-41-understanding-the-ieee-488-port.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue08-1983-pp38-41-understanding-the-ieee-488-port.pdf)
-and [`research/technical-articles/TPC-Issue08-1983-pp44-49-interfacing-external-devices-joystick.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue08-1983-pp44-49-interfacing-external-devices-joystick.pdf).
+[`research/technical-articles/TPC-Issue08-1983-pp38-41-understanding-the-ieee-488-port.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue08-1983-pp38-41-understanding-the-ieee-488-port.pdf)
+and [`research/technical-articles/TPC-Issue08-1983-pp44-49-interfacing-external-devices-joystick.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue08-1983-pp44-49-interfacing-external-devices-joystick.pdf).
 
 Both authors of the first article are **OCC staff** — Kogachi a software
 engineer, Kianersi a system support specialist — so the article is effectively
@@ -19,9 +19,9 @@ the vendor's own account of the port, and it points at the *User's Guide*
 chapter "IEEE-488 implementation" for the same material.
 
 The port's address map and the ROM's view of it live in
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2 (`2900–2903`, **MC6821 at UC7**) and
-[`docs/o1-rom-source.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-source.md); the Drive C: RAM disk that hangs off it is in
-[`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md). **This doc records what the two articles add**: the
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2 (`2900–2903`, **MC6821 at UC7**) and
+[`docs/o1-rom-source.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-source.md); the Drive C: RAM disk that hangs off it is in
+[`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md). **This doc records what the two articles add**: the
 port's device-level behaviour, the eight ROM drivers as the articles name them,
 and the one fully-worked application — a game joystick wired straight onto the
 data lines.
@@ -83,7 +83,7 @@ polling speed, 15 → 8.
 
 ### The same eight, as a jump table in the ROM
 
-[`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md) records that OZROM 1E removed the IEEE-488 support and
+[`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md) records that OZROM 1E removed the IEEE-488 support and
 that the machine-readable evidence is a jump table: *"013F-0156 WERE IEEE-488
 ROUTINES"*. **`013F–0156` is 24 bytes — eight 3-byte `JP` instructions, one per
 driver above**, which independently confirms both the count and the order: the
@@ -97,9 +97,9 @@ eight `C3` (`JP`) triples from `013F`, the eighth at `0154`:
 
 | ROM | the first seven entries | 8th entry at `0154` |
 |---|---|---|
-| factory 1.40 ([`tools/emulator-setup/roms/rev1.40.ud11`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/emulator-setup/roms/rev1.40.ud11)) | `C3 36 09`, `C3 79 09`, `C3 8C 09`, `C3 98 09`, `C3 D8 09`, `C3 FB 09`, `C3 3D 0A` | `C3 99 0A` |
-| factory 1.44 ([`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom)) | `C3 49 09`, `C3 8C 09`, `C3 9F 09`, `C3 AB 09`, `C3 EB 09`, `C3 0E 0A`, `C3 50 0A` | `C3 AC 0A` |
-| Nuevo 1.51 ([`tools/emulator-setup/roms/monrom-rev1.51-12.ud11`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/emulator-setup/roms/monrom-rev1.51-12.ud11)) | `C3 3D 09`, `C3 80 09`, `C3 93 09`, `C3 9F 09`, `C3 DF 09`, `C3 02 0A`, `C3 44 0A` | `C3 A0 0A` |
+| factory 1.40 ([`tools/emulator-setup/roms/rev1.40.ud11`](https://github.com/Myrcurial/o1next/blob/main/tools/emulator-setup/roms/rev1.40.ud11)) | `C3 36 09`, `C3 79 09`, `C3 8C 09`, `C3 98 09`, `C3 D8 09`, `C3 FB 09`, `C3 3D 0A` | `C3 99 0A` |
+| factory 1.44 ([`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom)) | `C3 49 09`, `C3 8C 09`, `C3 9F 09`, `C3 AB 09`, `C3 EB 09`, `C3 0E 0A`, `C3 50 0A` | `C3 AC 0A` |
+| Nuevo 1.51 ([`tools/emulator-setup/roms/monrom-rev1.51-12.ud11`](https://github.com/Myrcurial/o1next/blob/main/tools/emulator-setup/roms/monrom-rev1.51-12.ud11)) | `C3 3D 09`, `C3 80 09`, `C3 93 09`, `C3 9F 09`, `C3 DF 09`, `C3 02 0A`, `C3 44 0A` | `C3 A0 0A` |
 
 **The parallel-poll routine moves between ROM revisions** — `0AAC` in 1.44,
 `0999` in 1.40, `0AA0` in Nuevo's 1.51 — which is exactly why the joystick
@@ -237,7 +237,7 @@ CA 91311).
 
 ## 6. The P3 edge connector — the pinout, and what the port actually implements
 
-[`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) §7 listed "the pin-level map of P3" as its first
+[`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §7 listed "the pin-level map of P3" as its first
 unmeasured item. It was never missing: it is in the Technical Manual extract the
 project already archives, §4.1.2 "IEEE-488 Pinouts", and the manual explains why
 the connector is not the standard one:
@@ -245,7 +245,7 @@ the connector is not the standard one:
 > Because this port is used for more than just IEEE 488 signals, we've declined
 > to use a standard IEEE connector.
 
-Source: [`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf), PDF p. 2 =
+Source: [`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf), PDF p. 2 =
 printed p. 14 (Figure 4.1.2), and Figure 4.1.1 on PDF p. 1 = printed p. 13 for the
 directions. **The scan has no text layer** — it is EPSON Scan output, so
 `pdftotext` returns nothing and the tables below were read off a 250 dpi render.
@@ -286,7 +286,7 @@ document will name.
 | — | **26** | *unused* | — | — |
 
 The PIA column is the ROM's own comment block (`rom144.asm` 2606–2715, quoted in
-[`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) §2); the two sources agree line for line, which is
+[`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §2); the two sources agree line for line, which is
 worth saying because they were derived independently — one is a 1983 manual, the
 other a 1983 ROM listing.
 
@@ -339,14 +339,14 @@ printer personality that `SETUP` selects (`IOBYTE` = `BAT:`, `UR1:`, `UP1:`,
 
 So `DAV` is the printer strobe, `NDAC` is *busy* and `SRQ` is *select* — and
 `NDAC` is the same line the Drive C transport leaves as an input as its optional
-"ready" ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) §2, §7). **One pin, two meanings, chosen by
+"ready" ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §2, §7). **One pin, two meanings, chosen by
 which personality is installed.** Anything we put on P3 has to be harmless in
-both modes, which is a constraint [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) §2.3 now carries.
+both modes, which is a constraint [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §2.3 now carries.
 
-## 7. What this means for o1nextgen
+## 7. What this means for o1next
 
 - The port is a **byte-wide parallel port on a 6821**, so a personality can
-  implement it as such ([`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/virtual-peripherals-block-diagram.md)), and the
+  implement it as such ([`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o1next/blob/main/docs/virtual-peripherals-block-diagram.md)), and the
   **eight ROM drivers are the behaviour that has to be right**.
 - **Address 0 is the machine's own** — anything else we place on the bus needs a
   different address.
@@ -354,11 +354,11 @@ both modes, which is a constraint [`docs/drive-c-design.md`](https://github.com/
   driver set (this doc), a printer selected in SETUP (§4), and a dumb
   switch-closure box read through driver 8 (§5). Drive C: is a fourth, and the
   manual is explicit that it does **not** speak real GPIB on this connector
-  ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)).
+  ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)).
 - The driver table at **`013F–0156`** (eight `JP`s) is a *checkable* signature:
-  present in stock ROMs, destroyed in OZROM 1E ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md)).
+  present in stock ROMs, destroyed in OZROM 1E ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md)).
 - **The pinout is solved** (§6) — it was in the archive all along, in the
   Technical Manual extract, and the ROM's comment block corroborates it. So
-  [`hardware/drive-c/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/) can be laid out against a documented connector rather than
+  [`hardware/drive-c/`](https://github.com/Myrcurial/o1next/blob/main/hardware/drive-c/) can be laid out against a documented connector rather than
   a measured one, and the one remaining electrical unknown on P3 is loading, not
   mapping.

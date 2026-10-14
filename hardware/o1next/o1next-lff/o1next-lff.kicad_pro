@@ -3,7 +3,7 @@
   "boards": [],
   "cvpcb": { "equivalence_files": [] },
   "libraries": { "pinned_footprint_libs": [], "pinned_symbol_libs": [] },
-  "meta": { "filename": "o1ng-lff.kicad_pro", "version": 1 },
+  "meta": { "filename": "o1next-lff.kicad_pro", "version": 1 },
   "net_settings": {},
   "pcbnew": { "last_paths": {}, "page_layout_descr_file": "" },
   "schematic": { "annotate_start_num": 0, "drawing": { "default_line_thickness": 6.0, "default_text_size": 50.0, "junction_size_choice": 3, "label_size_ratio": 0.25, "pin_symbol_size": 25.0, "text_offset_ratio": 0.15 }, "legacy_lib_dir": "", "legacy_lib_list": [], "page_layout_descr_file": "", "plot_directory": "", "sub_part_first_id": 65, "sub_part_id_separator": 0 },

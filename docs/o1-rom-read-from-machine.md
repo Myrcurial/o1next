@@ -245,7 +245,7 @@ material.** The Osborne 1 Technical Manual in-repo
 (`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`) has only
 **§1.2 "Power On"** — two pages of power-up procedure, no supply theory and no
 schematic. The only mention of the PSU anywhere in the tree is a design note in
-`docs/design/o1ng-lunchbox-concept.svg` recording that the original supply "and
+`docs/design/o1next-lunchbox-concept.svg` recording that the original supply "and
 its RIFA caps" are retired in that concept.
 
 ## 8. What the result would settle

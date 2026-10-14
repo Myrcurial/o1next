@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the o1ng-LFF (1:1 mainboard replacement) KiCad skeleton:
+"""Generate the o1next-LFF (1:1 mainboard replacement) KiCad skeleton:
 root sheet with hierarchical sheet symbols + child sheets carrying
 design notes. Block-level starting point for full schematic capture.
 Regenerate: python3 gen_lff_sch.py"""
@@ -23,13 +23,13 @@ def child_sch(name, note):
     text = '\n'.join('  (text "' + l + '" (at 30 ' + str(40 + i*7.62) + ' 0) (effects (font (size 2 2))) (uuid "' + uid() + '"))' for i, l in enumerate([lines[0]] + [lines[1][j:j+110] for j in range(0, len(lines[1]), 110)]))
     return ('(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")\n'
         f'  (uuid "{uid()}")\n  (paper "A4")\n'
-        f'  (title_block (title "o1ng-LFF: {name}") (date "{TODAY}") (rev "0.0-block"))\n'
+        f'  (title_block (title "o1next-LFF: {name}") (date "{TODAY}") (rev "0.0-block"))\n'
         '  (lib_symbols)\n' + text + '\n'
         '  (sheet_instances (path "/" (page "1")))\n)\n')
 
 root = ['(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
         f'  (uuid "{uid()}")', '  (paper "A2")',
-        f'  (title_block (title "o1ng-LFF 1:1 mainboard replacement") (date "{TODAY}") (rev "0.0-block") (comment 1 "Faithful reproduction: socketed DIP-40 Z80; interposer is the upgrade path. L-shaped board, 4 mounting bosses, stock port locations."))',
+        f'  (title_block (title "o1next-LFF 1:1 mainboard replacement") (date "{TODAY}") (rev "0.0-block") (comment 1 "Faithful reproduction: socketed DIP-40 Z80; interposer is the upgrade path. L-shaped board, 4 mounting bosses, stock port locations."))',
         '  (lib_symbols)']
 x, y, page = 40, 40, 2
 for i, (name, note) in enumerate(SHEETS):
@@ -43,6 +43,6 @@ for i, (name, note) in enumerate(SHEETS):
     if i == 3: x, y = 210, 40
 root.append('  (sheet_instances (path "/" (page "1")' + ''.join(f' (path "/{uid()[:8]}" (page "{page+i}"))' for i in range(len(SHEETS))) + '))')
 root.append(')')
-with open(os.path.join(os.path.dirname(__file__), 'o1ng-lff.kicad_sch'), 'w') as f:
+with open(os.path.join(os.path.dirname(__file__), 'o1next-lff.kicad_sch'), 'w') as f:
     f.write('\n'.join(root) + '\n')
 print('wrote root +', len(SHEETS), 'child sheets')

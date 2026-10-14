@@ -245,7 +245,7 @@ out = [
     '(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
     f'  (uuid "{uid()}")',
     '  (paper "A3")',
-    f'  (title_block (title "o1nextgen floppy-adapter - switchable Gotek / physical drives") (date "{TODAY}") (rev "A")',
+    f'  (title_block (title "o1next floppy-adapter - switchable Gotek / physical drives") (date "{TODAY}") (rev "A")',
     '    (comment 1 "Issue #62. J1 2x17 socket on the O1 logic-board P8 header; J2 pass-through to the OEM cable; J3 Gotek signals; J4 switched Gotek power; J5 panel switch; K1 4PDT relay. Drive B is never switched."))',
     '  (lib_symbols',
 ]

@@ -164,9 +164,9 @@ def main(argv):
         print('REQUIREMENTS.md.  Without it the diagrams render in the wrong face.')
         return 1
 
-    cfg = '/tmp/o1ng-mermaid-config.json'
-    css = '/tmp/o1ng-mermaid-style.css'
-    pp = '/tmp/o1ng-mermaid-puppeteer.json'
+    cfg = '/tmp/o1next-mermaid-config.json'
+    css = '/tmp/o1next-mermaid-style.css'
+    pp = '/tmp/o1next-mermaid-puppeteer.json'
     build_config(cfg)
     build_css(css)
     build_puppeteer(pp)

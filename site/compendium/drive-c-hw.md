@@ -6,14 +6,14 @@ draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`.
 ---
 
 **Status: design — buildable.** The protocol it must speak is solved and validated
-([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)), the **DPB** that sets the drive's size is found
+([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)), the **DPB** that sets the drive's size is found
 (`drive-c-protocol.md` §8.1), and the **pin-level map of P3** is transcribed from
-the Technical Manual ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6). Nothing in the electrical or
+the Technical Manual ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6). Nothing in the electrical or
 logical design is waiting on a measurement any more; what is left is a layout and
 firmware (§7).
 
 Tracks: #84 (the device), #6 (the protocol). Sibling of
-[`hardware/usb-keyboard-adapter/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/usb-keyboard-adapter/) and [`hardware/wifi-modem-module/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/wifi-modem-module/) — a period
+[`hardware/usb-keyboard-adapter/`](https://github.com/Myrcurial/o1next/blob/main/hardware/usb-keyboard-adapter/) and [`hardware/wifi-modem-module/`](https://github.com/Myrcurial/o1next/blob/main/hardware/wifi-modem-module/) — a period
 device reproduced on modern parts, hanging off a port, reversible.
 
 ## 1. What we are building
@@ -61,14 +61,14 @@ differ only in software — the Executive's book describes an `ECL`/`ECN`/`ECU`
 loader for CP/M+ where the Osborne 1 uses `DCL`/`DCN`/`DCU` under CP/M 2.2 —
 while the mechanical, electrical and performance appendices are otherwise word
 for word. So this is **one design, not two**, and a board built to this spec
-serves either host. [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) §1.
+serves either host. [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §1.
 
 ## 2. Electrical design
 
 ### 2.1 The bus
 
 P3 is a 26-pin card edge (**pins 25/26 unused**) carrying the 6821's lines
-([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §6, [`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-mainboard-schematic.md) sheet 9). The
+([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §6, [`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) sheet 9). The
 host drives it through **7406 open-collector drivers** with **3.3 K pull-ups**
 (UD6/UD8–UD11, RN7/RN11–RN16), and **all signals are active-low**. Three
 consequences, and they are the whole electrical design:
@@ -77,20 +77,20 @@ consequences, and they are the whole electrical design:
    low or it releases it. A push-pull driver on this bus fights the O1.
 2. **Level-shift.** The bus is 5 V; the RP2040 is 3.3 V and not 5 V tolerant.
    The same **74AHCT/HCT** conclusion that governs the interposer applies
-   ([`docs/research-gaps.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/research-gaps.md) gap 2): AHCT gates on the way in (5 V tolerant, TTL
+   ([`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) gap 2): AHCT gates on the way in (5 V tolerant, TTL
    thresholds), and open-drain outputs (or AHCT with a series resistor) on the
    way out.
 3. **Present a sane load.** The O1's pull-ups are 3.3 K; the box should not add
    appreciably more capacitance or loading than one more TTL device on the bus.
 
 Which P3 pin is which signal **is** in our material, and it never needed
-measuring: [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6 transcribes §4.1.2 of the Technical
+measuring: [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6 transcribes §4.1.2 of the Technical
 Manual, and the ROM's own comment block agrees with it line for line. §2.3 gives
 the mapping for the lines this design actually touches.
 
 ### 2.2 Power
 
-The EXMON precedent ([`hardware/drive-c/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/README.md)) takes power from **P5**, the
+The EXMON precedent ([`hardware/drive-c/README.md`](https://github.com/Myrcurial/o1next/blob/main/hardware/drive-c/README.md)) takes power from **P5**, the
 10-pin video connector, through a **passive shunt** — a Sullins
 MP-0100-10-DS-4 edge connector and a Hyko K688-DI sync combiner — and uses
 **+12 V**.
@@ -114,7 +114,7 @@ documented as one — the same way the USB keyboard adapter's J6 bridge is.
 
 ### 2.3 Signals the box must actually watch, and where they are on P3
 
-Per the protocol the box needs only five things, and [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6
+Per the protocol the box needs only five things, and [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6
 gives each of them a pin. The **P3** column is what the board is laid out
 against; the Technical Manual and the ROM agree on it.
 
@@ -137,7 +137,7 @@ Three consequences a layout has to respect:
   that drives pin 15 has to stay harmless when the machine switches to the
   printer personality.
 - **Pin 13 (`NRFD`) has to stay harmless as well.** The vendor's own printer-cable
-  appendix ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) §6) warns that a cable carrying
+  appendix ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §6) warns that a cable carrying
   Centronics pin 12 (Paper Error) to pin 13 "will interfere with normal Drive C
   operation if connected and MUST be removed" — so the original Drive C was
   watching pin 13, and a box on the same line must not fight it.
@@ -193,7 +193,7 @@ the DMA feeding read data and draining write data.
 ### 3.3 Where the code lives
 
 The personality is the same device as the interposer's IEEE-488 storage
-personality (#22) — one implementation, two hosts. [`firmware/drive-c-gpib/`](https://github.com/Myrcurial/o1nextgen/blob/main/firmware/drive-c-gpib/)
+personality (#22) — one implementation, two hosts. [`firmware/drive-c-gpib/`](https://github.com/Myrcurial/o1next/blob/main/firmware/drive-c-gpib/)
 already exists as the home; this spec is what it implements.
 
 ## 4. Storage and geometry
@@ -285,7 +285,7 @@ end
 ```
 
 **Checked, not asserted.** Every DPB field falls out of that geometry and matches
-the bytes read out of `DCL.COM` — this is how [`tools/cpmfs.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/cpmfs.py)'s new `drivec`
+the bytes read out of `DCL.COM` — this is how [`tools/cpmfs.py`](https://github.com/Myrcurial/o1next/blob/main/tools/cpmfs.py)'s new `drivec`
 format was verified:
 
 | DPB field | From the geometry | In `DCL.COM` |
@@ -315,7 +315,7 @@ wrong one here.
   *files* (`.LBR`, `.ARK`, `.ZIP`) will not do — the image must round-trip whole.
 - **The mount is #20/#27's business, not the box's.** The transfer is Pico-side,
   FAT32 → record store, triggered over the **mailbox port**
-  ([`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mailbox-protocol.md), #155); `MOUNT.COM` only selects which blob. The
+  ([`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mailbox-protocol.md), #155); `MOUNT.COM` only selects which blob. The
   box never parses FAT32, and nothing in §7's contract changes. This is also what
   makes "persistent Drive C" (#20) fall out for free: flash holds the records, and
   §4.1 says the loader will not re-format them.
@@ -353,7 +353,7 @@ against this image with both builds: 1.4.2's `dsk_open(…, NULL, …)` fails wi
 by driver" rather than the bogus `ENOENT`. Homebrew ships **1.4.2** — upstream's
 *stable* release; 1.5.x is the development line — which is why the flag is what
 makes `cpmtools` usable here. The upstream ask is therefore a **backport** into
-the 1.4.x line, not a new fix: [`tools/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/README.md) has the recipe, and **#157** is
+the 1.4.x line, not a new fix: [`tools/README.md`](https://github.com/Myrcurial/o1next/blob/main/tools/README.md) has the recipe, and **#157** is
 the report.
 
 ## 5. Coexistence: the pass-through printer, and address 0
@@ -371,15 +371,15 @@ reproduction has to decide what the pass-through connector is:
   `PRN.TST`). That is a separate feature and a separate issue.
 
 **Bus arbitration.** Two devices claim this port on a real machine — Drive C itself
-and Trantor's hard disks ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)) — and the O1's **own address
-is 0**, so nothing else on the bus may use it ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §1). A
+and Trantor's hard disks ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)) — and the O1's **own address
+is 0**, so nothing else on the bus may use it ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §1). A
 reproduction that only answers when it sees the Drive C frame pattern is
 compatible with both by construction: it stays released until it sees its own
 framing.
 
 The **RT-60A is deliberately not in that list.** It is physically an IEEE-488
 device, but this project implements its **ABI in software** rather than the
-hardware ([`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md); #7 closed on exactly that basis), so no RT-60A
+hardware ([`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md); #7 closed on exactly that basis), so no RT-60A
 sits on the bus in any configuration we build. It is a software contract, not a
 contender for the port, and the firmware does not need to arbitrate with it.
 
@@ -387,7 +387,7 @@ contender for the port, and the firmware does not need to arbitrate with it.
 
 1. **Protocol (done).** The frame, measured on the real software
    (`drive-c-protocol.md` §9).
-2. **Box model (done, short runs).** [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drive-c-box.lua) makes the
+2. **Box model (done, short runs).** [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua) makes the
    1983 loader complete and PIP write to `C:`. Extend it into a proper harness
    once the DPB is known — that is the fastest place to iterate on firmware logic
    before any hardware exists.
@@ -403,12 +403,12 @@ contender for the port, and the firmware does not need to arbitrate with it.
 
 Everything this spec was waiting on has now been answered from material already
 in the archive, so this is a work list rather than a measurement list. The
-Executive manual comparison ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md)) closed two more items
+Executive manual comparison ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md)) closed two more items
 and confirmed the hardware is a single design for both machines.
 
 1. **Board layout — unblocked.** The P3 pinout is documented (§2.3,
-   [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6) and independently corroborated by the vendor's
-   own printer-cable appendix ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) §6); the power budget
+   [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6) and independently corroborated by the vendor's
+   own printer-cable appendix ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §6); the power budget
    is documented (§2.2); and the mechanical, electrical and performance envelope
    is in §1.1. Nothing on the board is waiting on a measurement.
 2. **Bus loading — the one real electrical unknown.** How much additional load
@@ -420,7 +420,7 @@ and confirmed the hardware is a single design for both machines.
    question at those edge rates. What it actually decides is whether the board
    needs a **bus buffer at all**, so it is a confirmation step, not a blocker. A
    scope check with a spare TTL gate as the load settles it in an afternoon.
-3. **Firmware against the model.** Turn [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drive-c-box.lua) into a
+3. **Firmware against the model.** Turn [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua) into a
    proper harness (§6 item 2) and drive the §8.1 DPB geometry through it.
 4. **The `f(n)` ambiguity** (`drive-c-protocol.md` §10 item 2). Not a blocker —
    keep the raw `(h1, h2)` key so the answer stays swappable (§4).
@@ -435,24 +435,24 @@ and confirmed the hardware is a single design for both machines.
 
 ## Sources
 
-- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) — the protocol this implements (the contract), the
+- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) — the protocol this implements (the contract), the
   DPB (§8.1) and the capacity ceiling (§8.3).
-- [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) — the Executive variant and the manuals' appendices:
+- [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) — the Executive variant and the manuals' appendices:
   the envelope (§1.1), the print-buffer budget (§7 item 6) and the printer-cable
   corroboration of P3 (§2.3).
-- [`research/drive_c/Drive_C_Users_Manual.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/Drive_C_Users_Manual.pdf) (OCR at `…ocr.txt`) — §7-2 hardware
+- [`research/drive_c/Drive_C_Users_Manual.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Users_Manual.pdf) (OCR at `…ocr.txt`) — §7-2 hardware
   specifications (power, throughput, access time) and §7-3 CP/M parameters. Both
   spec pages are image-only with an OCR that loses the table alignment, so read
   them from the PDF: printed p. 133 = PDF p. 141, printed p. 134 = PDF p. 142.
-- [`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf) — §4.1.2 the **P3
+- [`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf) — §4.1.2 the **P3
   pinout**, §4.1.1 the signal directions, §4.1.5 the same pins as a Centronics
-  port; transcribed in [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6.
-- [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) — the port's device-level behaviour, the ROM's eight
+  port; transcribed in [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6.
+- [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) — the port's device-level behaviour, the ROM's eight
   drivers, and the joystick worked example.
-- [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §6 — P3/P5 and the other connectors.
-- [`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-mainboard-schematic.md) sheet 9 — the IEEE-488 interface, the PIA and
+- [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §6 — P3/P5 and the other connectors.
+- [`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) sheet 9 — the IEEE-488 interface, the PIA and
   the open-collector drivers.
-- [`docs/interposer-survey.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/interposer-survey.md) §5 — NODISKEMU and cbmSD, the IEEE-488 state
+- [`docs/interposer-survey.md`](https://github.com/Myrcurial/o1next/blob/main/docs/interposer-survey.md) §5 — NODISKEMU and cbmSD, the IEEE-488 state
   machines to port.
-- [`hardware/drive-c/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/README.md) — the device's place in the project, and the EXMON
+- [`hardware/drive-c/README.md`](https://github.com/Myrcurial/o1next/blob/main/hardware/drive-c/README.md) — the device's place in the project, and the EXMON
   shunt precedent.

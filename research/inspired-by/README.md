@@ -12,7 +12,7 @@ other paths, and they're worth studying for what they solved well.
 - Osborne case + form factor, but **completely emulated**: modern
   internals running MAME. Nice reference for display mounting and
   fitting modern panels into the O1 shell; philosophically the opposite
-  of o1nextgen (their O1 is a simulation; ours stays silicon-real).
+  of o1next (their O1 is a simulation; ours stays silicon-real).
 
 ## "Brain transplant" — Raspberry Pi inside the Osborne case
 

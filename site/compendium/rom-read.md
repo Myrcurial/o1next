@@ -24,7 +24,7 @@ nothing else. Confirmed on a real machine: the upper line renders
 
 The two attributes live in different places, which is the whole reason the
 fault is so selective. Underline is **bit 7 of the main video RAM**; dim is
-**bit 8 — the dedicated 4116 in bank 3** ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2). So a
+**bit 8 — the dedicated 4116 in bank 3** ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2). So a
 fault in the bank-3 attribute path (that 4116, or the `BIT 9` latch that maps
 it) costs the dim line and leaves the underlined one perfectly legible. One
 chip, not the video RAM.
@@ -44,7 +44,7 @@ The lower line, for completeness: ` MONITOR 1.3 ` on 1.3,
 This is derived from the sources, not from a guess: `occrom1b.asm` line 338 is
 `DB 'OSBORNE SYSTEM ONE.'`; the 1.3 source (`occrom13.asm`, `IBMSG`) is
 `DB 'Osborne System ONE.'` and then `DB ' MONITOR 1.3  '`; and
-[`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom) at `0x1C3` is `OSBORNE 1`.
+[`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom) at `0x1C3` is `OSBORNE 1`.
 
 **If the upper line reads `Osborne System ONE.`, stop and dump it** — that is
 the ROM nobody has.
@@ -81,7 +81,7 @@ entries is itself evidence of an earlier revision still.
 This is the part that catches people out. `DUMP.COM` and `DDT`'s `D` command
 will **not** show the ROM: the monitor ROM is banked into `0000–0FFF` only when
 `ROM MODE*` is selected, and a CP/M program runs with the RAM bank in place.
-The mechanism is in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2 and §4:
+The mechanism is in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2 and §4:
 
 - `OUT (0),A` selects **bank 2** — the ROM at `0000–0FFF`, the memory-mapped I/O
   window at `2000–2FFF`, and **`4000–FFFF` still bank 1 RAM**;
@@ -171,10 +171,10 @@ Bytes, so the assembled listing can be checked by eye:
 
 **Honest status:** this is *reasoned from the sources and the memory map*, not
 yet run end to end. It was attempted in MAME and the harness
-([`tools/research/o1keys.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/o1keys.lua)) segfaulted partway through typing the program in —
+([`tools/research/o1keys.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/o1keys.lua)) segfaulted partway through typing the program in —
 the harness's known VRAM-reader fault, not the program. What has been checked
-directly is the *mechanism* ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §4 was measured on the
-running machine with [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh)) and the byte offsets below, which
+directly is the *mechanism* ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §4 was measured on the
+running machine with [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh)) and the byte offsets below, which
 come from the shipped ROMs.
 
 ## 5. Fingerprints, so the answer is not a judgement call
@@ -197,16 +197,16 @@ written: rev B and 1.3 use the `DBE`/`DCE` pseudo-ops, so each byte is stored
 **doubled** (`value * 2`, which is why `   ROM DIAGNOSTICs` appears as
 `40 40 40 A4 9E 9A …`), while 1.44 uses `DB`/`DC` throughout and stores plain
 ASCII. Shift a doubled string right one bit to read it. See
-[`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md) §4.
+[`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md) §4.
 
 The 1.3 offsets come from the reconstructed image, and **not** from the damaged
 regions (`0x1F0`, `0x8B0`, `0xA80`, `0xAB0`, `0xFA0`, `0xFD0` — see
-[`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md) §7), so they are trustworthy. `c. 1981 OCC` at
+[`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md) §7), so they are trustworthy. `c. 1981 OCC` at
 `0x0F4` is a `COPYR:` label the 1.3 ROM never references — dead data, but a
 unique and very convenient fingerprint.
 
 A rev-B image from `OCCROM.IMD` (`OCCROM0B.COM`, CRC32 `f5f697c7`) is also on
-record, and it boots — [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md).
+record, and it boots — [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).
 
 ## 6. A dead end, recorded so it is not repeated
 
@@ -241,27 +241,27 @@ The single-density machine that prompted this doc is **out of play** — it blew
 a RIFA capacitor in the PSU. The `^D` test in §1a was **never run**, so its ROM
 was **never identified**, and the question of whether it held a `NO_DUMP`
 revision is still open. The other two machines on hand are 1.44, which is
-already held ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md)), so there is at present **no hardware
+already held ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md)), so there is at present **no hardware
 route to any `NO_DUMP` slot** — §1a and §4 are procedures waiting on a machine,
 not instructions for one.
 
 One repository fact worth recording with it: **the tree holds no power-supply
 material.** The Osborne 1 Technical Manual in-repo
-([`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf)) has only
+([`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf)) has only
 **§1.2 "Power On"** — two pages of power-up procedure, no supply theory and no
 schematic. The only mention of the PSU anywhere in the tree is a design note in
-[`docs/design/o1ng-lunchbox-concept.svg`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/design/o1ng-lunchbox-concept.svg) recording that the original supply "and
+[`docs/design/o1next-lunchbox-concept.svg`](https://github.com/Myrcurial/o1next/blob/main/docs/design/o1next-lunchbox-concept.svg) recording that the original supply "and
 its RIFA caps" are retired in that concept.
 
 ## 8. What the result would settle
 
 - **A 1.3 dump fills `osb13.bin`** and closes the `NO_DUMP` slot outright.
-- **It would also grade the reconstruction in [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md).**
+- **It would also grade the reconstruction in [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md).**
   Our built 1.3 image is 3759/4096 bytes from being certified; a real dump would
   say whether the recovered `DBE`/`DCE` rule, the `occtxt6.ast` assumption and
   the 28-byte question were right — a *positive* answer would validate the
   method for rev B, BIOS A, 1.2 and 1.2.1 as well, and a negative one would say
   exactly where the method is wrong.
 
-Related: #205, #70, #72, #222, [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md),
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md), [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md).
+Related: #205, #70, #72, #222, [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md),
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md), [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md).

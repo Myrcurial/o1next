@@ -1,6 +1,6 @@
 ---
 layout: home
-title: o1nextgen
+title: o1next
 ---
 
 A project to not just keep the Osborne 1 alive but make it awesome. Modern peripherals that work with the original machine without modifying it, the reverse-engineering that makes that possible — and, downstream, a modern-parts reproduction of the whole computer - the way we all dreamed it could have been.

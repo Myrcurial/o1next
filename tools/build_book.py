@@ -40,7 +40,7 @@ OUT_PAGES = SITE / "compendium"
 OUT_TOC = SITE / "_includes" / "compendium-toc.html"
 OUT_PDF = SITE / "assets" / "compendium" / "osborne1-compendium-draft.pdf"
 
-BLOB = "https://github.com/Myrcurial/o1nextgen/blob/main"
+BLOB = "https://github.com/Myrcurial/o1next/blob/main"
 
 ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 
@@ -216,7 +216,7 @@ def book_markdown(parts):
     doc = ["---",
            "title: The Osborne 1 Compendium",
            "subtitle: A complete reference, assembled from the project's own research",
-           "author: o1nextgen",
+           "author: o1next",
            "---",
            "",
            "> **DRAFT.** This book is assembled from the project's working notes,",

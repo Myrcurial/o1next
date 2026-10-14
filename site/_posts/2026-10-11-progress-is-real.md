@@ -45,13 +45,13 @@ One thing that is abundantly clear - both The Research Assistant and I have ragi
 # Fun Side Quest Outcomes
 
 There's lots but here's a few to make you smile: 
-* not super well laid out yet, but so many [utilities and tools](https://github.com/Myrcurial/o1nextgen/tree/main/tools)
-* [Osborne 1 font files](https://github.com/Myrcurial/o1nextgen/tree/main/site/assets/fonts)
-* the [full design](https://github.com/Myrcurial/o1nextgen/blob/main/docs/floppy-adapter-design.md) for an adapter that makes GoTek drives easier to use based on Richard Loxley's project
-* Everything you ever wanted to know about [Osborne 1 + MAME](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mame-emulation.md) (seriously) (even OZROM on MAME)
+* not super well laid out yet, but so many [utilities and tools](https://github.com/Myrcurial/o1next/tree/main/tools)
+* [Osborne 1 font files](https://github.com/Myrcurial/o1next/tree/main/site/assets/fonts)
+* the [full design](https://github.com/Myrcurial/o1next/blob/main/docs/floppy-adapter-design.md) for an adapter that makes GoTek drives easier to use based on Richard Loxley's project
+* Everything you ever wanted to know about [Osborne 1 + MAME](https://github.com/Myrcurial/o1next/blob/main/docs/mame-emulation.md) (seriously) (even OZROM on MAME)
 
 And we're getting getting started. 
 
 # Next?
 
-We're going to finish the research and see if we can get engineering samples of the three external devices done in the next month (if not faster) -- that's the [USB Keyboard input adapter](https://myrcurial.github.io/o1nextgen/hardware/keyboard-interface/), the [WiFi COMM PAC](https://myrcurial.github.io/o1nextgen/hardware/external-modem/), and the [Drive C Reproduction](https://myrcurial.github.io/o1nextgen/hardware/drive-c/). 
+We're going to finish the research and see if we can get engineering samples of the three external devices done in the next month (if not faster) -- that's the [USB Keyboard input adapter](https://myrcurial.github.io/o1next/hardware/keyboard-interface/), the [WiFi COMM PAC](https://myrcurial.github.io/o1next/hardware/external-modem/), and the [Drive C Reproduction](https://myrcurial.github.io/o1next/hardware/drive-c/). 

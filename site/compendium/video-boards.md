@@ -12,7 +12,7 @@ prior art for this project's interposer, and it means a video personality (#24)
 cannot assume the ScreenPac's interface.
 
 This doc covers the **video** side. The DD side is in
-[`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md) and [`docs/research-gaps.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/research-gaps.md) gap #11.
+[`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1next/blob/main/docs/dd-upgrade-formats.md) and [`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) gap #11.
 
 > **Scope note: "Executive" means a different machine.** In Osborne's world the
 > Osborne **Executive** is the O2-class machine, not a variant of the 1. Upgrades,
@@ -21,7 +21,7 @@ This doc covers the **video** side. The DD side is in
 > double-sided-drive upgrade advertised in *The Portable Companion* #14, PDF p. 47,
 > which is an Executive product. The three machines this project cares about are
 > the Osborne 1, the Osborne 1 with OCC's own upgrades, and clones of them
-> ([`docs/research-gaps.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/research-gaps.md) gap 12).
+> ([`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) gap 12).
 
 ## The three implementations at a glance
 
@@ -43,25 +43,25 @@ implementation, The Research Associates' TRA board, is not in the archive at all
 
 ## OCC SCREEN-PAC — hardware only, driven by the stock BIOS
 
-The one that needs no ROM: [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a has the full
+The one that needs no ROM: [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a has the full
 statement. The parts that make it the odd one out are that the **stock BIOS
 already contains the width-switching routine** (`E1A5H` / `E4E5H`), that the
 board announces itself at **`2400H` in bank 2**, and that the SCREEN-PAC's own
 2 KiB ROM is *the same image as the stock late character generator*
-([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md)) — so the capability genuinely is not in a ROM.
+([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md)) — so the capability genuinely is not in a ROM.
 
 ## The Research Associates (TRA) — 80/100 columns, over the IEEE port
 
 A **fourth** 80-column answer, and the only one that reaches the screen through a
 *different connector*. An advertisement in *The Portable Companion* #5
 (February/March 1983, PDF p. 98 = printed 84; extract
-[`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf))
+[`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf))
 announces "**80 and 100 column video**" from **The Research Associates** (Forest
 Hill, Dunstable, Massachusetts) as "an add-on to the Osborne 1", providing:
 
 - an **80×24 window** and a **100×24 window** "into a 128 character by 32 line
   video format" — the same 128-wide buffer this project already models
-  ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a), so TRA widens the *window* exactly as the
+  ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a), so TRA widens the *window* exactly as the
   others do;
 - **soft scrolling**, **reverse video and blinking**, **composite and TTL video
   monitor outputs**;
@@ -77,7 +77,7 @@ not the video bus — so a video personality (#24) cannot assume an 80-column
 upgrade lives on the video side of the machine, and the IEEE port becomes
 contended between a video device, Drive C (#6/#84), the RT-60A (#18) and Trantor
 storage. Second, its **on-board printer port** is the same "duplicated port"
-pattern as the Drive C panel ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)): the add-on
+pattern as the Drive C panel ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)): the add-on
 *re-presents* an existing connector. Neither its width-switching mechanism (no
 ROM or BIOS patch is mentioned — a driver plus a disk configuration step) nor its
 presence detection is documented in the ad, and **unlike SCREEN-PAC and Nuevo it
@@ -86,7 +86,7 @@ is not in the archive**: the ad is all we hold.
 ## Nuevo — a new monitor ROM, and a CBIOS patched on disk
 
 Nuevo's video upgrade is **software**, and the archive holds the installer. The
-system disk [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/nuevo/OS1NUEVO.IMD) (Osborne DD: 40 tracks × 5 × 1024 B,
+system disk [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/OS1NUEVO.IMD) (Osborne DD: 40 tracks × 5 × 1024 B,
 250 kbps MFM) contains 19 files, and two of them are the installers — not SUBMIT
 scripts despite the extension, but **DDT patch scripts** run through `XSUB`:
 
@@ -132,7 +132,7 @@ dBASE** (below). Two independent vendors arrived at the same fix, because what
 needs patching is dBASE's assumptions, not the board.
 
 Plus the ROM side: Nuevo **1.51** is an OCC ROM carrying Nuevo's copyright and
-patches ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md)), and the Nuevo char-gen differs from stock —
+patches ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md)), and the Nuevo char-gen differs from stock —
 it forces row 9 to `0xFF` when bit 7 of the character code is set, which is the
 underline attribute made real in the font.
 
@@ -156,10 +156,10 @@ Three things worth taking from that:
 - **Horizontal scroll in 80 columns** — the same window-sliding behaviour the
   SCREEN-PAC gives, here described as a user choice rather than a side effect.
 - **A baud generator to 19.2K** — well beyond the 9600 Hogan's modification
-  reaches on the stock board ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a), and an *option*
+  reaches on the stock board ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a), and an *option*
   rather than a cut track. It is the other end of #21's range.
 
-The disk products from the same advertisement are in [`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md).
+The disk products from the same advertisement are in [`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1next/blob/main/docs/dd-upgrade-formats.md).
 
 ### The Nuevo boards themselves (2024 photo drop)
 
@@ -168,7 +168,7 @@ through their software. Two field photographs change that: they are the **first
 hardware views of either Nuevo board**. Source: **Mike Loewen**, private Facebook
 group, 2024-10-14
 ([post](https://www.facebook.com/groups/690000664701397/posts/2260585240976257/));
-archived as [`research/nuevo/photos/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/nuevo/photos/).
+archived as [`research/nuevo/photos/`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/photos/).
 
 **80-column board** — silk `NUEVO ELECTRONICS CORPORATION © 1984`,
 `80 COLUMN UPGRADE REV. D`, **serial 4348**. It is not a video tap; it is a
@@ -192,12 +192,12 @@ Two consequences, and both *corroborate* what the software already said:
 - **The 80-column mode is a second video system, not a wider window.** Its own
   CPU, CRTC, video RAM and font are why the advertisement can sell "six cursor
   styles" and horizontal scroll as *features* — those are properties of a real
-  CRTC. It is also why [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md) §"one late image, five names"
+  CRTC. It is also why [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md) §"one late image, five names"
   concludes Nuevo's 80-column design is not the OCC one: the SCREEN-PAC widens
   the *existing* video path, Nuevo builds another one.
 - **The socketed `CHARACTER GENERATOR` chip is dated 6-29-84** — the date in
   MAME's `character_generator_6-29-84.14`, the Nuevo-era char-gen already tracked
-  in [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md). So the font the board carries is an image the
+  in [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md). So the font the board carries is an image the
   project holds, not an unknown ROM.
 
 **Double-density board** — silk `NUEVO ELECTRONICS CORPORATION © 1984 MADE IN
@@ -215,14 +215,14 @@ The likely division of labour — that the DD upgrade supplies the **MFM data
 separator and write precompensation** the stock machine lacks, and leaves the
 controller alone — fits the rest of the archive: the controller is `MB8877` ≡
 `WD1793` on the mainboard, and the separator is a *separate board on the drive
-side* rather than part of it ([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-mainboard-schematic.md) §2, sheets 9/9 and
+side* rather than part of it ([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) §2, sheets 9/9 and
 2/3, U8 and U12–U22). **That is an inference, not a finding** — Nuevo's own
 installation instructions are the missing piece.
 
 **Does any of this bear on Drive C?** No, and it is worth saying plainly. Both
 boards are host-side — video, and floppy encoding — while Drive C is an IEEE-488
 peripheral that draws power from the EXT. VIDEO connector and speaks over the
-GPIB port ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)). The photo drop is recorded here because
+GPIB port ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)). The photo drop is recorded here because
 it is the first hardware view of either Nuevo product, not because it changes the
 Drive C contract.
 
@@ -246,7 +246,7 @@ ships only with the video product. The same file is on the disk twice, as
 > (6) REVERSE VIDEO BLOCK CAPABILITY (INSTEAD OF UNDERLINE; JUMPER SELECT).
 > (7) COMPOSITE VIDEO OUTPUT FOR EXTERNAL MONITOR (NO MORE ADAPTERS).
 > (8) SIMPLE USER INSTALLATION.
-> — `AUTOST.COM`, [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/nuevo/OS1NUEVO.IMD) (extracted with
+> — `AUTOST.COM`, [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/OS1NUEVO.IMD) (extracted with
 > `cpmcp -T raw -f osborne1`; the manual's BIOS 1.4→1.5 list item 3 is the
 > "autostart command space", so the file name is the feature)
 
@@ -263,7 +263,7 @@ of the eight.
 ## Osmosis — a Z80 interposer with an escape-sequence interface
 
 Osmosis's 80-column board is the one that matters most to this project, because
-of *how it attaches*. From [`research/osmosis/Osmosis_80_Column_Board.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osmosis/Osmosis_80_Column_Board.pdf) §3:
+of *how it attaches*. From [`research/osmosis/Osmosis_80_Column_Board.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osmosis/Osmosis_80_Column_Board.pdf) §3:
 
 > Locate the monitor ROM (fig 2.1). This ROM can be carefully removed … Now take
 > the ROM we supplied … Fit the ROM we supplied (marked **Osborne 1.44 GM**) …
@@ -414,7 +414,7 @@ that is a second reason to read its manual closely for #11/#12.
 
 Note the attribute list as well: **normal/inverted video, underline, and ⅔ / ½
 intensity**. The stock machine exposes underline and dim as attribute bits
-([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a/§3); Osmosis advertises two intensity steps. The
+([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a/§3); Osmosis advertises two intensity steps. The
 mapping between the two is not established — relevant to #24.
 
 ## What this means for this project
@@ -433,7 +433,7 @@ mapping between the two is not established — relevant to #24.
    that assumes 52 columns — the practical reason the O1's upgrades shipped with
    application notes.
 4. **The 128-character row is the common ground.** All three widen the *window*,
-   not the memory ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a); only the control interface
+   not the memory ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a); only the control interface
    differs.
 
 ## How software finds the board
@@ -443,7 +443,7 @@ and only one of them is a register.
 
 | Board | How software detects it | Status |
 |---|---|---|
-| **OCC SCREEN-PAC** | read `2400H` in bank 2: **bit 2 LOW** = board fitted | documented (user guide p. 13, [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a) |
+| **OCC SCREEN-PAC** | read `2400H` in bank 2: **bit 2 LOW** = board fitted | documented (user guide p. 13, [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a) |
 | **Osmosis** | **no detection register** — the interface is commands, so a program probes by *sending* an OS/5-unique escape and watching the screen | the manual's own warning *is* the answer; its paid Technical Manual is where "the CP/M interface" is documented |
 | **Nuevo** | BIOS 1.5 **reads a port the Osborne 1 does not decode**; if it is not zero (i.e. no board), the 80-column configuration is skipped | read out of the two CBIOS images (#173); the one step needing a board is named below |
 
@@ -466,7 +466,7 @@ has to model **command effect**, not a register, to be Osmosis-compatible.
 ### Nuevo: the check is a read of an undecoded port (#173)
 
 The DD manual says BIOS 1.5 does the check (quoted in
-[`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md)), and we hold CBIOS 1.5 in two forms: the DDT objects
+[`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1next/blob/main/docs/dd-upgrade-formats.md)), and we hold CBIOS 1.5 in two forms: the DDT objects
 the installer inserts (`BIOS15.OBJ`, `BIOS15BM.OBJ`) and the relocated system the
 disk actually boots — the system tracks of `OS1NUEVO.IMD`. The latter confirms the
 manual's item 1: its sign-on reads
@@ -497,7 +497,7 @@ E48C  JR   NZ,E4B7H     ; not present -> skip the configuration
 ```
 
 **Port `04H` is not a device on the Osborne 1.** Its I/O decode uses only `A0`/`A1`
-([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §4), so a *write* to `04H` is an alias of the bank-2
+([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §4), so a *write* to `04H` is an alias of the bank-2
 latch — but a **read** of it is answered by nothing on the machine, and a floating
 TTL bus reads back non-zero. On a stock machine the guard therefore takes the
 skip; with the board fitted, the board has only to pull those five bits low. That
@@ -509,11 +509,11 @@ evidence:
 
 - it reads the config byte at BIOS variable **`E1A6H`** — the address immediately
   above `E1A5H`, the width variable the SCREEN-PAC user guide documents
-  ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a), so Nuevo kept OCC's variable layout rather
+  ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a), so Nuevo kept OCC's variable layout rather
   than inventing one;
 - it then drives the **BIT 9 latch** with `OUT (06H),A` — `06H` aliases `02H`, the
   latch that maps bank 3, the video/dim bank, into `F000–FFFF`
-  ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §4). **The factory BIOS never touches that latch**:
+  ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §4). **The factory BIOS never touches that latch**:
   its only bank selects are ports `00H` and `01H`.
 
 The consistency check that lifts this above a guess: BIOS 1.5 ships on **both** the
@@ -535,7 +535,7 @@ so it is recorded as the evidence supports it, not as established fact.
   interface; cursor addressing") is a paid document the archive does not hold. If
   a detection register exists, that is where it is — but the user manual's own
   warning suggests there is not one.
-- The DD halves of both vendors are **covered**, in [`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md):
+- The DD halves of both vendors are **covered**, in [`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1next/blob/main/docs/dd-upgrade-formats.md):
   Nuevo's boot-time auto-configuration via `NEWSETUP.COM` and its 2 x 2 / 4 x 4
   formats, and Osmosis's OSMOS 1–3 density line plus the standalone OSMOS 4
   conversion product.
@@ -544,26 +544,26 @@ so it is recorded as the evidence supports it, not as established fact.
 
 ## Sources
 
-- [`research/screenpac/o1screenpacusersguide.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/screenpac/o1screenpacusersguide.pdf) — SCREEN-PAC User Guide, p. 13.
-- [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/nuevo/OS1NUEVO.IMD) and `Nuevo_Electronics_DD_Upgrade_Manual.pdf`.
+- [`research/screenpac/o1screenpacusersguide.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/screenpac/o1screenpacusersguide.pdf) — SCREEN-PAC User Guide, p. 13.
+- [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/OS1NUEVO.IMD) and `Nuevo_Electronics_DD_Upgrade_Manual.pdf`.
   Scripts extracted with `cpmcp -f osborne1`; cpmtools ships an `osborne1`
   diskdef matching the image exactly (`seclen 1024, sectrk 5, blocksize 1024,
   maxdir 64, boottrk 3`).
 - `AUTOST.COM` / `AUTOST.BAK` on the same image — the 80-column feature list
   (extracted with `cpmcp -T raw -f osborne1`; the identical text is visible with
   `strings`).
-- [`research/osmosis/Osmosis_80_Column_Board.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osmosis/Osmosis_80_Column_Board.pdf) (+ `.ocr.txt`), §3, §4 and
+- [`research/osmosis/Osmosis_80_Column_Board.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osmosis/Osmosis_80_Column_Board.pdf) (+ `.ocr.txt`), §3, §4 and
   **Appendix E** (the escape sequences — hand-transcribed from the PDF, not the
   OCR).
-- [`research/shipped-software/O1CPM.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/O1CPM.IMD) — the factory DD boot disk used as the
+- [`research/shipped-software/O1CPM.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/shipped-software/O1CPM.IMD) — the factory DD boot disk used as the
   CBIOS 1.4 diff partner; its system tracks are the first three tracks
   (`boottrk 3`), converted with `disk-analyse`.
 - `BIOS15.OBJ` / `BIOS15BM.OBJ` on `OS1NUEVO.IMD` — the installer's DDT objects,
   disassembled with `z80dasm -g 0x1F00` / `-g 0x29E0`.
-- [`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf)
+- [`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf)
   — the TRA "80 and 100 column video" advertisement (video), and the Helix
   Winchester advertisement on the same page.
-- [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md) — ROM inventory, char-gen variants, Nuevo 1.51.
-- [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a — the window, the widths, the bit fields.
-- [`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md) — the DD halves of both vendors, and the Nuevo
+- [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md) — ROM inventory, char-gen variants, Nuevo 1.51.
+- [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a — the window, the widths, the bit fields.
+- [`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1next/blob/main/docs/dd-upgrade-formats.md) — the DD halves of both vendors, and the Nuevo
   BIOS 1.4→1.5 list.

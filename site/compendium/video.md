@@ -9,7 +9,7 @@ The 2716 at **UA15** holds 128 glyphs of 8×10, and the first 32 of them
 (`0x00–0x1F`) plus `0x7F` are **graphics characters** rather than letters. They
 are the most stable thing in the ROM: the two char-gen variants differ in 93 of
 128 glyphs, and the `0x00–0x1F` set is byte-identical in both
-([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md)).
+([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md)).
 
 ## They are block graphics, not box-drawing
 
@@ -41,7 +41,7 @@ purpose as CP437's block and box characters, and the reason the O1 can draw
 frames and charts at all. Two consequences for this project:
 
 - **A video personality (#24) has to render these correctly**, not just the
-  letters. [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a has the cell and attribute layout.
+  letters. [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a has the cell and attribute layout.
 - **They are page furniture (#97).** A period site's rules, table borders,
   footer and bullets can be the machine's own characters instead of CSS
   borders.
@@ -54,7 +54,7 @@ its evidence rather than asserted. The sheet is the evidence side of that — it
 is generated from the ROM, so it cannot drift from it.
 
 Next: put the sheet beside a rendered Unicode Block Elements chart, identify
-each of the 33, then add the table to [`tools/romfont.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/romfont.py) so the codepoints ship
+each of the 33, then add the table to [`tools/romfont.py`](https://github.com/Myrcurial/o1next/blob/main/tools/romfont.py) so the codepoints ship
 in the font.
 
 ## Why 64 columns (see also §2a)
@@ -76,12 +76,12 @@ hardware you see 52 of the 64 columns at once and scroll for the rest; with the
 SCREEN-PAC at 80 you see all of it.
 
 The full statement, with the technical manual's geometry and the attribute bits,
-is in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a.
+is in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a.
 
 ## Sources
 
-- [`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf) §5.0–5.5,
+- [`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf) §5.0–5.5,
   pp. 23–25 (image-only scan; read by rendering the page range — the manual's
   page 15 is PDF page 29, so the offset is **+14**).
-- [`tools/romfont.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/romfont.py) — the decoder and the `--glyph-sheet` renderer.
-- [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md) — the char-gen variants and what differs.
+- [`tools/romfont.py`](https://github.com/Myrcurial/o1next/blob/main/tools/romfont.py) — the decoder and the `--glyph-sheet` renderer.
+- [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md) — the char-gen variants and what differs.

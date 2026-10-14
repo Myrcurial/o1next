@@ -13,10 +13,10 @@ copying to drive `C:` with PIP. What is *not* known is the box's internals
 (§10); a replacement does not need them, because the contract below is what the
 host exercises.
 
-Sources: [`research/drive_c/DRIVE_C.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/DRIVE_C.IMD) (the software), [`research/drive_c/extracted/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/extracted/)
-(`dcl.com`, `dfd.spr`), [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/BIOS-144-source/rom144.asm) (the
-ROM's own account of the port), and [`research/drive_c/Drive_C_Users_Manual.ocr.txt`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/Drive_C_Users_Manual.ocr.txt).
-Serves #6 (the protocol) and #84 (the reproduction); [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) is
+Sources: [`research/drive_c/DRIVE_C.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/DRIVE_C.IMD) (the software), [`research/drive_c/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/extracted/)
+(`dcl.com`, `dfd.spr`), [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/rom144.asm) (the
+ROM's own account of the port), and [`research/drive_c/Drive_C_Users_Manual.ocr.txt`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Users_Manual.ocr.txt).
+Serves #6 (the protocol) and #84 (the reproduction); [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) is
 the hardware + firmware spec built on it.
 
 ## 1. What the device is
@@ -28,7 +28,7 @@ sold as 192 K and 384 K, in two parts: the unit (the RAM) and a software package
 (`DCL.COM` + `DFD.SPR`) that installs it as a CP/M drive and adds a print buffer.
 `DCL.COM` is the installer and carries the transport; `DFD.SPR` is a
 **substitute console command processor** that CP/M reloads on every warm boot in
-place of `CCP.COM` ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) §4).
+place of `CCP.COM` ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §4).
 
 **The manual is explicit that this is not GPIB:**
 
@@ -357,7 +357,7 @@ exactly `DFD.SPR`:
 
 380 KB is 190 blocks of 2K, which is `DSM = 191` (192 blocks) **minus the two
 directory blocks** — so the vendor's own figure *is* our DPB, reached
-independently. [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) §3.
+independently. [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §3.
 
 ### 8.4 Drive letters, and what TurboPac actually is
 
@@ -399,11 +399,11 @@ file on the unit: `DCQ T + n` skips its copy when **`DCLOADED.SYS`** is present
 `Driver is already installed`. A reboot — reset button included — therefore does
 not re-format the unit; forcing a reload means `ERA DCLOADED.SYS`, or `DCU E` to
 erase everything. The reproduction's persistence story rests on this:
-[`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) §4.1.
+[`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §4.1.
 
 ## 9. Validation — the spec, run against the software
 
-Two tools in [`tools/research/`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/) were written for this, and both are worth keeping:
+Two tools in [`tools/research/`](https://github.com/Myrcurial/o1next/blob/main/tools/research/) were written for this, and both are worth keeping:
 
 - **`drive-c-trace.lua`** — write taps on `2900–2903`, logging every PIA access
   while the real software runs. Stable and reproducible: **10 195 accesses** on a
@@ -466,7 +466,7 @@ replacement; the first item below has moved to #84, which is where it belongs.
    item on #84**, because it is the reproduction, not this document, that has to
    answer it.
 3. **The print-buffer path — mostly closed.** The manuals give the budget
-   ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) §5): a **fixed** buffer is carved out of the
+   ([`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §5): a **fixed** buffer is carved out of the
    unit's own RAM disk, user-selectable from **16K to 128K in 16K steps**, and
    the 384K TurboPac configuration is stated outright as **256K cache + 128K
    fixed print buffer**. So the DPB in §8.1 is the *no-buffer* case and a unit
@@ -484,29 +484,29 @@ replacement; the first item below has moved to #84, which is where it belongs.
    transport. The code-aware disassembly this item asked for would have
    characterised a command processor rather than a device — and a replacement
    **inherits** `DFD.SPR` rather than reimplementing it, so the item is removed
-   from the work list. See [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-executive.md) §4.
+   from the work list. See [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §4.
 
 ## Sources
 
-- [`research/drive_c/DRIVE_C.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/DRIVE_C.IMD) — the Drive C software disk (ImageDisk,
-  40-track FM 10×256); [`research/drive_c/extracted/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/extracted/) holds the files.
-- [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/BIOS-144-source/rom144.asm) — the ROM's IEEE-488 and
+- [`research/drive_c/DRIVE_C.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/DRIVE_C.IMD) — the Drive C software disk (ImageDisk,
+  40-track FM 10×256); [`research/drive_c/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/extracted/) holds the files.
+- [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/rom144.asm) — the ROM's IEEE-488 and
   Centronics line definitions (lines 2606–2715 and 3250–3269). The authority for
   §2.
-- [`research/drive_c/disasm/dcl.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/disasm/dcl.asm) — `z80dasm` of `dcl.com`; §3 and §5 are read
+- [`research/drive_c/disasm/dcl.asm`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/disasm/dcl.asm) — `z80dasm` of `dcl.com`; §3 and §5 are read
   from it (the resident block is file `0x1600–0x17BE`, installed `0x0600–0x07BE`).
   **The committed listing misaligns across the payload**: the installed code has
   to be read as bytes at file offset − `0x1000`, not from the disassembly, which
   is how §5's `f(n)` and §8.1's DPB were found.
-- [`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf) — Technical Manual
+- [`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf) — Technical Manual
   chapter 4, including §4.1.2's **P3 pinout**; transcribed in
-  [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6. Image-only scan: OCR it, do not `pdftotext` it.
-- [`research/drive_c/Drive_C_Users_Manual.ocr.txt`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/Drive_C_Users_Manual.ocr.txt) — the vendor's manual (OCR).
-  §7-2 and §7-3 are transcribed in [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) §2.2 and §8.2; the
+  [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6. Image-only scan: OCR it, do not `pdftotext` it.
+- [`research/drive_c/Drive_C_Users_Manual.ocr.txt`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Users_Manual.ocr.txt) — the vendor's manual (OCR).
+  §7-2 and §7-3 are transcribed in [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §2.2 and §8.2; the
   OCR loses the spec table's column alignment, so read those pages from the PDF.
-- [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) — the port's device-level behaviour and the ROM's
+- [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) — the port's device-level behaviour and the ROM's
   eight drivers.
-- [`tools/research/drive-c-trace.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drive-c-trace.lua), [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drive-c-box.lua) — the
+- [`tools/research/drive-c-trace.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-trace.lua), [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua) — the
   measurement and the model (§9).
 
 
@@ -543,7 +543,7 @@ layer (see §10), because it makes no direct PIA references — so it must be a
 patched vector or a relocation DCL performs at install time.
 ### DFD.SPR's layout, and why the committed listing misleads (#6)
 
-[`research/drive_c/disasm/dfd.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/disasm/dfd.asm) is a `z80dasm` linear sweep from `0x100` over the
+[`research/drive_c/disasm/dfd.asm`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/disasm/dfd.asm) is a `z80dasm` linear sweep from `0x100` over the
 whole 2560-byte file. Reading the file's own structure (a raw byte scan — the
 disassembly alone hides this) shows two large **zero-filled regions**, file
 offsets `0x003–0x0FF` (253 bytes) and `0x10C–0x17B` (112 bytes), plus a
@@ -605,7 +605,7 @@ And the reviewer, in the same issue, standing by a negative verdict:
 
 So there was a **384K** configuration, and the disagreement was never about
 whether it worked — it was about who it was for. Extract:
-[`research/technical-articles/TPC-Issue15-1985-pp52-drive-c-letters.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue15-1985-pp52-drive-c-letters.pdf).
+[`research/technical-articles/TPC-Issue15-1985-pp52-drive-c-letters.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue15-1985-pp52-drive-c-letters.pdf).
 
 ## The vendor's software set, from a contemporary review
 
@@ -675,7 +675,7 @@ close files") → `DCA.COM`.
 - The same vendor resold **Trantor** hard disks at a discount. The Trantor
   advertisement itself (*The Portable Companion* #5, February/March 1983,
   PDF p. 28; extract
-  [`research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf))
+  [`research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf))
   shows what the product was: the **TSL-5** and **TSL-10**, **5 MB $2995 /
   10 MB $3395**, *"unpack your disk, **plug it into the IEEE port**, run a simple
   5 minute installation procedure"*, supplied *"complete with BIOS, back-up,
@@ -683,7 +683,7 @@ close files") → `DCA.COM`.
   IEEE-488-attached** storage device on this machine alongside Drive C — one more
   claimant on the port that #84 has to arbitrate.
 
-Extract: [`research/technical-articles/TPC-Issue14-1984-pp43-47-drive-c-loader-and-archive-programs.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue14-1984-pp43-47-drive-c-loader-and-archive-programs.pdf).
+Extract: [`research/technical-articles/TPC-Issue14-1984-pp43-47-drive-c-loader-and-archive-programs.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue14-1984-pp43-47-drive-c-loader-and-archive-programs.pdf).
 
 
 ## Disassembling

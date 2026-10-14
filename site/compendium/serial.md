@@ -7,12 +7,12 @@ draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`.
 
 Source: Osborne 1 Technical Manual, ch. 4 "Osborne 1 Interface Design" —
 §4.2 SERIAL RS232 INTERFACE, §4.3 MODEM — archived in-repo at
-[`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf) (manual pages 17–19).
+[`research/osborne1/modem/o1techman-interface-extract.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/modem/o1techman-interface-extract.pdf) (manual pages 17–19).
 
 This is the authoritative connector/pinout reference for the WiFi-modem work
 (#21, extended by #56) and for the severable modem module (#56 §E / COMM PAC
 variant). The memory-map and ACIA register detail live in
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail"; this document adds only the
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail"; this document adds only the
 **physical connector** information that doc does not carry.
 
 ## 4.2 RS-232 serial interface (P2)
@@ -95,7 +95,7 @@ Read/write it via the CP/M `IOBYTE` function, same as the serial port.
   #5) rather than from P1. The **severable external** module is the reverse
   case — it exists because the port carries power at all. Its current budget
   is deliberately deferred until a board exists: see
-  [`hardware/wifi-modem-module/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/wifi-modem-module/README.md) §Power.
+  [`hardware/wifi-modem-module/README.md`](https://github.com/Myrcurial/o1next/blob/main/hardware/wifi-modem-module/README.md) §Power.
 - **MSB (pin 4) is open-collector** and **MCB (pin 8) low suppresses output** —
   together these are the modem's "hook"/enable handshake. RI (pin 9) falling
   edge sets the ring flag; the ESP32 can drive it to signal an incoming
@@ -132,13 +132,13 @@ interleaves the DE-9 rows, so on the 2×5 the signals land as: row A
 Also on sheet 7 (for the record): the ACIA baud clock comes from **UC3
 (LS161)** dividing a `4USEC`/`2USEC` tap (jumper **J1** selects the rate), and
 **MODEM RI** routes to the video-PIA **UC15 CA2** input (sheet 5) — consistent
-with [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md).
+with [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md).
 
 ## Baud-rate options the archive documents (#21)
 
 The stock machine gives 300/1200 (J1 in) or 600/2400 (J1 out), and the factory
 documents 2400/9600 as a modification — the jumper and divider detail is in
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail". Two further things come from
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail". Two further things come from
 *The Portable Companion* #8 (July 1983).
 
 ### The factory modification, as the Companion cites it
@@ -148,7 +148,7 @@ wants an 80-column terminal to *"set your computer for 9600 baud using Osbaud or
 the method shown on page 22 in the Technical Manual."* That page is the
 manual's **Figure 4.4 "Baud Rate Hardware Modification"** — the LS161/LS163 at
 C3, pin 2 moved, J2 fitted, J1 *"DON'T CARE"* — quoted in
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail". So the Companion's
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail". So the Companion's
 pre-SCREEN-PAC answer to "how do I get 80 columns?" was the **serial port plus
 the factory's own baud mod**, not a video board.
 
@@ -169,7 +169,7 @@ the factory's own baud mod**, not a video board.
 
 Reviewed by **Brad Baldwin** in the same issue (PDF p. 87, printed 85; extract
 at
-[`research/technical-articles/TPC-Issue08-1983-pp87-osbaud-baud-rate-generator.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue08-1983-pp87-osbaud-baud-rate-generator.pdf)).
+[`research/technical-articles/TPC-Issue08-1983-pp87-osbaud-baud-rate-generator.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue08-1983-pp87-osbaud-baud-rate-generator.pdf)).
 $59.95, **16 DIP-switch-selectable baud rates**, used by the reviewer at **110**
 (an ASR33 Teletype), **9600** (the Televideo 920C) and **19200** (a $10,000
 high-speed band printer), with mainframe up/downloads at high speed. It is
@@ -186,7 +186,7 @@ product, **voids the warranty**.
 
 *"Osbaud is soldered to **pins 4 and 12 of the 6850 UART**, **pin 7 of the
 74LS32**, and **pin 7 of the 74LS04**."* Read against the schematic
-([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-mainboard-schematic.md) sheet 10, and §"6850 ACIA detail" in the
+([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) sheet 10, and §"6850 ACIA detail" in the
 memory map):
 
 | Solder point | Is | Why |
@@ -218,7 +218,7 @@ rest is inference — but tightly constrained:
 - The three rates the reviewer names (110, 9600, 19200) all sit inside the
   classic 50/75/110/134.5/150/300/600/1200/1800/2000/2400/3600/4800/7200/9600/
   19200 set — the same list Nuevo's optional generator advertises ("16 baud
-  rates from 50 to 19.2K", [`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-upgrade-boards.md)).
+  rates from 50 to 19.2K", [`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-upgrade-boards.md)).
 
 **Open:** the crystal and divider topology, whether the ACIA is left in ÷16
 mode, and where the **74LS32** sits on the board (the LS04 is UB3 on the serial
@@ -235,7 +235,7 @@ change it. "**Programming the serial port — modifying the serial port for
 scientific test devices**", signed by the **Osborne Computer Corporation System
 Technical Support Group**, in *The Portable Companion* #7 (June 1983, PDF
 pp. 56–57 = printed 54–55; extract
-[`research/technical-articles/TPC-Issue07-1983-pp56-57-programming-the-serial-port.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue07-1983-pp56-57-programming-the-serial-port.pdf))
+[`research/technical-articles/TPC-Issue07-1983-pp56-57-programming-the-serial-port.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue07-1983-pp56-57-programming-the-serial-port.pdf))
 is a worked BIOS patch:
 
 - The factory default is **8-bit data, 1 stop bit, no parity**.
@@ -251,7 +251,7 @@ is a worked BIOS patch:
   = `56H`**, 7-E-1 @1200 = `49H`, 8-N-2 @1200 = `51H`; arrows mark the factory
   default. Read as the 6850's control register (word-select bits 2–4, clock-divide
   bits 0–1) the values are exactly right, which is a useful cross-check on the
-  [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail" claim that the ACIA divides by
+  [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail" claim that the ACIA divides by
   16 or 64 — the `55H`/`56H` default sits in the **÷16** field.
 - **Figure 2** is a **which-BIOS-do-I-have** test: `DDT`, `DA900`, and look at the
   third byte after the `490` — `C3 xx E5` is a **1.3** BIOS, `C3 xx E1` a

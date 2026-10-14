@@ -25,7 +25,7 @@
  * The command set and every data layout here come from the ACB-4000 OEM manual
  * (`research/adaptec/acb4000/`), not from the driver and not from the controller
  * ROMs.  The register handshake and the status bit map come from the *driver*
- * (`docs/acb4000-host-adapter.md` section 1, `docs/osborne1ng-machine.md`), because the
+ * (`docs/acb4000-host-adapter.md` section 1, `docs/osborne1nx-machine.md`), because the
  * manual's host-adapter model is the reference one and the MD-10's is not.
  */
 #ifndef O1_ACB4000_H

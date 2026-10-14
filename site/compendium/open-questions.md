@@ -22,11 +22,11 @@ manufacturer's list and the CBIOS DPB+skew table agree field for field, Osborne
 SD is confirmed end to end in MAME, and foreign media is converted on the modern
 side before it is mounted. Previous review
 2026-10-11 (fourth pass), after **#6 and #7 were closed** — #6 on its stated
-deliverable ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md), validated end to end), with its residue
+deliverable ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md), validated end to end), with its residue
 moved to #84; #7 because the clock ABI *is* its deliverable and #18 owns the
 implementation. Previous review
 2026-10-11 (third pass), after #6's transport and device contract were measured
-and validated and [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) (#84) became the build spec. Previous
+and validated and [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) (#84) became the build spec. Previous
 review 2026-10-11 (later pass), after #95 was answered from the OCC
 CBIOS source, #7's clock ABI was written as a contract, #81's OZROM index was
 built, and #6's `DFD.SPR` blocker was re-characterised. Previous review
@@ -39,7 +39,7 @@ This is the single place that says, for every open research question, **whether
 it is answered, by what evidence, and what is left** — cross-checked against the
 `research`-labelled issues. When the two disagree, one of them is wrong.
 
-**Status words** (same vocabulary as [`docs/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/README.md)):
+**Status words** (same vocabulary as [`docs/README.md`](https://github.com/Myrcurial/o1next/blob/main/docs/README.md)):
 
 | Status | Means |
 |---|---|
@@ -71,7 +71,7 @@ status.
    is off every critical path. What is left is **#84's**, not research's: how the
    box resolves banks 0–2 (hardware-gated) and whether Drive C, the printer at
    device 3 and the RT-60A can share one bus. The build spec is
-   [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md).
+   [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md).
 3. **The hard-disk controller decision (#8)** — two products are characterised;
    pick the one worth emulating before any personality code is written.
 4. ~~**The RT-60A ABI (#7)** — decide the contract, then implement it in #18.~~
@@ -101,13 +101,13 @@ OZROM's soft 52/80/104-column switch.
 
 | # | Gap | Status | Evidence | Issues | What's left |
 |---|---|---|---|---|---|
-| 1 | Exact memory & I/O map, free decode windows | **Solved** | `o1-memory-io-map.md` §2–§7 (schematic), confirmed from the ROM source in `o1-rom-source.md`, measured on the running machine by [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh) | #40, #62, #64, #72 | Decode *granularity* is still schematic-level. Free gaps between the five device blocks: `2300–28FF`, `2B00–2BFF`, `2D00–2FFF` |
+| 1 | Exact memory & I/O map, free decode windows | **Solved** | `o1-memory-io-map.md` §2–§7 (schematic), confirmed from the ROM source in `o1-rom-source.md`, measured on the running machine by [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) | #40, #62, #64, #72 | Decode *granularity* is still schematic-level. Free gaps between the five device blocks: `2300–28FF`, `2B00–2BFF`, `2D00–2FFF` |
 | 2 | NMOS vs CMOS Z80 across the target machines | **Superseded** | Resolved by history: the CMOS Z84C00 shipped in 1985, O1 production ended in 1983 — every O1 is NMOS. Interposer standardised on 74AHCT/HCT | #39 | #39's remainder: machine IDs and date codes, for the record |
-| 3 | Z80 socket **and** char-gen socket pinout | **Solved** | Z80: datasheet, schematic sheet 3 of 9, [`tools/check_schematics.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_schematics.py). UA15: read at 1200 dpi off **sheet 4 of 9** (not the video sheet) — plain Intel 2716 pinout, `/CE`+`/OE` grounded, pin 21 strapped +5 V; address = `(scan<<7) \| char`; outputs serialised by UA14 (74166). `o1-mainboard-schematic.md` §4a, `o1-memory-io-map.md` §6, asserted in [`tools/check_schematics.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_schematics.py) | #62, #24, #64 | — |
-| 4 | CoPower-88 monitor ROM dump | **Superseded** | The SWP co-processor ROM is **in the repo**: [`research/roms/swp-p88.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/swp-p88.rom), 8088 code, from Maslin's archive. The board and interposer are common across hosts; only the driver varies | #3, #4, #5, #70 | Confirm the residual doorbell/IRQ semantics *from that ROM* rather than by inference |
+| 3 | Z80 socket **and** char-gen socket pinout | **Solved** | Z80: datasheet, schematic sheet 3 of 9, [`tools/check_schematics.py`](https://github.com/Myrcurial/o1next/blob/main/tools/check_schematics.py). UA15: read at 1200 dpi off **sheet 4 of 9** (not the video sheet) — plain Intel 2716 pinout, `/CE`+`/OE` grounded, pin 21 strapped +5 V; address = `(scan<<7) \| char`; outputs serialised by UA14 (74166). `o1-mainboard-schematic.md` §4a, `o1-memory-io-map.md` §6, asserted in [`tools/check_schematics.py`](https://github.com/Myrcurial/o1next/blob/main/tools/check_schematics.py) | #62, #24, #64 | — |
+| 4 | CoPower-88 monitor ROM dump | **Superseded** | The SWP co-processor ROM is **in the repo**: [`research/roms/swp-p88.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/swp-p88.rom), 8088 code, from Maslin's archive. The board and interposer are common across hosts; only the driver varies | #3, #4, #5, #70 | Confirm the residual doorbell/IRQ semantics *from that ROM* rather than by inference |
 | 5 | Power budget | **Solved** | Decision taken: the interposer gets its own 5 VDC feed near the Z80 socket, sized for Pico 2 W bursts (~300 mA+) | #12 | — |
 | 6 | CoPower-88 protocol | **Partially** | `copower88-protocol.md` (Kaypro↔Zorba driver diff), `copower88-schematics.md` (SWP 611-0003), plus the 8088 ROM | #3, #4, #5, #23 | Doorbell/IRQ semantics; the 611-0003 sheet-4 comparator reference value; consolidate into one authoritative spec |
-| 7 | Drive C IEEE-488 protocol | **Solved** | `drive-c-protocol.md`; `DRIVE_C.IMD` extracted and disassembled ([`research/drive_c/disasm/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/disasm/)); the ROM's IEEE-488 implementation gives the PIA programming, the GPIB command bytes and the "always ready" stub behaviour (`o1-rom-source.md`); and the **byte transport is now read from `DCL`** — PIA init, the 128-byte strobed transfer, the operation bytes `88h`/`81h`, port B bit 6 as the device status input. The transport is in `DCL`, **not** `DFD.SPR` (which makes no PIA references at all); and the **port's own semantics are now documented from the vendor's side** — `o1-ieee488-port.md` (Companion #8): **eight** low-level ROM drivers, **15** devices on the bus (**8** if parallel poll is used), the machine's own address is **0**, and the driver table is the eight 3-byte jumps at **`013F–0156`** | #6, #22, #84 | — **#6 closed 2026-10-11.** The two residues are #84's now: bank resolution for `n = 0,1,2` (hardware-gated) and the GPIB device-address question. The manual settles one thing: real GPIB protocol is *not* supported on the Drive C connector |
+| 7 | Drive C IEEE-488 protocol | **Solved** | `drive-c-protocol.md`; `DRIVE_C.IMD` extracted and disassembled ([`research/drive_c/disasm/`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/disasm/)); the ROM's IEEE-488 implementation gives the PIA programming, the GPIB command bytes and the "always ready" stub behaviour (`o1-rom-source.md`); and the **byte transport is now read from `DCL`** — PIA init, the 128-byte strobed transfer, the operation bytes `88h`/`81h`, port B bit 6 as the device status input. The transport is in `DCL`, **not** `DFD.SPR` (which makes no PIA references at all); and the **port's own semantics are now documented from the vendor's side** — `o1-ieee488-port.md` (Companion #8): **eight** low-level ROM drivers, **15** devices on the bus (**8** if parallel poll is used), the machine's own address is **0**, and the driver table is the eight 3-byte jumps at **`013F–0156`** | #6, #22, #84 | — **#6 closed 2026-10-11.** The two residues are #84's now: bank resolution for `n = 0,1,2` (hardware-gated) and the GPIB device-address question. The manual settles one thing: real GPIB protocol is *not* supported on the Drive C connector |
 | 8 | RT-60A register map | **Solved** (as a contract) | `rt60a-analysis.md`, reconstructed from the manual | #7, #18 | **Decision taken 2026-10-11 (#7): implement the ABI, not the hardware.** The manual documents the memory contract (`0x0040` pointer, the block, the `0xEFF8` vector) and does *not* document the IEEE handshake — so faithful-hardware emulation is blocked on a `CLOCK.COM` we cannot read, and buys nothing the ABI does not. Left: ~~promote the map to a contract, then implement it in #18.~~ **The map is promoted to a contract** and #18 implements it — **#7 closed 2026-10-11**. The bitsavers TD0 is still a damaged dump (27 no-id sectors) |
 | 9 | OCC1 hard disk | **Solved** | `occ1-harddisk-analysis.md` (product analysis, port claim corrected); `harddisk-decision.md` (the decision + plan, and §7.2 for the drive table) | #8, #178 | **Decided 2026-10-12 (#8): emulate the Adaptec ACB-4000** — the controller inside the Media Distributing **MD-10** — not the ACT. The ACB-4000's command set is documented (OEM manual, now archived) and the ACT's is recorded as unobtainable; the port claim is corrected. **The drive-table record layout and its byte→field mapping are read (2026-10-12, #178)** — `harddisk-decision.md` §7.2. Left: the *numeric* DPB the driver builds at run time — its mechanism and source offsets are read (§7.3) and the values are shown to be absent from the archive, and both remaining routes are bounded (`acb4000-host-adapter.md`) — plus the CoPower-88 drive-letter policy (`harddisk-decision.md` §7.3, §9.4) |
 | 10 | 6850 ACIA location for the WiFi modem | **Solved** | `o1-memory-io-map.md` §3: `2A00`/`2A01`, UC4 — confirmed independently by the ROM source | #21 | — |
@@ -128,7 +128,7 @@ up a second, unrelated one. Confirmed from their own strings:
 
 | | ACT hard disk | Media Distributing / Adaptec |
 |---|---|---|
-| Source | [`research/harddisk/OCC1_HARDDISK.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/harddisk/OCC1_HARDDISK.IMD) | `research/adaptec/*.img` |
+| Source | [`research/harddisk/OCC1_HARDDISK.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/OCC1_HARDDISK.IMD) | `research/adaptec/*.img` |
 | Vendor string | `AUSTRALIAN COMPUTER & TELECOMMUNICATIONS  COPYRIGHT (C) 1982` | `Copyright (c) September 1983, Media Distributing` |
 | Versions | `Version 31.05.82`, `Version 9-02-81` | `HARD version 1.93`, `PORTCHNG version 1.92`, `PREP version 1.93` |
 | Controller | its own; `Enter disk controller address (` | Adaptec ACB-4000; `Enter starting port address in hex`, `must be on a 4 port boundary` |
@@ -149,24 +149,24 @@ incomplete without them, and because none is buildable from what we hold:
   Portable Companion* #11 (October 1983), PDF p. 54 = printed p. 52, "**Doubling
   hard disk memory**" by Bob Gras (reprinted from the OSUG newsletter, Anchorage),
   is a patch for exactly that program, needed because DD leaves less memory for
-  it ([`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/dd-upgrade-formats.md)). No Corvus software or media held.
+  it ([`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1next/blob/main/docs/dd-upgrade-formats.md)). No Corvus software or media held.
 - **Osmosis OSMOS 7**, advertised as "Winchester disks … 5¼, 10½, 15¾ & 21 MByte
   units - a 42 Megabyte max capacity", $2475–$3650 — on the same page as the
   OSMOS 5 80-column board, which itself "**includes a Hard Disk interface for
-  future plug-in expansion**" ([`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-upgrade-boards.md)). No media held.
+  future plug-in expansion**" ([`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-upgrade-boards.md)). No media held.
 - **Trantor TSL-5 / TSL-10** — *The Portable Companion* #5 (February/March 1983),
   PDF p. 28: "unpack your disk, **plug it into the IEEE port**, run a simple 5
   minute installation procedure", 5 MB $2995 / 10 MB $3395, supplied with BIOS,
   back-up and retrieve utilities and cable
-  ([`research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf)).
-  This is the line [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) records the Drive C vendor as
+  ([`research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue05-1983-pp28-trantor-tsl-hard-disk-ad.pdf)).
+  This is the line [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) records the Drive C vendor as
   reselling at a discount; the advertisement is what pins its interface to the
   **IEEE bus**. No media held.
 - **Helix** (Micro Computers of New Orleans) — *The Portable Companion* #5,
   PDF p. 98, "**Winchesters Now Available For The Osborne 1**", 5/10/15 MB at
   $2500/$3000/$3500, a "**Z-80 adaptor** card [that] leaves external ports free"
   and a ribbon cable that "disconnects for portability"
-  ([`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf)).
+  ([`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf)).
   No media held.
 
 **One of the two archived products now has a name.** The Mega-byte Inc.
@@ -174,10 +174,10 @@ advertisement in *The Portable Companion* #5 (PDF p. 25) sells the **MD-10** —
 10 MB formatted for $2295, "20 and 44 megabyte Winchesters also available" — and
 its footnote reads *"MD-10 is a registered trademark of **Media Distributing**."*
 That is the same Media Distributing whose September-1983 disk sits in
-[`research/adaptec/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/), and that disk ships `MD10.COM`/`MD20.COM`, matching the 10
+[`research/adaptec/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/), and that disk ships `MD10.COM`/`MD20.COM`, matching the 10
 and 20 MB models. So the archive's "Media Distributing / Adaptec" entry **is the
 MD-10**, with an Adaptec ACB-4000 controller inside
-([`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/occ1-harddisk-analysis.md)). The ad also fixes the *architecture*: the
+([`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md)). The ad also fixes the *architecture*: the
 MD-10 "does not tie up existing OSBORNE ports" and is "significantly faster than
 other winchester subsystems **which use the IEEE port**" — i.e. it is **not** an
 IEEE-488 device, unlike Trantor, Drive C and the RT-60A. Taken with the ACT
@@ -227,15 +227,15 @@ constrains any 2.0 ROM (#83).
 
 | Item | Issue | State |
 |---|---|---|
-| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Closed 2026-10-12.** Both halves of both products are written up in `o1-upgrade-boards.md` — the video side there, the DD side in `dd-upgrade-formats.md` — with the prior-art note in [`research/inspired-by/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/inspired-by/README.md). Its residue, **#173** (the Nuevo BIOS 1.5 presence check), closed the same day: the check is a read of a port the Osborne 1 does not decode |
+| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Closed 2026-10-12.** Both halves of both products are written up in `o1-upgrade-boards.md` — the video side there, the DD side in `dd-upgrade-formats.md` — with the prior-art note in [`research/inspired-by/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/inspired-by/README.md). Its residue, **#173** (the Nuevo BIOS 1.5 presence check), closed the same day: the check is a read of a port the Osborne 1 does not decode |
 | Advent Products' **Osbaud** baud-rate generator (#21) | #21 | The four connection points are decoded from the review + schematic (6850 pins 4/12, 74LS32 and 74LS04 pin 7); the internal crystal/divider topology is **not** known — needs the instruction sheet or a photo. `o1-modem-serial.md` |
 | Archive provenance TODOs (2 items) | #74 | **Closed** |
 | `cpmtools` misreads Kaypro DSDD images | #35 | `misc`. Upstream identified: the primary site is `moria.de` (Michael Haardt, 2.23, **email patch** — no GitHub, no tracker), and the practical PR venue is the unofficial `lipro-cpm4l/cpmtools` fork (3 open PRs, 2.21-based). Closes **when filed**, not when merged |
 | G2 multi-format diskette read/write | #30 | **Closed** — folded into #95, which is itself closed: the G2 set is more rows in the same DPB+skew table, and no rows get written, because the O1 does not need to recognise foreign formats |
-| Case + power research (the LFF and SFF boards, and the O1NG enclosure) | #52 | **Phase 5** (#49). A design task, not Phase-0 research |
+| Case + power research (the LFF and SFF boards, and the O1NEXT enclosure) | #52 | **Phase 5** (#49). A design task, not Phase-0 research |
 | Contribute OZROM 1E to MAME (BIOS slot or an `osborne1oz` machine) | #82 | `misc`. The **machine definition may be worth more than the dump**; a physical OZROM 1E is available to read, which would at least give honest provenance |
 | A local Jekyll environment | #106 | `misc`. `site/` has **no `Gemfile`**, so this is partly creating the manifest, not just resolving it |
-| `Osborne1ng.ttf` — a complete modern font | #107 | `misc`. Extrapolate the O1's 8x10 forms into a full modern face with accents |
+| `Osborne1nx.ttf` — a complete modern font | #107 | `misc`. Extrapolate the O1's 8x10 forms into a full modern face with accents |
 | The complete Osborne 1 reference ("the book") | #75 | **Ungated** — a rolling build; pieces tracked as #108–#115 |
 
 ---
@@ -245,17 +245,17 @@ constrains any 2.0 ROM (#83).
 After the 2026-10-11 triage the label means **reverse engineering and
 documentation** again. Five issues left it: **#35** and **#82** (`misc` — upstream
 contributions), **#97** (`misc` — site and font), **#84** (a build, now
-[`hardware/drive-c/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/)) and **#52** (Phase 5). **#83** was never
+[`hardware/drive-c/`](https://github.com/Myrcurial/o1next/blob/main/hardware/drive-c/)) and **#52** (Phase 5). **#83** was never
 research-labelled and has been removed from this table.
 
 | Issue | Title | State | What closes it |
 |---|---|---|---|
 | #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 21 of 23 closed |
-| #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
+| #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
 | #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed 2026-10-11** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
 | #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
 | #178 | Read the MD-10 DPB and `DRIVETBL.DAT` | Open — **both halves now bounded 2026-10-12** | The **drive-table half is closed**: the file's structure (13-byte header, 126 11-byte name records, sentinel, 113 128-byte description records) and the byte→field mapping — the nine geometry bytes are the ACB-4000's own `MODE SELECT` drive-parameter block — are in `harddisk-decision.md` §7.2, read from the shipped file and confirmed by running `MD10.COM`'s editor in MAME. The **DPB half is now bounded rather than open**: §7.3 reads the mechanism with its source offsets (`SELDSK` → DPH at `0x056E + type*24 + 8`; the DPB pointer at DPH+10; `BLM` read from `DPB+3`; 128-byte records, 4 to a 512-byte sector) and proves the *values* are not in the archive — no file initialises `0x055E`/`0x056E`, and the MD utilities disk is a data disk (system tracks all `0xE5`) carrying no system image. **Both remaining routes are now bounded (2026-10-12)**: the host-adapter register protocol is decoded (`acb4000-host-adapter.md` §1 — the probe, the transaction, and the four status bits `01h`/`02h`/`20h`/`40h`), the **MAME-stub route is blocked** because the O1's on-board decode uses only two I/O address bits so `30h`–`33h` alias onto the ROM-bank ports (§2), and a **stock system image does not reach low RAM** (it loads `[CCP][BDOS][BIOS]` at the CCP, §3). Needs a MAME driver change or an MD-10 system disk |
-| #73 | Nuevo + Osmosis prior art | **Closed 2026-10-12** | Written up in `o1-upgrade-boards.md` (both products, both halves, and how each is detected) plus the prior-art note in [`research/inspired-by/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/inspired-by/README.md). Residue **#173** closed the same day |
+| #73 | Nuevo + Osmosis prior art | **Closed 2026-10-12** | Written up in `o1-upgrade-boards.md` (both products, both halves, and how each is detected) plus the prior-art note in [`research/inspired-by/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/inspired-by/README.md). Residue **#173** closed the same day |
 | #173 | The Nuevo BIOS 1.5 presence check | **Closed 2026-10-12** | Read out of the two CBIOS images: `IN A,(04H)` at the head of the cold boot, guarding the 80-column configuration, with the factory DD disk `O1CPM.IMD` as the 1.4 partner. The one step a board would add — that the read is zero with the card fitted — is stated as such in `o1-upgrade-boards.md` |
 | #75 | The book | **Ungated** | The pieces in #108–#115 |
 | #81 | OZROM as tooling | **Closed 2026-10-11** | The manual is indexed, the 52/80/104-column switch's mechanism is measured from the ROM (it drives the stock video PIA through the stock ROM's helper — `2C00`, cached in `EF61`), and the jump table now diffs clean against `rom144.asm`. Residue routed: #167 (harness keystrokes). #168 (a complete Utilities disk) closed as unnecessary — we had it; the "erased sectors" were a `cpmfs.py` skew bug (#170) |
@@ -286,9 +286,9 @@ re-derivable from a source:
   not two.
 - **#97 keeps the machine's own repertoire** — the graphics-set Unicode mapping
   and the recovered logo art. The modern font is split out as **#107**
-  (`Osborne1ng.ttf`).
+  (`Osborne1nx.ttf`).
 - **#84 is a build**, filed beside the other standalones (#47, #56) in
-  [`hardware/drive-c/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/drive-c/), not under the interposer.
+  [`hardware/drive-c/`](https://github.com/Myrcurial/o1next/blob/main/hardware/drive-c/), not under the interposer.
 - **#52 belongs to Phase 5** (#49).
 - **The book is ungated.** #75 no longer waits on every research issue; it is a
   rolling build (#108–#115), with Part I and the appendices buildable today.

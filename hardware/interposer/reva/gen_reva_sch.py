@@ -246,7 +246,7 @@ syms = {'Z80': make_z80('Z80_DIP40','J'), 'Z84': make_z84(), '165': make_165('74
 
 out = ['(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
        f'  (uuid "{uid()}")', '  (paper "A2")',
-       f'  (title_block (title "o1nextgen interposer Rev A engineering sample") (date "{datetime.date.today()}") (rev "A-ES")',
+       f'  (title_block (title "o1next interposer Rev A engineering sample") (date "{datetime.date.today()}") (rev "A-ES")',
        '    (comment 1 "Active interposer: bus mastering via /BUSRQ, SR-based drive+capture, SMT Z84C00, Pico 2 + ESP32-C3. Engineering sample - 2 off."))',
        '  (lib_symbols']
 for s in syms.values(): out.append(s.lib_sexpr().rstrip('\n'))

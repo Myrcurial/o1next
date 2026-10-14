@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "5e27403b-1e05-442b-95b6-d2bb626b9714")
   (paper "A2")
-  (title_block (title "o1ng-LFF 1:1 mainboard replacement") (date "2026-10-09") (rev "0.0-block") (comment 1 "Faithful reproduction: socketed DIP-40 Z80; interposer is the upgrade path. L-shaped board, 4 mounting bosses, stock port locations."))
+  (title_block (title "o1next-LFF 1:1 mainboard replacement") (date "2026-10-09") (rev "0.0-block") (comment 1 "Faithful reproduction: socketed DIP-40 Z80; interposer is the upgrade path. L-shaped board, 4 mounting bosses, stock port locations."))
   (lib_symbols)
   (sheet (at 40 40) (size 140 50) (fields_autoplaced yes) (stroke (width 0.1524) (type solid)) (fill (color 0 0 0 0.0000)) (uuid "939858d7-c774-4865-8fab-6151d50d67ba")
     (property "Sheetname" "cpu_mem" (at 40 38 0) (effects (font (size 1.27 1.27)) (justify left bottom)))

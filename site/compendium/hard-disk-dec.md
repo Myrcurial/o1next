@@ -11,14 +11,14 @@ unit. One personality, built as a **faithful ACB-4000 SCSI target behind a
 configurable host-adapter shim**, so that the same firmware serves any Z80
 machine with an ACB-4000-class driver and not only the Osborne 1.
 
-This is the decision [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/occ1-harddisk-analysis.md) was the groundwork for. It
+This is the decision [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) was the groundwork for. It
 answers #8's remaining checklist: the command set is documented (§4, from the
 vendor's own OEM manual), the recommendation is written (§2), and the port claim
 is corrected (§3). It is also the **formal plan** for the personality (§9).
 
-Sources: [`research/harddisk/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/harddisk/) (the ACT disk) and [`research/adaptec/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/) (the MD-10
+Sources: [`research/harddisk/`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/) (the ACT disk) and [`research/adaptec/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/) (the MD-10
 software) — both extracted and disassembled in-project; and the Adaptec ACB-4000
-OEM manual, archived at [`research/adaptec/acb4000/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/acb4000/) (§4, and the archive note in
+OEM manual, archived at [`research/adaptec/acb4000/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/acb4000/) (§4, and the archive note in
 §9.1). Serves #8; overlaps #20, #27, #84.
 
 ## 1. The decision, in one sentence
@@ -41,7 +41,7 @@ Two consequences worth stating up front, because they are the point:
 
 Both products are in the archive. Both were disassembled for this decision
 (`z80dasm`, scratch listings; the reusable commands are in the sources of
-[`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/occ1-harddisk-analysis.md)). The comparison is not close:
+[`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md)). The comparison is not close:
 
 | | ACT (1982) | **MD-10 / Adaptec ACB-4000** |
 |---|---|---|
@@ -62,7 +62,7 @@ register map (§4).
 
 ## 3. The ACT, corrected
 
-[`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/occ1-harddisk-analysis.md) recorded the ACT adapter's registers as
+[`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) recorded the ACT adapter's registers as
 `0x2A00` (command/data) and `0x2C01` (status), and #8 flagged that those
 addresses "are the ACIA and video PIA, so something there is misread." The
 disassembly says the flag was right. Three corrections:
@@ -71,7 +71,7 @@ disassembly says the flag was right. Three corrections:
    console **ACIA** (`2A00` status read / control write, `2A01` RX/TX) — the
    console helpers `sub_e992h`/`sub_e99bh` read `2A00` and test **bit 1 =
    TDRE** and **bit 0 = RDRF** — and `0x2C01` is the **video PIA**.
-   [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3 already says so; the driver confirms it.
+   [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3 already says so; the driver confirms it.
 2. **The disk rides the IEEE-488 PIA at `2900–2903`.** It is the only device
    routine in the image, it is reached from the disk path — READ (`E32A`) →
    `sub_e448h` → `E475` → `sub_e520h` → `sub_e58fh` (`E58F`) — and it works by
@@ -96,7 +96,7 @@ undocumented and would have to be recovered byte by byte.
 
 ## 4. What the ACB-4000 actually is
 
-From the OEM manual ([`research/adaptec/acb4000/500504-00_ACB-4000_OEM_Manual_Mar84.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/acb4000/500504-00_ACB-4000_OEM_Manual_Mar84.pdf)):
+From the OEM manual ([`research/adaptec/acb4000/500504-00_ACB-4000_OEM_Manual_Mar84.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/acb4000/500504-00_ACB-4000_OEM_Manual_Mar84.pdf)):
 
 - **A SCSI-1 target, not a "Z80 card."** It interfaces "to a host adapter
   according to the proposed ANSI X3T9.2 Standard (SCSI)", on a 50-pin ribbon,
@@ -129,7 +129,7 @@ From the OEM manual ([`research/adaptec/acb4000/500504-00_ACB-4000_OEM_Manual_Ma
   is therefore one repeated byte — which is the whole basis of the sparse blob
   (§7).
 - **The controller has its own brain.** The archive holds **six 8 KiB ROM
-  images** plus an Intel-HEX build ([`research/adaptec/acb4000/firmware/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/acb4000/firmware/)), i.e.
+  images** plus an Intel-HEX build ([`research/adaptec/acb4000/firmware/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/acb4000/firmware/)), i.e.
   the ACB-4000 is a small computer running firmware, and its SCSI behaviour can
   be *read* rather than inferred. See §9.3 for how far we take that.
 
@@ -176,7 +176,7 @@ of it needs to be.
 
 ## 6. The Osborne 1 shape of it (the MD-10)
 
-From the MD-10 software ([`research/adaptec/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/), disassembled):
+From the MD-10 software ([`research/adaptec/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/), disassembled):
 
 - **Port base is a parameter.** `HARDBIOS.SPR` is built for base **`30h`**; the
   shipped `HD00BIOS.SPR`/`HD04BIOS.SPR` are the *same code* at base **`00h`** and
@@ -187,7 +187,7 @@ From the MD-10 software ([`research/adaptec/`](https://github.com/Myrcurial/o1ne
 - **Registers:** `base+0` data (also the `OUTI`/`INI` block port), `base+1`
   control, `base+2` status read / control write, `base+3` control. Status bits
   the driver polls: `01h`, `02h`, `20h`, `40h`. The probe, the transaction and
-  the bit meanings are read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/acb4000-host-adapter.md) §1 — including
+  the bit meanings are read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md) §1 — including
   that `base+2` reading `04h` is "exactly one controller on-line", and that
   `30h`–`33h` **alias onto the on-board 2-bit I/O decode** (so the adapter must
   own the bus for those ports; §2).
@@ -226,7 +226,7 @@ not read (§9.4, item 1).
 **"How does it handle CP/M 2.2's limits on the Osborne?"**
 
 - **16 logical drives** is CP/M's limit, not the device's — the same conclusion
-  [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) §8.4 reached for Drive C.
+  [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §8.4 reached for Drive C.
 - **8 MB per file** is CP/M 2.2's extent limit; the ad's "read or write a 64K
   file in less than four seconds" sits comfortably inside it.
 - The O1's **stock BIOS is fixed-size with floppy-sized DPBs**, so the MD-10
@@ -245,13 +245,13 @@ with islands of data. Two encodings, both self-describing:
   reconstituted on load.
 
 This is the same "the size *is* the geometry" trick as the Drive C blob
-([`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) §4.2), with one addition the user's original sketch
+([`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §4.2), with one addition the user's original sketch
 did not need: **record the fill byte rather than assuming `0xE5`.** The
 controller's default is `6Ch` and CP/M's is `E5h`, so the fill is a property of
 the *volume*, not of CP/M.
 
 One caution. CP/M writes `E5` to the **directory** eagerly but not the whole data
-area ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) §8.5, measured on the Drive C install), whereas
+area ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §8.5, measured on the Drive C install), whereas
 the ACB-4000's `FORMAT` is what makes the *whole* volume uniform. So a volume is
 only "sparse-friendly" if it was formatted by the controller — which it will be
 — and the trailing-fill length should be **measured on a formatted volume**
@@ -309,7 +309,7 @@ corrections are the reason the mapping was hard to see:
   `rc = 1` (128 bytes) and even sits at extent 1, but the file owns nine
   allocation blocks and holds **16 512 bytes of live data**. A `cpmfs.py get`
   therefore returns the header and five name records and nothing else; the rest
-  is reachable only by walking the block list ([`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drivetbl.py)).
+  is reachable only by walking the block list ([`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drivetbl.py)).
 - **A record is not a 7-byte name plus four parameter bytes.** The name field is
   **ten** bytes, and the four bytes are not the numeric fields at all — the
   geometry lives somewhere else entirely.
@@ -371,7 +371,7 @@ alias: all 26 share their description record with another name (the editor's
 
 **Measured**, in MAME, by running the editor itself. `MD10.COM` will not start
 without an ACB-4000 answering on `30h`–`33h`, so **three** 3-byte patches were
-applied ([`tools/research/md10patch.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/md10patch.py)): the overlay's init call at `0x0219`,
+applied ([`tools/research/md10patch.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/md10patch.py)): the overlay's init call at `0x0219`,
 which is what exits the program when nothing answers; the probe at `0x15AF`; and
 the branch at `0x0EE8`, which takes the loaded table to the editor's menu instead
 of its "name not found" path. Nothing else in the program is touched — the
@@ -397,7 +397,7 @@ same run fixed the rest:
   current-record offset at `0x3004` to **13** — the header length.
 
 **Read from the primary source**: the shipped `DRIVETBL.DAT` itself, dumped by
-[`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drivetbl.py). **Read from the driver**: the write side uses the
+[`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drivetbl.py). **Read from the driver**: the write side uses the
 same five offsets (`LD (2719h),HL` … `LD (2721h),A`). **Cross-checked against the
 manual and against the real drives**: the step codes are the manual's table
 (`0` = 3 ms unbuffered, ST-506; `1` = 28 µs buffered, ST-412; `2` = 12 µs
@@ -436,11 +436,11 @@ report the geometry the table holds.
 
 The whole table — 126 entries over 113 description records — is in
 `research/adaptec/MD Utilities Adaptec 4000 Controller Ver. 1.93 Osborne - MD-10
-MD-20.img`; [`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drivetbl.py) prints it. The 2.01 disk carries the
+MD-20.img`; [`tools/research/drivetbl.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drivetbl.py) prints it. The 2.01 disk carries the
 same table byte-for-byte.
 
 **A second, independent list.** `DRIVETBL.DAT` is Osborne's/MD-10's list. The
-period list archived at [`research/adaptec/compatible-drives-1991-usenet.txt`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/compatible-drives-1991-usenet.txt)
+period list archived at [`research/adaptec/compatible-drives-1991-usenet.txt`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/compatible-drives-1991-usenet.txt)
 (Robert Haar, `comp.sys.3b1`, Feb 1991, reposting Lenny Tropiano's 1989 table
 out of the Western Digital support BBS) is the *drive manufacturers'* one, and
 it is broader: Atasi, ALPS, Ampex, CMI, Disctron, Evotek, Fujitsu, IMI,
@@ -454,7 +454,7 @@ the tools carry. Nothing is reconciled here; both are recorded, because the
 personality (#179) may offer any geometry the driver's DPB can describe, not
 only the 126 in the shipped table.
 
-**Making a drive image.** [`tools/research/mkdrive.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/mkdrive.py) builds a blank-but-formatted
+**Making a drive image.** [`tools/research/mkdrive.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/mkdrive.py) builds a blank-but-formatted
 ST-506/MFM image for any geometry, byte-wise, without the 1984 tools:
 
 ```sh
@@ -470,16 +470,16 @@ whose `GDDD` metadata is the same record the controller keeps in the disk's ID
 fields. `PREP.COM` asks for a *unique* fill byte and sends `D9` in its FORMAT
 CDB, so `--fill d9` exists too. It is needed because `PREP.COM` cannot finish its
 own format under MAME — the verify pass that follows it (`2F`) has no handler
-([`docs/osborne1ng-machine.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/osborne1ng-machine.md) §5).
+([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) §5).
 
 The drive's *own* structure — what `PREP.COM` writes once it has finished a
 format — is no longer an unknown: it is the four-block header at LBA 0–3 read
 out of the program, with the disk label and its 28-byte partition records at
-LBA 0. [`docs/osborne1ng-machine.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/osborne1ng-machine.md) §6 has the field map and the recipe.
+LBA 0. [`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) §6 has the field map and the recipe.
 
 #### Running the editor
 
-Four things were added to [`tools/research/`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/) for this, each with a header saying
+Four things were added to [`tools/research/`](https://github.com/Myrcurial/o1next/blob/main/tools/research/) for this, each with a header saying
 what it was for: `o1raw2imd.py` (wrap an archive `.img` for MAME, which will not
 open a bare raw sector image), `o1keys.lua` + `o1keys.sh` (a scripted-keystroke
 harness, with a `peek` directive — that is what made the in-memory table
@@ -583,7 +583,7 @@ Mar84 OEM manual §6.3.1:
   legal command.**"
 
 And **where** on the drive — from the ACB-4000A user manual §2.3.1, which is an
-image-only scan (OCR committed beside it per [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md)):
+image-only scan (OCR committed beside it per [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md)):
 
 > During FORMAT the disk parameters provided by the MODE SELECT command will be
 > encoded onto the disk.  **These parameters are written to the ID field of
@@ -615,7 +615,7 @@ So the geometry is written **onto the drive** by the last `FORMAT` and read back
 `MODE SENSE` — precisely the factory-assembled case, where an ACB and its drive were
 paired and formatted before an end user saw either, so the drive already carries its
 parameters and a later `FORMAT` without a `MODE SELECT` keeps them.
-[`docs/acb4000-firmware.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/acb4000-firmware.md)'s inference is now **read, not inferred**, which promotes
+[`docs/acb4000-firmware.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-firmware.md)'s inference is now **read, not inferred**, which promotes
 `MODE SENSE` (1AH) and `READ CAPACITY` (25H) from "implement faithfully" to "the
 personality's correctness depends on these".
 
@@ -654,7 +654,7 @@ the format's sectoring, and the *values* are still not in the archive.  But the
 search has changed shape: it is no longer "find the table", it is "watch the driver
 do the arithmetic" — and this repo has already done that once:
 
-1. **A stub ACB-4000 in MAME.**  [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/drive-c-box.lua) is a Lua model of
+1. **A stub ACB-4000 in MAME.**  [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua) is a Lua model of
    the Drive C box, and with it present "the 1983 loader completes and PIP writes to
    `C:`" — the same move, for the same reason.  A stub answering
    `MODE SENSE`/`READ CAPACITY`/`FORMAT` on ports `30h`–`33h` would let `MD10.COM`
@@ -662,18 +662,18 @@ do the arithmetic" — and this repo has already done that once:
    utility writes and what the driver builds from it.  **Try this first.** *Tried —
    and it is blocked: MAME's `osborne1` decodes only two I/O address bits, so
    `30h`–`33h` alias onto the ROM-bank ports and a Lua stub cannot reach the adapter.
-   It needs a MAME driver change. See [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/acb4000-host-adapter.md) §2.*
+   It needs a MAME driver change. See [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md) §2.*
 2. **A bootable MD-10 system disk**, whose system tracks would carry the low-RAM
    tables outright.  *Also bounded: a stock O1 system image loads `[CCP][BDOS][BIOS]`
    at the CCP, far above `0x055E`, so this too depends on the MD-10's memory map
    being unlike the stock one — which its own `BOOT` suggests it is. See
-   [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/acb4000-host-adapter.md) §3–§4.* **Its first half is now answered**: the
+   [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md) §3–§4.* **Its first half is now answered**: the
    *on-disk* half of that system — the disk header at LBA 0–3, the label at LBA 0
    and the 28-byte partition records it carries — is read out of `PREP.COM` and
-   reproduced on the emulated drive ([`docs/osborne1ng-machine.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/osborne1ng-machine.md) §6). What is
+   reproduced on the emulated drive ([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) §6). What is
    still missing is the *in-memory* half: the low-RAM DPH/DPB tables themselves.
 
-The host-adapter register protocol is read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/acb4000-host-adapter.md); §6's
+The host-adapter register protocol is read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md); §6's
 open question #2 (the status bit map) is answered there — the driver polls `01h`,
 `02h`, `20h`, `40h`.
 
@@ -684,13 +684,13 @@ one: `0x055E` is an offset from the **BIOS's base**, and the MD-10 BIOS loads at
 descriptors at **`0xDD6E`** and the **DPB itself at `0xDDB6`** — all *static data
 inside the BIOS image*, readable from `HARD.COM` at file offsets `0x998`, `0x9A8`
 and `0x09F0`. `DPB+3` is `31`, which is the `BLM` this section read out of the
-*code* before the data was found. [`docs/md10-system.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/md10-system.md) §9 has the tables and the
+*code* before the data was found. [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9 has the tables and the
 one field (`SPT`) that still needs explaining; §7.2's drive-table work stands.
 
 
-[`research/harddisk/OCC1_HARDDISK.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/harddisk/OCC1_HARDDISK.IMD) is a *different* controller — Australian
+[`research/harddisk/OCC1_HARDDISK.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/OCC1_HARDDISK.IMD) is a *different* controller — Australian
 Computer & Telecommunications, port `00` — i.e. the RT-60A situation again: recorded
-as incompatible in [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/occ1-harddisk-analysis.md) §3, moved past, and not part of
+as incompatible in [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) §3, moved past, and not part of
 this question.
 
 ## 8. Coexistence — the A/B→E/F remap and the CoPower-88
@@ -702,7 +702,7 @@ integration questions** — and neither is hardware.
 1. **No port conflict.** The CoPower-88 host driver talks over its own port pair
    (`0x7E`/`0x7F` on Kaypro; the Osborne decode is still open, #5), while the
    MD-10 uses `30h–33h`. Different ports, no arbitration
-   ([`docs/copower88-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/copower88-protocol.md)).
+   ([`docs/copower88-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/copower88-protocol.md)).
 2. **Two things patching the BIOS.** The MD-10 *replaces* the BIOS; the
    CoPower-88 host driver *installs a BIOS wedge* and asks for a drive letter
    `A`–`P` at install time. Anything that patches the jump table has to be
@@ -712,7 +712,7 @@ integration questions** — and neither is hardware.
    solve for its other drivers.
 3. **Drive letters are configuration, not fate.** The CoPower-88 loader *asks*
    which host drive to use, and the Drive C precedent shows a device's letter is
-   renamable ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) §8.4) — so the `A:`/`B:`→`E:`/`F:` move
+   renamable ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §8.4) — so the `A:`/`B:`→`E:`/`F:` move
    is survivable, at the cost of redoing the 8088-side DOS environment.
 4. **It is not MD-10-specific.** Any driver that makes the hard disk the boot
    drive renames the floppies, because CP/M boots from `A:`. The MD-10 is not
@@ -728,8 +728,8 @@ integration questions** — and neither is hardware.
 ### 9.1 Archive the primary sources — first, so citations resolve
 
 The ACB-4000 is now the chosen controller, so its primary sources belong in the
-in-repo archive, with provenance rows in [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) (AGENTS.md). Under
-[`research/adaptec/acb4000/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/acb4000/):
+in-repo archive, with provenance rows in [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) (AGENTS.md). Under
+[`research/adaptec/acb4000/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/acb4000/):
 
 | Path | What it is |
 |---|---|
@@ -783,7 +783,7 @@ if a driver turns out to depend on undocumented controller behaviour.
 - [x] The command sets of both products documented — the ACB-4000's from its OEM
       manual (§4); the ACT's **recorded as unobtainable** (§3), which #8 allows.
 - [x] A written recommendation — the ACB-4000 (§2).
-- [x] The port-claim correction applied to [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/occ1-harddisk-analysis.md) (§3).
+- [x] The port-claim correction applied to [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) (§3).
 
 ## 10. Open questions
 
@@ -794,7 +794,7 @@ if a driver turns out to depend on undocumented controller behaviour.
    (§7.3). It needs an MD-10 system disk or a `peek` under MAME.
 2. **The MD-10 host-adapter bit map** — which observed status bit is `REQ`, which
    is `BSY`, which is phase (§6). Bounded, because the *protocol* is known; the four
-   bits the driver polls are now read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/acb4000-host-adapter.md) §1
+   bits the driver polls are now read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md) §1
    (`01h`/`02h`/`20h`/`40h`).
 3. **"36 user areas"** — a driver extension, or advertising copy?
 4. **Is the MD-10's drive-letter assignment reconfigurable?** It decides whether
@@ -805,18 +805,18 @@ if a driver turns out to depend on undocumented controller behaviour.
 
 ## Sources
 
-- [`research/harddisk/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/harddisk/) — the ACT software (`OCC1_HARDDISK.IMD`, `extracted/`),
+- [`research/harddisk/`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/) — the ACT software (`OCC1_HARDDISK.IMD`, `extracted/`),
   disassembled for §3.
-- [`research/adaptec/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/) — the MD-10 software (three disk images), disassembled for
-  §6; and the archived ACB-4000 primary sources under [`research/adaptec/acb4000/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/adaptec/acb4000/)
+- [`research/adaptec/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/) — the MD-10 software (three disk images), disassembled for
+  §6; and the archived ACB-4000 primary sources under [`research/adaptec/acb4000/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/acb4000/)
   (§9.1).
-- [`research/technical-articles/TPC-Issue05-1983-pp25-mega-byte-md10-hard-disk-ad.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue05-1983-pp25-mega-byte-md10-hard-disk-ad.pdf)
+- [`research/technical-articles/TPC-Issue05-1983-pp25-mega-byte-md10-hard-disk-ad.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue05-1983-pp25-mega-byte-md10-hard-disk-ad.pdf)
   (OCR at `…ocr.txt`) — the MD-10 advertisement: sizes, drive letters, user
   areas, memory overhead (§6, §7).
-- [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/occ1-harddisk-analysis.md) — the product analysis this decides on top of.
-- [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3 — the `2900`/`2A00`/`2C00` device map used in §3.
-- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) §8.3–§8.5, [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) §4.2 — the
+- [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) — the product analysis this decides on top of.
+- [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3 — the `2900`/`2A00`/`2C00` device map used in §3.
+- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §8.3–§8.5, [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §4.2 — the
   CP/M ceiling, the drive-letter precedent and the blob precedent (§7, §8).
-- [`docs/copower88-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/copower88-protocol.md) — the CoPower-88 host protocol (§8).
-- [`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/virtual-peripherals-block-diagram.md) §5 — the personality table this
+- [`docs/copower88-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/copower88-protocol.md) — the CoPower-88 host protocol (§8).
+- [`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o1next/blob/main/docs/virtual-peripherals-block-diagram.md) §5 — the personality table this
   re-orders.

@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "25b282fb-b972-4201-af7d-3459b5605255")
   (paper "A4")
-  (title_block (title "o1ng-LFF: floppy") (date "2026-10-09") (rev "0.0-block"))
+  (title_block (title "o1next-LFF: floppy") (date "2026-10-09") (rev "0.0-block"))
   (lib_symbols)
   (text "Floppy" (at 30 40.0 0) (effects (font (size 2 2))) (uuid "7e151d06-2cd3-4a85-a541-bd5975e55dc8"))
   (text "MB8877/FDC179x-class FDC, original Shugart connector pinout, DD data separator (enables PC 360K MFM reads for " (at 30 47.62 0) (effects (font (size 2 2))) (uuid "7f061a30-0a9d-4019-b0a9-af35e571253f"))

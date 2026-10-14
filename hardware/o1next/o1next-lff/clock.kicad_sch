@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "39a80c42-181c-403f-9622-79efc5b8041f")
   (paper "A4")
-  (title_block (title "o1ng-LFF: clock") (date "2026-10-09") (rev "0.0-block"))
+  (title_block (title "o1next-LFF: clock") (date "2026-10-09") (rev "0.0-block"))
   (lib_symbols)
   (text "Clock/reset" (at 30 40.0 0) (effects (font (size 2 2))) (uuid "72876adf-d24d-4f05-8513-5330aad17811"))
   (text "single-oscillator design (#55), 4.0 MHz base, reset supervisor; NO turbo on LFF (turbo is a lunchbox feature)" (at 30 47.62 0) (effects (font (size 2 2))) (uuid "5d7356af-542c-4dd7-9ffd-1d505e586830"))

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draw the o1nextgen wordmark the way the Osborne logo is drawn.
+"""Draw the o1next wordmark the way the Osborne logo is drawn.
 
 The first attempt rasterised a traced SVG outline, which stair-steps badly: the
 wordmark's strokes were three character cells thick, and the graphics set only
@@ -22,7 +22,7 @@ downsampled, so the result is as clean as the medium allows.
 The drawn O is checked against the recovered art -- if the geometry is right, they
 should agree almost pixel for pixel.
 
-    tools/o1logo.py OUTDIR [--name o1nextgen]
+    tools/o1logo.py OUTDIR [--name o1next]
 """
 import argparse
 import sys
@@ -150,7 +150,7 @@ def to_cells(bm, table):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     ap.add_argument("outdir")
-    ap.add_argument("--name", default="o1nextgen")
+    ap.add_argument("--name", default="o1next")
     ap.add_argument("--word", default="O1NEXTGEN")
     ap.add_argument("--scale", type=int, default=2)
     args = ap.parse_args(argv)

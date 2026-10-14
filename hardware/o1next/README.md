@@ -1,4 +1,4 @@
-# o1ng — O1 Next Generation (modern-parts Osborne 1 reproduction)
+# o1next — O1 Next Generation (modern-parts Osborne 1 reproduction)
 
 A new PCB built from currently-available components that runs the actual
 Osborne 1 ROMs and (nearly) all original software — with a Cherry MX
@@ -6,7 +6,7 @@ mechanical keyboard, the interposer's floppy/modem/printer/storage
 personalities onboard, and **HDMI video out**.
 
 Tracks: #49 (feasibility + build), #52 (case + power research),
-#53 (concept render: `docs/design/o1ng-lunchbox-concept.*`).
+#53 (concept render: `docs/design/o1next-lunchbox-concept.*`).
 
 **Verdict from #49: feasible, medium complexity.** The O1 is almost
 entirely memory-mapped commodity MSI/LSI — no custom silicon. CPUs are a
@@ -40,7 +40,7 @@ AHCT to the original NMOS part).
 ## Two boards, one machine
 
 The project builds **two boards** here. They share the power design, and only one
-of them becomes the O1NG.
+of them becomes the O1NEXT.
 
 **And they share one ROM.** ROM 2.00 (#83) is a single image with a single layout,
 and it runs on all three paths — OEM board + interposer, LFF board + interposer,
@@ -65,7 +65,7 @@ points*) and `docs/o1-rom-2.0.md`.
    (front-left screw boss); chunky short side mounts front/rear right
    bosses. Stock port locations (front ports, power, internal video,
    floppy connectors) and only **four mounting screws** constrain
-   layout. **This is the restoration path, not the O1NG.**
+   layout. **This is the restoration path, not the O1NEXT.**
 
 2. **SFF board — the integrated board.** **Not a 1:1 swap, and it does
    not try to be**: it can go into a real chassis **or** into any other
@@ -115,9 +115,9 @@ story.
   the RS-232 port uses, and the modem is now a **firmware personality** — so the
   physical port has nothing left to do. The DB-25 RS-232 port stays.
 
-## The O1NG
+## The O1NEXT
 
-**The O1NG is the SFF board with the rest of the machine wrapped around it** —
+**The O1NEXT is the SFF board with the rest of the machine wrapped around it** —
 the logical equivalent of the **C64 Ultimate "Crystal" edition**: an homage that
 gives the end user *everything* that would have been possible in the olden days,
 wrapped in a way that makes it awesome. The machine that was an absolute fantasy
@@ -131,13 +131,13 @@ keyboard. Optional rear "backpack" for a physical 5.25" half-height drive.
 ## Open questions
 
 - Final video pipeline choice (discrete TTL vs small FPGA helper).
-- LCD panel **part selection** for the O1NG — the target is a stock 8" 1024×768
+- LCD panel **part selection** for the O1NEXT — the target is a stock 8" 1024×768
   HDMI panel, which is the easy part; mounting it is the work.
-- Chassis fabrication route (sheet metal vs printed) for the O1NG.
+- Chassis fabrication route (sheet metal vs printed) for the O1NEXT.
 - Which interposer personalities are *onboard* vs *optional modules*.
 
 ## References
 
-- `docs/design/o1ng-lunchbox-concept.pdf` / `.svg` (#53)
+- `docs/design/o1next-lunchbox-concept.pdf` / `.svg` (#53)
 - `docs/o1-memory-io-map.md` (the machine's whole address space)
 - Issues #49 (reproduction), #52 (case/power), #51 (FATCOPY)

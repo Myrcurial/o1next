@@ -1,5 +1,5 @@
--- o1ng-probe.lua -- headless check of the osborne1ng I/O decode and the card.
--- Written for #191; see docs/osborne1ng-machine.md.
+-- o1next-probe.lua -- headless check of the osborne1nx I/O decode and the card.
+-- Written for #191; see docs/osborne1nx-machine.md.
 --
 -- Run it as a *standalone* -autoboot_script.  Do not fold it into o1keys.lua or
 -- another harness: the taps go silent once a harness polls memory from Lua
@@ -7,9 +7,9 @@
 -- and writes adjacent -- Lua runs between CPU timeslices, so a write and the
 -- read that follows it in the same callback cannot be interleaved by the guest.
 --
---   SDL_VIDEODRIVER=dummy O1NG_LOG=/tmp/o1ng.log mame osborne1ng -video none \
+--   SDL_VIDEODRIVER=dummy O1NEXT_LOG=/tmp/o1next.log mame osborne1nx -video none \
 --     -sound none -nothrottle -rompath tools/emulator-setup/roms \
---     -autoboot_script o1ng-probe.lua -seconds_to_run 6
+--     -autoboot_script o1next-probe.lua -seconds_to_run 6
 --
 -- `SDL_VIDEODRIVER=dummy` is what makes this headless: `-video none` picks the
 -- renderer, not the window, and MAME's default is full screen.  It works because
@@ -28,7 +28,7 @@ local P = cpu.spaces["program"]
 local I = cpu.spaces["io"]
 
 io.stdout:setvbuf("no")
-local LOG = io.open(os.getenv("O1NG_LOG") or "/tmp/o1ng.log", "w")
+local LOG = io.open(os.getenv("O1NEXT_LOG") or "/tmp/o1next.log", "w")
 local function logf(s)
   print(s)
   if LOG then LOG:write(s .. "\n"); LOG:flush() end

@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "c17c81c2-f118-40cd-9bf5-a7dd3c16672f")
   (paper "A4")
-  (title_block (title "o1ng-LFF: video") (date "2026-10-09") (rev "0.0-block"))
+  (title_block (title "o1next-LFF: video") (date "2026-10-09") (rev "0.0-block"))
   (lib_symbols)
   (text "Video" (at 30 40.0 0) (effects (font (size 2 2))) (uuid "46399af8-05b4-460e-b0c1-8c46b01c9878"))
   (text "char-gen ROM socket (accepts original font ROM), 6845-class CRTC or discrete equivalent, 1Kx8/2Kx8 video RAM d" (at 30 47.62 0) (effects (font (size 2 2))) (uuid "818b757b-168d-407c-9ce6-38ad5d1925e2"))

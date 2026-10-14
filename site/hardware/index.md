@@ -22,7 +22,7 @@ on hardware. Each page says what is actually in hand, not what is planned.
 | [Bus interposer + control pod]({{ '/hardware/interposer/' | relative_url }}) | Z80 socket, char-gen socket, ribbon to the pod | Rev A engineering-sample schematic generated |
 | [LFF replacement board]({{ '/hardware/lff-replacement/' | relative_url }}) | Replaces the mainboard, 1:1 — OCC1 or OCC1A | Block-level KiCad skeleton |
 | [SFF integrated board]({{ '/hardware/sff-integrated/' | relative_url }}) | One integrated board; not a 1:1 swap | Concept |
-| [Complete O1 Next Generation]({{ '/hardware/o1ng-complete/' | relative_url }}) | The SFF board with the machine wrapped around it | Concept render exists |
+| [Complete O1 Next Generation]({{ '/hardware/o1next-complete/' | relative_url }}) | The SFF board with the machine wrapped around it | Concept render exists |
 
 ## Why so many?
 

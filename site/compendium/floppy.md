@@ -51,7 +51,7 @@ magazine, The Portable Companion".
 The upgrade is described as coming with the **1.4 ROM**, and the recognition is
 a property of the computer rather than of the drive electronics. The 1.44 BIOS
 source and the overlay CBIOS modules are in the repo
-([`research/source-code/BIOS-144-source/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/BIOS-144-source/)), and reading them settles #95 without
+([`research/source-code/BIOS-144-source/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/)), and reading them settles #95 without
 hardware. The mechanism is **two cooperating parts, and neither is the monitor
 ROM alone**:
 
@@ -118,7 +118,7 @@ are skews for formats we are choosing not to serve.
   *synthesise* a blank foreign diskette, and that is out of scope.
 - **Foreign media is converted on the modern side, before it is mounted.** The O1
   never has to recognise anything: read the files out of a foreign image with
-  [`tools/cpmfs.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/cpmfs.py) (it already reads these geometries) and write them into an
+  [`tools/cpmfs.py`](https://github.com/Myrcurial/o1next/blob/main/tools/cpmfs.py) (it already reads these geometries) and write them into an
   Osborne-format image with `mkfs.cpm` + `cpmcp -T raw`. That is why the four
   skew tables do not need verifying.
 - **The G2 (#30) is more rows in the same table — and no rows get written.** #30
@@ -150,12 +150,12 @@ credible rather than just advertising:
 
 - **The stock O1 interface already carries what it needs.** P8 pin 4 is **TG43**,
   the drive's write-current-reduce input for 96 tpi media, and pin 32 is **SIDE
-  SELECT** — both documented in [`docs/floppy-adapter-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/floppy-adapter-design.md) from the schematic
+  SELECT** — both documented in [`docs/floppy-adapter-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/floppy-adapter-design.md) from the schematic
   and the OEM cable. The controller is not the limit; the drives and the format
   table are.
 - **The format table is the CBIOS's job, and Nuevo replaces it.** The installers
   on `OS1NUEVO.IMD` are DDT patches inserting `BIOS15.OBJ` at `1F00` and
-  `BIOS15BM.OBJ` at `29E0` ([`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-upgrade-boards.md)), and the advertised
+  `BIOS15BM.OBJ` at `29E0` ([`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-upgrade-boards.md)), and the advertised
   directory capacities — 128 and 256 entries — are disk parameter block values,
   exactly what such a patch changes. The 2 x 2 and 4 x 4 prices include **new
   drives**, so the media capability is hardware and the *recognition* is the
@@ -187,13 +187,13 @@ Its BIOS 1.5 differs from the factory BIOS 1.4 in ways it enumerates itself:
 > 6) The jump table configuration and the jump table start address (**E100h**) is
 > the same in BIOS Version 1.5 as in BIOS Version 1.4.
 > — *Nuevo Double Density Upgrade Manual*, "differences between the two BIOS
-> versions" (OCR: [`research/nuevo/Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt`](https://github.com/Myrcurial/o1nextgen/blob/main/research/nuevo/Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt))
+> versions" (OCR: [`research/nuevo/Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt))
 
 Five things follow, and the first two correct an assumption worth recording:
 
 - **"BIOS 1.4" and "BIOS 1.5" here are the *CBIOS on the system tracks*, not the
   monitor ROM.** Nuevo's installers load `BIOS15.OBJ` at `1F00` and
-  `BIOS15BM.OBJ` at `29E0` ([`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-upgrade-boards.md)), and the manual compares
+  `BIOS15BM.OBJ` at `29E0` ([`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-upgrade-boards.md)), and the manual compares
   1.5 against *"Version 1.4, the most recent **factory** version"* — so the DPB
   table it describes lives in the bootable CBIOS image, and *that* is the file to
   read for #95, not the 4 KiB monitor ROM.
@@ -213,18 +213,18 @@ Five things follow, and the first two correct an assumption worth recording:
   which is how the 2 x 2 and 4 x 4 geometries fit into the same scheme.
 - **Nuevo's BIOS checks for its own video board's presence** and skips the
   80-column configuration if it is absent — the same *intent* as the SCREEN-PAC's
-  `2400H` flag, reached by a different mechanism ([`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-upgrade-boards.md)
+  `2400H` flag, reached by a different mechanism ([`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-upgrade-boards.md)
   §"How software finds the board"), and the reason its 1.5 ROM still boots on a
   machine with no Nuevo hardware. The jump table sits at **E100h**, unchanged from
   1.4, which is the region the SCREEN-PAC's width variable (`E1A5H`,
-  [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2a) lives in.
+  [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a) lives in.
 
 ### The 1.4 → 1.5 list, checked against two images (#173)
 
 The list above is the vendor's. It can now be checked, because the archive holds
-both sides: [`research/shipped-software/O1CPM.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/O1CPM.IMD) is a factory DD boot disk whose
+both sides: [`research/shipped-software/O1CPM.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/shipped-software/O1CPM.IMD) is a factory DD boot disk whose
 system image is the same 8 KB CP/M build as Nuevo's base, and
-[`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/nuevo/OS1NUEVO.IMD) carries CBIOS 1.5 both as the installer's DDT objects
+[`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/OS1NUEVO.IMD) carries CBIOS 1.5 both as the installer's DDT objects
 and as the system it boots. Five of the six items are confirmed in the bytes:
 
 | Manual item | Where it shows |
@@ -234,7 +234,7 @@ and as the system it boots. Five of the six items are confirmed in the bytes:
 | 3 — autostart names 7 → 8 characters | the field **moves**: 1.4 keeps it at `CB10`–`CB17` (8 spaces, unused), 1.5 at `CB87`–`CB90` (`06` `"AUTOST"` `00` + padding) |
 | 5 — the "Unformatted disk" message deleted | 1.4 selects between two messages on bit 0 and patches the drive letter into **both** (`E38C`); 1.5 has one message and one patch site (`E340`) |
 | 6 — jump table at `E100h`, unchanged | 19 `JP` entries at `E100` in both images; every target moved |
-| **4 — the presence check** | not a register: `IN A,(04H)` at the head of the cold boot, guarding the 80-column configuration — [`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-upgrade-boards.md) §"How software finds the board" |
+| **4 — the presence check** | not a register: `IN A,(04H)` at the head of the cold boot, guarding the 80-column configuration — [`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-upgrade-boards.md) §"How software finds the board" |
 
 Item 3 is worth its own line, because it explains an installer step that otherwise
 looks arbitrary: `SYS-80C.SUB`'s `FA10,A17,00` is not "clearing the width/variable
@@ -260,7 +260,7 @@ Its density line, for the record: **OSMOS 1** 184k per drive on existing drives
 ($195), **OSMOS 1.5** single-sided DD now, 370k later with new drives ($335),
 **OSMOS 2** double-sided DD, 370k ($895), **OSMOS 3** double-sided DD **double
 tracking**, 750k per drive, "an incredible 1.5MB" ($1050). The full product table
-is in [`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-upgrade-boards.md).
+is in [`docs/o1-upgrade-boards.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-upgrade-boards.md).
 
 **The tally is four independent format mechanisms:** OCC's DPB table, Nuevo's
 boot-time auto-configuration, Osmosis's separate conversion program, and the
@@ -306,7 +306,7 @@ back byte-for-byte.**
 
 ### Tooling
 
-Two small stdlib helpers were added for this ([`tools/research/`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/)):
+Two small stdlib helpers were added for this ([`tools/research/`](https://github.com/Myrcurial/o1next/blob/main/tools/research/)):
 
 - **`imdmake.py`** — writes a blank Osborne 1 disk in ImageDisk form (the writer
   half of `imdinfo.py`): `--dd` = 250 kbit MFM, 40×5×1024; `--sd` = 250 kbit FM,
@@ -384,9 +384,9 @@ done
 
 
 
-- [`research/osborne1/o1doubledensityusersguide.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/o1doubledensityusersguide.pdf) — *Osborne 1 Double Density
+- [`research/osborne1/o1doubledensityusersguide.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/o1doubledensityusersguide.pdf) — *Osborne 1 Double Density
   User Manual* (15 pages, image-only; OCR'd per the convention in
-  [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) as `o1doubledensityusersguide.ocr.txt`).
+  [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) as `o1doubledensityusersguide.ocr.txt`).
   <https://www.kev.pulo.com.au/osborne1/documents/o1doubledensityusersguide.pdf>
-- [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3 (WD179x detail) — the formats already recorded
+- [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3 (WD179x detail) — the formats already recorded
   there from the schematic side.

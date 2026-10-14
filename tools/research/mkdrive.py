@@ -7,7 +7,7 @@ WHY THIS EXISTS
     and writes nothing), and the verify pass that follows it is SEARCH DATA
     EQUAL (2F hex), which `t10spc`/`t10sbc` do not implement at all -- so
     `PREP.COM`'s initialize runs to "Verifying disk (first pass)..." and loops
-    there for ever.  See docs/osborne1ng-machine.md section 5.
+    there for ever.  See docs/osborne1nx-machine.md section 5.
 
     The *result* of a format is not a secret, so build it instead.  The ACB-4000
     manual (research/adaptec/acb4000/400003-00A_ACB-4000A_Users_Manual_Oct85.pdf,
@@ -38,7 +38,7 @@ HOW IT IS DRIVEN
     unrecognizable format (or none)"* and asks for a drive name before it will do
     anything.  The check is measured, not guessed -- READ CAPACITY must report
     512-byte blocks, a READ of LBA 0 must succeed, and the first two bytes of the
-    label must be `MD` with the byte at +28 below 20h (docs/osborne1ng-machine.md
+    label must be `MD` with the byte at +28 below 20h (docs/osborne1nx-machine.md
     section 6).  A drive built without --label is still a perfectly good *target*
     for the card; it just is not one PREP will initialise.
 
@@ -66,7 +66,7 @@ CHS_DEFAULT = (321, 4, 18)    # PYXIS13, from DRIVETBL.DAT
 SECTOR_DEFAULT = 512
 
 # The MD-10 disk label, as PREP.COM's recognisability check wants it.  That check
-# is three tests, measured (docs/osborne1ng-machine.md 6): READ CAPACITY succeeds
+# is three tests, measured (docs/osborne1nx-machine.md 6): READ CAPACITY succeeds
 # and reports 512-byte blocks; a READ of LBA 0 succeeds; and the first two bytes
 # of what comes back are `MD`, with the byte at +28 below 20h.  So a drive is
 # "recognisable" -- PREP offers its Disk initialization menu instead of "Disk has

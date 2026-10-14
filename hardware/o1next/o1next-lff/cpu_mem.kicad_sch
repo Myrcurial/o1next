@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "639f0e20-de04-46ed-b286-8abf7d0c6929")
   (paper "A4")
-  (title_block (title "o1ng-LFF: cpu_mem") (date "2026-10-09") (rev "0.0-block"))
+  (title_block (title "o1next-LFF: cpu_mem") (date "2026-10-09") (rev "0.0-block"))
   (lib_symbols)
   (text "CPU + SRAM + ROM" (at 30 40.0 0) (effects (font (size 2 2))) (uuid "3c0ab771-8f80-474e-922c-d5c260de0ea6"))
   (text "Z84C00 (socketed DIP-40 for interposer upgrade path), 64KB SRAM (replaces 16x 4116 DRAM + refresh logic), 27C1" (at 30 47.62 0) (effects (font (size 2 2))) (uuid "0e7f5741-84f7-41fa-86fe-8d83bd99db25"))

@@ -17,7 +17,7 @@ own. Its companion **Utilities disk** surfaced in 2026-10 and is catalogued in �
 routed rather than carried: **#167** (drive the column keys from the harness) and
 **#168** (a complete Utilities disk) — §9.
 
-**Source:** [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN) (4096 bytes) and
+**Source:** [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1next/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN) (4096 bytes) and
 `OZROM_1E_Manual.pdf`, both from BrettHallen's `Osborne_1` repository;
 `OZROM_1E_Manual.ocr.txt` is the 300 dpi `tesseract` text layer (grep it for the
 appendices — but not for exact code, it is OCR). Micro Management, Inc.,
@@ -62,7 +62,7 @@ mame osborne1nv -verifyroms -rompath /tmp/ozset     # -> romset ... is good
 ```
 
 The `character_generator_6-29-84.14` copy is not a hack: it is a byte-identical
-duplicate of `7a3007-00.ud15` ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md)), and it is what makes
+duplicate of `7a3007-00.ud15` ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md)), and it is what makes
 the hash fallback deterministic across all three machines.
 
 ## 3. Measured: it boots on all three machines
@@ -91,9 +91,9 @@ From the manual (page 1 feature list; Appendix C for the losses):
 | Gained | Why it matters here |
 |---|---|
 | Keyboard-selectable **52 / 80 / 104-column** display | A *documented software* video-mode switch — the mechanism the video personality (#24) is being built on. On an un-expanded machine it can also toggle the left/right 52 columns of an 80-column display. |
-| **System memory tester** that names the failing chip | A ready-made second oracle for #29, alongside [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh). |
+| **System memory tester** that names the failing chip | A ready-made second oracle for #29, alongside [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh). |
 | **Software-redefinable keyboard**, plus eight locally-redefinable function keys (up to 63 chars) | Relevant to #45/#47. |
-| **Time-of-day clock** (`TIME`, `ALARM`, `TIMER`, `QUIKTIME`) | #7/#18 — see §8 and [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md) "The third shape". |
+| **Time-of-day clock** (`TIME`, `ALARM`, `TIMER`, `QUIKTIME`) | #7/#18 — see §8 and [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md) "The third shape". |
 | **Documented interfaces**: interrupt hook, ROM jump table, memory map, keytable | An externally documented O1 ROM interface to hold against `rom144.asm` (#72). |
 | **1793/1797 FDC** notes; truer Televideo 912/920 emulation | #20 and terminal behaviour generally. |
 | Removes the *"Centronics printer not connected"* lockout on DD systems | #19. |
@@ -114,7 +114,7 @@ The parallel/Centronics entries at `0193`+ survive unchanged.
 "Some of the memory locations reserved by the OZROM 1E for its own purposes."
 The OCR splits the address column from the description column, but the pairing
 is unambiguous; the clock rows are confirmed independently against the OCC
-source in [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md).
+source in [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md).
 
 | Address | Purpose |
 |---|---|
@@ -215,7 +215,7 @@ machine's, the *text layout* is the software's.
 
 What is **not yet measured** is the switch itself in action: pressing
 ctrl-shift-<column key> and watching the width change. Doing that needs the
-harness to post a *modifier-qualified* keystroke ([`tools/research/mame-boot-probe.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/mame-boot-probe.lua)
+harness to post a *modifier-qualified* keystroke ([`tools/research/mame-boot-probe.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/mame-boot-probe.lua)
 only posts plain characters), and the column keys' effect under MAME depends on
 whether the driver models the width as a PIA-driven horizontal offset or as fixed
 hardware. It is the one open item from #81 that needs code rather than reading —
@@ -270,7 +270,7 @@ seconds, sixtieths, BCD) — **not** a new ABI. Accuracy is "better than three
 minutes a day" with the drives idle; disk access momentarily stops the clock
 (the manual is explicit that the clock "has no guarantee" under disk load). The
 full treatment, and why it matters to our own clock contract, is in
-[`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md) "The third shape".
+[`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md) "The third shape".
 
 **The interrupt hook.** On the 60 Hz video interrupt, OZROM's `SYSINT` saves the
 stack pointer, PC and registers and then calls **`0EFF2h`**; a bare `RET` there
@@ -305,7 +305,7 @@ is routed rather than carried:
 | **Drive the column switch from the harness** (§7) — the one measurement still missing | **#167** — the harness can only post plain characters, so ctrl-arrow and ctrl-shift are inexpressible. That is a tools capability, wanted by #24 as much as by this issue. |
 | **A complete copy of the Utilities disk** (§10) | **#168 — closed: we already have it.** The "290 of 400 sectors erased" reading was a `cpmfs.py` sector-skew bug (§10.2); with the correct skew all twenty files extract whole. |
 | **Diff the jump table against `rom144.asm`** (§6) | **Done** — see below. |
-| **Reconcile the `EF66–EF69` clock against ROM 1.44** | Not OZROM's question: it is about *which stock revision* dropped `UPTIM`. Recorded in [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md); belongs with #83/#18, not here. |
+| **Reconcile the `EF66–EF69` clock against ROM 1.44** | Not OZROM's question: it is about *which stock revision* dropped `UPTIM`. Recorded in [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md); belongs with #83/#18, not here. |
 
 ### The jump-table diff, done
 
@@ -321,7 +321,7 @@ interface agreeing is the point of the exercise.
 
 ## 10. The OZROM 1E Utilities disk — the software half (#81)
 
-[`research/roms/OZROM-1E/OZROM_1E_Utilities.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E_Utilities.IMD) is the disk that goes with the
+[`research/roms/OZROM-1E/OZROM_1E_Utilities.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/roms/OZROM-1E/OZROM_1E_Utilities.IMD) is the disk that goes with the
 ROM: the utilities the manual documents, as a customer received them. We had the
 ROM and the manual and not the software, so this is the missing third of the
 package.
@@ -373,7 +373,7 @@ with the holes *inside* file bodies — `CRASH.COM` gone, `READ.ME` missing its
 first sector. **That was a tooling artefact, not the disk.** The 290 sectors are
 **free space**.
 
-[`tools/cpmfs.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/cpmfs.py)'s `osb1sssd` preset was missing the format's **sector skew**
+[`tools/cpmfs.py`](https://github.com/Myrcurial/o1next/blob/main/tools/cpmfs.py)'s `osb1sssd` preset was missing the format's **sector skew**
 (`skew 2` — the Osborne SD layout interleaves its ten sectors per track).
 Without it, block pointers resolve to the wrong physical sectors: the *directory*
 still reads, which is why the file list looked right and the damage looked like
@@ -452,12 +452,12 @@ returns a file list — it is just the *wrong* list. Here it returned 12 files
 instead of 20, with 8 of them carrying another file's blocks. Nothing errors,
 nothing looks malformed, and the output is plausible enough to archive.
 
-Fixed in [`tools/research/imdinfo.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/imdinfo.py); the dump is now byte-identical for sorted
+Fixed in [`tools/research/imdinfo.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/imdinfo.py); the dump is now byte-identical for sorted
 maps (checked against `DRIVE_C.IMD`) and correct for rotated ones. Two archived
 images turn out to be rotated and were never convertible before the fix:
-[`research/diagnostics/DIAG_2.04.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/diagnostics/DIAG_2.04.IMD) now yields the **15-file Osborne diagnostic
+[`research/diagnostics/DIAG_2.04.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/diagnostics/DIAG_2.04.IMD) now yields the **15-file Osborne diagnostic
 disk** (`DIAG.COM`, `FILETEST.COM`, `DDBIT.COM`, `SETUP.COM`, `SYSGEN.COM`, …),
-and [`research/source-code/OCCROM.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/OCCROM.IMD) its 77-track FM/MFM disk.
+and [`research/source-code/OCCROM.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OCCROM.IMD) its 77-track FM/MFM disk.
 
 **A second bug of the same class was found on 2026-10-11, and it did more
 damage.** `cpmfs.py`'s `osb1sssd` preset had no **sector skew** for the format it
@@ -474,8 +474,8 @@ logical→physical table the same way `cpmtools` does (`cpmfs.c`): for this form
 old off-by-one phantom entry is gone as well. Checked against
 `cpmcp -T raw -f osb1sssd` on all three in-archive SD images — this disk,
 `DRIVE_C.IMD` and `OCC1_HARDDISK.IMD` — where **every file matches byte for
-byte**. The two other archived `osb1sssd` extractions ([`research/drive_c/extracted/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/extracted/),
-[`research/harddisk/extracted/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/harddisk/extracted/)) were made with `cpmtools`, which always had the
+byte**. The two other archived `osb1sssd` extractions ([`research/drive_c/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/extracted/),
+[`research/harddisk/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/extracted/)) were made with `cpmtools`, which always had the
 skew, and are unchanged: **nothing already archived rested on the bad read** —
 this disk was the only casualty. Formats that are not interleaved default to
 `skew 1`, so `kp2x` and `drivec` output is unchanged.
@@ -503,14 +503,14 @@ against the manifest has to wait for someone to identify the algorithm.
 
 ## Sources
 
-- [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN), `OZROM_1E_Manual.pdf`,
+- [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1next/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN), `OZROM_1E_Manual.pdf`,
   `OZROM_1E_Manual.ocr.txt` — BrettHallen `Osborne_1`, `ROM/`; OCR per the
-  [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) convention (300 dpi, `tesseract`).
-- [`research/roms/OZROM-1E/OZROM_1E_Utilities.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/OZROM-1E/OZROM_1E_Utilities.IMD) — the companion utilities disk
+  [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) convention (300 dpi, `tesseract`).
+- [`research/roms/OZROM-1E/OZROM_1E_Utilities.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/roms/OZROM-1E/OZROM_1E_Utilities.IMD) — the companion utilities disk
   (§10). Owner-supplied local file, 2026-10-11; source URL not yet recorded.
   ImageDisk 1.19, label `ozrom`, 40 cyl × 10 × 256 B FM.
-- [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/BIOS-144-source/rom144.asm) and the OCC CBIOS modules
+- [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/rom144.asm) and the OCC CBIOS modules
   (`occram25.asm`, `occbio15/45/95.asm`) — the stock interface and RAM map the
   jump table and clock cells are compared against.
-- [`docs/mame-emulation.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mame-emulation.md) §2/§5, [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md),
-  [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md) — machine widths, ROM inventory, the clock.
+- [`docs/mame-emulation.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mame-emulation.md) §2/§5, [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md),
+  [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md) — machine widths, ROM inventory, the clock.

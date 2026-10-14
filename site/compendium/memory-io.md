@@ -85,7 +85,7 @@ The 64 KB address space is overlaid by **three banks**, selected by the
 User's Guide* "Memory Allocation" chart (p. R-243) marks **`0050H–005BH` — 12
 bytes — as "not used"**, and at least one published program relied on that: the
 date facility in *The Portable Companion* #7 keeps the system date there in both
-binary and ASCII form ([`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md)). Treat it as documented free
+binary and ASCII form ([`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md)). Treat it as documented free
 scratch space — worth remembering for the interposer (#12).
 
 ### Bank 2 — BIOS ROM + memory-mapped I/O ("shadow mode")
@@ -137,7 +137,7 @@ machine; the geometry above is the manual's.)
 **Bit fields** (§5.2, figure): bits 0–6 are the **ASCII character**, **bit 7 is
 the underline attribute**, **bit 8 is dim**. Bits 0–7 are the byte in the video
 RAM proper; bit 8 is the separate 4116 in bank 3. This is why the MAME probe
-masks with `% 128` to read characters ([`tools/o1_mame_probe.lua`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/o1_mame_probe.lua)).
+masks with `% 128` to read characters ([`tools/o1_mame_probe.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/o1_mame_probe.lua)).
 
 **The window width is software-selectable.** The SCREEN-PAC user guide (p. 13)
 gives the mechanism, and it is in the stock BIOS rather than on the board:
@@ -188,7 +188,7 @@ So **the cursor is generated in hardware** — not by the character generator, a
 not by the attribute bit — which matters to a video personality: it has to
 reproduce a cursor the machine makes outside video RAM, and the block cursor is
 the variant OCC's own engineer preferred. Extract:
-[`research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf).
+[`research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf).
 
 **And it works with the SCREEN-PAC fitted, leaving the board in place.** Hogan's
 version is for a stock machine. A reader's fix, printed in *The Portable
@@ -203,8 +203,8 @@ SAME ONES LISTED IN THOM HOGAN'S ARTICLE!"*.
 That the SCREEN-PAC carries a 74HC00 and a 74HC74 of its own is useful in itself:
 the cursor logic is **duplicated on the piggy-back board**, which fits the service
 manual's description of the upgrade as an IC-harness board soldered over the main
-logic (`2F00040` §6.12, the source used by [`firmware/screenpac-video/`](https://github.com/Myrcurial/o1nextgen/blob/main/firmware/screenpac-video/)). Extract:
-[`research/technical-articles/TPC-Issue15-1985-pp32-block-cursor-with-screenpac.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue15-1985-pp32-block-cursor-with-screenpac.pdf).
+logic (`2F00040` §6.12, the source used by [`firmware/screenpac-video/`](https://github.com/Myrcurial/o1next/blob/main/firmware/screenpac-video/)). Extract:
+[`research/technical-articles/TPC-Issue15-1985-pp32-block-cursor-with-screenpac.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue15-1985-pp32-block-cursor-with-screenpac.pdf).
 
 ### 2b. The monitor RAM and the system clock (#7, #81)
 
@@ -241,7 +241,7 @@ nothing displays it in a stock machine — but OZROM 1E documents the same four
 cells and adds a setter, a display and an alarm. The `EFF0` vector table is where
 the two clock products hook: `INTBL+(4*2)` = `EFF8` is the keyboard-interrupt
 vector the RT-60A's `CLOCK.COM` replaces, while OZROM calls its own hook at
-`EFF2`. See [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md) ("The third shape") and [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md).
+`EFF2`. See [`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md) ("The third shape") and [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md).
 
 
 ## 3. I/O decode (bank 2, "memory-mapped I/O")
@@ -276,7 +276,7 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
     with **pin 2 moved to the middle pin of J2** ("for 2400/9600 baud rates rather
     than 1200/4800") and pins 3, 7 and 10 lifted. Figure 3 in the article has the
     detail. Extract:
-    [`research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf).
+    [`research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue13-1984-pp26-31-reverse-video-and-9600-baud.pdf).
 - **Pin level, from the schematic** (sheet 7/9 of 9, read at 600–1200 dpi): the
   ACIA's **RxCLK (pin 3) and TxCLK (pin 4) are strapped together** on the board
   and driven by **UC3's `QD` (pin 11)**. UC3 is a **74LS161 preset-load
@@ -289,7 +289,7 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
 - **The factory's own 9600/2400 modification is documented**, which the archive
   had only from inside OCC: *Osborne 1 Technical Manual* **Figure 4.4 "Baud Rate
   Hardware Modification", p. 22** (PDF page 36 — the manual's printed-page
-  offset of **+14** holds here too, see [`docs/o1-chargen-graphics.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-chargen-graphics.md)). It draws
+  offset of **+14** holds here too, see [`docs/o1-chargen-graphics.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-chargen-graphics.md)). It draws
   the LS161/LS163 at **C3** with **pin 2** moved between a *"FOR 9600/2400
   BAUD"* pad and a *"FOR 4800/1200 BAUD"* pad, jumpers **J2** and **J3**,
   **J1** marked **"DON'T CARE"**, and the caption box
@@ -299,16 +299,16 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
   Hogan describes from inside OCC in #13 — the 6850 choosing within each pair
   (÷64/÷16). It is also the "method shown on page 22 in the Technical Manual"
   that *The Portable Companion* #8 points a would-be 80-column terminal user at
-  (see [`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-modem-serial.md)).
+  (see [`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-modem-serial.md)).
 - **A fifth route, and a third-party one:** Advent Products' **Osbaud**
   (1983, $59.95, 16 DIP-switch rates) is soldered to the ACIA's own clock and
   supply pins and replaces the clock net outright — see
-  [`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-modem-serial.md).
+  [`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-modem-serial.md).
 - **The ACIA's control-register init byte is in the BIOS at `1FE9H`.** The
   vendor's own "Programming the serial port" patch (*The Portable Companion* #7,
   June 1983, PDF pp. 56–57) rewrites `1FE9H`/`1FEAH` to move off the 8-N-1
   default, with a table of 6850 control codes (`55H` = 8-N-1 @1200). A second
-  handle on the ACIA besides the port pair — see [`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-modem-serial.md)
+  handle on the ACIA besides the port pair — see [`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-modem-serial.md)
   §"Framing".
 - Modem status (DTE): MSB (pin 4), MCB (pin 8), RI (pin 9); BIOS `LISTST`
   at `0E12D` returns `0FFH`/`00H`.
@@ -352,7 +352,7 @@ acknowledge and the front-panel RESET reselect the ROM bank automatically.
 > data is ignored, *any* `OUT (0),A` / `OUT (1),A` toggles banks. The
 > interposer must **never** drive I/O addresses `0x00–0x03`.
 
-**Measured on the running machine** ([`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh), #64). All four
+**Measured on the running machine** ([`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh), #64). All four
 writes behave exactly as tabulated — the *port number* selects, the data byte is
 ignored, and ports `0x04`–`0x07` alias `0x00`–`0x03` (MAME's I/O space reports
 `mask=0x0003`, i.e. only A0/A1 reach the decode). The M1/IRQACK qualification
@@ -389,7 +389,7 @@ routine's real-time clock), not an NMI.
 Standard Z80A pinout (Zilog Z80 Microprocessor Family Databook; the O1 fits an
 NEC µPD780C, pin-compatible). **Corrected 2026-10-10** — the previous table
 here was wrong (it claimed pin 11 = GND, which is +5 V). Enforced from now on
-by [`tools/check_schematics.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_schematics.py), which asserts this table against every
+by [`tools/check_schematics.py`](https://github.com/Myrcurial/o1next/blob/main/tools/check_schematics.py), which asserts this table against every
 connector that mates with the O1's Z80 socket.
 
 | Pin(s) | Signal |
@@ -423,7 +423,7 @@ extraction. 128 chars × 8×10 in an 8×10 box (7×9 visible), addressed by
 (char code + scan line), output to the video shift register (UA14, 74166).
 This is the second tap point the ScreenPac personality (#24) uses. (It is the
 *third* tap on the interposer, which also leads to the main ROM socket UD11 —
-see [`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/virtual-peripherals-block-diagram.md) §1 and [`docs/o1-rom-2.0.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-2.0.md) §4.1a.)
+see [`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o1next/blob/main/docs/virtual-peripherals-block-diagram.md) §1 and [`docs/o1-rom-2.0.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-2.0.md) §4.1a.)
 
 | Pin | Signal |
 |---|---|
@@ -449,7 +449,7 @@ see [`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o
 **Every connector on an Osborne 1 is on the FRONT of the machine** — there is
 nothing to plug into at the back. That is not a detail: it is why fitting a
 period peripheral meant unclipping the keyboard, which docks to seal that same
-face (the O1A design note in [`hardware/o1ng/`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/o1ng/)), and it is why every standalone
+face (the O1A design note in [`hardware/o1next/`](https://github.com/Myrcurial/o1next/blob/main/hardware/o1next/)), and it is why every standalone
 device in this project attaches at the front (#47, #56, #84).
 
 - **P3** — IEEE-488, 26-pin edge (pins 25/26 unused)
@@ -462,7 +462,7 @@ device in this project attaches at the front (#47, #56, #84).
   Rows are driven low (open-collector inverters, one-hot); columns are pulled up to +5V via a 3.3K
   resistor pack and buffered onto the data bus. Reference: O1 Technical Manual; pinout per
   pinouts.ru (verified against a PCB), archived in-repo at
-  [`research/osborne1/keyboard/osborne_keyboard_pinout.html`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/keyboard/osborne_keyboard_pinout.html) (provenance alongside) —
+  [`research/osborne1/keyboard/osborne_keyboard_pinout.html`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/keyboard/osborne_keyboard_pinout.html) (provenance alongside) —
   see #47 for the full matrix map.
 - **P8** — Floppy drive, 34-pin
 - **P5** — Video, 10-pin inline
@@ -513,7 +513,7 @@ devices. Conservatively **free** (no onboard device) within `2000–2FFF`:
   UD11 — for ROM 2.00 (#83); ScreenPac itself never needed it.
 
 ## Sources
-- OCC schematic `1A2011-00` Rev E ([`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf)),
+- OCC schematic `1A2011-00` Rev E ([`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf)),
   sheets 1–5 (CPU, RAM, video, IEEE-488, serial/disk).
 - Osborne 1 Technical Manual `2F00153-01` (1982), ch. 3 (memory), ch. 4
   (interfaces), ch. 5 (video), ch. 7 (disk), ch. 8 (keyboard), ch. 11

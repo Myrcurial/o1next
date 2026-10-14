@@ -7,11 +7,15 @@ same reason `research/pictures/` is kept.
 
 | File | What it is |
 |---|---|
-| `o1ng-art.txt` | the **O1NG** version: 125 × 28 cells. SHA-256 `a92bf28e81b54c58f59c48ab16f090e2d26c4e8d3705ed0cfcda7dd10bb1f9ba` |
-| `o1ng-art.png` | the same, rendered with the ROM's glyphs |
+| `o1next-art-1ng.txt` | the **1NG** version: 125 × 28 cells. SHA-256 `a92bf28e81b54c58f59c48ab16f090e2d26c4e8d3705ed0cfcda7dd10bb1f9ba` |
+| `o1next-art-1ng.png` | the same, rendered with the ROM's glyphs |
 | `o1next-art.txt` | the **O1NEXT** version: 153 × 27 cells, with *"osborne 1 next rom 2.0 2026"* and *"press return to begin"* nested in the X's counter. SHA-256 `a3617203212e193651a8dae44b3fdb030f0f5051fe629250ac2ccd0abdacd42a` |
 | `o1next-art.png` | the same, rendered with the ROM's glyphs |
 | `o1next-frame.png` | **the screen itself** — the 4096-byte frame rendered with the chargen. All 32 rows, so the validity trailer is visible at the bottom right; on the machine rows 24–31 are off-screen |
+
+The first pair is the **earlier, shorter wordmark** — it spelled the name the
+project no longer uses, so its file keeps `1ng` as the label that tells it apart
+(#228). The second pair is the art the ROM and the site's masthead use.
 
 ## How it is authored, and how to read it
 
@@ -93,7 +97,7 @@ of the T.
 
 Bytecode (glyph 1 B, `7F,n,c` 3 B, skip 2 B, row-repeat 2 B, newline 1 B):
 
-| | O1NG | O1NEXT |
+| | 1NG | O1NEXT |
 |---|---|---|
 | whole art | 626 B | 831 B |
 | the logo alone | — | 816 B |
@@ -136,7 +140,8 @@ with or without it.
 
 The frame is *someone else's file* — the interposer's flash is updatable and a
 hand-built image will get it wrong — so it carries a marker in the rows nobody can
-see (rows 24–31 are off-screen): `O1NG` at `0FF8h`, a 16-bit sum at `0FFCh`.
+see (rows 24–31 are off-screen): `O1NEXT` at `0FF8h` — six bytes, the magic having
+grown by consuming the two reserved ones — and a 16-bit sum at `0FFEh`.
 
 If it is missing or wrong, the monitor leaves **`o1next - press return`** on the
 screen. That costs nothing, because ROM 2.0 replaces the stock sign-on rather than
