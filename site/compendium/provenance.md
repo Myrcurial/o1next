@@ -250,19 +250,23 @@ that the utilities disk carries no system image — which left #179's acceptance
 ("boots CP/M from the emulated hard disk") with nothing to boot. It was not
 obtainable by *reading*; it is obtainable by *running*, and the vendor's own
 installer produces it: `PREP.COM` option 3, "Configure operating system", writes
-it to the drive. Captured off a configured drive on 2026-10-12.
+it to the drive. Captured off configured drives on 2026-10-12 and 2026-10-14.
 
 | File | What it is |
 |---|---|
-| `lba0-15.bin` (8 KiB) | the first sixteen blocks of a configured drive: LBA 0 the disk label and its partition table, LBA 1–3 the header, LBA 4 a table, LBA 5–15 the operating system |
-| `md10-os.bin` (5.6 KiB) | just the operating system — LBA 5, 11 blocks (0x1600 bytes) — what `HARD.COM`'s BIOS reads to `0xC200` and jumps into |
+| `lba0-15.bin` (8 KiB) | **PYXIS13**, two partitions of 11544 blocks: the first sixteen blocks of a configured drive — LBA 0 the disk label and its partition table, LBA 1–3 the header, LBA 4 a table, LBA 5–15 the operating system |
+| `md10-os.bin` (5.6 KiB) | its operating system — LBA 5, 11 blocks (0x1600 bytes) — relocated 0x100 high, so it needs [`tools/research/md10reloc.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/md10reloc.py) before it boots (#198) |
+| `lba0-15-p27.bin` (8 KiB) | **PYXIS27**, **three** partitions of 15399 blocks — the driver's own static fallback table, and the only layout that matches its shared DPB. **The floor pin** |
+| `md10-os-p27.bin` (5.6 KiB) | its operating system, already at its load base (`JP 0C4C8h`, with `LD SP,nn` at the target) — no relocation step |
 | `README.md` | provenance, and what each file is |
 
 Derived in-project from `adaptec/*.img` (the `PREP.COM` that writes it) and the
-2.01 utilities disk (the `HARDCCP.SPR`/`HARDBDOS.SPR` it writes); the drive it
-was taken from had md5 `7fa2a3836813dabdeaaa664ea88d002e`, and
-[`tools/research/md10drive.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/md10drive.py) reproduces that drive byte for byte from these two
-files. The recipe, the MD-10's memory map and the boot chain are in
+2.01 utilities disk (the `HARDCCP.SPR`/`HARDBDOS.SPR` it writes); the PYXIS13
+drive it was taken from had md5 `7fa2a3836813dabdeaaa664ea88d002e`, and
+[`tools/research/md10drive.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/md10drive.py) reproduces **either** drive byte for byte from these
+files (`--layout md10` / `--layout md20`). The PYXIS27 pair was produced by
+`tools/research/md10prep.sh 321,8,18 3` and independently reproduced by it. The
+recipe, the MD-10's memory map, the boot chain and the one-DPB constraint are in
 [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md).
 
 ## adaptec/acb4000/ — Adaptec ACB-4000 controller hardware (2026-10)

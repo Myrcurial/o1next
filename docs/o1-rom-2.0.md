@@ -343,6 +343,47 @@ is settled is the constraint from §2.2: the ROM page gives 8 KB contiguous plus
 4 KB beyond the assigned I/O block, 11776 bytes must be presented, and there is no
 larger part to put them in.
 
+### 4.1b The window this boot uses, measured in the machine (#247)
+
+§4.1a leaves the window's address, paging and selector to **#12**, and this does
+not close that: the 11776-byte no-disk goal still needs a paging answer. But the
+boot this project is actually building (§2.3, **7681 bytes**) needs **none of
+it** — and that is now measured in the emulated machine rather than argued.
+
+**The window is `0000–1FFF`, and it is already 8 KB wide.** The mainboard never
+decoded `A12` (§2.2), so the stock machine reads the same 4 KB monitor twice
+across that range. MAME says so in one line:
+
+```cpp
+m_rom_view[0](0x0000, 0x0fff).mirror(0x1000).rom().region("maincpu", 0).unmapw();
+```
+
+**`mirror(0x1000)` *is* the undecoded `A12`.** So a softROM that decodes it gets
+two 4 KB pages **contiguous, in the ROM page, with no new address space, no latch
+and no register** — which is exactly the "8 KB contiguous" of §2.2, and why the
+7681-byte image fits with 511 bytes spare.
+
+| | |
+|---|---|
+| Page 0 (`A12 = 0`) | the monitor, `0000–0FFF` — the 4 KB that must never move (§4.2) |
+| Page 1 (`A12 = 1`) | the payload, `1000–1FFF` — 3585 bytes of the 4096 (§4.3) |
+| Given a 4 KB image | `A12` is ignored and the page mirrors: the stock part, unchanged |
+
+**What that makes step 1 of #247.** The machine already has the idiom for
+replacing a view entry: `osborne1sp` calls `osborne1_mem(map)` and then
+re-registers the entry it wants to own — and the same shape replaces the ROM
+window:
+
+```cpp
+m_rom_view[0](0x0000, 0x1fff).r(m_softrom, FUNC(softrom_device::read)).unmapw();
+```
+
+So **for this boot there is no window decision to wait on** — only the file the
+device serves, and whether an image is 4 KB (mirror, stock) or more (two pages).
+The `A12`/`A13` latch at `2300h` that §4.1a withdrew was for a *part*; a softROM
+needs no such thing, and this is where that stops being an argument and becomes
+an address map.
+
 ### 4.2 The invariant that keeps the CBIOS working
 
 **The monitor is never banked.** Only the window moves, wherever it ends up
@@ -668,8 +709,12 @@ banked-ROM device plus the `2300h` latch — the same shape as the ACB-4000 card
 `tools/research/mame-boot-probe.sh`, which is what measured every row of
 `docs/mame-emulation.md` §4.
 
-**Not yet run.** The image does not exist yet, so this is the specification of the
-test rather than a result.
+**Not yet run.** The image now exists — `tools/research/rom2image.py`, 7681 bytes,
+CRC32 `aef92022` (§6, #225) — but it is a *content* image: the monitor is still
+the stock 1.44, so there is nothing yet that reaches for the window and the test
+cannot run. **#247** is the plan that carries it: the banked-ROM device first, so
+the machine works and the window is de-risked, then `rom2asm` with `HCBOOT`
+filled in from the hard-disk chain that is already measured.
 
 ## 8. What is still open
 
@@ -677,6 +722,12 @@ test rather than a result.
    it is **#12's interface spec**, not this document's call (§4.1a). The constraint
    is fixed (8 KB contiguous plus 4 KB beyond the assigned I/O block, §2.2; 11776
    bytes to present); the answer is not.
+   **For the boot this project is building it is settled, measured, and needs no
+   paging at all** — the window is `0000–1FFF`, because `mirror(0x1000)` in the
+   machine's own address map *is* the undecoded `A12`, so a softROM that decodes
+   it gets two contiguous 4 KB pages for free (§4.1b). What remains open here is
+   the **no-disk** goal's 11776 bytes, which is the only thing that needs a
+   selector.
 2. **Does ROM 2.0's monitor code fit in 150 bytes?** The estimate in §4.7 says yes
    with ~24 bytes to spare; the assembler's guard is the arbiter. Plan B is a
    banked loader.

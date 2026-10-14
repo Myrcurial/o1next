@@ -1,11 +1,18 @@
 # The MD-10's operating system, and the memory map that was missing (#179, #178)
 
-**Status: solved — the system boots to a prompt.** `PREP.COM`'s option 3
-configures an operating system onto the drive; `HARD.COM` then boots it from the
-emulated hard disk: it installs the MD-10 BIOS at `0xD800`, reads the system from
-**LBA 5, 11 blocks** into `0xC200`, patches page zero, and CP/M runs — to `A0>`,
-with `B:` and `A:` switching drives against the drive's two partitions. The image
-is the vendor's own tool's output, not synthesised.
+**Status: solved — the system boots to a prompt, with three partitions
+(2026-10-14).** The three-partition PYXIS27 drive of §3 was produced and booted:
+`A0>`, `B0>`, `C0>`, and a file written to `C:` and read back off it. That layout
+is the **floor pin** — it is the only one whose partitions match the driver's
+shared DPB (§9) — and it is what `tools/research/md10drive.py --layout md20`
+builds. The two-partition PYXIS13 drive the earlier sessions used boots
+`A0>`/`B0>` but is **not safe to write to** (§9).
+
+`PREP.COM`'s option 3 configures an operating system onto the drive; `HARD.COM`
+then boots it from the emulated hard disk: it installs the MD-10 BIOS at
+`0xD800`, reads the system from **LBA 5, 11 blocks** into `0xC200`, patches page
+zero, and CP/M runs. The image is the vendor's own tool's output, not
+synthesised.
 
 The last inch was a **re-relocation**. The image `PREP.COM` wrote has its
 addresses **0x100 bytes above the address `HARD.COM` loads it at**, so its CCP
@@ -52,9 +59,16 @@ Operating system configuration complete
 
 So the system was not synthesised. It was **produced by the 1984 toolset** on the
 emulated interposer, and then read off the drive. `research/adaptec/md10-system/`
-holds it; `tools/research/md10drive.py` lays it onto a fresh drive.
+holds both captures; `tools/research/md10drive.py --layout md20` (or `md10`) lays
+one onto a fresh drive, and `md10table.py` reads one back.
 
 ## 2. The recipe
+
+**For a new geometry, use `tools/research/md10prep.sh`** — it is this recipe,
+scripted and parameterised (`md10prep.sh 321,8,18 3 /tmp/md10` builds the PYXIS27
+floor-pin drive), and it reads the drive back and reports the O/S's relocation
+base for you. What follows is the same session by hand, which is what both
+captures were made with, and it is worth reading for the three traps below.
 
 Four menu steps, in this order, and the order is load-bearing.
 
@@ -116,12 +130,19 @@ blocks):
 | LBA 4 | a table |
 | **LBA 5–15** | **the operating system — 11 blocks, `0x1600` bytes** |
 | LBA 20–83 | `E5h` — the first 64 blocks of the `CP/M-A` partition: CP/M's empty directory |
-| LBA 11564–11627 | `E5h` — the same for the `CP/M-B` partition |
+| LBA 11564–11627 | `E5h` — the same for `CP/M-B`, *PYXIS13 layout* |
+| LBA 15419–15482 | `E5h` — the same for `CP/M-B`, *PYXIS27 layout* |
+| LBA 30818–30881 | `E5h` — the same for `CP/M-C`, *PYXIS27 layout* |
 | everything else | the `6Ch` fill |
 
 The partition table, decoded — each 28-byte record is a flag byte, a
 little-endian 24-bit start at +1, a little-endian 16-bit length in 512-byte
-blocks at +4, ten bytes, then the name at +16:
+blocks at +4, ten bytes, then the name at +16. **The size the installer picks is
+a function of the drive it was given**, and two layouts are captured:
+
+**PYXIS13** — main menu option 1, then *Disk initialization* option 5 (label),
+option 4 (partition), option 1 *"Two logical drives (MD-10)"* — the original
+capture:
 
 | Record | Name | Start (LBA) | Blocks |
 |---|---|---|---|
@@ -129,6 +150,23 @@ blocks at +4, ten bytes, then the name at +16:
 | 1 | `CP/M-A` | 20 | 11544 |
 | 2 | `CP/M-B` | 11564 | 11544 |
 | 3 | — | — | terminator (`FFh`) |
+
+**PYXIS27** — the same walk with partition option **2**, *"Three logical drives
+(MD-20)"* — **the floor pin**, captured 2026-10-14:
+
+| Record | Name | Start (LBA) | Blocks |
+|---|---|---|---|
+| 0 | `CP/M-CCP` | 4 | 16 |
+| 1 | `CP/M-A` | 20 | **15399** |
+| 2 | `CP/M-B` | 15419 | **15399** |
+| 3 | `CP/M-C` | 30818 | **15399** |
+| 4 | — | — | terminator (`FFh`) |
+
+Three 15399-block partitions at `20`, `15419`, `30818` **is the driver's own
+static fallback table** (§9) — so the vendor's installer and the vendor's driver
+agree exactly, which is what makes this the layout to build rather than merely a
+convenient one. `tools/research/md10table.py` prints either table from a raw
+image or a CHD; `tools/research/md10prep.sh` produces one for a new geometry.
 
 `CP/M-CCP` is the **O/S partition** option 3 insists on: sixteen blocks at LBA 4,
 and the operating system sits at LBA 5 — block 1 of that partition. The MD-10's
@@ -337,6 +375,33 @@ blocks** — the trace catches `READ LBA 83`, the last block of `20 … 83` — 
 exactly the `E5h` region §3 records. So the drive and the driver *do* agree about
 drive A.
 
+### 7.2 The three-partition drive, and the first write (2026-10-14)
+
+The result above is two partitions, on the PYXIS13 drive. On the **PYXIS27** drive
+of §3 — the floor pin — the same `HARD.COM` boot gives three, and the third one
+takes a write:
+
+```
+r21|A0>C:
+r22|C0>SAVE 1 TEST.COM
+r23|C0>D:DIRA
+r24|C:  0:TEST     COM
+r25|C0>
+```
+
+`C0>` is the third partition, and that `SAVE` is the first time anything in this
+project **wrote** to a hard-disk partition. `D:DIRA` — the disk's own lister, run
+from the floppy the hard disk displaced (§7.1) — reads the entry back. The write
+is visible in the image afterwards: block `30818`, the first block of `CP/M-C`'s
+directory, changes from `E5h` fill to a CP/M directory entry
+`00 54 45 53 54 20 20 20 20 43 4f 4d …` (user 0, `TEST    .COM`). That is why
+`tools/research/md10table.py` reports `C:`'s `E5h` region as `30819-30881` on the
+driven image and `30818-30881` on a fresh one — the region is the check.
+
+It is also the check that the shared DPB's 7.5 MiB lands *inside* the partition
+rather than past its end (§9.1): on the PYXIS13 drive it does not, which is why
+that drive is not safe to write to and the PYXIS27 layout is the floor pin.
+
 ### 7.1 The drive letters, and the floppy the hard disk displaced
 
 The MD-10 takes `A:`/`B:` for the hard disk, so the floppies move — and *where the
@@ -456,9 +521,46 @@ lookalike.
 `BLM = 31` gives 4096-byte blocks; `DSM = 1923` is therefore 7.88 MB per logical
 drive; `DRM = 1023` is 1024 directory entries; `AL0 = FFh` is the eight
 directory blocks; `CKS = 0` is a fixed disk, which is right. **`SPT` reads
-`F09Ch` and that is not a sector count** — the one field still to explain, and
-the likely answer is the one §7.3 already argued for: the driver patches `SPT`
-at run time from `MODE SENSE`, so the static value is a placeholder.
+`F09Ch` — 61596 — and that is not a sector count: it is the partition measured in
+128-byte records.** `61596 × 128 = 7 884 288 = 15399 × 512`, exactly one
+15399-block partition (resolved 2026-10-14; §7.3's "patched at run time from
+`MODE SENSE`" reading is retired). So the DPB does not merely *describe* a
+partition size — it **is** the partition size, and it is the same 15399 blocks
+`PREP.COM` writes when it is given a PYXIS27 (§3).
+
+### 9.1 One DPB for every hard-disk drive, and what that pins
+
+Read out of `HARD.COM` at file offsets `0x9A8` (the descriptors) and `0x9F0`
+(the DPB), the three hard-disk descriptors are:
+
+```
+type 0: 01 14 00 00 27 3c 00 00 | 00.. | 80 ee | b6 dd | 00 00 | c5 dd
+                 start=20 len=15399        DIRBUF  DPB     CSV    ALV
+type 1: ...                                80 ee | b6 dd | 00 00 | b6 de
+type 2: ...                                80 ee | b6 dd | 00 00 | a7 df
+```
+
+Read as the standard CP/M DPH at descriptor+8: **`XLT` 0, `DIRBUF` `0xEE80`,
+`DPB` `0xDDB6` and `CSV` 0 are shared by all three drives — only the allocation
+vector differs**, at `0xDDC5`, `0xDEB6`, `0xDFA7`: exactly `0xF1` = **241 bytes**
+apart, which is the ALV size for `DSM = 1923` (`(1923 + 1) / 8`, rounded up).
+Two consequences, both load-bearing:
+
+1. **Every hard-disk partition is the same size in CP/M's view — 7.5 MiB usable —
+   because there is one DPB.** So the only configuration in which the drive and
+   the driver agree is **three 15399-block partitions on a PYXIS27**. That is the
+   **floor pin**, and it is why §3's PYXIS27 layout is the one to build.
+2. **The two-partition PYXIS13 drive is not safe to write to.** Its `CP/M-A` is
+   11544 blocks (5.6 MiB) while the shared DPB tells CP/M it has 7.5 MiB, and the
+   1.9 MiB difference runs straight into `CP/M-B` — starting with `B:`'s own
+   directory. Nothing caught this earlier because every earlier test only ever
+   *read*; the first write to a hard-disk partition was `SAVE 1 TEST.COM` on the
+   PYXIS27 drive (§7.2).
+
+Bigger partitions need the DPB, the ALV addresses and the descriptor table
+patched together — #247's driver step. CP/M 2.2's own ceilings are `DSM` at 16
+bits (256 MiB at `BSH = 5`) and **32 MiB per partition**, because the partition
+length field is 16 bits of 512-byte blocks.
 
 **And that reconciles the residue.** The static descriptors carry three
 partitions — starts `20`, `15419`, `30818` (each entry's bytes 1–3 differ by

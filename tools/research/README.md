@@ -130,6 +130,40 @@ scratch programs, "figuring it out" notebooks/scripts.
   `READ CAPACITY`, a successful `READ` of LBA 0, `M`,`D` at `+0`, and `+28 < 20h`.
   Without `--label` the drive is still a fine target for the card; it is just not
   one `PREP.COM` will initialise (`docs/osborne1nx-machine.md` 6).
+- **`md10drive.py`** — builds a **bootable** MD-10 hard disk from small committed
+  artifacts rather than a 23 MB blob (`--layout`, #247). Each layout pairs a
+  header artifact with an O/S artifact and carries its own geometry and `E5h`
+  directory regions:
+  - **`md20`** (default) — **PYXIS27**, three 15399-block partitions at LBA 20 /
+    15419 / 30818. This is the driver's *own static fallback table*, and the only
+    layout whose partitions match the driver's shared DPB (`DSM = 1923` → 7.5 MiB
+    usable), so it is the one that is safe to write to. **Floor pin.** Its O/S is
+    already at its load base.
+  - **`md10`** — **PYXIS13**, two partitions of 11544 blocks. The original
+    capture. Its O/S sits 0x100 above the load address and needs `md10reloc.py`
+    first, and its partitions are smaller than the DPB claims, so a large write
+    to `A:` runs into `B:` — see `docs/md10-system.md` §9.1.
+  `--chs` overrides the layout's geometry; `--os` lays a different O/S.
+- **`md10reloc.py`** — moves a captured MD-10 O/S to the address `HARD.COM` loads
+  it at, by re-applying the `.SPR` relocation (`HARDCCP.SPR` / `HARDBDOS.SPR`) at
+  the right base — exact, not a patch. The shift is **derived per region** from
+  the measured delta and that region's load base, so an already-correct capture is
+  left alone; `--shift` overrides the derivation. It then **refuses to write** an
+  image whose CCP entry does not land on `LD SP,nn`, because that image would
+  warm-boot for ever (#198). Three captures measured and they do **not** agree on
+  a base — which is why the derivation replaced the old constant `0x100` (#247).
+- **`md10table.py`** — prints a drive's disk label, its 28-byte partition records,
+  the LBA 4 runtime table and its `E5h` regions, from a raw image or a CHD. The
+  readback half of the geometry capability: it is what says whether `md10prep.sh`
+  produced the layout it was asked for (#247).
+- **`md10prep.sh`** — the **repeatable new-geometry capability** (#247): builds a
+  blank labelled drive, drives the archive's own `PREP.COM` through its menus with
+  `o1keys.lua`, reads the drive back, extracts the header and O/S artifacts, and
+  reports the O/S's relocation base. `md10prep.sh 321,8,18 3 /tmp/md10` reproduces
+  the PYXIS27 floor-pin drive **byte for byte**. It is a *host* script — it wants
+  MAME, the patched `osborne1nx` machine (`$O1_MAME`) and `chdman` — so it is not
+  shipped tooling.
+
 - **`hardbios.py`** — read the MD-10 hard-disk BIOS overlay. `jump` prints the
   CP/M 2.2 BIOS jump table with every target resolved and walks `SELDSK`'s DPH
   construction; `audit` searches the whole archive for writers of the low-RAM

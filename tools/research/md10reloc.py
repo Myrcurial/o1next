@@ -2,23 +2,32 @@
 """md10reloc.py -- re-relocate the MD-10's operating system to its load address.
 
 WHY THIS EXISTS
-    `research/adaptec/md10-system/md10-os.bin` is the system the vendor's own
+    `research/adaptec/md10-system/*.bin` are systems the vendor's own
     `PREP.COM` (option 3) wrote, captured off a drive -- see
-    `docs/md10-system.md`.  Its addresses are relocated **0x100 bytes too
-    high**, and that is the whole of #198's "the system boots but never reaches
-    its prompt".
+    `docs/md10-system.md`.  A capture's addresses may sit at the wrong base,
+    and *which* base is a property of the run, not a constant.
 
     `HARD.COM` reads the system to `0xC200` (11 blocks from LBA 5) and patches
     page zero to `JP 0CA06h`, so the CCP belongs at `0xC200` and the BDOS at
     `0xCA00` -- which is also the only placement that fits, since the BDOS ends
-    exactly where the MD-10 BIOS starts at `0xD800`.  But the captured CCP's
-    first instruction is `JP 0C5C8h`, and `0xC5C8` is the *middle* of a
-    `CP 20h`.  `0xC4C8`, exactly 0x100 lower, is `LD SP,0C8C5h` followed by
-    `PUSH BC / LD A,C / RRA x4 / AND 0Fh / LD E,A / LD C,0Dh / CALL 5` --
-    the CP/M CCP's own `COMMAND:` entry, ending in the BDOS "reset disk"
-    call.  Relocated 0x100 high, the CCP jumps into the middle of an
-    instruction, runs garbage and warm boots, which is why the guest re-read
-    the system 1 303 times in 150 emulated seconds and never prompted.
+    exactly where the MD-10 BIOS starts at `0xD800`.  A capture relocated
+    0x100 high therefore has its CCP's first instruction at `JP 0C5C8h`, and
+    `0xC5C8` is the *middle* of a `CP 20h`.  `0xC4C8`, exactly 0x100 lower, is
+    `LD SP,0C8C5h` followed by `PUSH BC / LD A,C / RRA x4 / AND 0Fh / LD E,A /
+    LD C,0Dh / CALL 5` -- the CP/M CCP's own `COMMAND:` entry, ending in the
+    BDOS "reset disk" call.  Relocated 0x100 high, the CCP jumps into the
+    middle of an instruction, runs garbage and warm boots, which is why the
+    guest re-read the system 1 303 times in 150 emulated seconds and never
+    prompted (#198).
+
+    **Two captures, two different bases (measured 2026-10-14).** The
+    two-partition PYXIS13 capture in `md10-system/` carries base `0xC300` and
+    does need the 0x100 correction.  The three-partition PYXIS27 capture
+    (`md10-os-p27.bin`) carries base `0xC200` -- it is **already correct**, and
+    its CCP entry is `JP 0C4C8h` with `0x31` (`LD SP,nn`) at the target.  So
+    the shift is derived from each capture, never assumed; the old code
+    subtracted a constant `--shift` whatever the delta was, which silently
+    broke an already-correct capture.
 
 WHY THE CORRECTION IS MEASURED, NOT GUESSED
     `HARDCCP.SPR` and `HARDBDOS.SPR` on the 2.01 utilities disk are the
@@ -31,21 +40,30 @@ WHY THE CORRECTION IS MEASURED, NOT GUESSED
         CCP    232 differing bytes, every delta 0xC3
         BDOS   558 differing bytes, every delta 0xCB (plus 4 stamped bytes)
 
-    0xC3 and 0xCB are page deltas: `PREP.COM` added `0xC300`/`0xCB00` where
-    the load addresses are `0xC200`/`0xCA00`.  So the image is one uniform
-    relocation of the SPRs at a base 0x100 too high, and re-applying it at the
-    right base is exact -- no disassembly and no guesswork.  (The 4 BDOS bytes
-    that are not the constant are the BDOS serial number, which `PREP.COM`
-    stamps; they are left alone.)
+    0xC3 and 0xCB are page deltas, and they *are* the relocation's base:
+    `PREP.COM` added `0xC300`/`0xCB00` where the load addresses are
+    `0xC200`/`0xCA00`.  So the image is one uniform relocation of the SPRs, and
+    moving it to the load base is exact -- no disassembly and no guesswork.
+    The PYXIS27 capture shows `0xC2`/`0xCA`, i.e. it was relocated to the load
+    base already and needs no change at all.  (The 4 BDOS bytes that are not
+    the constant are the BDOS serial number, which `PREP.COM` stamps; they are
+    left alone.)
 
 HOW IT IS DRIVEN
     tools/research/md10reloc.py --out /tmp/md10/md10-os.bin
-    tools/research/md10reloc.py --out ... --shift 0x100 --dry-run
+    tools/research/md10reloc.py --os .../md10-os-p27.bin --out /tmp/md10/os.bin
+    tools/research/md10reloc.py --out ... --dry-run
 
-    --shift defaults to 0x100, the measured error.  --dry-run prints what it
-    would change and writes nothing.  The deltas are derived from the files
-    each run, so if a future capture is relocated correctly this tool says so
-    (delta 0, nothing to do) rather than silently corrupting it.
+    The shift is **derived per region** from the measured delta and that
+    region's load base (`pages = delta - base>>8`), so an already-correct
+    capture is left alone instead of being shifted.  --shift overrides the
+    derivation when a capture needs something unusual.  --dry-run prints what
+    it would change and writes nothing.
+
+    It then **validates before it writes**: the CCP entry must land on
+    `LD SP,nn` (0x31).  If it does not, the tool refuses (exit 1) rather than
+    writing an image it knows is wrong -- which is what the old version did
+    while only printing a warning.
 
     The output is what `tools/research/md10drive.py --os` lays on a drive:
 
@@ -71,6 +89,13 @@ CAPTURED = os.path.join(REPO, "research", "adaptec", "md10-system", "md10-os.bin
 
 CCP_LEN = 0x800          # the CCP is 0x800 bytes; the BDOS starts at +0x800
 SPR_HEADER = 0x100       # every .SPR carries a 0x100-byte header
+
+# Where `HARD.COM` puts each half.  It reads the system to 0xC200 (11 blocks
+# from LBA 5) and patches page zero to `JP 0CA06h`, so the CCP belongs at
+# 0xC200 and the BDOS at +0x800 -- which is also the only placement that fits,
+# since the BDOS ends exactly where the MD-10 BIOS starts at 0xD800.
+CCP_BASE = 0xC200
+BDOS_BASE = CCP_BASE + CCP_LEN          # 0xCA00
 
 
 def spr_body(name):
@@ -103,12 +128,12 @@ def relocate_delta(captured, body):
 def build(args):
     captured = open(args.os, "rb").read()
     ccp, bdos = spr_body("HARDCCP.SPR"), spr_body("HARDBDOS.SPR")
-    regions = (("CCP", 0x000, CCP_LEN, ccp),
-               ("BDOS", CCP_LEN, len(captured), bdos))
+    regions = (("CCP", 0x000, CCP_LEN, CCP_BASE, ccp),
+               ("BDOS", CCP_LEN, len(captured), BDOS_BASE, bdos))
 
     out = bytearray(captured)
     total = 0
-    for label, lo, hi, body in regions:
+    for label, lo, hi, base, body in regions:
         delta, hist = relocate_delta(captured[lo:hi], body)
         spread = {k: v for k, v in hist.items() if v > 4}
         print("%s: %d differing bytes, deltas %s" %
@@ -120,11 +145,24 @@ def build(args):
         if len(spread) > 1:
             print("  more than one delta above 4 occurrences; refusing to guess")
             return 1
-        # The differing byte is the *page* number of the address, so an
-        # address shift of 0x100 is one unit off the byte.
-        pages = args.shift // 0x100
-        print("  relocation delta %02X (a base 0x%04X); re-applying %d page(s) lower"
-              % (delta, delta << 8, pages))
+        # The delta *is* the relocation's page, so the image's base is
+        # `delta << 8` and the shift to the load base is the difference.
+        # Deriving it -- rather than assuming 0x100 -- is the point: an
+        # already-correct capture yields 0 pages and is left alone.
+        if args.shift is None:
+            pages = delta - (base >> 8)
+        else:
+            pages = args.shift // 0x100
+            print("  --shift override: 0x%X" % args.shift)
+        print("  relocation delta %02X (a base 0x%04X) -> load base 0x%04X: "
+              "%d page(s)" % (delta, delta << 8, base, pages))
+        if pages < 0:
+            print("  capture sits %d page(s) *below* 0x%04X; refusing"
+                  % (-pages, base))
+            return 1
+        if pages == 0:
+            print("  already at its load base -- nothing to change")
+            continue
         n = 0
         for i in range(lo, hi):
             j = i - lo
@@ -139,16 +177,18 @@ def build(args):
         print("dry run: nothing written (%d bytes would change)" % total)
         return 0
 
-    # Sanity check: the CCP's entry must land on a real instruction.  CP/M's
-    # CCP entry is `JP COMMAND`, and COMMAND opens with `LD SP,nn` (0x31).
+    # Validate before writing: the CCP's entry must land on a real instruction.
+    # CP/M's CCP entry is `JP COMMAND`, and COMMAND opens with `LD SP,nn` (0x31).
     tgt = out[1] | (out[2] << 8)
-    where = tgt - 0xC200
+    where = tgt - CCP_BASE
     op = out[where] if 0 <= where < len(out) else None
     print("CCP entry JP -> 0x%04X, byte there %s" %
           (tgt, "0x%02X" % op if op is not None else "out of range"))
     if op != 0x31:
-        print("  warning: not `LD SP,nn` -- the CCP entry does not look like "
-              "CP/M's COMMAND; check the delta before using this image")
+        print("  ERROR: not `LD SP,nn` -- the CCP entry does not look like "
+              "CP/M's COMMAND, so this image would warm-boot for ever (#198). "
+              "Refusing to write it; check the delta, or pass --shift.")
+        return 1
 
     with open(args.out, "wb") as f:
         f.write(out)
@@ -162,8 +202,9 @@ def main(argv):
     p.add_argument("--os", default=CAPTURED, metavar="PATH",
                    help="the captured O/S image (default: %s)" %
                         os.path.relpath(CAPTURED, REPO))
-    p.add_argument("--shift", default=0x100, type=lambda s: int(s, 0),
-                   metavar="N", help="how far to move addresses down (default 0x100)")
+    p.add_argument("--shift", default=None, type=lambda s: int(s, 0),
+                   metavar="N", help="override the derived shift (default: "
+                                     "derive it per region from the capture)")
     p.add_argument("--dry-run", action="store_true",
                    help="report the deltas and write nothing")
     args = p.parse_args(argv[1:])
