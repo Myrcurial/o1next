@@ -66,6 +66,65 @@ agent working in `o1nextgen`. Follow it over generic defaults.
      deleted base branch by hand.
 7. Never commit directly to `main`; never force-push `main`.
 
+## Concurrent sessions — more than one agent in this repo
+
+More than one Cline session is run against this repository at the same time, on
+purpose, so that one long wait does not idle the project. The rule that makes
+that safe is **one worktree per session**. The shared working tree is the hazard;
+the network is not.
+
+**The repo is not in iCloud.** That is the first thing anyone asks, so it is
+recorded here with its measurement (2026-10-14):
+
+| check | result |
+|---|---|
+| `$HOME`, `dscl . -read /Users/jarlen NFSHomeDirectory` | `/Volumes/4TB/Users/jarlen` |
+| `~/Library/Mobile Documents/com~apple~CloudDocs/Documents` | a **symlink** → `/Volumes/4TB/Users/jarlen/Documents` |
+| `.icloud` placeholders under `~/Documents/GitHub/` | none |
+| the volume holding the repo | `/dev/disk7s1` — APFS, PCIe NVMe, fixed (`diskutil info`) |
+
+iCloud Drive's `Documents` is a pointer *out* to the external volume, so nothing
+under `Documents/GitHub/` is synced, evicted, or replaced by a conflict copy.
+What breaks with two sessions is ordinary git: one session's `checkout` /
+`switch` / `stash` rewriting the files under the other, and two `commit`s racing
+for `.git/index.lock`.
+
+**Start a session like this** — and then open the *worktree* directory as that
+session's workspace, because Cline takes the workspace root for both its edits
+and its terminal, so a session opened on the main clone keeps editing the main
+clone:
+
+```sh
+cd /Volumes/4TB/Users/jarlen/Documents/GitHub/o1nextgen
+git fetch origin
+git worktree add ../o1nextgen-<issue> -b <area>/<slug> origin/main
+```
+
+Each worktree has its own HEAD and index and shares one object store, so commits
+and branch switches in one are invisible to the other, and `git fetch` in either
+updates refs that both can see. Git also refuses to delete a branch that is
+checked out in another worktree — which is the property the scheme rests on.
+
+**Ownership.** A session declares the issue it owns and the branch it is on: in
+its own briefing, and in the first commit it makes. Two sessions never share a
+branch, and no session switches another session's branch.
+
+**What cannot be parallelised:**
+
+- **Repo-wide sweeps.** #228 (the rename) and #200 (the `docs/` rewrite) touch
+  nearly every file, so they conflict with each other and with any session
+  editing `docs/`. One sweep at a time, alone.
+- **Renaming the clone directory** (`o1nextgen` → `o1next`, #228). Every
+  worktree's `.git` file holds an absolute path into the main clone's `.git`, so
+  one `mv` breaks them all at once. All sessions stopped, done last.
+- **Renaming the GitHub repository** changes `origin` for every session. Land it
+  when no other session is mid-push.
+- `git gc`, `git worktree prune` and `git worktree remove` are not
+  concurrent-safe. A session that needs one says so first.
+
+Everything else is the ordinary workflow above: branch from `main`, small signed
+commits, one PR per unit of work, merge through the PR. See #234.
+
 ## When a tool is missing, ask — do not engineer around it
 
 Host tooling is cheap and usually much better than a workaround. If the shape of
