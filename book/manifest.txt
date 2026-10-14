@@ -24,6 +24,7 @@ rom-variants    | ROM variants and third-party ROMs       | docs/o1-rom-variants
 rom-13          | ROM 1.3: the source disk, and what is left | docs/rom-13-reconstruction.md | partial
 rom-read        | Reading the monitor ROM off a real machine | docs/o1-rom-read-from-machine.md | reference
 ozrom           | OZROM 1E: a third-party monitor ROM     | docs/ozrom-1e.md               | solved
+rom-2.0         | ROM 2.0: CP/M resident in the ROM       | docs/o1-rom-2.0.md             | design
 video           | Video and the character generator       | docs/o1-chargen-graphics.md    | solved
 
 [part] Interfaces
