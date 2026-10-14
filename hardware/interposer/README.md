@@ -63,6 +63,14 @@ separate LFF path to design, document or test for — one brief covers both.
   2026-10-09, research-gaps #2; supersedes "74LVC245-class".)
 - **Power:** own dedicated 5 VDC feed from a rail near the Z80 socket,
   sized for Pico 2 W WiFi bursts (~300 mA+). (Decision 2026-10-09.)
+- **Power, standalone (added 2026-10-14, #207):** the Pico 2 W and the W25Q
+  library flash share one 5 V net, and that net must be reachable **from USB
+  alone** — the board runs, and the flash is programmable, with the interposer
+  out of the machine and no host supply connected. This rules out the case
+  where the Pico is USB-powered and the flash is fed from the machine's rail:
+  the library could not be filled. Filling the onboard library, then installing
+  the board, is the intended bench sequence. The SFF board carries the same
+  requirement (`../o1ng/README.md`).
 - **Modes:** passive-tap vs active-drive switching; mode jumpers.
 - **Stacking:** must coexist with SCREEN-PAC and CoPower-88 interposers
   on the fully-loaded machine; pass-through height matters.
