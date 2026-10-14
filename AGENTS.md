@@ -79,9 +79,9 @@ The clone lives at **`~/GitHub/o1next`**, which is outside `~/Documents` and
 therefore outside iCloud Drive's scope. It was `~/Documents/GitHub/o1nextgen`
 until 2026-10-14, and **that move is the fix for the whole problem below** — so
 the history is kept, because this section got the diagnosis wrong twice and the
-next agent will reach for the same evidence. *(The directory itself is still
-`o1nextgen` until step 5 of #228 renames the clone; the convention adopts the new
-name now, because making it the only name is what #228 is for.)*
+next agent will reach for the same evidence. The directory itself was renamed
+`o1nextgen` → `o1next` on the same day, in step 5 of #228, so the two names above
+are now only the before and after of one move.
 
 1. **The symlink is the mechanism, not the counter-evidence.**
    `~/Library/Mobile Documents/com~apple~CloudDocs/Documents` is a symlink to

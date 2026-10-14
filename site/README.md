@@ -18,6 +18,20 @@ repo Settings → Pages):
 (The usual `/docs` Pages source is unavailable — our `docs/` is the
 engineering-notes tree and stays as-is.)
 
+**A repository rename needs a redeploy.** `_config.yml` sets no `baseurl`, so
+`actions/jekyll-build-pages@v1` fills it in at build time from the Pages API —
+i.e. from the repository name *as of that build*. Every `relative_url` in
+`_layouts/default.html` is therefore prefixed with the repo name that was current
+when the site was last built. Rename the repository and the HTML already being
+served keeps pointing at the old name's asset paths, so the site answers 200 but
+renders unstyled (`/o1nextgen/assets/main.css` → 404 while
+`/o1next/assets/main.css` → 200). The fix is a re-run of this workflow, not a CSS
+change. To check which name the live build carries:
+
+```sh
+curl -s https://myrcurial.github.io/o1next/ | grep -o '<link[^>]*>'
+```
+
 ## Layout
 
 - `_config.yml` — Jekyll config (title, theme, permalinks)
