@@ -147,6 +147,14 @@ seams. It sidesteps #97 rather than pre-empting it: the face needs the
 looking at the art — which is what this renders. `--art-sheet` is the key, every
 glyph labelled with the character that draws it.
 
+**The face maps two halves, because art carries text as well as graphics.** ROM
+2.00's boot screen has *"press return to begin"* nested in a letterform, and
+those are the machine's ordinary letters: `sui 65` cannot reach them, because `p`
+is 0x70 and 0x70 − 65 = 0x2F is not a glyph. So 0x41–0x61 maps to the graphics
+glyphs (charcode + 65) and **every other printable codepoint maps to the machine's
+own glyph for that code** — 34 graphics plus 62 text, one face, and the same split
+the ROM's printer branches on.
+
 The verification covers the **cmap** as well as the outlines, for both faces. A
 font whose glyphs are perfect but whose mapping is off by one draws a *plausible*
 picture that is simply wrong, which is far harder to notice than a blank cell.

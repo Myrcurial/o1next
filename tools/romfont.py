@@ -123,6 +123,17 @@ ART_CODES = tuple(range(0x00, 0x21)) + (0x7F,)
 ART_OFFSET = 65
 ART_LAST_ASCII = 0x7F   # codepoints above this need a non-ASCII key
 
+# The art range above is only half the face.  Art also carries *text* -- ROM
+# 2.00's boot screen has "press return to begin" nested in the X's counter, and
+# those are the machine's ordinary letters, not graphics glyphs.  `sui 65`
+# cannot reach them: 'p' is 0x70, and 0x70 - 65 = 0x2F is not a glyph.
+#
+# So the face maps the whole printable range, with the graphics at 0x41-0x61 and
+# everything else to the machine's own glyph for that code.  That is exactly the
+# split the ROM's printer needs too: 0x41-0x61 means "graphics, subtract 65",
+# anything else means "print it".
+ART_TEXT_FIRST, ART_TEXT_LAST = 0x20, 0x7E
+
 
 def xscale(columns):
     """Font units per pixel *horizontally*, for a given display width.
@@ -257,7 +268,8 @@ def build_font(rom_data, rom_name, crc, columns=BASE_COLUMNS):
                 usWinDescent=SCALE, sxHeight=5 * SCALE, sCapHeight=7 * SCALE,
                 achVendID="o1ng")
     fb.setupPost()
-    return fb.font, bitmaps, x, names
+    glyphs = [(ch, ch, names[ch]) for ch in sorted(names)]
+    return fb.font, bitmaps, x, glyphs
 
 
 def build_art_font(rom_data, rom_name, crc, columns=BASE_COLUMNS):
@@ -277,19 +289,28 @@ def build_art_font(rom_data, rom_name, crc, columns=BASE_COLUMNS):
     x = xscale(columns)
     bitmaps = decode_rom(rom_data)
 
-    names, cmap = {}, {}
-    for ch in ART_CODES:
-        name = "art%02X" % ch
-        names[ch] = name
-        cmap[ch + ART_OFFSET] = name
+    # Two halves, one face.  The graphics: charcode 0x00-0x20 and 0x7F, each at
+    # charcode + 65.  The text: every other printable codepoint, as the machine's
+    # own glyph for that code -- which is what the letters inside the X need.
+    glyphs = [(ch, ch + ART_OFFSET, "art%02X" % ch) for ch in ART_CODES]
+    taken = {cp for _, cp, _ in glyphs}
+    glyphs += [(cp, cp, "text%02X" % cp)
+               for cp in range(ART_TEXT_FIRST, ART_TEXT_LAST + 1)
+               if cp not in taken]
+    # Keyed by glyph *name*, not by charcode: the graphics blank (charcode 0x20)
+    # and the text space (codepoint 0x20) would otherwise collide, and the cmap
+    # would reference a glyph that never got built.
+    glyphs.sort(key=lambda t: t[1])
+    cmap = {cp: name for _, cp, name in glyphs}
+    ch_of = {name: ch for ch, _, name in glyphs}
 
     fb = FontBuilder(UPEM, isTTF=True)
-    fb.setupGlyphOrder([".notdef"] + [names[c] for c in sorted(names)])
+    fb.setupGlyphOrder([".notdef"] + [name for _, _, name in glyphs])
     fb.setupCharacterMap(cmap)
 
     glyf = {".notdef": glyph_from_rows(notdef_rows(), x)}
     metrics = {".notdef": (COLS * x, 0)}
-    for ch, name in names.items():
+    for name, ch in ch_of.items():
         glyf[name] = glyph_from_rows(bitmaps[ch], x)
         metrics[name] = (COLS * x, 0)
     fb.setupGlyf(glyf)
@@ -309,14 +330,16 @@ def build_art_font(rom_data, rom_name, crc, columns=BASE_COLUMNS):
         "psName": "Osborne1-Art-%d-Regular" % columns,
         "version": "Version 1.000",
         "description": (
-            "The Osborne 1 character generator's GRAPHICS set only (UA15, 2716):"
-            " glyphs 0x00-0x1F, 0x20 and 0x7F, each mapped to its charcode + 65"
-            " so a wall of art text renders as the picture (the ROM loader does"
-            " `sui 65`). Decoded from %s (CRC32 %s). 'A' draws glyph 0x00,"
-            " 'a' draws the blank cell, U+00C0 draws 0x7F. Advance is exactly"
-            " the 8-pixel cell and one line is exactly one em, so set line"
-            " height to 1.0 and the cells tile with no seams. This is the"
-            " %d-column aspect: %d%% horizontal dot width."
+            "The Osborne 1 character generator (UA15, 2716) as an ART face: the"
+            " graphics glyphs 0x00-0x1F, 0x20 and 0x7F each mapped to its"
+            " charcode + 65, so a wall of art text renders as the picture (the"
+            " ROM's loader does `sui 65`) -- 'A' draws glyph 0x00, 'a' the blank,"
+            " U+00C0 glyph 0x7F -- AND every other printable codepoint mapped to"
+            " the machine's own glyph for that code, because art also carries"
+            " text ('p' is 0x70, and 0x70 - 65 is not a glyph). Decoded from %s"
+            " (CRC32 %s). Advance is exactly the 8-pixel cell and one line is"
+            " exactly one em, so set line height to 1.0 and the cells tile with"
+            " no seams. This is the %d-column aspect: %d%% horizontal dot width."
             % (rom_name, crc, columns, round(100 * x / SCALE))),
     })
     fb.setupOS2(sTypoAscender=(ROWS - 1) * SCALE, sTypoDescender=-SCALE,
@@ -324,7 +347,7 @@ def build_art_font(rom_data, rom_name, crc, columns=BASE_COLUMNS):
                 usWinDescent=SCALE, sxHeight=5 * SCALE, sCapHeight=7 * SCALE,
                 achVendID="o1ng")
     fb.setupPost()
-    return fb.font, bitmaps, x, names
+    return fb.font, bitmaps, x, glyphs
 
 
 def rasterise_glyph(glyph, x):
@@ -352,12 +375,13 @@ def rasterise_glyph(glyph, x):
     return rows
 
 
-def verify(font, bitmaps, x, names, offset=0):
+def verify(font, bitmaps, x, glyphs):
     """Round-trip every glyph, and check the cmap, against the ROM.
 
-    ``names`` maps charcode -> glyph name, so one check covers both faces: the
-    text family, where the codepoint *is* the charcode (``offset`` 0), and the
-    art face, where it is the charcode + 65.
+    ``glyphs`` is the ``(charcode, codepoint, name)`` list a builder returns, so
+    one check covers all three cases: the text family, where the codepoint *is*
+    the charcode; the art face's graphics half, where it is the charcode + 65;
+    and the art face's text half, where it is the charcode again.
 
     The cmap half matters as much as the outline half.  A font whose glyphs are
     perfect but whose mapping is off by one draws a *plausible* picture that is
@@ -366,12 +390,11 @@ def verify(font, bitmaps, x, names, offset=0):
     glyf = font["glyf"]
     cmap = font.getBestCmap()
     problems = []
-    for ch, name in sorted(names.items()):
+    for ch, cp, name in glyphs:
         got = rasterise_glyph(glyf[name], x)
         if got != bitmaps[ch]:
             problems.append("glyph 0x%02X (%s): outlines do not match the ROM"
                             % (ch, name))
-        cp = ch + offset
         if cmap.get(cp) != name:
             problems.append("U+%04X maps to %r, not %r"
                             % (cp, cmap.get(cp), name))
@@ -576,9 +599,9 @@ def main(argv=None):
     from io import BytesIO   # noqa: F401  (kept: emit_font owns the buffer)
     artefacts, bitmaps = {}, None
     for columns in COLUMNS:
-        font, bitmaps, x, names = build_font(data, rom.name, crc, columns)
+        font, bitmaps, x, glyphs = build_font(data, rom.name, crc, columns)
 
-        problems = verify(font, bitmaps, x, names)
+        problems = verify(font, bitmaps, x, glyphs)
         if problems:
             for p in problems:
                 print("FAIL %s" % p)
@@ -586,19 +609,22 @@ def main(argv=None):
             return 1
         print("verified: text %d columns at %d%% dot width, %d glyphs "
               "round-trip to the ROM's bits"
-              % (columns, round(100 * x / SCALE), len(names)))
+              % (columns, round(100 * x / SCALE), len(glyphs)))
         emit_font(artefacts, font, "osborne1-%d" % columns)
 
-        art, _, _, art_names = build_art_font(data, rom.name, crc, columns)
-        problems = verify(art, bitmaps, x, art_names, ART_OFFSET)
+        art, _, _, art_glyphs = build_art_font(data, rom.name, crc, columns)
+        problems = verify(art, bitmaps, x, art_glyphs)
         if problems:
             for p in problems:
                 print("FAIL %s" % p)
             print("refusing to write a font that does not match the ROM")
             return 1
-        print("verified: art  %d columns, %d glyphs at charcode + %d "
-              "('A'->0x00, 'a'->0x20, U+00C0->0x7F)"
-              % (columns, len(art_names), ART_OFFSET))
+        n_art = sum(1 for _, cp, _ in art_glyphs
+                    if 0x41 <= cp <= 0x61 or cp == 0xC0)
+        print("verified: art  %d columns, %d glyphs -- %d graphics at charcode "
+              "+ %d, %d text glyphs for the rest"
+              % (columns, len(art_glyphs), n_art, ART_OFFSET,
+                 len(art_glyphs) - n_art))
         emit_font(artefacts, art, "osborne1-art-%d" % columns)
 
     # The specimen sheet and the glyph sheet describe the ROM, not a display
