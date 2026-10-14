@@ -90,9 +90,35 @@ Bytecode (glyph 1 B, `7F,n,c` 3 B, skip 2 B, row-repeat 2 B, newline 1 B):
 | the message | — | 37 B, as text glyphs |
 | the hatch rules | 29 B | 29 B |
 
-Both are over the **511-byte** ROM window spare (`docs/o1-rom-2.0.md` §2.3), so
-the letterforms have to be **generated from strokes** rather than stored. The
-geometry above is the spec that generator is read from.
+Both are over the **511-byte** ROM window spare (`docs/o1-rom-2.0.md` §2.3), and
+`tools/research/rom2strokes.py` shows that *storing* it will not get there either:
+
+| | the logo |
+|---|---|
+| raw bitmap, striped, 1 bit per sub-pixel | 857 B |
+| RLE bytecode | 816 B |
+| the exact rectangle cover | 784 B |
+
+Every raster-shaped encoding lands in the same band, because the letters are heavy
+(~40% of a letterform is ink) and the cover is dominated by diagonals — the X is 72
+rectangles where it is structurally two strokes.
+
+**It does not need to fit.** One window page is 4096 bytes and the video buffer is
+128 × 32 = 4096 cells, so **one page is exactly one screen**; in bank 2 the window
+and the video RAM are both visible, so a frame is one `LDIR` from `1000h` to
+`F000h`. The frames live in the interposer's flash, not the ROM — about **40 bytes
+of ROM**, and the animation is the viewport slide, which is a register write.
+
+```
+tools/research/rom2strokes.py --frame /tmp/frame.bin     # 4096 B, CRC32 4689d85e
+```
+
+**One thing had to give.** The art is 153 columns and a screen is 128, so 25
+columns cannot come along — and there are only two candidates: the 26 columns of
+hatch to the left of the O, or the T. `--origin` defaults to 26, which places the
+*logo* at column 0 and keeps it whole; the hatch is a rule loop and can be drawn
+back at run time, and the O sliding off the left edge reads as the logo stretching
+with or without it.
 
 ## Provenance
 

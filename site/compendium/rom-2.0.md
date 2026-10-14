@@ -183,6 +183,23 @@ the *list*. 11.2 KB was monitor + MD-10 + CCP/BDOS with **no CBIOS**; 11776 is
 monitor + CCP + BDOS + CBIOS with **no MD-10**. Neither is the boot described here.
 The boot described here is **7681**, and any figure quoted for it has to name the
 list it came from.
+**The boot screen does not come out of the 511-byte spare, and does not need to.**
+[`research/boot-screen/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/boot-screen/) holds the authored art and [`tools/research/rom2strokes.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom2strokes.py)
+measures it: every raster-shaped encoding of the logo lands at **784–857 B** — raw
+striped bitmap 857, RLE 816, an exact rectangle cover 784 — because the letters are
+heavy and the cover is dominated by diagonals (the X is 72 rectangles where it is
+structurally two strokes). The geometric route was not converged, so it is
+estimated rather than demonstrated.
+
+What settles it is the architecture: **one window page is 4096 bytes and the video
+buffer is 128 × 32 = 4096 cells**, so **one page is exactly one screen**. In bank 2
+the window and the video RAM are both visible (§4.4), so a frame is one `LDIR` from
+`1000h` to `F000h` — about 40 bytes of ROM, with the frames in the interposer's
+flash, and the animation is the viewport slide, which is a register write. The one
+casualty is that the art is 153 columns and a screen is 128, so the 26 columns of
+hatch to the left of the O are dropped in favour of keeping the logo whole.
+
+
 
 ## 3. The interface that already exists
 
