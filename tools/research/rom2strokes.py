@@ -269,6 +269,19 @@ def render_logo(rows, path, ink=(0xF1, 0xF4, 0xF6)):
     the Osborne's CRT was **paper white** -- dark characters on a light screen.
     On a blue band that reads wrong, so the masthead is the *inverse* of the
     screen: light glyphs, and no background at all, so the band shows through.
+
+    **The masthead is the art's *graphics*, and only its graphics.**  The art
+    carries two strings that belong to the boot screen alone -- the version
+    caption `osborne 1 next rom 2.0 2026` (row 12) and the prompt `press return
+    to begin` (row 14) -- and both are *text* in the art's own alphabet, while
+    every mark of the drawing is a graphics glyph.  So dropping the text glyphs
+    leaves the wordmark exactly, and a caption added to the art later cannot
+    leak into the masthead.
+
+    Nothing is lost by dropping them, because the art spells a blank cell `a`,
+    which *is* a text-range character: a dropped cell and a blank one draw the
+    same nothing.  (`a` is also why no caption can contain the letter `a` --
+    see `research/boot-screen/README.md`.)
     """
     repo = os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))))
@@ -282,9 +295,10 @@ def render_logo(rows, path, ink=(0xF1, 0xF4, 0xF6)):
             o = ord(ch)
             if GRAPHICS_FIRST <= o <= GRAPHICS_LAST:
                 code = o - ART_OFFSET
-            elif 0x20 <= o <= 0x7E:
-                code = o
             else:
+                # Text is the boot screen's, not the masthead's.  `frame()` keeps
+                # it -- there it *is* the sign-on; here it is dropped, which
+                # covers both captions and everything outside the graphics range.
                 continue
             for py in range(10):
                 b = rom[py * 128 + code]

@@ -199,7 +199,11 @@ scratch programs, "figuring it out" notebooks/scripts.
   `--png` renders the frame with the character generator, and `--logo` renders the
   *art* as the site masthead — light glyphs on a transparent ground, i.e. the
   screen inverted, because the site header is the machine's blue panel and the
-  Osborne's CRT was paper white.
+  Osborne's CRT was paper white. `--logo` keeps the art's **graphics only**: the
+  version caption and the `press return to begin` prompt are *text* in the art's
+  alphabet, so they are the boot screen's alone and do not belong on a wordmark.
+  All 48 text cells in the art lie inside those two captions, and `a` — the blank
+  cell — is itself in the text range, so a dropped cell draws the same nothing.
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
   **7681-byte image** from the repo's own files and re-checks every anchor the
   design quotes, exiting non-zero if one moves. In: the stock 1.44 monitor, the
