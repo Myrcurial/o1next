@@ -31,7 +31,7 @@ below.
 
 ## The ScreenPac's physical interface (from the field service manual)
 
-Per `research/screenpac/2F00040_service_2ndEd_1983.pdf` §6.12 (OCR:
+Per `research/osborne1/2F00040_service_2ndEd_1983.pdf` §6.12 (OCR:
 `2F00040_service_2ndEd_1983.ocr.txt`), the ScreenPac install is:
 
 1. Pull the Z80 and the char-gen ROM; the ScreenPac board plugs into
@@ -85,7 +85,7 @@ electrically" story is documented even though we don't replicate it.
 
 - ScreenPac register emulation + renderer
 - Font-ROM init reader
-- Validation vs. `research/screenpac/2F00040_service_2ndEd_1983.pdf`
+- Validation vs. `research/osborne1/2F00040_service_2ndEd_1983.pdf`
 
 ## Monitor character: white, green or amber (#24)
 

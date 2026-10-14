@@ -26,6 +26,9 @@ needed.
 | File | What it is | Sourced from |
 |---|---|---|
 | `2F00153-01_Osborne1TechnicalManual_1982.pdf` (19 MB) | Osborne 1 Technical Manual, 1982. No text layer — image-only scan. Theory of operations, banking, I/O, video, disk, keyboard. | [bitsavers](https://bitsavers.trailing-edge.com/pdf/osborne/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf) |
+| `2F00040_service_2ndEd_1983.pdf` (12 MB, 292 pp) | **Osborne Field Service Manual, 2nd Edition, 1983** (part no. 2F00040-00) — the **whole-machine** service manual: board-level theory, parts lists, troubleshooting and the schematic set. The general-purpose companion to the Technical Manual above, and the source several `docs/` pages already cite by part number. §6.12 documents the ScreenPac IC-harness fly-lead solder connections (used by `firmware/screenpac-video/`); it also backs `docs/floppy-adapter-design.md` (drive A's 150 Ω terminator, the P8 male header, DS1 strapping) and `docs/o1-memory-io-map.md`. | [bitsavers](https://bitsavers.trailing-edge.com/pdf/osborne/2F00040-00_Service2ndEdition_1983.pdf) |
+| `2F00040_service_2ndEd_1983.ocr.txt` | OCR text layer (per the convention above), generated 2026-10-09 | — |
+
 | `OCC1_1A2011-00_Schem_RevE.pdf` (1.2 MB) | **Two drawing sets in one 12-page scan.** Pages 1–3: DISK ELECTRONICS, DWG 1A3004-00/01 Rev C (sheets 1–3 of 3 — the *drive's* own board). Pages 4–12: MAIN PC BOARD, DWG 1A2011-00 Rev E (sheets 1–9 of 9). 600 dpi bilevel; the embedded text layer is a useless early-90s OCR pass. Indexed, and the Z80 socket and P8 floppy pinouts extracted, in `docs/o1-mainboard-schematic.md` (#62). | [bitsavers](https://bitsavers.org/pdf/osborne/osborne1/OCC1_1A2011-00_Schem_RevE.pdf) (also mirrored as `Osborne_1_Schematics_1A2011-00_Rev_E.pdf` on RetroTechCollection/Internet Archive) |
 | `OCC1_1A2011-00_Schem_RevE.ocr.txt` | OCR text layer for the above (per the convention below), generated 2026-10-10 at 400 dpi. Good enough to grep for component references; **not** reliable for pin-level detail — read sheets visually with `tools/schematic_render.sh`. | — |
 | `keyboard/osborne_keyboard_pinout.html` + `keyboard/PROVENANCE.md` | Verbatim capture of the pinouts.ru Osborne 1 keyboard page: P4 pinout (incl. pin 19 = +12V via J6+R21) and the full key matrix map. Used by #45/#47. | [pinouts.ru](https://old.pinouts.ru/InputCables/osborne_keyboard_pinout.shtml), captured 2026-10-08 (provenance in the folder) |
@@ -79,12 +82,14 @@ References for the virtual Epson MX-80 printer personality (#19).
 
 | File | What it is | Sourced from |
 |---|---|---|
-| `2F00040_service_2ndEd_1983.pdf` (12 MB) | Osborne Field Service Manual, 2nd Edition, 1983. Covers the ScreenPac upgrade (Z80 + char-gen socket taps, dual-port video RAM). §6.12 documents the ScreenPac IC-harness fly-lead solder connections (used by `firmware/screenpac-video/`). | [bitsavers](https://bitsavers.trailing-edge.com/pdf/osborne/2F00040-00_Service2ndEdition_1983.pdf) |
-| `2F00040_service_2ndEd_1983.ocr.txt` | OCR text layer (per the convention above), generated 2026-10-09 | — |
 | `o1screenpacusersguide.pdf` (2.3 MB, 20 pp) | *Osborne 1 SCREEN-PAC User Guide*. **The primary source for what the upgrade does**, and it is more than a wider window: p. 13 (PDF p. 17) gives the three software-selectable widths (52 / 80 / 104), horizontal scrolling in **32-column blocks**, and the **presence flag at `2400H` bank 2** that lets software detect the board. Quoted in `docs/mame-emulation.md` §2 and `docs/o1-memory-io-map.md` §2a/§3 (#73, #24). | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1screenpacusersguide.pdf), supplied by the maintainer 2026-10-10 |
 
 The ScreenPac is the mechanical/electrical template for the interposer and
 for the video-output (HDMI) personality (#24, #9 photos).
+
+The **Field Service Manual** those ScreenPac notes come from (`2F00040`, §6.12)
+is a whole-machine document, so it is filed with the rest of them in
+`osborne1/` above — not here.
 
 ## technical-articles/ — extracts from Osborne-era magazines
 
