@@ -266,7 +266,10 @@ def build_font(rom_data, rom_name, crc, columns=BASE_COLUMNS):
     fb.setupOS2(sTypoAscender=(ROWS - 1) * SCALE, sTypoDescender=-SCALE,
                 sTypoLineGap=0, usWinAscent=(ROWS - 1) * SCALE,
                 usWinDescent=SCALE, sxHeight=5 * SCALE, sCapHeight=7 * SCALE,
-                achVendID="o1ng")
+                # OpenType's achVendID is exactly four bytes, so the name's
+                # six-byte form cannot go here.  `o1nx` is the four-byte form,
+                # the same `nx` qualifier the MAME machine uses (#228).
+                achVendID="o1nx")
     fb.setupPost()
     glyphs = [(ch, ch, names[ch]) for ch in sorted(names)]
     return fb.font, bitmaps, x, glyphs
@@ -345,7 +348,8 @@ def build_art_font(rom_data, rom_name, crc, columns=BASE_COLUMNS):
     fb.setupOS2(sTypoAscender=(ROWS - 1) * SCALE, sTypoDescender=-SCALE,
                 sTypoLineGap=0, usWinAscent=(ROWS - 1) * SCALE,
                 usWinDescent=SCALE, sxHeight=5 * SCALE, sCapHeight=7 * SCALE,
-                achVendID="o1ng")
+                # Four bytes, as above -- see the note in build_font().
+                achVendID="o1nx")
     fb.setupPost()
     return fb.font, bitmaps, x, glyphs
 
@@ -426,7 +430,7 @@ def write_png(path, width, height, rows):
 
 
 SPECIMEN_LINES = [
-    "o1nextgen",
+    "o1next",
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
     "abcdefghijklmnopqrstuvwxyz",
     "0123456789 !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~",
