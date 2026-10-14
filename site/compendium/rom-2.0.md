@@ -673,8 +673,12 @@ banked-ROM device plus the `2300h` latch — the same shape as the ACB-4000 card
 [`tools/research/mame-boot-probe.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/mame-boot-probe.sh), which is what measured every row of
 [`docs/mame-emulation.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mame-emulation.md) §4.
 
-**Not yet run.** The image does not exist yet, so this is the specification of the
-test rather than a result.
+**Not yet run.** The image now exists — [`tools/research/rom2image.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom2image.py), 7681 bytes,
+CRC32 `aef92022` (§6, #225) — but it is a *content* image: the monitor is still
+the stock 1.44, so there is nothing yet that reaches for the window and the test
+cannot run. **#247** is the plan that carries it: the banked-ROM device first, so
+the machine works and the window is de-risked, then `rom2asm` with `HCBOOT`
+filled in from the hard-disk chain that is already measured.
 
 ## 8. What is still open
 
