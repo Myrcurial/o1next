@@ -30,6 +30,12 @@ AHCT to the original NMOS part).
   clean on-board +5V and +12V rails. Replaces the entire original PSU —
   and gets the RIFA caps out of the mix.
 - **Battery option:** a ~15–19 V input rail suits an 18650 pack (4S).
+- **Prep from USB alone (added 2026-10-14, #207):** the board must be
+  preparable on the bench — Pico and library flash powered, and the flash
+  programmable — from a plain USB 5 V feed, before the PD trigger, the 15 V
+  rail or the chassis exists. PD negotiation is what the *finished machine*
+  needs; it must not gate the step that fills the library flash. Same
+  requirement on the interposer (`../interposer/README.md`).
 
 ## Two boards, one machine
 

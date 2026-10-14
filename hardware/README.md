@@ -24,6 +24,12 @@ no PCB layouts exist yet (Phase 1, issue #11).
   all O1s are NMOS Z80s (research-gaps #2, resolved 2026-10-09).
 - **Interposer power:** dedicated 5 VDC feed near the Z80 socket, sized
   for Pico 2 W WiFi bursts (~300 mA+).
+- **Standalone USB power (added 2026-10-14, #207):** one 5 V net carries the
+  Pico 2 W **and** the library flash, and that net is reachable from USB alone
+  — so the board runs, and its flash is programmable, with no host machine, no
+  Z80 socket and no chassis supply. Preparing a board (fill the library, then
+  install it) is a bench procedure, not something that needs a donor machine
+  open. Required for the interposer **and** the SFF board (`o1ng/`).
 - **Stacking:** the interposer must coexist with SCREEN-PAC and
   CoPower-88 interposers on the fully-loaded host machine.
 - **Socket taps: three.** The Z80 seat (the bus), the **main ROM socket UD11** (the
