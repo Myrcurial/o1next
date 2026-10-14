@@ -120,6 +120,20 @@ hatch to the left of the O, or the T. `--origin` defaults to 26, which places th
 back at run time, and the O sliding off the left edge reads as the logo stretching
 with or without it.
 
+## The frame validates itself, and the fallback is free
+
+The frame is *someone else's file* — the interposer's flash is updatable and a
+hand-built image will get it wrong — so it carries a marker in the rows nobody can
+see (rows 24–31 are off-screen): `O1NG` at `0FF8h`, a 16-bit sum at `0FFCh`.
+
+If it is missing or wrong, the monitor leaves **`o1next - press return`** on the
+screen. That costs nothing, because ROM 2.0 replaces the stock sign-on rather than
+adding to it: 21 bytes of text plus 6 bytes of code, against `IMSG`'s **182** — so
+the fallback frees 155 bytes and pays for its own check out of them.
+
+Order at boot: print the text first, page the frame in, check the trailer, and blit
+over the text if it is right.
+
 ## Provenance
 
 Authored by the maintainer on 2026-10-14, in the `osborne1-art-*` face that

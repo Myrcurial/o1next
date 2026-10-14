@@ -62,7 +62,34 @@ BLANK = 32
 # --- the video buffer -----------------------------------------------------
 
 STRIDE, ROWS = 128, 32
+VISIBLE = 24                              # rows 24-31 are off-screen
 FRAME = STRIDE * ROWS                     # 4096: one buffer, and one window page
+
+# --- the frame's trailer --------------------------------------------------
+#
+# The frame is *someone else's file*: the interposer's flash is updatable, and a
+# hand-built image will get this wrong.  So the frame carries its own validity
+# marker in the rows nobody can see -- rows 24-31 are off-screen -- and the
+# monitor checks it before blitting.  Without it a bad image puts garbage on the
+# screen and there is no way back.
+#
+#   frame[4088:4092]  b'O1NG'                 the magic
+#   frame[4092:4094]  the 16-bit sum of 0..4087, little-endian
+#   frame[4094:4096]  reserved, zero
+
+MAGIC = b'O1NG'
+TRAILER = 8
+TRAILER_AT = FRAME - TRAILER
+
+# --- the fallback sign-on -------------------------------------------------
+#
+# If the frame is missing or malformed, the monitor must still say something
+# useful.  It does not cost anything extra, because ROM 2.0 *replaces* the stock
+# sign-on rather than adding to it: IMSG is 182 bytes, and this is 21.
+
+FALLBACK = 'o1next - press return'
+FALLBACK_LEN = len(FALLBACK)          # OSTR stops on a byte with bit 7 set, so
+IMSG_LEN = 182                        # the string is its own terminator
 
 # The letter boxes, measured off `o1next-art.txt` (research/boot-screen/README).
 BOXES = [('O', 26, 46), ('1', 47, 59), ('N', 61, 82),
@@ -279,7 +306,11 @@ def frame(rows, origin):
                 buf[r * STRIDE + col] = o - ART_OFFSET
             elif 0x20 <= o <= 0x7E:
                 buf[r * STRIDE + col] = o
-    return bytes(buf)
+
+    # The validity marker, in rows nobody can see.
+    body = bytes(buf[:TRAILER_AT])
+    checksum = sum(body) & 0xFFFF
+    return body + MAGIC + bytes([checksum & 0xFF, checksum >> 8]) + b'\x00\x00'
 
 
 def main(argv=None):
@@ -305,15 +336,39 @@ def main(argv=None):
         buf = frame(rows, args.origin)
         with open(args.frame, 'wb') as fh:
             fh.write(buf)
+        cs = buf[TRAILER_AT + 4] | (buf[TRAILER_AT + 5] << 8)
         print()
         print('wrote %s: %d bytes = %d x %d cells = one window page (4096)'
               % (args.frame, len(buf), STRIDE, ROWS))
-        print('CRC32 %08x' % (zlib.crc32(buf) & 0xFFFFFFFF))
+        print('  CRC32    %08x' % (zlib.crc32(buf) & 0xFFFFFFFF))
+        print('  trailer  %r + sum %04x, in row %d (off-screen, only %d shown)'
+              % (MAGIC, cs, TRAILER_AT // STRIDE, VISIBLE))
         print()
-        print("So the boot screen is one `LDIR` from 1000h to F000h per frame,")
-        print("with the frames in the interposer's flash -- about 40 bytes of")
-        print('ROM, not 511.  And the animation is the viewport slide: a register')
-        print('write, and nothing else.')
+        print('The blit is one LDIR of 4096 bytes: 4096 x 21 T-states = 86016,')
+        print('which at 4 MHz is 21.5 ms.  A fiftieth of a second, against a')
+        print('floppy boot measured in seconds -- the frame is free in the only')
+        print('sense that matters, which is that the machine cannot feel it.')
+        print()
+        print('The fallback is free too, because it *replaces* the stock sign-on')
+        print('rather than joining it:')
+        print()
+        print('    %s   %2d bytes of text, and the last character'
+              % (FALLBACK.upper(), FALLBACK_LEN))
+        print('                                  carries bit 7, which is the')
+        print('                                  terminator OSTR looks for')
+        print('    LDK DE,MSG / CALL OSTR        6 bytes of code')
+        print('    ------------------------------')
+        print('    total                        %2d bytes, against IMSG\'s %d'
+              % (FALLBACK_LEN + 6, IMSG_LEN))
+        print()
+        print('So the fallback *frees* %d bytes, and pays for its own check.'
+              % (IMSG_LEN - FALLBACK_LEN - 6))
+        print()
+        print('Order at boot: print the text first, then page the frame in and')
+        print('check the trailer; if it is right, blit over the text.  A missing')
+        print('or hand-built image leaves the message on screen, which is the')
+        print('whole point -- and the check is a compare against four bytes plus')
+        print('a 16-bit sum, which is a loop over the page and about 20 ms.')
     return 0
 
 

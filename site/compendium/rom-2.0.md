@@ -564,6 +564,45 @@ live in the window and are reached through the table.**
 the 4 KB video window stays, and the test of the design is that nothing in the
 "take" table above requires giving either one up.
 
+### 4.9 The boot screen: one page, and a fallback that pays for itself
+
+The screen is **one window page** — 4096 bytes, which is exactly the video buffer
+(128 × 32 cells). In bank 2 the window and the video RAM are both visible (§4.4),
+so a frame is one `LDIR` from `1000h` to `F000h`: **4096 × 21 T-states = 86016, or
+21.5 ms at 4 MHz.** A fiftieth of a second, against a floppy boot measured in
+seconds. The frames live in the interposer's flash, not the ROM, and the animation
+is the viewport slide — a register write.
+
+**The frame is someone else's file, so it validates itself.** The flash is
+updatable and a hand-built image will get it wrong, and a bad frame puts garbage
+on the screen with no way back. So the frame carries a marker in the rows nobody
+can see — rows 24–31 are off-screen:
+
+| offset | content |
+|---|---|
+| `0FF8h` | `O1NG`, the magic |
+| `0FFCh` | the 16-bit sum of `0FF8h` bytes, little-endian |
+| `0FFEh` | reserved, zero |
+
+**The fallback is `o1next - press return`, and it costs nothing** — because ROM 2.0
+*replaces* the stock sign-on rather than adding to it:
+
+| | bytes |
+|---|---|
+| the text (21 characters; the last carries bit 7, which is `OSTR`'s terminator) | 21 |
+| `LDK DE,MSG` / `CALL OSTR` | 6 |
+| **total** | **27** |
+| `IMSG`, which it replaces (§2.1) | 182 |
+
+So the fallback **frees 155 bytes**, and pays for its own validity check out of
+them. The order at boot is: **print the text first, then page the frame in and
+check the trailer; if it is right, blit over the text.** A missing or malformed
+image leaves the message on screen, which is the whole point of having it.
+
+`tools/research/rom2strokes.py --frame` writes a frame with its trailer:
+4096 bytes, and the art is placed by `--origin` — see §2.3 for why that is not
+cosmetic.
+
 ## 5. The six open questions from #83, answered
 
 | # | Question | Answer |
