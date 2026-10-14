@@ -1,0 +1,971 @@
+
+===== PAGE 1 =====
+
+Model MD1IOO0—190 Specfications*
+(PRELIMINARY)
+
+Cathode Ray Tube 5-Inch Measured Diagonally (127 mm)
+
+Display Size: 3.80 in. X 2.54 in.
+Video Ampl. Voltage Gain: 10 min. with a 2.5V P-P min.
+Deflection Angle: 55°
+
+Video Performance Resolution: 650 lines, center; 500 lines, corner
+Bandwidth: Within 3dB, 10Hz to 12MHz
+
+Synchronization Horizontal: 15.75 kHz (é 500 Hz)
+Vertical: 50/60Hz
+Horizontal Blanking: 11,Sec min. (time includes retrace and delay)
+Vertical Blanking: 900,iSec min. (time includes retrace and video display)
+Input Signal Vertical Sync Drive: 50uSec. to 1.4 mSec. input, TTL compatible, negative
+(positive optional) pulse; 4.0V P-P 35 1(0)
+
+Horizontal Sync Drive: 4 to 40 uSec input. TTL compatible, positive (negative
+optional) pulse 4.0V P-P — 1.0
+
+Video: positive white, input impedance greater than 1k ohm
+
+Power Requirement Operating Range: +12 VDC (= 0.5V)
+
+Controls Internal: brightness, vertical size, vertical linearity, horizontal size, raster
+centering, vertical hold, contrast, and focus.
+Optional: customer supplied brightness control for operator adjustment
+Linearity Character Size: 1. Height and width will not vary more than 10% from the
+average character size. 2. Adjacent characters will not vary more than 10%.
+Operating Environment Operating Temperature: 0°C to +55°C
+Storage Temperature: —40°C to +65°C
+Operating Altitude: 10,000 ft. max.
+
+NOTE
+
+CRT‘s with bonded etched panels should not be subjected to storage or opera-
+ting temperatures above 50°C
+
+PERFORMANCE STANDARD:
+
+THIS EQUIPMENT IS DESIGNED TO COMPLY WITH DHHS X-RADIATION PERFORMANCE STANDARDS, U.L.
+AND C.S.A. SPECIFICATIONS PROVIDING B+ TO THE MONITOR DOES NOT EXCEED 14VDC.
+
+* IN A CONTINUAL EFFORT TO UPGRADE OUR STANDARD PRODUCT AS NEW TECHNOLOGICAL ADVANCES
+ARE MADE. SPECIFICATIONS ARE SUBJECT TO CHANGE WITHOUT NOTICE.
+
+===== PAGE 2 =====
+
+SERVICE NOTES
+
+GENERAL SERVICING PRECAUTIONS
+
+— CAUTION —
+
+Before attempting to service the monitor, dis-
+connect (or turn off) the external power supply;
+then, as an added precaution, discharge the CRT
+2nd anode before handling any high voltage
+components. In addition, be sure to observe
+all safety warnings and service notes in the
+front of this manual.
+
+When it is necessary to disconnect the deflection yoke, and/
+or CRT socket leads, pull their small female pins straight
+out without any back and forth rocking motion. This
+will prevent, or at least minimize deforming male pins
+and/or breaking their solder connections.
+
+Use caution around the heat sink of the horizontal output
+transistor. The heat sink is at the same potential as the
+transistor collector. During normal operation with signal
+input present, the horizontal heat sink has 165 volt P-P
+pulses (with respect to system ground).
+
+GENERAL SUBSTITUTION OF PARTS
+
+When components need be replaced, order Motorola re-
+placement parts only. Avoid using other substitute semi-
+conductor devices as these can cause system performance
+degradation. In the event of failure, and the need for emer-
+gency system restoration, generic substitution of semicon-
+ductor devices used are provided as an aid on the Schematic
+Diagram and Parts List.
+
+COMPONENT REMOVAL
+
+Due to the nature of solid state devices such as integrated
+circuits (IC‘s), and etched printed circuit cards, special de-
+soldering tools and IC removing techniques should be used.
+Care should be exercised not to damage the printed circuit
+card, break or lift the copper foil, and create cold solder
+connections.
+
+Integrated circuits are very reliable components and should
+not be replaced until all checks have proven definitely that
+the IC is the defective component. Removal of the IC is
+time consuming and often careless or sloppy soldering tech-
+niques can cause additional problems.
+
+CIRCUIT TRACING
+
+For ease in troubleshooting, circuit card components are
+mounted on one side, with foil circuitry on the reverse side
+of the circuit card. Schematic reference symbols and num-
+bers are screened on both sides of the circuit card to help
+
+locate and identify circuit components during trouble-
+shooting.
+
+Familiarize and study the attached Schematic Diagram and
+hints provided in this Service Manual before attempting to
+bypass logical troubleshooting sequence of measurements.
+The Schematic Diagram in this Service Manual contains
+voltage readings and oscilloscope test patterns at key points
+of the electrical circuit. These readings are typical for nor-
+mal operating conditions and should be considered nominal
+varying slightly from unit to unit. Any considerable vari-
+ations should be investigated as a possible defective circuit
+point.
+
+ROUTINE PERIODIC MAINTENANCE
+
+Routine periodic maintenance service should be performed
+on the Display Monitors as well as all supporting system
+equipment to avoid equipment down-time, and make neces-
+sary level adjustments to compensate for slow degradation
+in quality of display due to component changes, which if
+left unattended could result in costly and extensive repairs.
+
+ROUTINE PERIODIC INSPECTION
+
+Routine inspection schedules will depend upon the sur-
+rounding environment where the system is installed and
+should include
+
+@Check all controls for proper mechanical and elec-
+trical operation.
+
+@ Dust and clean optical surfaces. High quality display
+requires clean viewing surfaces.
+
+@ Examine all components for outward signs of damage.
+
+e@ Repair loose or worn out electrical connections burned
+or discolored insulation and parts.
+
+LOCALIZATION OF TROUBLES
+
+Localization of trouble is most frequently accomplished
+by performing the adjustment procedure as outlined in
+this Service Manual and noting the results or indications
+for comparison with normal operating conditions. Refer to
+the text portion of this manual on alignment procedures
+and the respective schematic circuit for additional infor-
+mation.
+
+@ Visually check for obvious physical defects or broken
+leads, broken plating, broken or disconnected (un-
+soldered) components, or overheating parts. If any
+attempt is made to change a component, the circuit
+should be checked to insure that the problem causing
+the original failure has been identified and corrected,
+otherwise damage to the new part may occur.
+
+===== PAGE 3 =====
+
+@Check voltages for proper levels at the suspected
+component and proper voltages at the surrounding cir-
+cuits. Certain defects or broken plating, broken leads,
+etc., may not be obvious to a visual inspection.
+
+@ The isolation of trouble to a defective component is
+most easily accomplished with the use of a multimeter
+and observing normal transistor and IC servicing tech-
+niques. During the process of isolation, continuous
+references“must be made to the appropriate section
+of the schematic diagram to determine circuit con-
+figuration.
+
+CRT REPLACEMENT
+
+Use extreme care in handling the CRT as rough handling
+may cause it to implode due to high vacuum pressure. Do
+not nick or scratch glass or subject it to any undue pres-
+sure in removal or installation. Use goggles and heavy
+gloves for protection. In addition, be sure to disconnect
+the monitor from all external voltage sources.
+
+— NOTE —
+
+Discharge the CRT by shorting 2nd anode to
+the aquadag; then remove the CRT socket, deflec-
+tion yoke and 2nd anode lead.
+
+Procedure:
+
+Step 1. Remove the CRT socket, and the 2nd anode
+lead.
+
+Step 2. Remove push-in connectors (4) from both sides
+of the deflection yoke.
+
+Step 3. Remove (1) %-in hex head screw securing the
+printed circuit card to the chassis.
+
+Step 4. Gently slide the printed circuit card out towards
+the rear of the monitor. Do not use force as the
+printed circuit card is secured in place in nylon
+guiding rails. These guide rails are mounted to
+the sides of the chassis. When re-inserting the
+printed circuit card back into position, care
+should be exercised to first orient the card pro-
+perly and making sure to align its sides into the
+nylon guide rails.
+
+Step 5. Loosen the screw on the deflection yoke and
+remove yoke.
+
+— NOTE —
+
+The deflection yoke is secured to the
+neck of the CRT with hot melt adhesive.
+Carefully break the adhesive bond before
+sliding yoke from its position.
+
+Step 6. Remove the grounding spring clipped to the
+sides of the chassis.
+
+Step 7. Gently grasp the CRT from the rear and remove
+the (4) hex head screws securing the upper and
+lower CRT holding bracket. Slide the CRT
+out from the front.
+
+Step 8. Loosen the copper wire bracket holding screw
+and slide the bracket assembly off from the
+CRT.
+
+Step 9. Use Motorola Part No. 11-00131474 adhesive
+cloth tape to tape the sides of the replacement
+CRT before installing the CRT mounting brackets.
+
+Step 10. Reverse the procedure/steps to install the new CRT.
+
+OPERATIONAL CHECK/ADJUSTMENT
+PROCEDURES
+
+GENERAL
+
+The following procedures are provided to check the opera-
+tion of the monitor and perform simple preinstallation
+adjustments (if required), or readjust after servicing and
+component replacement.
+
+When reference is made to adjust to a specific size display
+(vertically and horizontally), refer to original model speci-
+fications for correct dimensions by the monitor model
+number. This also applies to minimum and maximum toler-
+ances when adjusting for correct CRT geometry, linearity,
+focus, etc.
+
+— NOTE —
+
+To assist in understanding more of the pre-
+ceding terminology, refer to a separate Motor-
+ola Manual, “Incoming Inspection Guide”
+(Motorola part number 68P25253A71).
+
+Perform the procedures in the sequence presented, and al-
+low at least five (5) minutes warm-up before adjusting
+the monitor. In addition, when instructed to disconnect
+an input signal, do not ground the signal at the circuit card
+edge connector (P1). This action could damage the signal
+source generator. Instead, disconnect the signal at its
+source,
+
+CCW = Counter Clockwise Rotation, CW = Clockwise Rota-
+tion. (As viewed from rear of circuit card.)
+
+EQUIPMENT REQUIRED
+Regulated 12VDC Power Supply
+
+Precision Digital Voltmeter
+
+Non-Metallic Alignment Tool
+
+===== PAGE 4 =====
+
+Test Signals (Bench test signals must be same ampli-
+tude, polarity, and frequency as final installed opera-
+ting signal source. Refer to original specifications for
+values by monitor model number.)
+
+The following Motorola gauges are required for performing
+complete and accurate CRT geometry and linearity align-
+ment. Refer to original model specifications for correct
+gauges to use. ’
+
+Linearity Gauge Slot Gauge Parallelogram Gauge
+
+SERVICE ADJUSTMENTS
+
+Use a non-metallic tool when performing the following
+adjustments,
+
+BRIGHTNESS/CONTRAST ADJUSTMENT
+
+Procedure:
+
+Step 1. Disconnect the Video Drive signal, input at pin 8
+of edge connector P1.
+
+—or—
+
+If unit is equipped with a customer supplied
+Contrast control, rotate for minimum signal.
+
+Step 2, Rotate internal Brightness control, R108, to mini-
+mum,
+
+Step 3. If unit is equipped with a customer supplied Re-
+mote Brightness control, rotate to full maximum
+Position.
+
+Step 4. Rotate R108 to the threshold of the raster.
+
+Step 5. Reconnect Video Drive signal. Adjust customer
+supplied Contrast control for a desired video
+level.
+
+Step 6. Adjust the Remote Brightness for the desired
+brightness level.
+
+VERTICAL SIZE/LINEARITY ADJUSTMENT
+Procedure:
+
+Step 1. Connect a test generator whose output is identical
+to the signal normally used.
+
+Step 2. Rotate the Vert. Size control, R208, until optimum
+size display is obtained.
+
+Step 37 (Refer to Figure 1.) Adjust the Vert. Linearity
+control, R211, until extreme top and bottom
+characters (designated ‘‘A” and ‘’B’’) are equal in
+height to the center characters (designated ‘‘C”).
+
+CRT
+
+SCREEN
+(LEFT (RIGHT)
+
+(CENTER) EDGE)
+
+EDGE)
+Farin = oF RASTER ———_+|
+Cer het
+
+|
+a1
+
+2
+
+“AY
+
+sd O-akd
+
+AEPC—01050-—0
+
+Figure 1. Partial CRT Display of Characters for
+Vertical Linearity Adjustment
+
+Step 4. Readjust R208 until the desired height is obtained.
+
+FOCUS ADJUSTMENT
+Procedure:
+
+The optimum focus of the display is obtained by adjusting
+the focus control, R315, for best focus at a point that is
+near the center and approximately 1/3 down from the top
+of the display.
+
+RASTER CENTERING ADJUSTMENT
+
+General
+
+The deflection yoke of these direct drive monitors do not
+contain magnets; therefore, only raster centering is required
+whenever the CRT needs to be replaced.
+
+Procedure:
+
+Step 1. Adjust Vertical Size Control, R208, so that
+all edges of the raster are visible.
+
+Step 2. Reposition the Yoke into the CRT for best raster
+centering.
+
+Step 3. Readjust the Vertical Size Control, R208, to
+specified dimensions.
+
+Step 4. Secure and bond the Yoke to the neck of the CRT
+using hot melt adhesive to prevent slippage.
+
+===== PAGE 5 =====
+
+VIDEO VIDEO
+IN. —<4— OUTPUT
+CRT
+VERTICAL PROCESSOR aie
+7
+VOLTAGE FLYBACK
+SYNC REG GEN
+VERT *: :
+DRIVE - < ¥ horiz
+. verT | YOKE
+RAMP POWER
+osc GEN [>] BUFFER; | PREAMPE- ‘Aube YOKE
+H2vIN—<4—O
+SYS GND aa!
+HORIZ HORIZ SYNC HIGH
+HORIZ 1 HORIZ
+DRIVE —<@——>]_ BUFFER >} REGEN. VOLTAGE
+IN (ADJ. DELAY) ose COTE TRANSF.
+AEPC-01507-0
+Figure 2. MD1000—190 Block Diagram
+THEORY OF OPERATION VIDEO AMPLIFIER
+(Refer to Figure 3)
+GENERAL
+The li id lifi i ifi
+
+The Model MD 1000—190 Series Monitors ae airect e linear video amplitier consists of a one stage ampli er,
+
+drive units requiring separate video, horizontal drive and
+
+vertical drive inputs.
+
+All are TTL compatible.
+
+Power
+
+is supplied to the monitor from an external +12VDC
+
+source,
+
+The monitor consists of a Video Amplifier, a Vertical
+Processing stage, and five stages of Horizontal Deflection.
+
+Figure 3. Video Amplifier Circuitry
+
+Q101, capable of providing a minimum voltage gain of
+10 with a 2.5V_ PP of signal input.
+
+A TTL compatible non-composite video signal, is DC
+coupled to the base of Q101 via R103. Capacitor C102
+and resistors R105, R106, maintain a flat frequency re-
+sponse whenever Q101 conducts.
+
++87V
+te
+7K
+{ 20
+a < BRIGHTNESS
+OPTIONAL > R108
+REMOTE 00K
+BRIGHTNESS
+CONTROL
+
+ew 9 (neat
+(PRESENT (et Leap)
+CRT SOCKET = cry
+= Por ALL
+weuT capa) “EA | EES ae
+
+
+===== PAGE 6 =====
+
+HORIZ SYNC
+
+REGENERATOR
+(ADJ. DELAY)
+
++Hi2v
+
+=
+
++H42v
+
+5.2VPPH +12V
+
+oer ps osc. Fae |
+
+po eles
+
+T.6V P-P H
+
+HORIZ.
+CENTERING
+R307
+
+25K
+
+R308 41.SVP-PH
+
+] R313
+DISCHARGE f
+
+THRESHOLD
+Ic302
+
+SAL, wisvie
+a
+R305
+0304
+2 28% Bose] 1C301
+7 E 555
+t TRIG. OISCH.
+470 PF bur
+Riz. Te
+ve —<6 303
+04
+
+41V P-PH
+
+{1.0VP-PH
+
+Figure 4. Horizontal Sync Regenerator and Oscillator
+
+The resultant output of Q101 is developed across collector
+resistor R104 and is DC coupled to the CRT cathode
+via resistor R2. Q101 is protected from the CRT by a
+spark gap built into the CRT socket and R2 further isolates
+Q101 from transients.
+
+HORIZONTAL AMPLIFIER AND OSCILLATOR
+(Refer to Figure 4)
+
+Transistor Q301 is a single stage buffer/inverter which
+operates as a switch. During a no-signal condition, Q301
+is biased at cut-off. The horizontal drive input is DC
+coupled to the base of Q301. Positive-going horizontal
+drive pulses of 2.5 volts P-P will turn Q301 on and cause
+it to saturate. The inverted output of Q301 is developed
+across resistor R304. These inverted pulses of approximately
+11 volts P-P, pass through a differentiator circuit consisting
+of C302 and R305 which shapes the puises into sharp
+spikes and are applied to the input (pin 2) of IC301.
+
+Diode D301 clamps the input signal to +12 volts. 1C301
+is a timer IC used in a mono-stable multivibrator mode to
+delay the incoming drive pulse approximately one horizontal
+scan line. This delay is adjustable by R307 and is required
+to center the video information on the CRT. Components
+R307, R308 and C305 form an RC network which deter-
+mine the amount of delay. This delay has a range of
+% to 1% horizontal scan lines. Capacitor C304 provides
+additional local filtering for 1C301.
+
+The 12 volt P-P non-symetrical output of 1C301 (pin 3)
+passes through a differentiator circuit consisting of C306
+and R809. The differentiator produces positive and negative
+going spikes which are applied to diode D302 and only the
+negative-going spikes are allowed to pass to the input of
+1C302 (pin 2).
+
+1C302 is used as a free-running oscillator operating above
+the horizontal synchronized input frequency. If a loss
+of a horizontal drive signal occurs, the oscillator will
+free-run at a higher frequency reducing the high voltage
+developed by the flyback transformer. This prevents any
+damage to components in the horizontal output circuitry.
+Components R310, R311, R312 and C307 determine
+the free-running frequency of the oscillator. The output of
+1C302 (pin 3) is an 11 volt P-P non-symmetrical square
+wave.
+
+HORIZONTAL OUTPUT
+(Refer to Figure 5)
+
+When the output of IC302 (pin 3) goes high, horizontal
+output transistor Q303 is forward biased via R313, R314
+and C310 causing it to ‘‘turn-on.” At this time transistor
+Q302 is reverse biased and is cut off. Diode D303 protects
+Q302 from reverse base-emitter voltage.
+
+When the output of IC302 goes low, Q302 turns on;
+drawing current through R314 and C310 turning ‘‘off”
+Q303. RC network R314 and C310 is a speed-up network
+used to increase the collector switching time of Q303.
+
+HORIZONTAL OUTPUT TRANSFORMER
+(Refer to Figure 5)
+
+The horizontal output transistor, Q303, is simply a switch
+which is turned on and off at the horizontal scan rate by
+the driving signal applied to its base. A sawtooth current
+through the deflection coils is required to sweep the beam
+linearly across the CRT screen. The sweep begins at the
+center of the CRT and sweeps to the right. This happens
+when Q303 is turned on and its collector voltage drops to
+
+7.SVP-P H
+
+===== PAGE 7 =====
+
+Tx08
+HV. TRANSFORMER
+@ KY. RECTIFIER
+
+FROM
+Q302 .
+
+Figure 5. Horizontal Output Circuitry
+
+near zero. C311 begins discharging through the deflection
+coils which deflect the beam to the right of the CRT.
+At this time, Q303 cuts off and C311 ceases to supply
+current to the deflection coils. However, an induced voltage
+appears across the deflection coil as the magnetic field
+collapses and oscillations then occurs between the de-
+flection coils and C311.
+
+During the first half cycle of this oscillation, the induced
+voltage is felt across the collector of now cut off Q303,
+C311, and the primary of T301 - the flyback transformer.
+This voltage is stepped up by T301 and rectified to produce
+the required high voltage applied to the 2nd anode of the
+CRT. The electron beam is also deflected to the left
+edge of the CRT due to the collapsing magnetic field of
+the deflection coils.
+
+During the second half cycle of the oscillation, Q303 is still
+cut off. At this time, damper diode D304 becomes forward
+biased and begins conduction. The deflection coil current
+gradually decreases to zero during damper conduction
+allowing the beam to sweep linearly to the center of the
+screen.
+
+FOCUS (Refer to Figure 5)
+
+Focus voltage for the CRT is derived from the auto-
+transformer action of T301. D307 and C315 form a posi-
+tive voltage source. This voltage is reduced by R316 and
+filtered by C316 to supply the second grid, G2, of the
+CRT. During auto-transformer action time, D305 conducts,
+charging 313 negative to positive. When the yoke field
+collapses, C313 discharges. This creates the -85 volt source
+for the brightness circuit.
+
+VERTICAL DRIVE
+(Refer to Figure 6)
+
+The vertical deflection circuit consists of one stage, }C201,
+which accomplishes all active vertical drive functions.
+Vertical input pulses are differentiated by C201 and R202.
+This allows 1C201 to be edge sensitive. R201 provides
+proper input loading. Diode D201 couples only the negative-
+going spikes from the differentiator circuit to the sync
+input of 1C201 (pin 8). R203 and R204 provide input
+current limiting. The sync input (pin 8) performs several
+functions. It strips away any random noise that may be
+present on the input line and conditions the vertical pulses
+for processing. It also converts the input voltage pulses to
+current to control the internal oscillator. The oscillator
+generates a non-symetrical square wave with a short duty
+cycle approximately 60Hz. Components R205, R206
+and C202 determine the frequency. This square wave
+signal is applied to a ramp generator whose slope and
+amplitude is determined by R207, R208, and C203. The
+ramp voltage signal is applied to a buffer stage which
+isolates the ramp generator from the output stages and
+reduces any loading effect on the previous stages. Com-
+ponents R209, R210, R211, C204, and C205 reshapes
+the ramp voltage to make it extremely linear.
+
+The output signal from the buffer stage is applied to a
+preamp stage for amplification and then to a power amp
+stage which drives the vertical deflection coils directly via
+coupling capacitor C210. Components R216 and C209
+provide damping to prevent any oscillations in the output
+circuit. R213, R314, R215, R217, R218, C206, C207 and
+C208 provide AC and DC feedback for the output stage
+to maintain proper gain and linearity.
+
+===== PAGE 8 =====
+
+10
+
+~
+
+2aVP-PY “TSSVP-PY
+4 mS
+— wr —- We
+VERTICAL PROCESSOR +t2v
+Sa ee ov— c2iz
+O.TVP-PH
+
+PIN it
+
+ye
+
+TAB
+GROUND
+FU.SVi2 F4135V 15 4O22V15
+
+Loar [emer] | [me @ —
+sp qc Mingle + ie
+
+F+ZOV|D 4E5VIE FEBVIT ¥7.6V ]12
+Vi +£s¥)-
+wes] Ligh) sum
+R206 arek
+R202
+R205 00 HK
+420) r
+
+1 <S R207
+7S Sz7THK aia)
+Ot
+
+c202—
+
+x
+o1s™ O23
+a
+
+c206
+
+> R206 i
+
+Figure 6. Vertical Deflection Circuitry
+
+Sito.
+aR:
+
+RETAINER CRT
+42025258A01
+
+FAEPC 01506-0
+
+PRINTED CIRCUIT i eae oe
+
+NYLON RAIL BRACKET, PC GROUNDING
+
+SPRING, AQUADAG GROUNDING 07.25978A01
+
+(2)
+(MOUNTED ON INSIDE OF CHASSIS) 41-25268A03
+
+07-10747A02
+
+Figure 7. Model MD1000—190 Series (Side View)
+
+===== PAGE 9 =====
+
+SJOIIUOW 1 YD S8/18S 061—O00L GW [ePoy ‘wesbeIq oneWaYoS
+
+(hmoHe 2088 “wod)
+WOL02 HOD BEGA GW 1INOMD bed
+lear wens wamcisco) Ww eel ae 7)
+gees waa poe lo : |
+NI RIWOA 34+ sreu He ! \ ate, a
+(ae om ! re 2029
+* ' Rent]
+ma 3AMO LUA HS) i v
+onl th sb wl yt *
+irs) \ oliape Liabaers 7S)
+Eee ees eel] oO Rand ave
+roe =
+
+“AME DNs 4 LO Tem LOK '82ER BH TOVLIOD
+APVELNED (OW sRE URRELIR TYRNRLTT BOK OK
+
+“Ane RN LIKE ROLLE ee teawan Anant
+IDI NT OTROR F 4M> 439008 19,
+“WOLD FES) BIE TONER
+
+2 oxo (Area
+°8V3) PPVL18A Wem mE BILE UDeOENED > yi x05 [lie TY
+“OW? DADE 140 07 Ld ave Meret
+“Len OR PO TWO) Shave A 6900 7DNT LUNDNOANES ¥ "]
+
+“OLY Om FV JAVY bd WLmOTIVON We (A) TD
+UMA AY OF20A8 GRY ‘ORROwS THOR OL 72NI0)
+“404 D9O2NO THING Zam MLM BOY BEVOSDAVE
+
+WAS him BpuREvIR EPVLIBA Det
+
+“wnehe FY TIvWOM Lae ROULYWIe TY
+mee WOs LIE TVOWLNOD KLM BIWATYDM FIDVLIOA 7
+heh ee
+Ws DUY TDATVA WOLIEDY Gay ‘DeYWY/0N2—" mE YY
+SUA TWA WOLIDWe¥D TYY 82LY DOM Doe LO SEITIR “TL
+
+{83.LON
+
+tava..wo Wi)
+
+At/ ROR Wi
+uy ba
+
+Aadna Aveo
+
+“WMLLLIS TOULNOD CRLVIOOSSY KLM EW FOYIIOA
+
+4a
+“ROLLIIENED bY TVA Lax208 | —< o |
+“WeLL2;ENED me TYR Re VOCAL -96 | HOVORLOY 86 | 1A AL
+ano an Ore av
+‘thd WaL2pewes Pee ews Aw ->>- Se eed be Age- So
+omnes nue nT ino +} Ory Oe
+‘won.zu pewmes wes owra mow “Y 0 Ca cs)
+Ss
+BL Sénimphochidol te ©. *. 190__ |e. |
+“LVOA Od Lined MOLLOMLLIE VO HODROE DL LLIN DGADY “ 7) 5 ew
+“WeL2IeNeD ve LaDeEaNE? Ew? DAI Clr kr CS aan
+WO 440 WY BL OLLD;ONOT LISA WPETOS LUNDEDUSIY _ Aor ate mH OOH
+:0Na937 uy ur tow 00 on
+an0. cI on 90h
+Ma LLSWMLAMOON | GEREN LOM | HONE SSINLHOWS ¢
+a a
+W4-OOOKOR | O8-00010R nu
+'7ev cow
+
+
+===== PAGE 10 =====
+
+—COMPONENT SIDE SHOWN—
+
+Se Poe se Sie = Se ee
+4 Se
+| : |
+= |
++
+: |
+| _—
+1 — SYSTEM OND
+Np VERT, DRIVE IN
+| VIDEO IN
++12V IN
+| | HORIZ. DRIVE IN
+| | SPECIAL APPLICATION
+jAL
+| | rere
+1 | CONTROL
+| BU =al SYSTEM GNO
+Le -
+| o Cc =
+ee |
+|= |
+NE |
+| ° |
+OTe as eT Ee, a Pe eM ee a ee ee ee ed
+SOLDER ART CEPC-01489-0
+OVERLAY CEPC-04491-0
+Monitor Circuit Card Detail, Component View
+TO PINT
+To OF CRT
+HORIZ YOKE (GND.)
+eee | orem Ro | oer
+(+7)
+TOPINS
+cAT
+LL ad nme g™ —SOLDER SIDE SHOWN—
+ox RED [BRN [BLK » Was rei Otis NEDA eee ee ee Se
+[SBE a Soe =. ie.
+[f=
+ve ~ wim
+®LEED 3
+[GS : - 43
+\ae
+| a “| SvSTEM GHD
+| es
+REMOTE
+| | ee
+CONTROL
+| | SPECIAL APPLICATION
+| AER | pone sane
++12V in
+| vonon
+: VERT, DRIVE I
+j 2 RiOt < SYSTEM eNO
+ez Fs
+e i
+SO
+hank WHT re. ie —-
+SOCKET | |
+| NY |
+2
+| De EE |
+"> ae eee as sO LAY © CERc-OV80-0
+Pi
+es Se)
+VERT YORE Tom?
+
+Lia
+
+Monitor Circuit Card Detail, Solder View
+
+===== PAGE 11 =====
+
+REPLACEMENT PARTS LIST
+
+REF.NO.f PART NO. DESCRIPTION REF.NO. | PART NO. DESCRIPTION
+CAPACITORS: (All Values are in Microfarads TRANSISTORS.
+Unless Otherwise Noted.)
+
+0101 48R137093 NPN TRANSISTOR ASF
+c101 21R29964A05 0.5 +80-20 Z5U 100V Spcl, | 2301 ras ane NEN ev oem |) Uae
+102 21S180E58 150PF 5% NPO 100V (MD1000— J 2302 48R 137127 PNP «TRANSISTOR = 7127
+
+190) 0303 48-03025A00 DARL. TRANSISTOR 3025
+21-S180B53 470PF 10% Z5E 100V Disc. 1V25576A60 includes heatwink and transistor
+: (MD1900—191) 3025
+C103 BR29959A65 0.047 10% 200V_ Plystr.
+C201 8R29959A41 0.01 10%  200V_ Plystr. RESISTORS/CONTROLS
+C202 8R29967B92 0.15 10% 50V__—s~Plystr. | NOTE: Only power or special resistors are listed. Use the descrip-
+€204;5 8R29967A11 0.1 10% SOV Plystr. tion when ordering standard values of fixed carbon resistors.
+C206 21S180B51 0.001 10% X5F 500V Disc.
+C207 21S180B94 33PF 10% NPO 500V Disc. R1 6R29978A01 RES. Fixed 240M
+C208 23R29914A40 100 16V PCM lytic | R101 18D25245A02 CONTROL, Contrast Var. 1K
+R108 18D25245A15 CONTROL, Brightness Var. 100K
+an eee eit ee, bach, iy R206 18D25245A15 CONTROL, Var. Vert. Hold 100K
+ic | R208 18D25245A07. CONTROL, Var. Vert. Size 500K
+C212 23R29914A40 100 16V. PCM __siytic Wai ane
+Nes bab Bore al pod oe Se R211 18D25904A02. «CONTROL, Var. Vert. Lin. 250K
+R307 18D25245A40 CONTROL, Var. Horiz. Centering
+25K
+C303 21S180B90 0.01 20% ZS5F 100V Disc
+cos Sonseaabe' 04 #iebc0! ZEUl. 400V" Soar | 18 18D25245A32 CONTROL, Var. Focus 2M
+C305 8R29970A03 0.001 25% 100V_ polyprop.
+C306 21S180B51 0.001 10% X5F 500V Disc COIL/CHOKES
+ian 8R29970A02 = 0.001 1% + =100V Polyprop. fii ayg  ——«-24D25290A03 _—=COIL, deflection
+308 21$180B90 0.01 20% z5U 100V Disc, | '%7 24D25603A03 = COIL, width
+C309 21R29964A05 0.1 +80-20% Z5U 100V Spel.
+€310 8R29959A88 0.22 10% 100V_ Plystr. PP EGRATED CIRCUITS IC}
+c3i' SR29956A38 (0.039 5%  200V Myler fF i¢201 51RO6015A00 —+1C, ~TDA1170S__-Vert._ Proc.
+(MD1000—190) 1C301,
+8R29956A46 0.068 5%  200V Mylar | 302 51R06332A00 _—IC, 555 Timer
+C312 23R29910A05 22 25V Lytic TRANSFORMERS
+C313 BR29959A65 0.047 10% 200V_ Plystr.
+C314 23R29914849, 22 190V PCM = lLytic [+394 24D25291A21 TRANSF., _horiz. _— output
+shee 8R29959A42 0.01. 10%  400V_ Plystr ol le
+e YY: °
+C317 218180041 0.0027 20% Z5F 100V Disc, | 1301 24D25291A25 else | output
+C318 23R29914A66 1500 25V Lytic
+€319 21R29964A05 —0.1.:«+80-20% Z5U 100V Spcl MISCELLANEOUS
+320 Saeeaeki Sony ee vi 9610769A01 = CRT, 5-in_P4/H
+
+0725978A01 BRACKET, PC grounding
+
+4125268A03 SPRING, dag.
+
+5925667 A0X NOTE: For Replacement of
+magnetic yokes, order replace-
+ment by specifying the Model
+
+DIODES/RECTIFIERS No,, description of the unit,
+and the unique CRT display
+D201 48-02054A00 DIODE, 2054 characteristics.
+D202 48-00191A02 DIODE, A02 1V25576A56 _—CRT socket and lugs
+D301,302,
+303 48-02054A00 DIODE, 2054 9D25241A11 SOCKET, CRT
+D304 48-00191A05 DIODE, A05 42D25298A04 ANODE connector
+D305,306 48-02075B02 DIODE, 75B02 E301 76A25809A02 Ferrite Bead,
+D307 48R 134978 DIODE, D1K
+

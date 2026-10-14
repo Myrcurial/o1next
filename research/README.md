@@ -32,6 +32,12 @@ needed.
 | `floppy-adapter/` (README, LICENSE, `.sch`, `.kicad_pcb`, PROVENANCE.md) | Snapshot of WayneVisser's Osborne1FloppyAdapter KiCad project — passive Gotek adapter documenting the O1's "Shugart-like" floppy interface (power over the cable's unused pins). Used by #20/#49. | [github.com/WayneVisser/Osborne1FloppyAdapter](https://github.com/WayneVisser/Osborne1FloppyAdapter), captured 2026-10-09 (provenance in the folder) |
 | `modem/o1techman-interface-extract.pdf` (1 MB, 10 pp) | Chapter 4 "Osborne 1 Interface Design" extract of the O1 Technical Manual: §4.1 IEEE-488 (P3), §4.2 RS-232 (P2), **§4.3 MODEM (P1)**. Authoritative source for the MODEM DE-9P pinout — **TTL levels, not RS-232** — incl. pin 4 MSB, pin 5 CTS, pin 8 MCB, pin 9 RI, pin 7 +12V via 22Ω. Used by #56 (and #21/#12). **Also the P3 (IEEE-488) pinout**: §4.1.2's 26-pin edge table, §4.1.1's signal directions and §4.1.5's Centronics re-mapping, transcribed in `docs/o1-ieee488-port.md` §6 (#84). Image-only scan — OCR it, `pdftotext` returns nothing. | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1techman.pdf), captured 2026-10-09 |
 | `o1doubledensityusersguide.pdf` (2.2 MB, 15 pp) | *Osborne 1 Double Density User Manual*. The DD option's own manual, and the primary source for what it actually does: it is a **multi-density** option that recognises six formats, not just a denser one. §"formats automatically recognized" is quoted in `docs/dd-upgrade-formats.md` (#95). Image-only scan; OCR'd 2026-10-10 at 300 dpi as `o1doubledensityusersguide.ocr.txt`. | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1doubledensityusersguide.pdf), supplied by the maintainer 2026-10-10 |
+| `Comm-Pac_Users_Manual.pdf` (3.1 MB, 43 pp) | *Osborne Comm-Pac User's Manual* — **part no. 2F-00145-00**, "Osborne Datacom Modem + AMCALL Communications Program" (AMCALL is MicroCall Services, 1982; manual by Joseph Caggiano). The modem package's own manual: UART configuration, file transfer and its spec, Touch-Tone dialing, X-ON/X-OFF protocol, voice communication, diskette buffering, `UNLOAD.COM`, HELP menu. Used by #21 and #56. **Has a text layer** (Adobe Paper Capture, 2009), so it is greppable as-is and carries no `.ocr.txt`. | [bitsavers `bits/Osborne/Osborne1/Comm-Pac/`](https://bitsavers.trailing-edge.com/bits/Osborne/Osborne1/Comm-Pac/Comm-Pac_Users_Manual.pdf) (byte-identical) |
+| `o1astecpsac8151.pdf` (3.4 MB, 11 pp) | **"Repair Manual for Astec Power Supply AC8151"** — the Osborne 1's own PSU. Test set-up (isolation transformer ≥500 VA, 0–28 V variac, DMMs, scope with X10/X100 probes, load board), the 115/230 V input-select wire, and a performance table for the +5/+12/−12 rails at 190/220/270 VAC. Image-only scan; OCR'd 2026-10-14 at 300 dpi as `o1astecpsac8151.ocr.txt`. Serves #52. | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1astecpsac8151.pdf) (byte-identical) |
+| `o1astecpsac8151.ocr.txt` | OCR text layer for the above (per the convention above), generated 2026-10-14 at 300 dpi | — |
+| `o1md1000-190specs.pdf` (4.3 MB, 11 pp) | **Model MD1000-190 specifications (preliminary)** — the stock Osborne 1 **5-inch monitor**: 127 mm diagonal, 3.80 × 2.54 in display, 55° deflection, 650 lines centre / 500 corner, 10 Hz–12 MHz bandwidth, 15.75 kHz horizontal and 50/60 Hz vertical sync, TTL sync drive, positive-white video, **+12 VDC ±0.5 V**. Also carries service notes (CRT 2nd-anode discharge) and a schematic. Image-only scan; OCR'd 2026-10-14 at 300 dpi as `o1md1000-190specs.ocr.txt`. Serves #24 and the mechanical work. | [kev.pulo.com.au/osborne1](https://www.kev.pulo.com.au/osborne1/documents/o1md1000-190specs.pdf) (byte-identical) |
+| `o1md1000-190specs.ocr.txt` | OCR text layer for the above (per the convention above), generated 2026-10-14 at 300 dpi | — |
+
 
 Basis for `docs/o1-memory-io-map.md` (#40) and
 `docs/o1-mainboard-schematic.md` (#62). Both scans are image-only; extraction
@@ -39,6 +45,14 @@ is manual — OCR for text pages, and for schematics a native-resolution region
 render (`tools/schematic_render.sh`) read by eye. The mainboard map is
 independently cross-checked against the running machine in MAME; see
 `docs/o1-mainboard-schematic.md` §7 (#64).
+
+Two further scans offered on 2026-10-14 are deliberately **not** here, because
+the archive already holds them: `o1screenpacusersguide.pdf` is byte-identical to
+`screenpac/o1screenpacusersguide.pdf`, and
+`2F00040-00_Service2ndEdition_1983.pdf` is a 4.4 MB re-compression of
+`screenpac/2F00040_service_2ndEd_1983.pdf` — which is the pristine 12 MB
+bitsavers copy and carries the OCR sidecar, so it is the better of the two.
+See #245.
 
 ## inspired-by/ — adjacent projects
 
