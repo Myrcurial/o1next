@@ -1,0 +1,516 @@
+
+===== PAGE 1 =====
+
+OK)
+ASTEC
+
+REPAIR MANUAL FOR ASTEC POWR SUPPLY AC8151
+
+SECTION I: Test Set-up
+
+Me
+
+6.
+
+Te
+
+A. Equinoment Needed
+
+B. Set-up Procedure
+
+Set-up as shovm in Figure 1. You will want to monitor the input
+power and input voltage and the output voltage of the regulated buss,
+which is the +5 output with DVM's. Also, monitor the +5 output with
+the oscilloscope using 50mV/div sensitivity. The DVM monitoring the
++5 output can also be used to check the other outputs. See text of
+Section III for test points within power supply.
+
+SECTION IT
+
+A. Visual Inspection:
+
+Check power supply for any broken, burned, or obviously damaged
+components. Visually check fuse, if any question check with
+
+Isolation Transformer (minimm of 500 VA rating)
+
+Dangerously high voltages are present in this power supply.
+So far the safety of the individual doing the testing please
+use an isolation transformer. The 500 VA rating is needed
+to keep the AC wave form fram being clipped off at the peaks.
+These power supplies have peak charging capacitors and draw
+full power at the peak of the AC waveform.
+
+0-28V Viriable Transformer (Variac)
+Used tc vary input voltage. Recommend 10 Amp, 1.4 KVA rating,
+
+mnimm,.
+
+Voltagemeter - Needed to measure DC voltage to 50 VDC and
+AC voltages to 400 VAC. Recommend 2 Digitai Multi Meters.
+
+Oscilloscope - Need X10 and X100 probes.
+
+Load Board with Connectors
+
+See table I for value of loads required. The entry on the
+table for safe load power is the minimm pover ratings for the
+load resistors used.
+
+Ohm Meter
+
+Watt Meter
+
+TWX 910-3380021
+
+U.S. ASTEC ELECTRONICS if
+1101 SPACE PARK DRIVE SOR Tet eee TELEX 357471 ASTEC SNTA
+SANTA CLARA, CA 95050
+
+===== PAGE 2 =====
+
+Start-up
+
+First note the position of the input voltage select wire. This wire can
+be found at the end of PCB opposite the input/output connectors. Make
+sure wire is in position corresponding to your test set-up 230V position
+if you are using 115V input. For the balance of this manual we will
+assume 230V operation. If you prefer 115V operation divide applicable
+values in half.
+
+Load power supply with minimum load as specified in Table I. Bring
+power up slowly with Variable Transformer while monitoring +5V
+output with scope and DVM and input with DVM and Wattmeter. If the
+Wattmeter shows significant power with low AC power being applied shut
+down and refer to Section III. Supply should start with approx. 80-
+120VAC applied and should regulate when 190VAC is applied. If output
+has reached 5 volts, do a performance test as snown in Section IV.
+
+If there is no output refer to Section III.
+
+SECTION III: No Output
+
+A.
+
+Check fuse.
+
+If fuse is blown replace but do not apply power until cause of failure
+is determined.
+
+Preliminary Check on Major Primary Components.
+
+Check Thermister (Rl), Diode Bridge (DB1), Power Tansistor (Q2),
+Catch Diode (D3), Turn-off Transistor (Ql), Emitter Resistor (R11),
+and Dl.
+
+Preliminary Check on Major Secondary Components.
+
+Using ohm meter from output common to each output, with output loads
+disconnected, check for shorted rectifiers or capacitors. If +12V
+output is shorted also check crowbar SCR (SCR1) and Zener (Z1).
+
+Check for B+
+
+Set-up power supply and attach X100 scope probe ground to end of R11
+closest to input caps. Slowly turn up power and check for B+ on the
+plus (+) terminal of the Diode Bridge (DB1). With input at 190 VAC
+this point should be between 250-300 VDC. If this is not correct check
+fuse, thermister (R1), DB1, and if necessary R2, D3 and finally input
+capacitors C6, C7.
+
+Check Ql Waveforms
+
+Using X100 probe on case of T03 package of Q2 check collector waveform.
+Transistor should be switching, correct waveform is shown in Fig.3.
+
+If this is not present check for shorted junctions on Q2. If ok check
+base waveform. Base of Q2 is the uppermost of the two center leads on
+back of Q2 heatsink, Correct waveform is shown in Fig. 3. If this
+waveform is not present check. L3, Ql, Dl, and secondary components
+
+Q3, Dll, D12, DS, and L4. If any of the semi conductors are found
+shorted or inductors open replace.
+
+===== PAGE 3 =====
+
+SECTION IV Performance test
+
+Each of these test conditions should be set-up and noted to be
+
+within the limits specified in Table II.
+
+TEST INPUT +5 LOAD +12 LOAD -12 LOAD
+1 190 VAC MAX MAX MAX
+
+2 270 VAC MAX MAX MAX
+3 220 VAC MAX MIN MIN
+4 270 VAC MIN MIN MIN
+
+5 190 VAC MIN MIN MIN
+
+
+===== PAGE 4 =====
+
+Table I: Load Board Values
+
+Safe Max Safe
+Output Min Load Load R Load Power Load Load R Load Power
++5 0.4S5A 11.11 ohm SW Physsy \ 2 ohm 25 W
++12 0.3A -40 ohm 8 W 2.02A 24.24 ohm 50 W
+-12 0 0 0 0.1A 120 ohm 2
+Table II; Voltage and Ripple Spec:
+
+Output Min Max No Load Ripple
+
++5 4.75V §.25V - 5OmV-P-P
+
++12 11.40V 12.60V - 150mV-P-p
+
+-12 -11.00V 15.00V - 150mV P-P
+
+
+===== PAGE 5 =====
+
+068-10300010
+
+(ost MP. Cap 0.0luF +20% 250vac
+c2 MP. Cap O.luF +20% 250vac 068-10400010
+c3 Cer. Cap. 4700pF +20% 400vaAC 055-47220001
+C4 Cer. Cap.,-4700pF +20% 400VAC 055-47220001
+cs MrL Poly Cap 0.22uF +20% 250v 058-22400130
+cé Elect Cap. 100uF +20% 250Vv 057-10120170
+c7 Elect Cap.- 100uF +20% 250v 057-10120170
+c8 Elect .Cap. 220uF +50-10% 10v 057-22120080
+Fox) -Cer. Cap. 470pF 410% 2Kv Z5P 055-47154426
+c10 Cer. Cap. 0.0luF 420% 1kv 25u 055-10368925
+cll Cer. Cap. 0.OluF +20% 1kKv Z5u 055-10368925
+cl2 Poly Cap 0.22uF 20% 100v 058-22400160
+c13 Poly Cap 0.022uF 420% 50v 058-22300090
+cl4 Poly Cap 0.22uF +20% 100v 058-22400160
+cis Elect Cap 1000uF +50 -10% 25v 057-10220040
+cl6é Elect Cap 1000uF +50 -10% 25v 057-10220040
+cl7 Elect Cap 1000uF +50 -10% 25v 057-10220040
+c1s ‘Elect Cap 330uF +100 -20% 16v 057-33120120
+c19 Elect Cap 330uF +100 -20% l6év 057-33120120
+c20 Elect Cap 470uF +50 -10% 25Vv 057-47120110
+C21 Elect ee 2200uF +50 -10% l6v 057-22220020
+C24 MTL poly cdp 0. wa2er * 208 "280 Aas ‘| 058-22400130
+
+FIUMIS DOCUBENT CCNTAINS DATA AD INFORMLTION
+Dl Rectifier RGP1OA- %?-32Y) TO) ASTES ‘COMPONENTS L759. THES 226-10400050
+
+r.7- MO INFGrs ATION SHALL NOT BE O:SCLOSED,
+
+D2 Rectifier RcPios"**" ICN OF REPRODUCED IN WHOLE CR LN PART 226-10400060
+
+ise nes “IT THE EXFHESS PRIOR WRITTEN AUTHORIZATION
+
+if oh sinha metas LTD
+Al 5/9/80 D TITLE
+B E COMPONENT CODE LIST AA11330
+c F
+
+Sheet 1 of 4 | A-4
+
+ASTEC COMPONENTS LTD.
+
+HONG KONG
+
+f€01c22
+
+
+===== PAGE 6 =====
+
+ASTEC COMPONENTS LID.
+
+HONG KONG
+
+Shears 2) | ot! | 4
+
+CODE DESCRIPTION PART NUMBER
+D3 Rectifier RGP1OM 226-10400100
+D4 Rectifier 1N4001GP 226-10400080
+DS Silicon Diode 1N4606 212-10700210
+D6 Rectifier Assembly 853-00200190
+D7 Rectifier Assembly 853-00200190
+D8 Rectifier Assembly 853-00200190
+Dg Rectifier RGP1OB 226-10400070
+Dil Silicon diode 1N4606 212-10700210
+D12 Silicon diode 1N4606 212-10700210
+D13 Rectifier 1N4001GP 226-10400080
+DB1 Bridge rectifier KBP10 226-30500010
+Icl Regulator TL431CLP 211-10800100
+Ll Filter Choke Coil Assembly 852-20100140
+L2 Filter Choke Coil Assembly 852-20100140
+L3 Base Choke 328-00100030
+L4 Choke 1.5mH 328-00100010
+L5 Filter Choke coil assembly 85 2-20100180
+L6 Filter choke coil assembly 852-20100180
+L7 ‘alle Coil 328-00100060
+Ql NPN transistor SD467 209-11700460
+Q2 Power Transistor 853-00400050
+Q3 PNP transistor SB561 210-11700350
+A} 5/g.’80 D TITLE
+1B E COMPONENT CODE LIST AA11330
+Cc E
+OOO A-4
+
+BOI022
+
+
+===== PAGE 7 =====
+
+BO'tie
+
+CODE DESCRIPTION PART NUMBER
+Rl Thermistor 4R +10% 258-40970015
+R2 ‘Resistor carbon film 330K+5% 4w 240-33406033
+R3 Resistor metal oxide film 220R+45% 1W 248-22106052
+R4 Resistor metal oxide film 33R+5% 2w 248-33006063
+R5 Resistor carbon film 1K+5% kw 240-10206022
+R6 Resistor carbon film 27R +5% kw 240-27006022
+R7 Resistor carbon film6gr +5% kw 240-68006022
+R8 Resistor metal oxide film 120R +5% lw 248-12106052
+RO Resistor carbon film 10R +5% kw 240-10006022
+R10 Resistor carbon film 10R +5% kw 240-10006022
+R11 Resistor metal film 0.75R +5% lw 247-07586054
+R12 Resistor metal film 1R +5% lw 247-10086054
+R13 Resistor carbon film 5.6R +5% kw 240-56906022
+R14 Resistor carbon film 68R +5% kw 240-68006022
+R15 Resistor carbon film 270R +5% kw 240-27106033
+R16 Resistor carbon film 270R +5% 4w 240-27106033
+R17 Resistor carbon film 8.2R +5% kw 240-82906022
+R18 Resistor carbon film 560R +5% kw 240-56106022
+R19 Resistor carbon film 56R +5% kw 240-56006022
+R20 Resistor carbon film 56R +5% kw 240-56006022
+R21 Resistor carbon film 12K +5% kw 240-12306022
+R22 Resistor carbon film 470R +5% 4w 240-47106022
+R23 Resistor metal film 4.7K +2% kw 247-47015022
+R24 Resistor carbon film 68K +5% kw 240-68306022
+R25 Resistor metal film 22K +2% kw 247-22025022
+R26 Resistor metal film 2.7K +2% kw 247-27015022
+; 5/9/80 : ETEE i oe ee AA11330
+(S F z
+0°0.0.0.0) Sheet A-4
+ASTEC COMPONENTS LID. HONG KONG 2
+
+
+===== PAGE 8 =====
+
+CODE
+
+R27
+SCR1
+
+Tl
+
+22
+
+T3
+
+Z1
+
+DESCRIPTION
+
+Resistor carbon film 12R 45% hw
+SCR C122F
+
+Common mode transformer assembly
+“* Power transformer assembly
+
+Control transformer assembly
+
+Zener diode 5.6v +5% lw
+
+PART NUMBER
+
+240-12006022
+227-13000010
+
+852-20200950
+851-10200940
+
+852-10200680
+
+222-56086002
+
+AA11330
+
+5/9/80 D TITLE
+E COMPONENT CODE LIST
+F
+COCKY
+ASTEC COMPONENTS LTD. HONG KONG
+
+Sheet 4 of 4
+
+Bo022
+
+
+===== PAGE 9 =====
+
+7
+
+04.05 . MOUNTING HOLE (4x)
+
+[1 | REL. DRAWING
+
+fee e2eeece evoese
+=F ¥ at
+ny Ow
+he st
+als 3] 8 ery 4
+“x ol Sf. | See a
+Ae g \y sk2 [fE) em Hie
+‘ ery jet
+\
+sk 4[fE) \_ |e
+SKI j
+IN rennet ly
+f\ — ett - tae] |P2
+QescsheaneeD 0 el '
+“aL bce Male U
+- | 19-05 | 12492202 4
+284 exci 154-94 oe |
+: 160-00 20-4 PIN ASSI i—
+6.30%
+Sé.82
+< $
+= ip fe} P2 e12V. i€
+[90 fe} P3 COMMON sy
+= all °\) | PL «SV :
+2 Oo a] Ueniss OTHERWISE came 00 NOT SCALE DRAWING Time
+ite seeai | KN ge0cTe Aces! ASSEN
+boa ee a cae | FIAST USED ON
+BOCaM AL m
+= : arre eaTt | MATERIAL
+= J :
+00000 sO
+ASTEC COMPONENTS UD, HONG KONG
+
+
+===== PAGE 10 =====
+
+coe a
+
+gel
+
+Isolation Auto transformer
+Transformer (Variac)
+
+Fig. 2- Q2 Collector Waveform
+
+DC outpuy +
+
+AC input
+
+ak
+
+Loads
+
+100 V/Div
+5 uSec/Div
+
+Input- 240 VAC
+Loads- +5@2A
++12@1A
+-12@0.1A
+Fig. 4 Pin Assignment
+
+Fig.
+
+Power Supply
+
+3- Q2 Base Waveforms
+
+sk 2 L=
+sx 3 [=
+sx 4 [=
+
+SK 1 ee
+
+1.0 V/Div
+
+5 uSec/Div
+Input and Loads
+same as Fig. 2
+
+For SK 1
+Pl- Neutral
+P2- Live
+
+For Sk 2/3/4
+Pl- -12 0.1A Max.
+P2- +12 2.02A Max.
+P3- Common
+P4- +5 2.5A Max.
+
+===== PAGE 11 =====
+
+: ! : es : | : 1 : | :
+
+Sno" SHON “G11 LNINOdWOD DI1SV¥ NO] fev Toe) 7 diva SINORSHN itt are
+»| es iva Es Kh *, ee Peusu] vag vi
+eyles9)) © if , ur
+
+Ci dale) Twwlivn | uve oe “G11 Euamouma? rey 40
+
+aS. AIST) Wrnea Jui LOK
+
+\sitou fone: : t AUIVE WH WO 170H 8 1 CIINCONAAE BO HOLL YNIN DEES
+
+ON luvs WO G35 1Swis!| vo kasd ery ‘sia “RMOT4G Je LOM TYME BOLUM OY Vite
+
+cs n penn Lay BindwOunOd IBLsY OL AWVLRBEORS
+
+WWI -LINDUID tees ONT: aN ciectan a EO amet Gay VANE SMIYLNOD LuRAAIOS Bu
+Qin aide ) Fun [ DNAWO ITVIS LON 00 | om02Ke4 Mmumio Eten ineanivis | “diwiaasous
+
+ota ve
+. ace Bo WOISISIY ISMFGY LNILNO AZL+ONY AS +9Z 4 HK
+‘
+: Sele AMPRRLVIS — nuIeous
+Od rate} way 2 ie)
+Qs a LS
+nD \
+
+szey cz —<
+
+Gu ay ul} <Q SS
+
+= \
+bs
+
+AU-O— OV aH Ps 000,
+
+“1 \ h Fa)
+XS
+Well 6y [nt tary sui
+cul ot ate S ) Al L
+N rel) t+ 12
+aie) se } : |
+: PLY
+crultrd' tat
+ne crakt—-| i 1
+sat 4 ce
+4 z Oo)
+right Tass
+|
+i23}+ ide J
+1ws4 To T+ Tos + i
+a 69 t
+AS+0- — XY),
+a |
+90 soy tw ey za oa 938 Ch Re are ee
+wt
+-K
+ALL ¢+O— —W- ‘ , ed, ch
+an
+
+twos 13T 180 ar vie Sin
+CoO tiaq—-ua 60—sa ta ya 20 tad 10 40 alo
+o—-s) Zz. C1 0 nn vr nn
+w>—119 uo 019 6 0193 $2 3 re't2 19 >
+tu Qu-ts Wiu— ny Clu—su Su tw yw te Te =|, os
+‘ ] z } A \ ’ q 8 | : ®
+
