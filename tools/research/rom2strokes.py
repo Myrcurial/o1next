@@ -242,6 +242,49 @@ def rle_bytes(rows):
         os.path.join(repo, 'emulator-setup', 'roms', 'char.ua15'))
 
 
+def write_png(path, width, height, rows):
+    """A minimal PNG writer, stdlib only -- this tool must not need the venv."""
+    import struct
+    raw = bytearray()
+    for row in rows:
+        raw.append(0)
+        for px in row:
+            raw.extend(px)
+
+    def chunk(tag, payload):
+        return (struct.pack(">I", len(payload)) + tag + payload +
+                struct.pack(">I", zlib.crc32(tag + payload) & 0xFFFFFFFF))
+
+    png = (b"\x89PNG\r\n\x1a\n" +
+           chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) +
+           chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b""))
+    open(path, "wb").write(png)
+
+
+def render_frame(buf, path):
+    """Draw a frame with the character generator, so the screen can be *seen*.
+
+    The glyphs are read straight out of the chargen ROM in its row-major-across-
+    characters layout, the same one `tools/romfont.py` decodes.
+    """
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
+    rom = open(os.path.join(repo, 'tools', 'emulator-setup', 'roms',
+                            'char.ua15'), 'rb').read()
+    w, h = STRIDE * 8, ROWS * 10
+    grid = [[(255, 255, 255)] * w for _ in range(h)]
+    for r in range(ROWS):
+        for c in range(STRIDE):
+            code = buf[r * STRIDE + c] & 0x7F
+            for py in range(10):
+                b = rom[py * 128 + code]
+                for px in range(8):
+                    if b >> (7 - px) & 1:
+                        grid[r * 10 + py][c * 8 + px] = (0, 0, 0)
+    write_png(path, w, h, grid)
+    return path
+
+
 def report(rows, pat):
     print('the letterforms, as geometry')
     print('=' * 72)
@@ -325,6 +368,9 @@ def main(argv=None):
     ap.add_argument('--origin', type=int, default=26,
                     help='art column to place at buffer column 0 (default 26, '
                          'the O\'s left edge: the logo fits, the hatch does not)')
+    ap.add_argument('--png', metavar='OUT.png',
+                    help='render the frame with the character generator, so the '
+                         'screen can be looked at')
     args = ap.parse_args(argv)
 
     rows = load_art(args.art)
@@ -369,6 +415,14 @@ def main(argv=None):
         print('or hand-built image leaves the message on screen, which is the')
         print('whole point -- and the check is a compare against four bytes plus')
         print('a 16-bit sum, which is a loop over the page and about 20 ms.')
+
+        if args.png:
+            render_frame(buf, args.png)
+            print()
+            print('rendered %s -- all 32 rows, so the trailer is visible at the'
+                  % args.png)
+            print('bottom right; on the machine rows %d-%d are off-screen.'
+                  % (VISIBLE, ROWS - 1))
     return 0
 
 

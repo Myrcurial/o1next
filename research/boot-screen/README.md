@@ -11,6 +11,7 @@ same reason `research/pictures/` is kept.
 | `o1ng-art.png` | the same, rendered with the ROM's glyphs |
 | `o1next-art.txt` | the **O1NEXT** version: 153 × 27 cells, with *"osborne 1 next rom 2.0 2026"* and *"press return to begin"* nested in the X's counter. SHA-256 `a3617203212e193651a8dae44b3fdb030f0f5051fe629250ac2ccd0abdacd42a` |
 | `o1next-art.png` | the same, rendered with the ROM's glyphs |
+| `o1next-frame.png` | **the screen itself** — the 4096-byte frame rendered with the chargen. All 32 rows, so the validity trailer is visible at the bottom right; on the machine rows 24–31 are off-screen |
 
 ## How it is authored, and how to read it
 
