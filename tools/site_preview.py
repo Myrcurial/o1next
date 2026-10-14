@@ -83,7 +83,7 @@ def build(mode):
     # the masthead graphic is generated from the ROM's own glyphs by
     # tools/o1art.py, so it is a PNG rather than an inline SVG
     logo = ('<img src="data:image/png;base64,%s" alt="o1nextgen" '
-            'width="1664" height="240">' % base64.b64encode(
+            'width="1224" height="270">' % base64.b64encode(
                 (SITE / "assets" / "o1nextgen-logo.png").read_bytes()).decode())
 
     body = INTRO + POSTS if mode == "home" else POST_BODY

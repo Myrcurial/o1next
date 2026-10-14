@@ -242,7 +242,7 @@ def rle_bytes(rows):
         os.path.join(repo, 'emulator-setup', 'roms', 'char.ua15'))
 
 
-def write_png(path, width, height, rows):
+def write_png(path, width, height, rows, alpha=False):
     """A minimal PNG writer, stdlib only -- this tool must not need the venv."""
     import struct
     raw = bytearray()
@@ -255,10 +255,44 @@ def write_png(path, width, height, rows):
         return (struct.pack(">I", len(payload)) + tag + payload +
                 struct.pack(">I", zlib.crc32(tag + payload) & 0xFFFFFFFF))
 
+    colour = 6 if alpha else 2
     png = (b"\x89PNG\r\n\x1a\n" +
-           chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) +
+           chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, colour, 0, 0, 0)) +
            chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b""))
     open(path, "wb").write(png)
+
+
+def render_logo(rows, path, ink=(0xF1, 0xF4, 0xF6)):
+    """The art as the site's masthead: light glyphs on a transparent ground.
+
+    The site's header is the machine's blue front panel (`--blue`, #687898), and
+    the Osborne's CRT was **paper white** -- dark characters on a light screen.
+    On a blue band that reads wrong, so the masthead is the *inverse* of the
+    screen: light glyphs, and no background at all, so the band shows through.
+    """
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
+    rom = open(os.path.join(repo, 'tools', 'emulator-setup', 'roms',
+                            'char.ua15'), 'rb').read()
+    w, h = max(len(l) for l in rows) * 8, len(rows) * 10
+    clear = (0, 0, 0, 0)
+    grid = [[clear] * w for _ in range(h)]
+    for r, line in enumerate(rows):
+        for c, ch in enumerate(line):
+            o = ord(ch)
+            if GRAPHICS_FIRST <= o <= GRAPHICS_LAST:
+                code = o - ART_OFFSET
+            elif 0x20 <= o <= 0x7E:
+                code = o
+            else:
+                continue
+            for py in range(10):
+                b = rom[py * 128 + code]
+                for px in range(8):
+                    if b >> (7 - px) & 1:
+                        grid[r * 10 + py][c * 8 + px] = ink + (255,)
+    write_png(path, w, h, grid, alpha=True)
+    return path, w, h
 
 
 def render_frame(buf, path):
@@ -371,12 +405,22 @@ def main(argv=None):
     ap.add_argument('--png', metavar='OUT.png',
                     help='render the frame with the character generator, so the '
                          'screen can be looked at')
+    ap.add_argument('--logo', metavar='OUT.png',
+                    help='render the art as the site masthead: light glyphs on a '
+                         'transparent ground, i.e. the screen inverted, because '
+                         'the site header is the machine\'s blue panel')
     args = ap.parse_args(argv)
 
     rows = load_art(args.art)
     pat = {g: quadrant(b) for g, b in glyphs().items()}
     pat[BLANK] = 0
     report(rows, pat)
+
+    if args.logo:
+        path, w, h = render_logo(rows, args.logo)
+        print()
+        print('wrote %s: %dx%d, light glyphs on a transparent ground' % (path, w, h))
+        print('  -- the screen inverted, for the site header\'s blue panel')
 
     if args.frame:
         buf = frame(rows, args.origin)
