@@ -3,7 +3,7 @@
 A general-purpose Z80 bus interposer for the Osborne 1, built around the
 Raspberry Pi Pico 2 W (RP2350 + CYW43439 WiFi), plus the research and
 reverse-engineering work it enables — and, downstream, a modern-parts
-Osborne 1 reproduction (the "O1 Next Generation").
+Osborne 1 reproduction (the "O1NEXT").
 
 ## What it does
 
@@ -58,7 +58,7 @@ current budget is deferred to `hardware/wifi-modem-module/README.md`.
 
 Downstream of all of it:
 
-- **O1 Next Generation (#49, #52)** — modern-parts Osborne 1 reproduction running
+- **O1NEXT (#49, #52)** — modern-parts Osborne 1 reproduction running
   original ROMs and software. **Two boards:** an **LFF board**, a 1:1 mainboard
   replacement for a real **OCC1 or OCC1A** chassis (the restoration path), and an
   **SFF board**, fully integrated and deliberately *not* a 1:1 swap. **The O1NEXT is
@@ -92,7 +92,7 @@ the machines it is about — lives on the [Project Blog](https://myrcurial.githu
 |---|---|
 | `research/` | **Sources** — the archive: manuals, schematics, ROMs, disk images and machine photographs, each with recorded provenance (`research/README.md`) |
 | `docs/` | **Conclusions** — what we worked out about the Osborne 1, one document per area; index and house style in `docs/README.md` |
-| `hardware/` | Device definitions and KiCad projects — interposer, floppy adapter, keyboard adapter, WiFi modem module, O1 Next Generation (`hardware/README.md`) |
+| `hardware/` | Device definitions and KiCad projects — interposer, floppy adapter, keyboard adapter, WiFi modem module, O1NEXT (`hardware/README.md`) |
 | `firmware/` | On-device firmware, one folder per interposer personality (`firmware/README.md`) |
 | `software/` | Osborne-side CP/M software — MOUNT.COM, FATCOPY, CoPower-88 driver, boot disk (`software/README.md`) |
 | `tools/` | Disk-image pipeline (TD0 → CP/M filesystem) and host-side analysis scripts (`tools/README.md`) |

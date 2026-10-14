@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Complete O1 Next Generation
+title: Complete O1NEXT
 subtitle: The whole machine, case included
 ---
 

@@ -9,7 +9,7 @@ Tracks **#49** (Phase 5). Source: `hardware/o1next/`.
 
 ## What it is
 
-The **SFF board** — the foundation of the O1 Next Generation. A **fully integrated
+The **SFF board** — the foundation of the O1NEXT. A **fully integrated
 board**: everything the [interposer]({{ '/hardware/interposer/' | relative_url }})
 does, designed in as firmware rather than plugged in.
 
@@ -37,7 +37,7 @@ Because they answer different questions:
 - **Turbo-capable** — an 8 MHz clock, which is the "2× business turbo" the WiFi
   modem's baud buffering exists to exploit.
 - **Onboard flash library**, so it boots from internal storage with no card.
-- **USB-C PD power**, shared with the [complete O1 Next Generation]({{
+- **USB-C PD power**, shared with the [complete O1NEXT]({{
   '/hardware/o1next-complete/' | relative_url }}).
 - The interposer's personalities **as firmware**, not as a second board.
 

@@ -1,4 +1,4 @@
-# o1next — O1 Next Generation (modern-parts Osborne 1 reproduction)
+# o1next — O1NEXT (modern-parts Osborne 1 reproduction)
 
 A new PCB built from currently-available components that runs the actual
 Osborne 1 ROMs and (nearly) all original software — with a Cherry MX
