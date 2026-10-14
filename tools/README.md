@@ -108,6 +108,7 @@ set in the letters the Osborne 1 drew on its own screen.
 tools/romfont.py                      # write site/assets/fonts/*.{ttf,woff2}
 tools/romfont.py --check              # fail if they are stale
 tools/romfont.py --specimen /tmp/f.png   # render a sheet to look at
+tools/romfont.py --art-sheet /tmp/a.png  # the graphics set, labelled for authoring
 ```
 
 Two things make this worth a tool rather than a one-off:
@@ -124,11 +125,31 @@ Two things make this worth a tool rather than a one-off:
   as `gen_rom_table.py` and `check_schematics.py`.
 
 Glyphs are one rectangle per run of set pixels, so the outlines are exact.
-ASCII 0x20–0x7E only: the 0x00–0x1F graphics set is Osborne's own encoding rather
-than Unicode, and mapping it would be a guess. Typographic punctuation (curly
-quotes, en/em dashes) is mapped onto the machine's ASCII glyphs, because the
-posts contain them and the alternative is the browser substituting a different
-face mid-sentence.
+Typographic punctuation (curly quotes, en/em dashes) is mapped onto the machine's
+ASCII glyphs, because the posts contain them and the alternative is the browser
+substituting a different face mid-sentence.
+
+**The graphics set ships too, as a second face** (`osborne1-art-*`, #97). The
+0x00–0x1F block glyphs, 0x20 and the 0x7F hatch are not in the *text* family,
+because mapping them would be a guess — but they are what the machine draws
+*with*: the AUTOCPM/AUTOST boot art is a wall of these characters. So the art face
+maps each glyph to its charcode **+ 65**, which is the arithmetic the ROM's own
+loader does (`sui 65`):
+
+```
+'A' (0x41) -> glyph 0x00    ...    'a' (0x61) -> the blank    ...    U+00C0 -> 0x7F
+```
+
+Type the art as text, switch the font, and the picture appears. The cell is 8×10
+and one line is exactly one em, so at line-height 1.0 the cells tile with no
+seams. It sidesteps #97 rather than pre-empting it: the face needs the
+*arithmetic*, #97 needs the *identification*, and the identification is a job of
+looking at the art — which is what this renders. `--art-sheet` is the key, every
+glyph labelled with the character that draws it.
+
+The verification covers the **cmap** as well as the outlines, for both faces. A
+font whose glyphs are perfect but whose mapping is off by one draws a *plausible*
+picture that is simply wrong, which is far harder to notice than a blank cell.
 
 Requires **fonttools** and **brotli** in the repo `.venv` that
 `tools/bootstrap.sh` creates — build-time only; the font files are committed.
