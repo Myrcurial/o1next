@@ -196,6 +196,10 @@ scratch programs, "figuring it out" notebooks/scripts.
   ROM, with the frames in the interposer's flash. `--origin` picks which 128
   columns of the 153-column art survive; the default keeps the *logo* and drops
   the hatch. See `research/boot-screen/README.md`.
+  `--png` renders the frame with the character generator, and `--logo` renders the
+  *art* as the site masthead — light glyphs on a transparent ground, i.e. the
+  screen inverted, because the site header is the machine's blue panel and the
+  Osborne's CRT was paper white.
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
   **7681-byte image** from the repo's own files and re-checks every anchor the
   design quotes, exiting non-zero if one moves. In: the stock 1.44 monitor, the
