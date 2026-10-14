@@ -9,7 +9,7 @@ same reason `research/pictures/` is kept.
 |---|---|
 | `o1ng-art.txt` | the **O1NG** version: 125 × 28 cells. SHA-256 `a92bf28e81b54c58f59c48ab16f090e2d26c4e8d3705ed0cfcda7dd10bb1f9ba` |
 | `o1ng-art.png` | the same, rendered with the ROM's glyphs |
-| `o1next-art.txt` | the **O1NEXT** version: 153 × 27 cells, with *"press return / to begin"* nested in the X's counter. SHA-256 `546715d192882fe92d69bc51acfe98e02455153a3ee48c92fb727a9a696b4617` |
+| `o1next-art.txt` | the **O1NEXT** version: 153 × 27 cells, with *"osborne 1 next rom 2.0 2026"* and *"press return to begin"* nested in the X's counter. SHA-256 `a3617203212e193651a8dae44b3fdb030f0f5051fe629250ac2ccd0abdacd42a` |
 | `o1next-art.png` | the same, rendered with the ROM's glyphs |
 
 ## How it is authored, and how to read it
@@ -23,6 +23,13 @@ the ROM's own:
 - **Everything else printable is text**, and the glyph *is* the code. This is not
   a convenience: `sui 65` cannot reach the lettering at all, because `p` is 0x70
   and 0x70 − 65 = 0x2F is not a glyph.
+
+**Which is why the captions are lowercase.** `A`–`Z`, `[`, `\`, `]`, `^`, `_`, `` ` ``
+and `a` are all inside the graphics range, so a capital is read as a glyph index
+and draws as a block — `Osborne` would come out as four blocks and a letter. The
+version caption is `osborne 1 next rom 2.0 2026` for exactly that reason. (`a` is
+the blank cell, so the letter `a` cannot be written at all; neither caption needs
+one.)
 
 So the ROM's printer branches on the byte, and the `osborne1-art-*` faces built
 by `tools/romfont.py` map both halves — 34 graphics glyphs plus 62 text glyphs.
@@ -45,7 +52,7 @@ seams. The `.png` files are the same thing already rendered.
 | `E` | 84–102 | 19 |
 | `X` | 104–127 | 24 |
 | `T` | 129–152 | 24 |
-| the message | 110–121 / 112–119, rows 12 and 14 | inside the X's counter |
+| the message | 106–132 / 112–132, rows 12 and 14 | inside the X's counter |
 
 Kerning: **O→1 = 0**, then 1 → N → E → X → T at **1 each**.
 
@@ -110,7 +117,7 @@ and the video RAM are both visible, so a frame is one `LDIR` from `1000h` to
 of ROM**, and the animation is the viewport slide, which is a register write.
 
 ```
-tools/research/rom2strokes.py --frame /tmp/frame.bin     # 4096 B, CRC32 4689d85e
+tools/research/rom2strokes.py --frame /tmp/frame.bin     # 4096 B, CRC32 898297ae
 ```
 
 **One thing had to give.** The art is 153 columns and a screen is 128, so 25
