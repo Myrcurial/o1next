@@ -303,6 +303,24 @@ It must:
 
 `tools/emulator-setup/mame-osborne1nx/boot-o1next.sh` is the worked example.
 
+**And a staged test machine, for using it away from the repo.** `stage.sh` copies
+the binary, the ROM set and the launcher into one directory outside the repo —
+`$HOME/Documents/O1NEXT/test-machine-issue-<n>/` by default — which is
+self-contained: `cd` into it and `./boot-o1next.sh ../floppies/system-disk.imd`.
+`boot-o1next.sh` is **self-locating**, so the same file is both the repo's launcher
+and the staged one: it looks for `mame/<machine>` and `roms/` beside itself first,
+and only falls back to a build tree if they are not there.
+
+A staged machine is a **build artifact** in the ordinary sense — named for the
+issue, regenerable with one command, disposable, and never committed. Two things
+make it trustworthy rather than hopeful:
+
+- its `MANIFEST` records what went into it and from where, and the staged ROMs are
+  **CRC-checked against the machine's own `ROM_START`**, so a mismatched build tree
+  fails loudly instead of booting something subtly wrong;
+- the disks it is fed are staged **once and never overwritten**, because MAME
+  writes back into a floppy image as it runs and those copies are the user's.
+
 ## Before declaring done
 
 - `git status` clean or deliberately dirty (say which); branch pushed.

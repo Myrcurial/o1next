@@ -20,6 +20,7 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `o1next-probe.lua` | the headless check: the I/O decode, and the card's presence probe |
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 | `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
+| `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
 
 The patch touches five files:
 

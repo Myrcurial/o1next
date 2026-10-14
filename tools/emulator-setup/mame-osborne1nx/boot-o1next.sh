@@ -31,29 +31,53 @@
 #     O1_HARD=/tmp/md10/hd.chd \
 #       tools/emulator-setup/mame-osborne1nx/boot-o1next.sh /tmp/md10/prep.imd
 #
-#   then type `HARD` at the `A>` prompt.  (Both the raw image and any in-repo IMD
-#   are staged as copies -- see below.)
+#   then type `HARD` at the `A>` prompt.
+#
+# THE SAME SCRIPT RUNS IN A *STAGED* TEST MACHINE
+#   `stage.sh` copies this script out of the repo with the patched binary and the
+#   ROM set beside it, into a directory that owes the repo nothing:
+#
+#     ~/Documents/O1NEXT/test-machine-issue-247/
+#       boot-o1next.sh   mame/osborne1nx   roms/osborne1nx/   run/   floppies/
+#
+#   cd into it and run `./boot-o1next.sh ../floppies/games.imd`.  That is what
+#   this script looks for **first**: if `mame/<machine>` and `roms/` sit beside
+#   it, it uses those and never reaches for a build tree.  A staged directory is a
+#   build artifact -- disposable, regenerable, and deliberately not committed.
 #
 # ENVIRONMENT
-#   O1_MAME     the patched `osborne1nx` binary.  `mame` on PATH has no such
-#               machine -- it is a patch, see README.md -- so this is looked for
-#               in the usual build trees first and must be set otherwise.
-#   O1_ROMPATH  ROM path (default tools/emulator-setup/roms); must be absolute.
+#   O1_MAME     the patched `osborne1nx` binary, when it is not beside this
+#               script.  `mame` on PATH has no such machine -- it is a patch, see
+#               README.md -- so this is looked for in the usual build trees first
+#               and must be set otherwise.
+#   O1_ROMPATH  ROM path, when it is not beside this script; must be absolute.
 #   O1_HARD     a CHD to mount as the ACB-4000's hard disk.
 #   O1_BIOS     an optional MAME BIOS slot.
-#   O1_RUNDIR   where MAME keeps cfg/ snap/ and staged floppies (default
-#               ~/.o1next-mame).  MAME writes those into the *current* directory,
-#               so this script never runs it in the repo.
+#   O1_RUNDIR   where MAME keeps cfg/ snap/ and copied floppies.  Default: `run/`
+#               beside this script when it is staged, `~/.o1next-mame` otherwise.
+#               MAME writes those into the *current* directory, so this script
+#               never runs it in the repo.
 #   O1_SECONDS  if set, add `-seconds_to_run` and exit -- for a smoke test.
 #
-#   A floppy image **inside the repo is copied** to $O1_RUNDIR/floppies/ and the
-#   copy is mounted, because MAME writes back into a floppy image in place and
-#   `research/` and `tools/` are archives that must not be modified.  Images
-#   outside the repo are mounted as given, so your own disks keep your changes.
+#   A floppy image **inside a git working tree is copied** to $O1_RUNDIR/floppies/
+#   and the copy is mounted, because MAME writes back into a floppy image in place
+#   and a checkout is not a working copy -- `research/` and `tools/` are archives.
+#   Anywhere else it is mounted as given, so your own disks keep your changes.
 set -eu
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-REPO="$(cd "$HERE/../../.." && pwd)"
+MACHINE=osborne1nx
+
+# A staged test machine has the binary and the ROMs beside this script and owes
+# the repo nothing; the repo's own copy reaches into a build tree instead.
+STAGED=0
+if [ -x "$HERE/mame/$MACHINE" ] && [ -d "$HERE/roms" ]; then STAGED=1; fi
+
+# The repo root, only if this script is actually in one.  A staged copy is not,
+# and the floppy rule below then falls back to the git-tree check, which needs no
+# repo path at all.
+REPO=""
+if [ -f "$HERE/../../../AGENTS.md" ]; then REPO="$(cd "$HERE/../../.." && pwd)"; fi
 
 abspath() {
     d="$(cd "$(dirname "$1")" && pwd)"
@@ -67,26 +91,20 @@ fi
 FLOP1="${1:-}"
 FLOP2="${2:-}"
 
-ROMPATH="${O1_ROMPATH:-$REPO/tools/emulator-setup/roms}"
-case "$ROMPATH" in
-    /*) ;;
-    *) echo "boot-o1next.sh: O1_ROMPATH must be absolute" >&2; exit 1;;
-esac
-[ -d "$ROMPATH" ] || { echo "boot-o1next.sh: no such ROM path: $ROMPATH" >&2; exit 1; }
-
 MAME="${O1_MAME:-}"
+if [ -z "$MAME" ] && [ "$STAGED" = 1 ]; then MAME="$HERE/mame/$MACHINE"; fi
 if [ -z "$MAME" ]; then
-    for cand in "$HOME/scratch/mame-verify/mame-mame0289/osborne1nx" \
-                "$HOME/scratch/mame-mame0289/osborne1nx" \
-                "$HOME/scratch/mame-clean/mame-mame0289/osborne1nx"; do
+    for cand in "$HOME/scratch/mame-verify/mame-mame0289/$MACHINE" \
+                "$HOME/scratch/mame-mame0289/$MACHINE" \
+                "$HOME/scratch/mame-clean/mame-mame0289/$MACHINE"; do
         if [ -x "$cand" ]; then MAME="$cand"; break; fi
     done
 fi
 if [ -z "$MAME" ]; then
-    echo "boot-o1next.sh: no osborne1nx binary." >&2
+    echo "boot-o1next.sh: no $MACHINE binary." >&2
     echo "  The 'mame' on PATH has no such machine -- it is a patch." >&2
-    echo "  Build one with tools/emulator-setup/mame-osborne1nx/apply.sh, or set" >&2
-    echo "  O1_MAME to an existing build." >&2
+    echo "  Build one with tools/emulator-setup/mame-osborne1nx/apply.sh, stage one" >&2
+    echo "  with stage.sh, or set O1_MAME to an existing build." >&2
     exit 1
 fi
 case "$MAME" in
@@ -95,10 +113,34 @@ case "$MAME" in
 esac
 [ -x "$MAME" ] || { echo "boot-o1next.sh: not executable: $MAME" >&2; exit 1; }
 
-RUNDIR="${O1_RUNDIR:-$HOME/.o1next-mame}"
+if [ -n "${O1_ROMPATH:-}" ]; then
+    ROMPATH="$O1_ROMPATH"
+elif [ "$STAGED" = 1 ]; then
+    ROMPATH="$HERE/roms"
+else
+    [ -n "$REPO" ] || {
+        echo "boot-o1next.sh: not in the repo and not a staged machine --" >&2
+        echo "  set O1_ROMPATH, or run the one in tools/emulator-setup/." >&2
+        exit 1
+    }
+    ROMPATH="$REPO/tools/emulator-setup/roms"
+fi
+case "$ROMPATH" in
+    /*) ;;
+    *) echo "boot-o1next.sh: O1_ROMPATH must be absolute" >&2; exit 1;;
+esac
+[ -d "$ROMPATH" ] || { echo "boot-o1next.sh: no such ROM path: $ROMPATH" >&2; exit 1; }
+
+if [ -n "${O1_RUNDIR:-}" ]; then
+    RUNDIR="$O1_RUNDIR"
+elif [ "$STAGED" = 1 ]; then
+    RUNDIR="$HERE/run"
+else
+    RUNDIR="$HOME/.o1next-mame"
+fi
 mkdir -p "$RUNDIR/floppies"
 
-stage() {   # stage IMAGE -- mount a copy of anything inside the repo
+stage() {   # stage IMAGE -- mount a copy of anything inside a git working tree
     img="$1"
     [ -f "$img" ] || { echo "boot-o1next.sh: no such image: $img" >&2; exit 1; }
     # MAME's own failure for a bare raw image is "Unable to identify image file
@@ -111,16 +153,19 @@ stage() {   # stage IMAGE -- mount a copy of anything inside the repo
         exit 1
     fi
     abs="$(abspath "$img")"
-    case "$abs" in
-        "$REPO"/*)
-            base="$(basename "$img")"
-            cp "$abs" "$RUNDIR/floppies/$base"
-            echo "  (in the repo -- mounting a copy, so the archive is not" >&2
-            echo "   written through: $RUNDIR/floppies/$base)" >&2
-            printf '%s' "$RUNDIR/floppies/$base"
-            ;;
-        *) printf '%s' "$abs" ;;
-    esac
+    # A checkout is not a working copy: MAME writes back into a floppy image as it
+    # runs, so an image under version control is mounted as a fresh copy.  Stated
+    # as a git-tree test rather than a repo-path test because a staged machine
+    # knows nothing about where the repo is.
+    if git -C "$(dirname "$abs")" rev-parse --show-toplevel >/dev/null 2>&1; then
+        base="$(basename "$img")"
+        cp "$abs" "$RUNDIR/floppies/$base"
+        echo "  (inside a git tree -- mounting a fresh copy each run, so the" >&2
+        echo "   archive is never written through: $RUNDIR/floppies/$base)" >&2
+        printf '%s' "$RUNDIR/floppies/$base"
+    else
+        printf '%s' "$abs"
+    fi
 }
 
 if [ -n "$FLOP1" ]; then FLOP1="$(stage "$FLOP1")"; fi
@@ -141,7 +186,11 @@ if [ -n "$FLOP2" ]; then set -- "$@" -flop2 "$FLOP2"; fi
 if [ -n "$HARD" ]; then set -- "$@" -harddisk "$HARD"; fi
 if [ -n "${O1_SECONDS:-}" ]; then set -- "$@" -seconds_to_run "$O1_SECONDS"; fi
 
-echo "osborne1nx -- the emulated interposer, 1.44 ROM, windowed"
+if [ "$STAGED" = 1 ]; then
+    echo "osborne1nx -- a staged test machine, windowed"
+else
+    echo "osborne1nx -- the emulated interposer, 1.44 ROM, windowed"
+fi
 echo "  binary:    $MAME"
 echo "  rompath:   $ROMPATH"
 echo "  drive A:   ${FLOP1:-<empty>}"
@@ -152,9 +201,10 @@ echo "  quit with  Esc, or the window's close button"
 if [ -z "$HARD" ]; then
     echo
     echo "No hard disk mounted.  For the MD-10's CP/M on three partitions, build"
-    echo "the floor-pin drive and set O1_HARD, then type HARD at the A> prompt:"
-    echo "  tools/research/md10drive.py --out /tmp/md10/hd.chd --force"
-    echo "  tools/research/o1raw2imd.py '<raw utilities image>' /tmp/md10/prep.imd"
+    echo "the floor-pin drive and set O1_HARD, then type HARD at the A> prompt."
+    echo "Both tools live in the repo, under tools/research/:"
+    echo "  md10drive.py --out /tmp/md10/hd.chd --force"
+    echo "  o1raw2imd.py '<raw utilities image>' /tmp/md10/prep.imd"
     echo "  O1_HARD=/tmp/md10/hd.chd $0 /tmp/md10/prep.imd"
 fi
 echo
