@@ -1,6 +1,6 @@
 # hardware/
 
-Hardware device definitions for the o1nextgen project. Each subfolder is
+Hardware device definitions for the o1next project. Each subfolder is
 one physical device contemplated in the GitHub issues, holding its
 interface spec, design decisions, and (eventually) KiCad design files.
 Status ranges from "concept definition" to "ready for schematic entry" —
@@ -16,7 +16,7 @@ no PCB layouts exist yet (Phase 1, issue #11).
 | `wifi-modem-module/` | Severable WiFi modem (ESP32 Zimodem fork: telnet + SSH, baud buffering) for the MODEM (P1) TTL port; ships with COMM PAC-look case STLs for the left storage pocket | #56, #21, #57 | Concept; P1/DE-9 pinout + levels documented |
 | `drive-c/` | Standalone Drive C reproduction — IEEE-488 on **P3**, RP2040 + flash, powered off the **P5** video shunt (which also yields composite video). No interposer, no Z80 socket; the same firmware doubles as the #22 personality | #84, #6 | Concept; blocked on the #6 command set |
 | `floppy-adapter/` | Switchable Gotek/physical-drive daughter card on the mainboard floppy connector — both physical drives *or* Gotek-as-drive-A + physical B, remote switch, switched Gotek 5 V; no cable cutting | #62, #20, #95 | Rev A schematic captured (`floppy-adapter.kicad_sch`); open questions settled (design doc §8); ready for footprint/routing review |
-| `o1ng/` | O1 Next Generation — **two boards, one machine**. **LFF board**: a 1:1 mainboard replacement for a real **OCC1 or OCC1A** chassis (socketed DIP-40 Z80, interposer as upgrade path; KiCad skeleton in `o1ng/o1ng-lff/`) — the restoration path, *not* the O1NG. **SFF board**: fully integrated, deliberately *not* a 1:1 swap, usable in a real chassis or any other design. **The O1NG is the SFF board with the machine wrapped around it** (~8 cm, 8 MHz turbo-capable, onboard flash library, USB-C PD) | #49, #52, #53, #55 | LFF schematic skeleton generated; concept render exists |
+| `o1next/` | O1 Next Generation — **two boards, one machine**. **LFF board**: a 1:1 mainboard replacement for a real **OCC1 or OCC1A** chassis (socketed DIP-40 Z80, interposer as upgrade path; KiCad skeleton in `o1next/o1next-lff/`) — the restoration path, *not* the O1NEXT. **SFF board**: fully integrated, deliberately *not* a 1:1 swap, usable in a real chassis or any other design. **The O1NEXT is the SFF board with the machine wrapped around it** (~8 cm, 8 MHz turbo-capable, onboard flash library, USB-C PD) | #49, #52, #53, #55 | LFF schematic skeleton generated; concept render exists |
 
 ## Cross-cutting decisions (settled)
 
@@ -29,7 +29,7 @@ no PCB layouts exist yet (Phase 1, issue #11).
   — so the board runs, and its flash is programmable, with no host machine, no
   Z80 socket and no chassis supply. Preparing a board (fill the library, then
   install it) is a bench procedure, not something that needs a donor machine
-  open. Required for the interposer **and** the SFF board (`o1ng/`).
+  open. Required for the interposer **and** the SFF board (`o1next/`).
 - **Stacking:** the interposer must coexist with SCREEN-PAC and
   CoPower-88 interposers on the fully-loaded host machine.
 - **Socket taps: three.** The Z80 seat (the bus), the **main ROM socket UD11** (the

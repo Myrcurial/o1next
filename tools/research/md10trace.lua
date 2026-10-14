@@ -11,7 +11,7 @@
 --   1 303 times in 150 emulated seconds, which is a warm-boot loop and not a
 --   login. The fault was above the card, in the operating system's relocation.
 --
--- THE REGISTER MODEL (docs/osborne1ng-machine.md section 3)
+-- THE REGISTER MODEL (docs/osborne1nx-machine.md section 3)
 --   base+0 data, base+2 control/status.  Status bits: 01h select handshake,
 --   02h REQ, 04h the controller field, 20h phase, 40h the phase is complete.
 --   A command is: write the select byte to base+0, write 10h to base+2
@@ -23,13 +23,13 @@
 --   polling silences the io taps (tools/research/acb4000.lua, GOTCHAS).  It
 --   presses RETURN at the BIOS prompt, types HARD, and runs.
 --
---     O1NG_LOG=/tmp/md10trace.log \
---       mame osborne1ng -rompath tools/emulator-setup/roms \
+--     O1NEXT_LOG=/tmp/md10trace.log \
+--       mame osborne1nx -rompath tools/emulator-setup/roms \
 --         -flop1 /tmp/md10/u.imd -hard /tmp/md10/hd.chd \
 --         -video none -sound none -nothrottle -seconds_to_run 160 \
 --         -autoboot_script tools/research/md10trace.lua
 --
---   O1NG_LOG overrides the log path (default /tmp/md10trace.log).
+--   O1NEXT_LOG overrides the log path (default /tmp/md10trace.log).
 --
 -- GOTCHAS (all measured, MAME 0.289)
 --   * MAME's tap callbacks get the **absolute** io offset, not an offset within
@@ -47,7 +47,7 @@ local I = M.devices[":maincpu"].spaces["io"]
 local kb = M.natkeyboard
 
 io.stdout:setvbuf("no")
-local LOG = io.open(os.getenv("O1NG_LOG") or "/tmp/md10trace.log", "w")
+local LOG = io.open(os.getenv("O1NEXT_LOG") or "/tmp/md10trace.log", "w")
 local function logf(s) LOG:write(s .. "\n"); LOG:flush() end
 
 local state, sel, cdb = "idle", nil, {}
@@ -119,6 +119,6 @@ kb:post("\r")                                  -- the BIOS waits for RETURN
 emu.wait(6)
 type_text("HARD")
 kb:post("\r")
-emu.wait(tonumber(os.getenv("O1NG_SECONDS") or "150"))
+emu.wait(tonumber(os.getenv("O1NEXT_SECONDS") or "150"))
 flush30()
 logf(string.format("TRACE: done, %d transactions", tx))

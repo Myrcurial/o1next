@@ -21,7 +21,7 @@ a fresh drive.
 | `md10-os.bin` | 5 632 B | just the operating system — LBA 5, 11 blocks (0x1600 bytes) — which is exactly what `HARD.COM`'s BIOS reads to `0xC200` and jumps into |
 
 Provenance: **generated in-project on 2026-10-12** by running the archive's own
-`PREP.COM` under `osborne1ng` (the emulated interposer, #191) against a drive
+`PREP.COM` under `osborne1nx` (the emulated interposer, #191) against a drive
 built by `tools/research/mkdrive.py`, then `chdman extracthd`. The drive's md5
 was `7fa2a3836813dabdeaaa664ea88d002e`; `tools/research/md10drive.py` reproduces
 it byte for byte from these two files.

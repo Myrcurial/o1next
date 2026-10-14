@@ -170,7 +170,7 @@ for line in KEYS:gmatch("[^\n]+") do
       -- loader copies verbatim; a run-time variable -- e.g. the MD-10 host
       -- adapter's select byte at 0x8023, which the overlay reads before every
       -- transaction -- is set by the program and has to be written while it
-      -- runs.  This is that lever; see docs/osborne1ng-machine.md.
+      -- runs.  This is that lever; see docs/osborne1nx-machine.md.
       local a, rest = arg:match("^(%S+)%s+(.*)$")
       a = num(a)
       local b = {}

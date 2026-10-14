@@ -56,7 +56,7 @@ The label is 512 bytes at the first block on the disk. It begins with the letter
 `M` and `D`, carries its text fourteen bytes in, and its tail is a table of
 28-byte records — one per partition, terminated by a byte of `FF`. That is the
 structure the handoff was asking for, and it is now written down in
-`docs/osborne1ng-machine.md` alongside the offsets it was read from.
+`docs/osborne1nx-machine.md` alongside the offsets it was read from.
 
 The format is not a no-op either. It writes `E5` — the byte CP/M uses for "empty",
 which is a coincidence I have not finished thinking about — over the first three

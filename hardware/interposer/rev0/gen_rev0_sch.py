@@ -158,7 +158,7 @@ out = []
 out.append('(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")')
 out.append(f'  (uuid "{uid()}")')
 out.append('  (paper "A3")')
-out.append(f'  (title_block (title "o1nextgen interposer Rev 0 test probe") (date "{datetime.date.today()}") (rev "0.1") (comment 1 "Snoop-only Z80 bus probe: pass-through socket, 4x 74AHCT165 PISO snapshot front end, Pico 2 W. NOT the production interposer."))')
+out.append(f'  (title_block (title "o1next interposer Rev 0 test probe") (date "{datetime.date.today()}") (rev "0.1") (comment 1 "Snoop-only Z80 bus probe: pass-through socket, 4x 74AHCT165 PISO snapshot front end, Pico 2 W. NOT the production interposer."))')
 out.append('  (lib_symbols')
 for s in syms.values(): out.append(s.lib_sexpr().rstrip('\n'))
 out.append('  )')

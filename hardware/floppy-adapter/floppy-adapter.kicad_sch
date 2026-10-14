@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "886e1098-852c-42f8-ab4a-05037ee0bcc6")
   (paper "A3")
-  (title_block (title "o1nextgen floppy-adapter - switchable Gotek / physical drives") (date "2026-10-10") (rev "A")
+  (title_block (title "o1next floppy-adapter - switchable Gotek / physical drives") (date "2026-10-10") (rev "A")
     (comment 1 "Issue #62. J1 2x17 socket on the O1 logic-board P8 header; J2 pass-through to the OEM cable; J3 Gotek signals; J4 switched Gotek power; J5 panel switch; K1 4PDT relay. Drive B is never switched."))
   (lib_symbols
   (symbol "local:CONN_O1_SOCK" (pin_names (offset 0.508)) (in_bom yes) (on_board yes)

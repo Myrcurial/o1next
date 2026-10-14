@@ -27,5 +27,5 @@ usage docs (#22/#8), RT-60A (#18).
 
 ## Deliverables
 
-- Build script + `O1NG_BOOT.IMD`/`.TD0` image
-- Validation: boots stock O1, O1 + interposer, and o1ng (#49)
+- Build script + `O1NEXT_BOOT.IMD`/`.TD0` image
+- Validation: boots stock O1, O1 + interposer, and o1next (#49)

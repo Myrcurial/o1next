@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "449c1375-022c-4efd-883b-8470aac454a8")
   (paper "A2")
-  (title_block (title "o1nextgen interposer Rev A engineering sample") (date "2026-10-10") (rev "A-ES")
+  (title_block (title "o1next interposer Rev A engineering sample") (date "2026-10-10") (rev "A-ES")
     (comment 1 "Active interposer: bus mastering via /BUSRQ, SR-based drive+capture, SMT Z84C00, Pico 2 + ESP32-C3. Engineering sample - 2 off."))
   (lib_symbols
   (symbol "local:Z80_DIP40" (pin_names (offset 0.508)) (in_bom yes) (on_board yes)

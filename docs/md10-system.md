@@ -20,7 +20,7 @@ This note also closes the question the hard-disk research left open twice over �
 
 Serves #179 (the personality's acceptance), #178 (the DPB residue) and #191 (the
 harness that made it measurable). Reads alongside `docs/acb4000-firmware.md`,
-`docs/acb4000-host-adapter.md`, `docs/osborne1ng-machine.md` and
+`docs/acb4000-host-adapter.md`, `docs/osborne1nx-machine.md` and
 `docs/harddisk-decision.md` §7.
 
 ## 1. Why there was no system image, and where it came from
@@ -76,9 +76,9 @@ tools/research/o1raw2imd.py \
 #      type MD10SYS / sleep 3 / key 4 / wait Partition definition menu / key 1 /
 #      sleep 8 / key esc / sleep 2 / key 3 / wait drive address / key cr /
 #      sleep 60
-cd /tmp/md10 && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/md10/prep.imd \
+cd /tmp/md10 && O1_MACHINE=osborne1nx O1_FLOP1=/tmp/md10/prep.imd \
   O1_KEYS="$(cat /tmp/md10/keys.txt)" SDL_VIDEODRIVER=dummy \
-  /path/to/osborne1ng osborne1ng -flop1 /tmp/md10/prep.imd -hard /tmp/md10/hd.chd \
+  /path/to/osborne1nx osborne1nx -flop1 /tmp/md10/prep.imd -hard /tmp/md10/hd.chd \
   -video none -sound none -nothrottle \
   -autoboot_script tools/research/o1keys.lua -seconds_to_run 300 \
   -rompath tools/emulator-setup/roms
@@ -93,7 +93,7 @@ Three things about that, all measured:
    label") builds the label *and* terminates the partition table at label+48
    with `FFh`. Do the partition first — as this session's first attempt did — and
    the walker at `0x23E6` runs off the end of the table, which is the failure
-   `docs/osborne1ng-machine.md` §6 records as *"Initializing all partitions..."*
+   `docs/osborne1nx-machine.md` §6 records as *"Initializing all partitions..."*
    walking `E5h` over the whole drive.
 2. **Option 3 needs an O/S partition.** Without one it answers, exactly, *"No
    O/S partition"* and returns to the menu. That is what makes the order
@@ -112,7 +112,7 @@ blocks):
 | Region | What |
 |---|---|
 | LBA 0 | the disk label: `M`,`D` at +0, the label text at +14, the **partition table** from +48 — 28-byte records, walked at `0x23E6` with `ADD IX,1Ch` and stopped by a first byte of `FFh` |
-| LBA 1–3 | the rest of the four-block header (`docs/osborne1ng-machine.md` §6) |
+| LBA 1–3 | the rest of the four-block header (`docs/osborne1nx-machine.md` §6) |
 | LBA 4 | a table |
 | **LBA 5–15** | **the operating system — 11 blocks, `0x1600` bytes** |
 | LBA 20–83 | `E5h` — the first 64 blocks of the `CP/M-A` partition: CP/M's empty directory |
@@ -399,7 +399,7 @@ loaded and executed out of it.
   show is still open: the tables are static data in `HARD.COM` (§9), the drive's
   LBA 4 carries its own copy of the geometry and type bytes (§3), and who copies
   one into the other is not yet chased.
-- **`docs/osborne1ng-machine.md` §5's "`HARD.COM` is a hard-disk boot loader"
+- **`docs/osborne1nx-machine.md` §5's "`HARD.COM` is a hard-disk boot loader"
   is right, and now it is read end to end** — including that it *also carries the
   BIOS*, which that section did not know.
 
@@ -555,8 +555,8 @@ B** is what makes it a boot rather than a banner (§7).
 - `tools/research/md10reloc.py` — re-applies the SPR relocation at the load
   address, and checks that the CCP entry lands on `LD SP,nn`.
 - `tools/research/md10drive.py` — lays an O/S image onto a drive (`--os`).
-- `tools/emulator-setup/mame-osborne1ng/` — the `osborne1ng` machine (#191).
-- `docs/osborne1ng-machine.md` §6 (the header field map), §5 (the harness
+- `tools/emulator-setup/mame-osborne1nx/` — the `osborne1nx` machine (#191).
+- `docs/osborne1nx-machine.md` §6 (the header field map), §5 (the harness
   findings); `docs/harddisk-decision.md` §7.2–§7.3;
   `docs/acb4000-host-adapter.md` §1, §4.
 

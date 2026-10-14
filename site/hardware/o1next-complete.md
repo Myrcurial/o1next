@@ -6,14 +6,14 @@ subtitle: The whole machine, case included
 
 **Status:** concept render exists. Tracks **#49** and **#52** (Phase 5), plus
 **#125** (the Osborne 3 history) and **#128** (the specification). Source:
-`hardware/o1ng/`, `docs/design/`.
+`hardware/o1next/`, `docs/design/`.
 
 ## What it is
 
 The end of the road: a complete, modern-parts Osborne 1 that runs original ROMs
 and original software, in a case — not a board, not an upgrade, a machine.
 
-**The O1NG is the SFF board with the rest of the machine wrapped around it.** The
+**The O1NEXT is the SFF board with the rest of the machine wrapped around it.** The
 logical equivalent of the **C64 Ultimate "Crystal" edition**: an homage that gives
 the end user *everything* that would have been possible in the olden days, wrapped
 in a way that makes it awesome. The machine that was an absolute fantasy in 1985
@@ -22,12 +22,12 @@ and is do-able by a hobbyist today.
 ## Two boards, one machine
 
 There are two boards in this part of the project, and only one of them is the
-O1NG's foundation:
+O1NEXT's foundation:
 
-| Board | What it is | Is it the O1NG? |
+| Board | What it is | Is it the O1NEXT? |
 |---|---|---|
 | [LFF board]({{ '/hardware/lff-replacement/' | relative_url }}) | A **1:1 mainboard replacement** for a real **OCC1 or OCC1A** chassis — same footprint, same connectors, same mounting holes, Z80 left socketed so the interposer stays the upgrade path | **No** — this is the *restoration path* |
-| [SFF board]({{ '/hardware/sff-integrated/' | relative_url }}) | A **fully integrated board**: the interposer's personalities designed in as firmware. **Not a 1:1 swap, and it does not try to be** — it can go in a real chassis or into any other design, up to the end user | **Yes** — this is what the O1NG is built on |
+| [SFF board]({{ '/hardware/sff-integrated/' | relative_url }}) | A **fully integrated board**: the interposer's personalities designed in as firmware. **Not a 1:1 swap, and it does not try to be** — it can go in a real chassis or into any other design, up to the end user | **Yes** — this is what the O1NEXT is built on |
 
 The two boards share the **USB-C PD power architecture**, with the optional 4S
 18650 path.
@@ -64,7 +64,7 @@ Not invented — borrowed from the machines that did the same job:
 
 ## The Osborne 3
 
-The O1NG is **the Osborne 3 that should have been** — the machine the line was
+The O1NEXT is **the Osborne 3 that should have been** — the machine the line was
 heading for, built with the openness the real Osborne 3 never had.
 
 The name is real. The **Osborne 3** was the last computer Osborne Computer
@@ -88,7 +88,7 @@ That is the **counter-example to the whole project**. The Osborne 1 is open and
 documented, which is why it is still reproducible forty years on. The Osborne 3
 was a licensed rebadge, and it died with its vendor.
 
-So the O1NG is the Osborne 3 OCC should have built. Four design commitments (the
+So the O1NEXT is the Osborne 3 OCC should have built. Four design commitments (the
 full specification is **#128**):
 
 1. **Retain the OCC aesthetic rather than dark grey.** Grey ABS, blue accent
@@ -114,7 +114,7 @@ licensing and the 16-line display.)*
   optional 4S battery path.
 - An **LFF board-outline drawing** against the OCC1/OCC1A chassis mounting holes
   (L-shaped, four screws).
-- An **O1NG concept design and renders**, with enclosure dimensions, the LCD and
+- An **O1NEXT concept design and renders**, with enclosure dimensions, the LCD and
   keyboard selection, and a print-feasibility check against the 250 mm limit.
 - An **Osborne 3 design brief** — the four commitments above, plus the panel and
   keyboard selection and the publishing route for the schematics and case files.
@@ -124,7 +124,7 @@ licensing and the 16-line display.)*
 - **#49** — the reproduction this encloses.
 - **#24 / #44** — the video personality and the character ROM. The *output* is
   settled (HDMI); the personality itself is still #24's work.
-- **#47** — the O1NG's keyboard is a Cherry-MX implementation of the same matrix,
+- **#47** — the O1NEXT's keyboard is a Cherry-MX implementation of the same matrix,
   so the [USB keyboard interface]({{ '/hardware/keyboard-interface/' |
   relative_url }}) and the built-in keyboard share their work.
 - **#125** — the Osborne 3: the four commitments above, and the open-publishing

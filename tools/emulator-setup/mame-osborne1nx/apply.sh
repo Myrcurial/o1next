@@ -1,14 +1,14 @@
 #!/bin/sh
-# apply.sh -- put the osborne1ng machine into a stock MAME source tree.
+# apply.sh -- put the osborne1nx machine into a stock MAME source tree.
 #
-#   tools/emulator-setup/mame-osborne1ng/apply.sh [MAME_SRC] [--build] [--probe]
+#   tools/emulator-setup/mame-osborne1nx/apply.sh [MAME_SRC] [--build] [--probe]
 #
 # MAME_SRC defaults to $MAME_SRC, then to ./mame.  It must be a *source* tree
 # (a checkout or an unpacked release tarball), not a brew install: the patch
 # adds a device and a machine, so the tree has to be rebuilt.
 #
 # What it does, in order:
-#   1. patch -p1 the five files in osborne1ng.patch
+#   1. patch -p1 the five files in osborne1nx.patch
 #   2. with --build, make the osborne subtarget
 #   3. with --probe, run the headless decode/presence check
 #
@@ -36,8 +36,8 @@ done
 [ -f "$SRC/src/mame/osborne/osborne1.cpp" ] || {
     echo "apply.sh: $SRC does not look like a MAME source tree" >&2; exit 1; }
 
-PATCH="$HERE/osborne1ng.patch"
-SUBTARGET=osborne1ng
+PATCH="$HERE/osborne1nx.patch"
+SUBTARGET=osborne1nx
 # The OSD is left at the tree's default.  On macOS that is sdl3, which is what
 # the repo's documented headless recipe expects (SDL_VIDEODRIVER=dummy plus
 # -video none -sound none; docs/mame-emulation.md section 6).  MAME finds SDL
@@ -60,7 +60,7 @@ esac
 if [ -e "$SRC/src/devices/machine/acb4000_host_adapter.cpp" ]; then
     # patch --forward would skip the hunks and scatter .rej files about; a tree
     # that already has the device is a tree that is already patched.
-    echo "==> $SRC already has the osborne1ng machine; not patching again"
+    echo "==> $SRC already has the osborne1nx machine; not patching again"
 else
     echo "==> patching $SRC"
     (cd "$SRC" && patch -p1 --forward < "$PATCH")
@@ -83,10 +83,10 @@ if [ "$PROBE" = 1 ]; then
     if [ "$OSD_OPT" = "OSD=mac" ]; then
         WINDOW_OPT="-window"
     fi
-    ( cd /tmp && SDL_VIDEODRIVER=dummy O1NG_LOG=/tmp/o1ng.log "$BIN" "$SUBTARGET" \
+    ( cd /tmp && SDL_VIDEODRIVER=dummy O1NEXT_LOG=/tmp/o1next.log "$BIN" "$SUBTARGET" \
         -rompath "$REPO/tools/emulator-setup/roms" \
         -video none -sound none $WINDOW_OPT -nothrottle \
-        -autoboot_script "$HERE/o1ng-probe.lua" -seconds_to_run 6 )
+        -autoboot_script "$HERE/o1next-probe.lua" -seconds_to_run 6 )
 fi
 
 echo "==> done"

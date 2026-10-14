@@ -45,20 +45,20 @@
 +// The emulated interposer: a stock Osborne-1 whose Z80 sits behind a card that
 +// decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
 +// answer on 30h-33h -- the ports its driver demands and the stock machine
-+// cannot reach (docs/osborne1ng-machine.md, docs/acb4000-host-adapter.md 2).
-+class osborne1ng_state : public osborne1_state
++// cannot reach (docs/osborne1nx-machine.md, docs/acb4000-host-adapter.md 2).
++class osborne1nx_state : public osborne1_state
 +{
 +public:
-+	osborne1ng_state(const machine_config &mconfig, device_type type, const char *tag) :
++	osborne1nx_state(const machine_config &mconfig, device_type type, const char *tag) :
 +		osborne1_state(mconfig, type, tag),
 +		m_acb4000(*this, "acb4000")
 +	{
 +	}
 +
-+	void osborne1ng(machine_config &config);
++	void osborne1nx(machine_config &config);
 +
 +private:
-+	void osborne1ng_io(address_map &map) ATTR_COLD;
++	void osborne1nx_io(address_map &map) ATTR_COLD;
 +
 +	required_device<acb4000_host_adapter_device> m_acb4000;
  };
@@ -71,7 +71,7 @@
 +}
 +
 +
-+void osborne1ng_state::osborne1ng_io(address_map &map)
++void osborne1nx_state::osborne1nx_io(address_map &map)
 +{
 +	map.unmap_value_high();
 +
@@ -81,7 +81,7 @@
 +	// the 2-bit alias and put the card's window on top of it: 30h-33h is the
 +	// one place where the card, not the mainboard, owns the bus.
 +	map.global_mask(0xff);
-+	map(0x00, 0x03).mirror(0xfc).w(FUNC(osborne1ng_state::bankswitch_w));
++	map(0x00, 0x03).mirror(0xfc).w(FUNC(osborne1nx_state::bankswitch_w));
 +	map(0x30, 0x33).rw(m_acb4000, FUNC(acb4000_host_adapter_device::read), FUNC(acb4000_host_adapter_device::write));
  }
  
@@ -90,13 +90,13 @@
  }
  
  
-+void osborne1ng_state::osborne1ng(machine_config &config)
++void osborne1nx_state::osborne1nx(machine_config &config)
 +{
 +	osborne1_base(config);
 +
-+	m_maincpu->set_addrmap(AS_IO, &osborne1ng_state::osborne1ng_io);
++	m_maincpu->set_addrmap(AS_IO, &osborne1nx_state::osborne1nx_io);
 +
-+	m_screen->set_screen_update(FUNC(osborne1ng_state::screen_update));
++	m_screen->set_screen_update(FUNC(osborne1nx_state::screen_update));
 +	m_screen->set_raw(MAIN_CLOCK / 2, 512, 0, 52 * 8, 260, 0, 24 * 10);
 +	m_screen->screen_vblank().set(m_pia1, FUNC(pia6821_device::ca1_w));
 +	m_screen->set_palette("palette");
@@ -118,9 +118,9 @@
  
  #define rom_osborne1sp rom_osborne1
  
-+// osborne1ng runs the 1.44 ROM and nothing else: it is the emulated interposer
++// osborne1nx runs the 1.44 ROM and nothing else: it is the emulated interposer
 +// machine, and the MD-10's software is what it exists to run.
-+ROM_START( osborne1ng )
++ROM_START( osborne1nx )
 +	ROM_REGION( 0x1000, "maincpu", 0 )
 +	ROM_LOAD( "3a10082-00rev-e.ud11",    0x0000, 0x1000, CRC(c0596b14) SHA1(ee6a9cc9be3ddc5949d3379351c1d58a175ce9ac) )
 +
@@ -135,14 +135,14 @@
  COMP( 1981, osborne1,   0,        0,      osborne1,   osborne1,   osborne1_state,   empty_init, "Osborne",       "Osborne-1",                 MACHINE_SUPPORTS_SAVE )
  COMP( 1983, osborne1sp, osborne1, 0,      osborne1sp, osborne1,   osborne1sp_state, empty_init, "Osborne",       "Osborne-1 with SCREEN-PAC", MACHINE_SUPPORTS_SAVE )
  COMP( 1984, osborne1nv, osborne1, 0,      osborne1nv, osborne1nv, osborne1nv_state, empty_init, "Osborne/Nuevo", "Osborne-1 (Nuevo Video)",   MACHINE_SUPPORTS_SAVE )
-+COMP( 1981, osborne1ng, osborne1, 0,      osborne1ng, osborne1,   osborne1ng_state, empty_init, "Osborne",       "Osborne-1 (emulated interposer)", MACHINE_SUPPORTS_SAVE )
++COMP( 1981, osborne1nx, osborne1, 0,      osborne1nx, osborne1,   osborne1nx_state, empty_init, "Osborne",       "Osborne-1 (emulated interposer)", MACHINE_SUPPORTS_SAVE )
 --- a/src/mame/mame.lst
 +++ b/src/mame/mame.lst
 @@ -36523,6 +36523,7 @@
  
  @source:osborne/osborne1.cpp
  osborne1
-+osborne1ng
++osborne1nx
  osborne1nv
  osborne1sp
  
@@ -185,7 +185,7 @@
 +    The status byte's bit map and the whole handshake are *read*, not guessed:
 +    the transaction routine is the MD-10 BIOS overlay's own code, at
 +    HARDBIOS.SPR file offset 0x285 (address 0xE285, "HARDBIOS.SPR maps to
-+    0xE000 + offset").  See docs/osborne1ng-machine.md for the listing and
++    0xE000 + offset").  See docs/osborne1nx-machine.md for the listing and
 +    docs/acb4000-host-adapter.md section 1 for the register roles.
 +
 +    Status (base+2, read), md10 profile:
@@ -198,7 +198,7 @@
 +        bit 6  40h  the current phase is complete, act on it
 +
 +    Two details of that map are load-bearing, and both were read out of the
-+    driver rather than assumed (docs/osborne1ng-machine.md section 4):
++    driver rather than assumed (docs/osborne1nx-machine.md section 4):
 +
 +      * The status phase asserts PHASE and END but **not** REQ.  The driver's
 +        data-out loop writes a byte for every REQ it sees (overlay 0x808d), so
@@ -372,7 +372,7 @@
 +// The controller answers as Adaptec's "controller 01", i.e. select byte 01h --
 +// which is SCSI ID 0.  HARD.COM's own probe reads its select byte from a
 +// configured byte (0x0A93) rather than scanning, and that byte is 01h
-+// (docs/osborne1ng-machine.md).
++// (docs/osborne1nx-machine.md).
 +static constexpr u8 ACB4000_SCSI_ID = 0;
 +
 +// the driver moves data in 512-byte blocks (2 x OTIR/INIR with B = 0)
@@ -441,7 +441,7 @@
 +	}
 +
 +	// base+2 is a read/write register, and its controller field reflects what is
-+	// fitted: one controller on-line reads back as 04h (docs/osborne1ng-machine.md).
++	// fitted: one controller on-line reads back as 04h (docs/osborne1nx-machine.md).
 +	m_reg2 = m_online ? STATUS_ONLINE : 0x00;
 +}
 +
@@ -464,7 +464,7 @@
 +{
 +	// The host writes a one-of-eight ID mask to base+0 before asserting the
 +	// select bit; the overlay scans the mask with `sla c` from 01h, so that is
-+	// the encoding (docs/osborne1ng-machine.md).
++	// the encoding (docs/osborne1nx-machine.md).
 +	int id = -1;
 +	for (int i = 0; (8 > i) && (0 > id); ++i)
 +		if (BIT(m_select, i))
@@ -596,7 +596,7 @@
 +	// base+2 is a read/write register: the host writes a controller-select byte
 +	// and reads it back.  Its controller field only reads back when a controller
 +	// is actually on-line, which is what makes the presence probe a probe and
-+	// not an echo (docs/osborne1ng-machine.md).
++	// not an echo (docs/osborne1nx-machine.md).
 +	u8 st = m_reg2;
 +	if (!m_online)
 +		st &= ~STATUS_ONLINE;
@@ -690,7 +690,7 @@
 +			// overlay's transaction at 0x8030 / the BIOS's at 0xE285), so a CDB
 +			// index left over from the previous command must not be carried into
 +			// this one.  Without this the second and later commands send one byte
-+			// and the card re-runs the stale CDB (docs/osborne1ng-machine.md).
++			// and the card re-runs the stale CDB (docs/osborne1nx-machine.md).
 +			m_cdb_index = 0;
 +			m_cdb_length = 0;
 +			m_xfer = xfer::command;

@@ -13,7 +13,7 @@ GP12–19 on the RP2350, so a resistor DAC would need the same range and the two
 mutually exclusive.
 
 The same decision now applies across the project — the SFF board carries **HDMI
-only** and no composite circuitry at all (`hardware/o1ng/README.md`). The display
+only** and no composite circuitry at all (`hardware/o1next/README.md`). The display
 *character* (white, green or amber — see "Monitor character") is a rendering choice in the
 personality's configuration rather than a hardware one; see "Monitor character"
 below.

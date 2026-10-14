@@ -543,7 +543,7 @@ static uint32_t unit_block_size(const acb4000_target *t)
 /* VERIFY (2F) -- manual 5.4.5.  No data phase: the controller checks the ECC of
  * blocks that are already on the drive.  This is the pass `PREP.COM`'s "format
  * and verify" waits on, and the one MAME's generic SCSI target has no handler
- * for (docs/osborne1ng-machine.md section 5). */
+ * for (docs/osborne1nx-machine.md section 5). */
 static void do_verify(acb4000_target *t)
 {
     uint8_t block[ACB4000_BLOCK_MAX];

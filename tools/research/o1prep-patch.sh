@@ -1,5 +1,5 @@
 #!/bin/sh
-# o1prep-patch.sh -- build a *runnable* PREP.COM disk for osborne1ng.
+# o1prep-patch.sh -- build a *runnable* PREP.COM disk for osborne1nx.
 #
 # WHY THIS EXISTS
 #   #191's handoff is "read the MD-10's on-disk structure out of PREP.COM", and
@@ -7,7 +7,7 @@
 #   at run time from the drive geometry, so the only way to see it is to make
 #   PREP write it.  Under MAME it cannot finish -- the verify pass that follows
 #   the format is SEARCH DATA EQUAL (2F) and MAME's t10spc/t10sbc have no handler
-#   for it (docs/osborne1ng-machine.md section 5).
+#   for it (docs/osborne1nx-machine.md section 5).
 #
 #   The *Disk initialization* menu is where "Change disk label" and "Format disk
 #   using present parameters" live, and it sits behind that format.  So the one
@@ -30,7 +30,7 @@
 #       poke 0x8023 01
 #
 #   tools/research/o1keys.lua's `poke` directive is that lever.  The full recipe
-#   is docs/osborne1ng-machine.md section 6, and this script writes it out too.
+#   is docs/osborne1nx-machine.md section 6, and this script writes it out too.
 #
 # USAGE
 #   tools/research/o1prep-patch.sh [OUTDIR]
@@ -40,7 +40,7 @@
 #     prep.imd          the same, wrapped for MAME
 #     prep.recipe.txt   the keys script and the command line that uses them
 #
-# Issue: #191 -- docs/osborne1ng-machine.md section 6.
+# Issue: #191 -- docs/osborne1nx-machine.md section 6.
 set -eu
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -63,7 +63,7 @@ mkdir -p "$OUT"
 #                      C3 00 12   JP   1200h       -- the label build + header write
 #                      00 00        padding
 #
-# Two things about that landing point, both measured (docs/osborne1ng-machine.md 6):
+# Two things about that landing point, both measured (docs/osborne1nx-machine.md 6):
 #
 #   * It has to be **1200h**, not the Disk initialization menu.  The menu path
 #     never builds the label, so the partition table at 36FE is left
@@ -119,13 +119,13 @@ key cr
 sleep 8
 dump header
 #
-# 3. run it (osborne1ng is the built binary, not `mame osborne1ng`)
-cd /tmp && O1_MACHINE=osborne1ng O1_FLOP1=/tmp/o1prep/prep.imd \
+# 3. run it (osborne1nx is the built binary, not `mame osborne1nx`)
+cd /tmp && O1_MACHINE=osborne1nx O1_FLOP1=/tmp/o1prep/prep.imd \
   O1_KEYS="$(cat /tmp/o1prep/keys.txt)" SDL_VIDEODRIVER=dummy \
-  /path/to/osborne1ng osborne1ng -flop1 /tmp/o1prep/prep.imd -hard /tmp/o1prep/hd.chd \
+  /path/to/osborne1nx osborne1nx -flop1 /tmp/o1prep/prep.imd -hard /tmp/o1prep/hd.chd \
   -video none -sound none -nothrottle \
-  -autoboot_script /path/to/o1nextgen/tools/research/o1keys.lua \
-  -seconds_to_run 90 -rompath /path/to/o1nextgen/tools/emulator-setup/roms
+  -autoboot_script /path/to/o1next/tools/research/o1keys.lua \
+  -seconds_to_run 90 -rompath /path/to/o1next/tools/emulator-setup/roms
 #
 # 4. read the header back: LBA 0 is the label ('M','D' at +0, FFh at +48)
 chdman extracthd -i /tmp/o1prep/hd.chd -o /tmp/o1prep/hd.raw -f

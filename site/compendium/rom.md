@@ -7,7 +7,7 @@ draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`.
 
 **Issue:** #72. **Status:** first pass, and the reassembly is done. The source has
 been indexed and its port/vector tables extracted; every one of them **agrees
-with** [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3, which had been derived from the schematic
+with** [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3, which had been derived from the schematic
 and from the running machine. That is the headline result: the map survives
 contact with the primary source. And `rom144.asm` now **reassembles with the
 vendor's own assembler to the shipped ROM, byte for byte** (#203) — see
@@ -44,7 +44,7 @@ so the set is complete:
 | `occram15.asm`, `occram25.asm` | 31, 175 | "Monitor RAM Storage" — the RAM-resident data area, `ORG MRAM`, assembled into both the ROM and the CBIOS. |
 | `bios141.gen` | 56 | The generation procedure: needs ACT 3.5e, DDT 2.2, SYSGEN 2.1 and MOVCPM, and the twelve files above. |
 | `tran.txt` | 61 | The 1.44 ROM release memo (Sai Kit, 2/4/1983): how the HEX and print files were generated, on a DD machine with a Corvus hard disk. |
-| `release.txt` | 53 | The 1985 Osborne letter granting FOG permission to reprint the schematics and BIOS listing. Retained verbatim — see [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md). |
+| `release.txt` | 53 | The 1985 Osborne letter granting FOG permission to reprint the schematics and BIOS listing. Retained verbatim — see [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md). |
 | `source.md` | 2 | Provenance (BrettHallen/Osborne_1 `ROM/Source_Code_v144/`). |
 
 ## Revision lineage
@@ -62,8 +62,8 @@ SELDRV - changed start up delay to 500 ms    : tsk
 
 `NRETRY = 10` (disk retry count), `SLD_RCT = 3` (slide-key repeat), and
 `BRTBIT`/`DIMBIT` (`80h`/`00h`) are defined at the top of the file. The 1.44
-image is [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom) (CRC32 `c0596b14`) — see
-[`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md).
+image is [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom) (CRC32 `c0596b14`) — see
+[`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).
 
 **CBIOS 1.41** — from `occbio05.asm`/`occbio15.asm`:
 
@@ -104,7 +104,7 @@ Straight out of `rom144.asm` (`;MEMORY MAPPED I/O`, around line 83) and
 `H.IEEE = 2900h`, `H.SIO = 2A00h`, `H.VIO = 2C00h` — which is worth noting
 because the CBIOS refers to the IEEE port as `H.IEEE`, not as a PIA.
 
-### Cross-check against [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3
+### Cross-check against [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3
 
 | Map doc §3 | Source | Verdict |
 |---|---|---|
@@ -114,7 +114,7 @@ because the CBIOS refers to the IEEE port as `H.IEEE`, not as a PIA.
 | `2A00–2A01` serial ACIA, MC6850 (UC4) | `H.SCTRL/H.SSTS` at 2A00, `H.SXMT/H.SREC` at 2A01 | **agrees** |
 | `2C00–2C03` video PIA, MC6821 (UC15) | `H.VIO = 2C00H`, ROM touches +0…+3 | **agrees** |
 
-No contradictions. The I/O map in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3 is now sourced
+No contradictions. The I/O map in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3 is now sourced
 from the firmware as well as the schematic and the running machine.
 
 **Free space within the window.** The firmware touches exactly five bases
@@ -124,7 +124,7 @@ peripheral belongs — but confirm the *decode granularity* against the schemati
 before relying on an address *inside* one of the used blocks, because several
 decode more than the registers the firmware names (the keyboard decodes A0–A7
 one-hot, for instance). This narrows the recommendation in the map doc §7 and
-closes most of gap 1 in [`docs/research-gaps.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/research-gaps.md).
+closes most of gap 1 in [`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md).
 
 ## Monitor RAM and vectors
 
@@ -163,7 +163,7 @@ ENADIM: MACRO          DISDIM: MACRO
 ```
 
 `OUT 2` / `OUT 3` set and clear the `BIT 9` latch (the "dim bit", bank 3) —
-matching [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §4. There is **no `OUT 0` or `OUT 1`
+matching [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §4. There is **no `OUT 0` or `OUT 1`
 anywhere in the ROM**: the firmware never selects the RAM bank itself, so
 bank 1 ↔ bank 2 must be driven by hardware (reset and the NMI flip-flop chain),
 exactly as §4 describes. This is a useful negative result for the interposer:
@@ -189,7 +189,7 @@ The WD179x commands the BIOS issues (`rom144.asm`, `;DISK EQUATES`):
 
 These are the type I/II/III/IV encodings of a WD179x-class part, which is what
 the floppy interposer (#20) has to speak. The MB8877-vs-WD1793 part question in
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3 remains schematic-level and is unaffected.
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3 remains schematic-level and is unaffected.
 
 ## IEEE-488 — and the parallel printer is the same port
 
@@ -235,33 +235,33 @@ IEEE-488 device speaking Centronics on the same PIA, not a separate port.
   ("send data"), and `STO A,H.VIO+3` then `STO A,H.VIO+2` (lines 382–410).
 - **Reading `H.VIO` clears the video interrupt** (line 2025,
   `LD A,H.VIO ;clear interrupt`) — the video PIA is one of the three IRQ
-  sources at 60 Hz ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §5).
+  sources at 60 Hz ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §5).
 - `ENADIM` / `DISDIM` toggle the dim bit through `OUT 2` / `OUT 3` (above).
 
-Individual register semantics stay in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §3; this pass
+Individual register semantics stay in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3; this pass
 records what the ROM does with them, not a re-derivation.
 
 ## The 1.44 reassembly: the source *is* the shipped ROM (#203)
 
 **Measured 2026-10-13.** `rom144.asm` assembles with the vendor's own assembler —
 SORCIM's ACT80 — to an image **identical, byte for byte, to
-[`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom) (CRC32 `c0596b14`)**. That is this document's open
+[`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom) (CRC32 `c0596b14`)**. That is this document's open
 question 1 and #83's deliverable 2, and it settles both: the source in this
 repository *is* the source of the shipped 1.44 monitor ROM, and the toolchain
 that produced it runs under MAME.
 
 | | |
 |---|---|
-| Assembler | `ACT80.COM` — SORCIM "Assembly Code Translator", **version 3.0**, safety copy in [`research/act-assembler/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/act-assembler/) |
+| Assembler | `ACT80.COM` — SORCIM "Assembly Code Translator", **version 3.0**, safety copy in [`research/act-assembler/`](https://github.com/Myrcurial/o1next/blob/main/research/act-assembler/) |
 | Command | `ACT80 B:ROM144 H=B:` — the vendor's own, from `tran.txt` |
 | Reported | `no ERRORs,  473 Labels`, `Program LWA = 0FFFh` |
 | Output | 11 520 bytes of Intel HEX, 255 records, `ROM144.HEX` on drive B |
 | Image | 4096 bytes, CRC32 **`c0596b14`** — the shipped ROM |
-| Reproduce | [`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom144-reassemble.sh) — the happy path, end to end |
+| Reproduce | [`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom144-reassemble.sh) — the happy path, end to end |
 
 **This is the happy path, and it is now self-contained in the repository.** The
 assembler is the vendor's own, the command is the vendor's own, and both live
-here: [`research/act-assembler/ACT80.COM`](https://github.com/Myrcurial/o1nextgen/blob/main/research/act-assembler/ACT80.COM) and `tran.txt`. No substitution, no
+here: [`research/act-assembler/ACT80.COM`](https://github.com/Myrcurial/o1next/blob/main/research/act-assembler/ACT80.COM) and `tran.txt`. No substitution, no
 porting, no search for a missing version — the toolchain that built the part is
 the toolchain that rebuilds it.
 
@@ -284,9 +284,9 @@ accounts-receivable file. `READ.ME` in the kit lists the 3.0 files exactly as
 the archive holds them.
 
 **All three builds are now safety copies in this repository** —
-[`research/act-assembler/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/act-assembler/), with the 3.0 kit's own `READ.ME`, `DOCOP80.ASM` (every
+[`research/act-assembler/`](https://github.com/Myrcurial/o1next/blob/main/research/act-assembler/), with the 3.0 kit's own `READ.ME`, `DOCOP80.ASM` (every
 ACT mnemonic, which is the file to diff against if a future source is rejected)
-and its `LINK` include files; the provenance rows are in [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md),
+and its `LINK` include files; the provenance rows are in [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md),
 and the licence notice in the kit's `READ.ME` is recorded there rather than
 quietly dropped. The 3.2 builds sit beside it, so the byte-identical claim above
 can be re-checked against a local file rather than the mirror:
@@ -295,7 +295,7 @@ can be re-checked against a local file rather than the mirror:
 O1_ACT80=research/act-assembler/3.2/ACT80.COM tools/research/rom144-reassemble.sh
 ```
 
-[`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom144-reassemble.sh) defaults to the 3.0 copy, so the build no
+[`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom144-reassemble.sh) defaults to the 3.0 copy, so the build no
 longer needs the local archive to be present. The third build — the one that
 circulated inside a third-party bundle, `3.2/ACT80-eca-bundle.COM` — is **not a
 drop-in**: it returns to the prompt printing nothing, where both SORCIM builds
@@ -313,9 +313,9 @@ further for 3.5e can be closed as not-needed.
 
 The vendor's procedure (`tran.txt`) assumes two floppies: ACT80 in drive A, the
 source in drive B, `ACT B:ROM144 H=B:`. Reproduced under MAME with two DD
-images, and [`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom144-reassemble.sh) is the whole of it:
+images, and [`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom144-reassemble.sh) is the whole of it:
 
-1. [`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/OS1SYSD.IMD) → raw (`imdinfo.py --raw`),
+1. [`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/shipped-software/OS1SYSD.IMD) → raw (`imdinfo.py --raw`),
    `AUTOST.COM` removed, `ACT80.COM` added → **drive A**. It is a 250 kbps MFM
    40 × 5 × 1024 disk, and `cpmtools`' `osborne1` diskdef is the right
    description of it: the CBIOS's own DPB agrees field for field (`occbio95.asm`,
@@ -371,14 +371,14 @@ at a glance. Three facts pin it down:
   restored from that (`acthex.py --recover-ff`).
 
 With the range restored, the assembled image is **identical to
-[`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom) in all 4096 bytes** — and before the restore it
+[`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom) in all 4096 bytes** — and before the restore it
 already agreed in the other 4080. The cause of the six bytes is not isolated; it
 is deterministic, it lands in the file's last sector, and it is recorded here as
 an emulation observation rather than explained away.
 
 ## What this closes, and what it does not
 
-| Gap ([`docs/research-gaps.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/research-gaps.md)) | Status after this pass |
+| Gap ([`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md)) | Status after this pass |
 |---|---|
 | **1** — exact memory & I/O map, free decode windows | **Substantially closed.** Every address the firmware touches is now sourced, and the gaps between the five device blocks (`2300–28FF`, `2B00–2BFF`, `2D00–2FFF`) are clear. Decode *granularity* is still schematic-level. |
 | **3** — char-gen socket pinout | **Not addressed** — that is a hardware pinout, not firmware. Still open, still needed by #24. |
@@ -392,11 +392,11 @@ Two things this pass adds that no existing doc had:
 
 ## Open questions / next steps
 
-1. ~~**Reassemble `rom144.asm` and compare against [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom)
+1. ~~**Reassemble `rom144.asm` and compare against [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom)
    (CRC32 `c0596b14`).**~~ **Done — see "The 1.44 reassembly" above.** The source
    is the shipped ROM, byte for byte, assembled by the vendor's own ACT80 (3.0;
    3.2 gives the same bytes), which is now a safety copy in
-   [`research/act-assembler/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/act-assembler/). Two wrong readings are retired with it: that this
+   [`research/act-assembler/`](https://github.com/Myrcurial/o1next/blob/main/research/act-assembler/). Two wrong readings are retired with it: that this
    needed `z80asm` taught ACT's macro layer, and that it needed ACT 3.5e. Neither
    was true — the assembler was in the local archive all along — and `z80asm`
    stays what it is, the tool for *writing* new code (`REQUIREMENTS.md`). The four
@@ -404,10 +404,10 @@ Two things this pass adds that no existing doc had:
    this way.
 
    **ROM 1.3 was the natural next step for the *toolchain*, and it is now
-   done as far as the toolchain allows — see [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rom-13-reconstruction.md)
+   done as far as the toolchain allows — see [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md)
    and #205.** The source disk reads (it is an 8-inch 77-track FM/MFM disk
-   with CP/M skew 3, which [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/o1imd8.py) handles), the 1.3 source
-   is extracted to [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/ROM-13-source/), and the gap fill, the
+   with CP/M skew 3, which [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/o1imd8.py) handles), the 1.3 source
+   is extracted to [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/ROM-13-source/), and the gap fill, the
    terminator and the CRLF handling all carried over. What did **not** carry
    over is the assembler: the 1.3 source uses `DBE`/`DCE`, which only ACT
    **3.5E** has, and the archive holds 3.0/3.2. The bytes those pseudo-ops emit
@@ -419,7 +419,7 @@ Two things this pass adds that no existing doc had:
    disk-loaded, so extract it from a shipped system disk (`OS1SYSD.IMD` /
    `OS1SYSS.IMD`) and diff it against the 1.41 build.
 3. **Read the IEEE driver section (lines 3113–3400) against
-   [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)** to confirm the exact handshake the Drive C
+   [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)** to confirm the exact handshake the Drive C
    firmware expects (#6/#22).
 4. **Pin down the video register semantics** from the ROM's write pairs
    (`+1`→`+0`, `+3`→`+2`) against the schematic (#24).
@@ -427,11 +427,11 @@ Two things this pass adds that no existing doc had:
 ## Provenance
 
 - The source tree: `github.com/BrettHallen/Osborne_1` `ROM/Source_Code_v144/`
-  (all 18 file sizes match). See [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md).
-- The 1.44 binary used for the CRC comparison: [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom)
+  (all 18 file sizes match). See [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md).
+- The 1.44 binary used for the CRC comparison: [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom)
   (Don Maslin's archive) — identical to MAME's `3a10082-00rev-e.ud11`.
 - The OCC engineering source disks (`research/source-code/*.IMD`, bitsavers)
   are the *disk* copies of the same material and have not yet been extracted —
   that is #2's pipeline work.
 - Licensing: `release.txt` retains Osborne's 1985 FOG letter verbatim; the
-  terms are recorded in [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md).
+  terms are recorded in [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md).

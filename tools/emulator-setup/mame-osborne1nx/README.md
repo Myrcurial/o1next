@@ -1,4 +1,4 @@
-# `osborne1ng` — the emulated interposer, as a MAME machine (#191)
+# `osborne1nx` — the emulated interposer, as a MAME machine (#191)
 
 A **fourth `osborne1` machine in MAME** whose Z80 sits behind a card that decodes
 the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can answer on
@@ -15,14 +15,14 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 
 | File | What it is |
 |---|---|
-| `osborne1ng.patch` | the change, as a `git apply` / `patch -p1` diff against MAME 0.289 |
+| `osborne1nx.patch` | the change, as a `git apply` / `patch -p1` diff against MAME 0.289 |
 | `apply.sh` | apply it to a source tree, optionally build the subtarget, optionally run the probe |
-| `o1ng-probe.lua` | the headless check: the I/O decode, and the card's presence probe |
-| `o1ng-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
+| `o1next-probe.lua` | the headless check: the I/O decode, and the card's presence probe |
+| `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 
 The patch touches five files:
 
-- `src/mame/osborne/osborne1.cpp` — the `osborne1ng` machine and its I/O map
+- `src/mame/osborne/osborne1.cpp` — the `osborne1nx` machine and its I/O map
 - `src/mame/mame.lst` — registers the machine (MAME builds its driver list from this)
 - `scripts/src/machine.lua` — registers the new device's sources
 - `src/devices/machine/acb4000_host_adapter.{h,cpp}` — the card, new
@@ -30,7 +30,7 @@ The patch touches five files:
 ## Applying it
 
 ```sh
-tools/emulator-setup/mame-osborne1ng/apply.sh /path/to/mame --build --probe
+tools/emulator-setup/mame-osborne1nx/apply.sh /path/to/mame --build --probe
 ```
 
 `/path/to/mame` must be a **source** tree (a checkout, or an unpacked release
@@ -42,7 +42,7 @@ SDL3 (see `REQUIREMENTS.md`).
 Then run it:
 
 ```sh
-mame osborne1ng -rompath tools/emulator-setup/roms \
+mame osborne1nx -rompath tools/emulator-setup/roms \
     -flop1 research/shipped-software/OS1UTLS.IMD
 ```
 
@@ -57,7 +57,7 @@ it exits; `apply.sh` says so when it falls back, and `-window` is the only thing
 that keeps it off the display (`-numscreens 0` is rejected). Full note in
 `docs/mame-emulation.md` §6.
 
-`osborne1ng` runs the **1.44 ROM only** (`3a10082-00rev-e.ud11`, with the
+`osborne1nx` runs the **1.44 ROM only** (`3a10082-00rev-e.ud11`, with the
 `7a3007-00.ud15` character generator). It does not carry the `osborne1` family's
 other BIOS slots, on purpose: the MD-10's software is what it exists to run.
 
@@ -75,7 +75,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the ID scan | **yes** — `PREP.COM` finds the controller at select byte `01h` only |
 | **`PREP.COM` (the MD-10 drive-table editor) runs unpatched** | **yes** — its main menu, the drive-table submenu, *and* its whole initialize/format flow |
 | `HARD.COM` reaches the controller | **yes** — real commands (`TEST UNIT READY`, then `READ` LBA 5 ×11 — the `CCP`+`BDOS` it boots) |
-| the **data phase** (`INQUIRY`, `MODE SENSE`, `READ CAPACITY`, `READ`) | **yes** — 22/22 checks, `o1ng-dataphase.lua` |
+| the **data phase** (`INQUIRY`, `MODE SENSE`, `READ CAPACITY`, `READ`) | **yes** — 22/22 checks, `o1next-dataphase.lua` |
 | the **data-out** phase (`MODE SELECT`, `SEND DIAGNOSTIC`) | **yes** — both complete |
 | `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
 
@@ -87,10 +87,10 @@ The data phase needs a drive image mounted, and the slot's option is **`-hard`**
 
 ```sh
 tools/research/mkdrive.py --out /tmp/md10/hd.chd                # PYXIS13, 321/4/18
-O1NG_LOG=/tmp/o1ng-dataphase.log SDL_VIDEODRIVER=dummy mame osborne1ng \
+O1NEXT_LOG=/tmp/o1next-dataphase.log SDL_VIDEODRIVER=dummy mame osborne1nx \
   -rompath tools/emulator-setup/roms -hard /tmp/md10/hd.chd \
   -video none -sound none -nothrottle -seconds_to_run 6 \
-  -autoboot_script tools/emulator-setup/mame-osborne1ng/o1ng-dataphase.lua
+  -autoboot_script tools/emulator-setup/mame-osborne1nx/o1next-dataphase.lua
 ```
 
 `mkdrive.py` is how the drive gets there: it writes a **blank but formatted**
@@ -103,7 +103,7 @@ archived at `research/adaptec/compatible-drives-1991-usenet.txt`.
 ### The handshake details that cost the time
 
 Four of them, all read out of the driver and all of them a hang until they were
-right (`docs/osborne1ng-machine.md` §3):
+right (`docs/osborne1nx-machine.md` §3):
 
 1. **The status phase asserts PHASE and END but not REQ** — the driver's data-out
    loop writes a byte per REQ, so a REQ left up while the status waits writes for
@@ -143,7 +143,7 @@ header `PREP.COM` writes is read out of the program and confirmed on the emulate
 drive: four 512-byte blocks at LBA 0–3 — the **disk label** at LBA 0 (built at
 `0x36CE`, `M`/`D` at `+0`, the label text at `+14`, a 28-byte partition table
 from `+48`), a block at LBA 1, and a 1 KiB partition block at LBA 2–3. The
-recognisability check is a `READ` of LBA 2 into `0x32CD`. `docs/osborne1ng-machine.md`
+recognisability check is a `READ` of LBA 2 into `0x32CD`. `docs/osborne1nx-machine.md`
 §6 has the field map, the CDB layout, and the recipe that produced it — including
 the trap that made it look like a no-op (the card's select byte at `0x8023` is a
 run-time variable; if the flow skips the routine that sets it, every transaction
@@ -163,4 +163,4 @@ is delivered to no target and the drive stays untouched).
    byte is a one-of-eight ID mask and `01h` is the first controller. Mount the
    target at `SCSI_ID_0`, not `SCSI_ID_1`.
 
-See `docs/osborne1ng-machine.md` for the disassembly these come from.
+See `docs/osborne1nx-machine.md` for the disassembly these come from.

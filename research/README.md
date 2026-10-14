@@ -459,8 +459,8 @@ kept here for the same reason `pictures/` is — it exists nowhere else.
 
 | File | What it is | Sourced from |
 |---|---|---|
-| `boot-screen/o1ng-art.txt` | the **O1NG** art: 125 × 28 cells, one character per cell, SHA-256 `a92bf28e81b54c58f59c48ab16f090e2d26c4e8d3705ed0cfcda7dd10bb1f9ba`. Read it in the `osborne1-art-*` font from `tools/romfont.py` — character code **minus 65** is the glyph index, the same `sui 65` the ROM's own loader does | authored 2026-10-14 |
-| `boot-screen/o1ng-art.png` | the same art rendered with the ROM's own glyphs, for reading | — |
+| `boot-screen/o1next-art-1ng.txt` | the **1NG** art: 125 × 28 cells, one character per cell, SHA-256 `a92bf28e81b54c58f59c48ab16f090e2d26c4e8d3705ed0cfcda7dd10bb1f9ba`. Read it in the `osborne1-art-*` font from `tools/romfont.py` — character code **minus 65** is the glyph index, the same `sui 65` the ROM's own loader does | authored 2026-10-14 |
+| `boot-screen/o1next-art-1ng.png` | the same art rendered with the ROM's own glyphs, for reading | — |
 | `boot-screen/o1next-art.txt` | the **O1NEXT** art: 153 × 27 cells, with *"osborne 1 next rom 2.0 2026"* and *"press return to begin"* nested in the X's counter as **text** rather than graphics (`sui 65` cannot reach them — `p` is 0x70). SHA-256 `a3617203212e193651a8dae44b3fdb030f0f5051fe629250ac2ccd0abdacd42a` | authored 2026-10-14 |
 | `boot-screen/o1next-art.png` | the same art rendered with the ROM's own glyphs | — |
 

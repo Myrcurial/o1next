@@ -125,7 +125,7 @@ static void test_store(void)
 /* ------------------------------------------------- 4. the driver, replayed
  *
  * A model of the MD-10's own transaction routine, transcribed from the listing
- * in docs/osborne1ng-machine.md (HARDBIOS.SPR file 0x285, address 0xE285):
+ * in docs/osborne1nx-machine.md (HARDBIOS.SPR file 0x285, address 0xE285):
  *
  *   e28b  in a,(032h) / and 001h / jr nz,e28b   wait for the handshake to clear
  *   e291  ld a,(00557h) / out (030h),a          the select byte
@@ -419,7 +419,7 @@ static void test_read_capacity(void)
 /* ------------------------------------------------------------ 7. FORMAT (04h)
  *
  * PREP.COM asks for a *unique* fill byte and sends D9 in its FORMAT CDB
- * (docs/osborne1ng-machine.md section 6); with no unique fill the controller's
+ * (docs/osborne1nx-machine.md section 6); with no unique fill the controller's
  * own 6C is written.  Both are checked, because the fill is what makes a blank
  * volume one repeated byte (#180).
  */

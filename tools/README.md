@@ -260,12 +260,12 @@ The ROMs duplicate `research/roms/` deliberately: `research/` is the
 provenance-tracked archive, this directory is a working rompath. If the two
 ever disagree, `docs/o1-rom-variants.md` is the tie-breaker.
 
-- `emulator-setup/mame-osborne1ng/` — the **fourth machine** (#191), as a patch
-  against a stock MAME source tree: `osborne1ng`, a clone of `osborne1` whose Z80
+- `emulator-setup/mame-osborne1nx/` — the **fourth machine** (#191), as a patch
+  against a stock MAME source tree: `osborne1nx`, a clone of `osborne1` whose Z80
   sits behind an emulated card that decodes the full 8-bit I/O address, so the
   MD-10's ACB-4000 host adapter can answer on `30h`–`33h`. `apply.sh` patches a
-  tree, builds the `osborne` subtarget and runs `o1ng-probe.lua`; the whole
-  story is `docs/osborne1ng-machine.md`. It is *not* part of `research/` and not
+  tree, builds the `osborne` subtarget and runs `o1next-probe.lua`; the whole
+  story is `docs/osborne1nx-machine.md`. It is *not* part of `research/` and not
   a fork — five files, shaped to be sent upstream.
 
 Full setup, launch, disk-tool and headless-testing instructions:
@@ -361,13 +361,13 @@ where they help. Two artifacts: `NAME.art.txt`, the art as ASCII `db` lines (the
 rendered with the ROM's glyphs.
 
 The site's masthead *used to* be generated this way — the traced
-`site/assets/o1nextgen-wordmark.svg` (from the Osborne Computer Corporation
-logotype) went in, and `site/assets/o1nextgen-logo.art.txt` came out. It is not
+`site/assets/o1next-wordmark.svg` (from the Osborne Computer Corporation
+logotype) went in, and `site/assets/o1next-logo.art.txt` came out. It is not
 any more. Since #83 the masthead is the **boot screen's own art**, drawn rather
 than downsampled, because rasterising a traced outline at this size stair-steps:
 
 ```
-tools/research/rom2strokes.py --logo site/assets/o1nextgen-logo.png
+tools/research/rom2strokes.py --logo site/assets/o1next-logo.png
 ```
 
 That takes `research/boot-screen/o1next-art.txt` and keeps the art's graphics

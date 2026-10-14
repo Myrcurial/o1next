@@ -12,7 +12,7 @@ repo or named below.
 
 MAME carries BIOS A, 1.2, 1.2.1 and 1.3 as `NO_DUMP` placeholders, so
 `mame osborne1 -bios ver13` cannot run. We hold the 1.3 **source disk** —
-[`research/source-code/OSROM13.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/OSROM13.IMD), whose own comment reads
+[`research/source-code/OSROM13.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OSROM13.IMD), whose own comment reads
 `rom 1.3, cbios .3   osborne source 12/16/81` — and this is what came of
 trying to turn it into the missing `osb13.bin`.
 
@@ -24,7 +24,7 @@ trying to turn it into the missing `osb13.bin`.
    `OCCROM0..9.ASM` (the monitor ROM, split into modules) and `OCCBIO0..8.ASM`
    (the CBIOS) — all of them clean text that starts with a `TITLE` and ends
    with `; END OCCROMn?.???`. They are committed at
-   [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/ROM-13-source/).
+   [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/ROM-13-source/).
 2. **The build needs ACT 3.5E, and we do not have it.** The source uses two
    pseudo-ops, `DBE` and `DCE`, that exist in no ACT the archive holds — every
    `ACT80.COM` in the local archive is 3.0 or 3.2 (or ACT II 8086 3.4), and
@@ -34,7 +34,7 @@ trying to turn it into the missing `osb13.bin`.
 3. **What `DBE`/`DCE` do is recovered exactly**, from a shipped ROM we *do*
    have: the rev-B disk carries `OCCROM0B.COM` (4096 B) and its full listing,
    and comparing the two gives one rule holding over every line. See below.
-4. **A 1.3 image can be produced** — [`tools/research/rom13-reassemble.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom13-reassemble.sh) does
+4. **A 1.3 image can be produced** — [`tools/research/rom13-reassemble.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom13-reassemble.sh) does
    it, by rewriting `DBE`/`DCE` into `DB` so ACT 3.0 emits the same bytes — but
    **it is not certified**, and it must not be handed upstream as the real
    1.3 until the control build passes. That is stated plainly below rather
@@ -51,7 +51,7 @@ trying to turn it into the missing `osb13.bin`.
 
 ## 1. What the disk is
 
-`imdinfo.py` reports the geometry; [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/o1imd8.py) reads it.
+`imdinfo.py` reports the geometry; [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/o1imd8.py) reads it.
 
 | | |
 |---|---|
@@ -61,7 +61,7 @@ trying to turn it into the missing `osb13.bin`.
 | Filesystem | CP/M 2.2, 2 KiB blocks, **128** directory entries (4096 B = two blocks), two reserved tracks |
 | **Skew** | **3** — the sectors of a track are interleaved |
 
-Seven disks in [`research/source-code/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/) share this format (`OCCCBIOS`, `OCCROM`,
+Seven disks in [`research/source-code/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/) share this format (`OCCCBIOS`, `OCCROM`,
 `OCCUTIL`, `OSBIOSSR`, `OSBROM`, `OSROM13`, `OSUTLSRC`), so the reader is a
 tool, not a one-off.
 
@@ -71,7 +71,7 @@ tool, not a one-off.
 (track 0's 3328 bytes padded out to 8192, `boottrk 2`), and the diskdef carries
 `skew 3`. Without the skew the read **still works** — the directory parses and
 every file comes back — from the wrong sectors. That is the failure mode
-[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md) §10.4 warns about, and it is how this one was found:
+[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md) §10.4 warns about, and it is how this one was found:
 content chaining. At skew 3 every sector boundary in `occrom33.asm` joins
 mid-token to the next —
 
@@ -83,7 +83,7 @@ BDOS (f     + unction  ->  BDOS (function
 ```
 
 — and at skew 1 the joins are `;continueT`, `indicate RY` and a sector that
-should not follow. `skew 3` is also exactly [`tools/cpmfs.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/cpmfs.py)'s
+should not follow. `skew 3` is also exactly [`tools/cpmfs.py`](https://github.com/Myrcurial/o1next/blob/main/tools/cpmfs.py)'s
 `skew_table(3, 8)` = `0 3 6 1 4 7 2 5`, i.e. `cpmtools`' own table
 (`cpmfs.c`), which is the cross-check that the two agree.
 
@@ -197,7 +197,7 @@ the end-of-string marker. The rev-B ROM contains 18 literal `0x7F` bytes, but
 none of them falls inside a DBE/DCE string, so the "`7F`, repeat count, char"
 escape `rom144.asm` documents is not exercised here.
 
-[`tools/research/actdbe.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/actdbe.py) rewrites each `DBE`/`DCE` statement into `DB`
+[`tools/research/actdbe.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/actdbe.py) rewrites each `DBE`/`DCE` statement into `DB`
 statements whose operands are the same expressions multiplied by two, leaving
 ACT to evaluate `cr`, `lf` and the rest itself, and keeping the original
 statement as a trailing comment so the result is auditable. Two things the
@@ -269,7 +269,7 @@ It runs, and it says no. Two things had to be learned to run it at all:
 - **`o1keys.sh` segfaults whenever `-bios` is passed** — with *any* ROM,
   including the stock `rev1.40.ud11`. MAME itself runs fine with `-bios`
   (`exit 0`), so it is the harness's VRAM reader, not the guest. The way round
-  it is the one [`docs/mame-emulation.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mame-emulation.md) §4 already uses: put the candidate ROM
+  it is the one [`docs/mame-emulation.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mame-emulation.md) §4 already uses: put the candidate ROM
   in as the **default** BIOS file (`3a10082-00rev-e.ud11`) in a scratch rompath
   and pass no `-bios` at all. MAME prints `WRONG CHECKSUMS` and continues.
 - **A screenshot is the only readable output**, since the harness cannot be
@@ -377,7 +377,7 @@ note to the MAME devs is:
 
 > Osborne 1 ROM 1.3 is not a dump — we do not have a 1.3 machine. It is
 > reconstructed from Osborne's own source, which survives on the OCC
-> engineering source disk `OSROM13.IMD` (bitsavers; also in the o1nextgen
+> engineering source disk `OSROM13.IMD` (bitsavers; also in the o1next
 > repo), read as an 8-inch 77-track FM/MFM disk with CP/M skew 3. The source
 > is 10 modules (`OCCROM0..9.ASM`) linked by `OCCROM03.ASM`, plus
 > `OCCRAM2.ASM` and the `OCCTXT` systext from `OSUTLSRC.IMD`.
@@ -424,8 +424,8 @@ control build does not match, which is the honest state today.
 
 | | Status |
 |---|---|
-| `research/source-code/*.IMD` are readable | **Closed** — [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/o1imd8.py); all seven disks, not just 1.3 |
-| The 1.3 source is extracted and indexed | **Closed** — [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/ROM-13-source/) |
+| `research/source-code/*.IMD` are readable | **Closed** — [`tools/research/o1imd8.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/o1imd8.py); all seven disks, not just 1.3 |
+| The 1.3 source is extracted and indexed | **Closed** — [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/ROM-13-source/) |
 | `DBE`/`DCE` semantics | **Closed** — recovered and verified against the shipped rev-B ROM |
 | MAME's `osb13.bin` | **Open, and recommended to stay so** — see below |
 | The other `NO_DUMP` slots (A, 1.2, 1.2.1) | **Open, and closer than they were** — `OSBROM.IMD`, `OCCROM.IMD` and `OSBIOSSR.IMD` hold the rev A/rev B source sets and `OCCROM.IMD` even carries a *shipped* rev-B image (`OCCROM0B.COM`, 4096 B). Whether that image is one of MAME's missing slots is a separate question and is not answered here. |
@@ -456,4 +456,4 @@ written down here. Until then, more hours buy nothing, and a *wrong* `osb13.bin`
 in a romset would be worse than the placeholder it replaced.
 
 Related: #72 (the ROM source index), #70 (ROM inventory), #203 (the 1.44
-reassembly and the ACT80 safety copy), [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md).
+reassembly and the ACT80 safety copy), [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).

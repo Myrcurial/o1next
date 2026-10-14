@@ -47,7 +47,7 @@ without an interposer to design one for.
 **The host board does not matter, and that is worth stating once:** an existing
 **OEM board + interposer** is the same thing as an **LFF board + interposer**,
 because the LFF board is a faithful recreation of *just* the OEM board with the
-Dual Density upgrade built in (`../o1ng/o1ng-lff/README.md`). So there is no
+Dual Density upgrade built in (`../o1next/o1next-lff/README.md`). So there is no
 separate LFF path to design, document or test for — one brief covers both.
 
 ## Electrical definition (settled decisions)
@@ -70,7 +70,7 @@ separate LFF path to design, document or test for — one brief covers both.
   where the Pico is USB-powered and the flash is fed from the machine's rail:
   the library could not be filled. Filling the onboard library, then installing
   the board, is the intended bench sequence. The SFF board carries the same
-  requirement (`../o1ng/README.md`).
+  requirement (`../o1next/README.md`).
 - **Modes:** passive-tap vs active-drive switching; mode jumpers.
 - **Stacking:** must coexist with SCREEN-PAC and CoPower-88 interposers
   on the fully-loaded machine; pass-through height matters.
@@ -101,7 +101,7 @@ before Rev A schematic (#13).
 media.** SD/USB (via the front-panel pod) is the bulk store, but the
 interposer should carry enough onboard flash to hold a **built-in
 library — at minimum the boot diskette** — so the machine is useful
-with no card or stick inserted (and the O1NG can boot
+with no card or stick inserted (and the O1NEXT can boot
 "factory" images out of the box).
 
 - Option A: SPI NOR flash (W25Q-class, 16–64 MB) — trivially enough for

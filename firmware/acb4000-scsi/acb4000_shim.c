@@ -10,10 +10,10 @@
  *   - the four registers and their roles      docs/acb4000-host-adapter.md 1
  *   - base+2 reading 04h = one controller     docs/acb4000-host-adapter.md 1
  *   - the four status bits the driver polls   docs/acb4000-host-adapter.md 1
- *   - the status byte surviving two reads,    docs/osborne1ng-machine.md 4
+ *   - the status byte surviving two reads,    docs/osborne1nx-machine.md 4
  *     the select byte arriving at any time,
  *     the CDB index resetting per command
- *   - controller 01 = SCSI ID 0               docs/osborne1ng-machine.md 4
+ *   - controller 01 = SCSI ID 0               docs/osborne1nx-machine.md 4
  *
  * The `reference` profile is the OEM manual's Appendix A model, transcribed and
  * *not* exercised against real software: it is here so that a machine which
@@ -87,7 +87,7 @@ static uint8_t shim_status(const acb4000_shim *s)
 
     /* base+2 is a read/write register and its controller field only reads back
      * when a controller is really there -- which is what makes the presence
-     * probe a probe and not an echo (docs/osborne1ng-machine.md). */
+     * probe a probe and not an echo (docs/osborne1nx-machine.md). */
     if (!s->online)
         st &= (uint8_t)~p->bit_online;
 
@@ -138,7 +138,7 @@ uint8_t acb4000_shim_read(acb4000_shim *s, int offset)
                 if (n == 0) {
                     /* The phase had already run out and the driver's loop took
                      * one byte too many: that byte is the status
-                     * (docs/osborne1ng-machine.md). */
+                     * (docs/osborne1nx-machine.md). */
                     s->last_read = acb4000_target_status(s->target);
                     shim_begin_status(s);
                 } else if (acb4000_target_phase(s->target) == ACB4000_PHASE_NONE) {
@@ -227,7 +227,7 @@ void acb4000_shim_write(acb4000_shim *s, int offset, uint8_t data)
             /* Released: the command phase starts, and it starts *fresh*.  The
              * driver re-selects and re-enters the routine for every command, so
              * an index left over from the previous one must not be carried in
-             * (docs/osborne1ng-machine.md). */
+             * (docs/osborne1nx-machine.md). */
             s->cdb_index = 0;
             s->cdb_length = 0;
             s->xfer = ACB4000_XFER_COMMAND;

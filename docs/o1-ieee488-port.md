@@ -338,7 +338,7 @@ So `DAV` is the printer strobe, `NDAC` is *busy* and `SRQ` is *select* — and
 which personality is installed.** Anything we put on P3 has to be harmless in
 both modes, which is a constraint `docs/drive-c-design.md` §2.3 now carries.
 
-## 7. What this means for o1nextgen
+## 7. What this means for o1next
 
 - The port is a **byte-wide parallel port on a 6821**, so a personality can
   implement it as such (`docs/virtual-peripherals-block-diagram.md`), and the

@@ -5,7 +5,7 @@ subtitle: "The machine"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-[`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf) is the primary source for
+[`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf) is the primary source for
 the O1's logic board. Until now it was read by eye, page by page, in a PDF
 viewer: the scan is dense, the PDF's own text layer is unusable, and the 12
 pages are actually **two different drawing sets**, which is easy to get wrong.
@@ -35,7 +35,7 @@ The mainboard set (1A2011) is the machine this project extends. Notes in this
 repo have cited "DWG 1A3004" for mainboard facts, including the floppy
 connector pinout; that citation is wrong (§5).
 
-[`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) describes the split as "sheets 1–3 are the disk analog
+[`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) describes the split as "sheets 1–3 are the disk analog
 board (DWG 1A3004), sheet 4+ the main logic board" — correct in outline; the
 exact drawing numbers and sheet counts are as tabulated above.
 
@@ -84,12 +84,12 @@ tools/schematic_render.sh research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf /tmp/s
     --sheet 5 --dpi 600 --crop 2600 1250 1450 1050
 ```
 
-[`tools/schematic_atlas.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/schematic_atlas.sh) writes into `build/atlas/` — gitignored, because the
+[`tools/schematic_atlas.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/schematic_atlas.sh) writes into `build/atlas/` — gitignored, because the
 atlas is regenerable and the *coordinates* are the durable part. Its index maps
 every tile to the pixel box it covers, so a region found by eye once can be
 re-rendered exactly later. `--info` on the render tool prints the sheet size in
 pixels at a given dpi. Both need poppler (`brew install poppler`), which
-[`tools/ocr_pdf.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/ocr_pdf.sh) already depends on.
+[`tools/ocr_pdf.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/ocr_pdf.sh) already depends on.
 
 **Read part numbers at native resolution, never from an overview.** At 300 dpi
 `LS00` and `LS08` are indistinguishable, and so are `LS138` and `LS139`. The
@@ -104,14 +104,14 @@ is listed as both the Z80 (sheet 3/9, read at 600 dpi, and it matches a
 standard DIP-40) and a 74LS161 (sheet 1/9, overview pass). The Z80 is the
 verified one.
 
-[`research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt) is a fresh OCR pass (per
-the [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) OCR convention) so the scan is greppable for component
+[`research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt) is a fresh OCR pass (per
+the [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) OCR convention) so the scan is greppable for component
 references. It is useful for *finding* things — "which sheet has the MB8877?" —
 and not trustworthy for pin-level detail. Everything in §4 and §5 was read by
 eye at 600–1200 dpi instead.
 
-[`research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt) is a fresh OCR pass (per
-the [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) OCR convention) so the scan is greppable for component
+[`research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt) is a fresh OCR pass (per
+the [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) OCR convention) so the scan is greppable for component
 references. It is useful for *finding* things — "which sheet has the MB8877?" —
 and not trustworthy for pin-level detail. Everything in §4 and §5 was read by
 eye at 600–1200 dpi instead.
@@ -139,10 +139,10 @@ D0 = 14, D1 = 15, D2 = 12, D3 = 8, MREQ = 19, RFSH = 28, IORQ = 20, WR = 22,
 M1 = 27, RD = 21, +5 V = 11, GND = 29, BUSRQ = 25, NMI = 17. The unread rows
 are the standard Zilog DIP-40 pinout, consistent with every pin that was read.
 
-**This closes the Z80 half of [`docs/research-gaps.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/research-gaps.md) gap #3 from the primary
+**This closes the Z80 half of [`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) gap #3 from the primary
 source.** The O1's socket is wired as a plain Z80 DIP-40, so any board that
 mates with it can use the datasheet pinout — which is what
-[`tools/check_schematics.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_schematics.py) asserts and what the interposer generators were
+[`tools/check_schematics.py`](https://github.com/Myrcurial/o1next/blob/main/tools/check_schematics.py) asserts and what the interposer generators were
 corrected to use (#62). It also corroborates that fix: the generators had the
 pin table off by one across all 40 pins and were corrected to +5 V = 11 /
 GND = 29 / A0 = 30 from the databook — the sheet says exactly that.
@@ -243,7 +243,7 @@ into `/LD` (pin 9)** — the classic preset-load ÷N. `/CLR` (pin 1) is tied to
 
 **It agrees with the Technical Manual pin for pin.** Figure 4.4, "Baud Rate
 Hardware Modification" (manual p. 22 = **PDF page 36**; the manual's +14 offset
-holds, [`docs/o1-chargen-graphics.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-chargen-graphics.md)), draws the same LS161/LS163 at C3 and
+holds, [`docs/o1-chargen-graphics.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-chargen-graphics.md)), draws the same LS161/LS163 at C3 and
 documents the factory's faster-rate modification: **pin 2 moved** between a
 *"FOR 9600/2400 BAUD"* and a *"FOR 4800/1200 BAUD"* pad, jumpers **J2** and
 **J3**, **J1** marked **"DON'T CARE"**, and the caption box
@@ -256,13 +256,13 @@ documents the factory's faster-rate modification: **pin 2 moved** between a
 ```
 
 bracketed *"SPEED SELECTED W/IN 6850"*. The consequence for the serial work is
-in [`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-modem-serial.md); the register-level view is in
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail".
+in [`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-modem-serial.md); the register-level view is in
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §"6850 ACIA detail".
 
 The same corner of the board is also where a third-party product attaches:
 Advent Products' **Osbaud** solders to the ACIA's clock and supply pins (4 and
 12) and two ground pins, and substitutes the clock outright —
-[`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-modem-serial.md).
+[`docs/o1-modem-serial.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-modem-serial.md).
 
 ## 5. Extracted: the P8 34-pin floppy connector — and a correction
 
@@ -285,7 +285,7 @@ pin label on the P8 symbol was read individually:
 are driven by the FDC (UB7) through 7406 open-collector buffers (U9/U10) and
 routed to the connector. Pins 7 and 14 are not drawn on P8 at all.
 
-This contradicted [`docs/floppy-adapter-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/floppy-adapter-design.md) §2, which listed
+This contradicted [`docs/floppy-adapter-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/floppy-adapter-design.md) §2, which listed
 `1,2,3,4,5,6,7,9,19,27,29,31,33` as GND "per DWG 1A3004". Two things were
 wrong with that:
 
@@ -294,14 +294,14 @@ wrong with that:
   overlooked and the wrong one cited.
 - **The content.** The transcription that went into the generator and the doc
   came from the archived Wayne Visser adapter
-  ([`research/osborne1/floppy-adapter/FloppyAdapter.sch`](https://github.com/Myrcurial/o1nextgen/blob/main/research/osborne1/floppy-adapter/FloppyAdapter.sch)), which ties pins
+  ([`research/osborne1/floppy-adapter/FloppyAdapter.sch`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/floppy-adapter/FloppyAdapter.sch)), which ties pins
   4, 6 and 7 to GND. That is safe for a passive Gotek-only adapter — a 7406
   open-collector output pulled low is not damaged and a Gotek ignores TG43 and
   EARLY — but it is not what the machine does, and this adapter switches the
   OEM cable through to the physical drives, so it must not clamp two live
   signals.
 
-**Fixed** in [`hardware/floppy-adapter/gen_floppy_adapter_sch.py`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/floppy-adapter/gen_floppy_adapter_sch.py): pins 4 and 6
+**Fixed** in [`hardware/floppy-adapter/gen_floppy_adapter_sch.py`](https://github.com/Myrcurial/o1next/blob/main/hardware/floppy-adapter/gen_floppy_adapter_sch.py): pins 4 and 6
 are now `FLP_TG43` / `FLP_EARLY` and pass straight through J1 → J2 like every
 other signal. Grounding TG43 is not merely untidy: it is the FDC's track > 43
 output, which is the drive's *write-current-reduce* input on 96 tpi drives, so
@@ -380,7 +380,7 @@ hardware exists.
 The emulator is not just a way to run the O1; it independently confirms parts
 of the extraction. MAME's driver
 (`src/mame/osborne/osborne1.cpp`) encodes the hardware, and the running machine
-agrees with [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md):
+agrees with [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md):
 
 - **Banks.** Driver memory map: `0x0000–0x3fff` a ROM view whose low half is the
   4 KB monitor ROM `.mirror(0x1000)` and whose `0x2000–0x2fff` window is the I/O
@@ -409,11 +409,11 @@ agrees with [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/
   `3a10082-00rev-e.ud11` (BIOS 1.44), the Rev E monitor ROM — so the emulator,
   the archived ROM and this schematic are the same board revision.
 
-### 7a. Asking the machine directly — [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh)
+### 7a. Asking the machine directly — [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh)
 
 Reading the driver is still reading someone else's model of the hardware.
-[`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh) boots the machine headlessly and interrogates it over
-its own bus, then asserts what [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) claims. RAM is told
+[`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) boots the machine headlessly and interrogates it over
+its own bus, then asserts what [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) claims. RAM is told
 from ROM by writing back the complement of the byte that was there and restoring
 it — a RAM cell follows, a ROM cell does not. Eleven checks, all passing:
 
@@ -500,7 +500,7 @@ has; capturing it into Verilog additionally lets it be *run*.
 | Approach | Status | What it validates |
 |---|---|---|
 | MAME, booting CP/M headless | works (§6) | the machine, behaviourally |
-| [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/check_o1_map.sh) asserting the documented map | works (§7a) | our *reading* of the map, against the machine |
+| [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) asserting the documented map | works (§7a) | our *reading* of the map, against the machine |
 | Hand-captured glue logic as Verilog, simulated | not started | the schematic itself — the wait states MAME omits |
 | The above, driven by bus traces logged from MAME | not started | the same, against real Z80 traffic |
 | Whole-board gate-level simulation | not sensible | MAME already is the machine |

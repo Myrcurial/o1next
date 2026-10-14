@@ -75,11 +75,15 @@ FRAME = STRIDE * ROWS                     # 4096: one buffer, and one window pag
 # monitor checks it before blitting.  Without it a bad image puts garbage on the
 # screen and there is no way back.
 #
-#   frame[4088:4092]  b'O1NG'                 the magic
-#   frame[4092:4094]  the 16-bit sum of 0..4087, little-endian
-#   frame[4094:4096]  reserved, zero
+#   frame[4088:4094]  b'O1NEXT'                 the magic, six bytes
+#   frame[4094:4096]  the 16-bit sum of 0..4087, little-endian
+#
+# The trailer is eight bytes either way.  The magic grew from four bytes to six
+# by consuming the two reserved bytes that used to sit at 4094, so the checksum
+# definition does not move: it still covers exactly the 4088 bytes before the
+# trailer.  The monitor's compare grows from four bytes to six (#228).
 
-MAGIC = b'O1NG'
+MAGIC = b'O1NEXT'
 TRAILER = 8
 TRAILER_AT = FRAME - TRAILER
 
@@ -448,7 +452,7 @@ def frame(rows, origin):
     # The validity marker, in rows nobody can see.
     body = bytes(buf[:TRAILER_AT])
     checksum = sum(body) & 0xFFFF
-    return body + MAGIC + bytes([checksum & 0xFF, checksum >> 8]) + b'\x00\x00'
+    return body + MAGIC + bytes([checksum & 0xFF, checksum >> 8])
 
 
 def main(argv=None):
@@ -482,7 +486,7 @@ def main(argv=None):
     # o1art.py, no fontTools, no host tooling.  So CI can run it.
     if args.check:
         return check_logo(rows, os.path.join(repo, 'site', 'assets',
-                                             'o1nextgen-logo.png'))
+                                             'o1next-logo.png'))
 
     pat = {g: quadrant(b) for g, b in glyphs().items()}
     pat[BLANK] = 0
@@ -498,7 +502,7 @@ def main(argv=None):
         buf = frame(rows, args.origin)
         with open(args.frame, 'wb') as fh:
             fh.write(buf)
-        cs = buf[TRAILER_AT + 4] | (buf[TRAILER_AT + 5] << 8)
+        cs = buf[TRAILER_AT + 6] | (buf[TRAILER_AT + 7] << 8)
         print()
         print('wrote %s: %d bytes = %d x %d cells = one window page (4096)'
               % (args.frame, len(buf), STRIDE, ROWS))
@@ -529,7 +533,7 @@ def main(argv=None):
         print('Order at boot: print the text first, then page the frame in and')
         print('check the trailer; if it is right, blit over the text.  A missing')
         print('or hand-built image leaves the message on screen, which is the')
-        print('whole point -- and the check is a compare against four bytes plus')
+        print('whole point -- and the check is a compare against six bytes plus')
         print('a 16-bit sum, which is a loop over the page and about 20 ms.')
 
         if args.png:

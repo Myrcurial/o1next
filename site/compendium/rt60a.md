@@ -8,7 +8,7 @@ draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`.
 **Status:** Partially solved, and **the contract below is the deliverable** (#7).
 The hardware handshake stays a *known unknown* (reopen only if an RT-60A unit or
 a good `CLOCK.COM` dump ever turns up); the **memory ABI is settled and is what
-[`firmware/rt60a-rtc/`](https://github.com/Myrcurial/o1nextgen/blob/main/firmware/rt60a-rtc/) implements** (#18). See §"The contract" and §"The third
+[`firmware/rt60a-rtc/`](https://github.com/Myrcurial/o1next/blob/main/firmware/rt60a-rtc/) implements** (#18). See §"The contract" and §"The third
 shape: the O1's own clock" — read those two before writing any clock code.
 
 Source: research/rtc/RT-60A_Manual.pdf (JG Communications, Tucson AZ).
@@ -80,7 +80,7 @@ shown relative to the pointer):
 ## The contract — what an RT-60A-compatible time service must publish (#7)
 
 This is the *specification*, promoted out of the analysis above. It is what
-[`firmware/rt60a-rtc/`](https://github.com/Myrcurial/o1nextgen/blob/main/firmware/rt60a-rtc/) (the resident publisher, #18) and the interposer (#12) must
+[`firmware/rt60a-rtc/`](https://github.com/Myrcurial/o1next/blob/main/firmware/rt60a-rtc/) (the resident publisher, #18) and the interposer (#12) must
 agree on. The rule that makes it implementable is the one sentence that decided
 #7: **the RT-60A does not put the time anywhere in memory — `CLOCK.COM` does.**
 The hardware is read-only; the ABI is software. So we build the *publisher*, not
@@ -157,7 +157,7 @@ UCNSTA JMP → 0DD06H, INCON JMP → 0DD09H, third JMP → 0DD0CH
 Before any clock hardware, the machine's users kept the date in **page zero**.
 "**Dating your computer — a system's date facility**" by **Walter B. Novinger**,
 *The Portable Companion* #7 (June 1983, PDF pp. 50–51 = printed 48–49; extract
-[`research/technical-articles/TPC-Issue07-1983-pp50-51-dating-your-computer-date-in-memory.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/technical-articles/TPC-Issue07-1983-pp50-51-dating-your-computer-date-in-memory.pdf)),
+[`research/technical-articles/TPC-Issue07-1983-pp50-51-dating-your-computer-date-in-memory.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue07-1983-pp50-51-dating-your-computer-date-in-memory.pdf)),
 describes a three-part scheme:
 
 - **`DATE.BAS`** prompts `MMDDYY` at boot, validates month/day/year, and pokes the
@@ -178,7 +178,7 @@ RT-60A exists to fix. That is why it is the right prior art for #18: it is what 
 user did *before* buying a clock, and it fixes the **page-zero ABI** that any
 emulated date must not disturb. `0050H–005BH` is also worth remembering as a
 **free 12-byte scratch block** for the interposer (#12) — see
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2.
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2.
 
 ## The third shape: the O1's *own* clock, and what OZROM 1E does with it (#81)
 
@@ -269,7 +269,7 @@ hook. **So OZROM's "time-of-day clock" is the machine's own `EF66–EF69`, final
 given a setter and a reader.** Its hook is *not* the RT-60A's `0xEFF8`: it is a
 fixed call OZROM's own `SYSINT` makes with registers already saved, at `EFF2`,
 which is a different `INTBL` slot and a different calling convention. Full map:
-[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md).
+[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md).
 
 ### What this means for our ABI (the #7 decision)
 

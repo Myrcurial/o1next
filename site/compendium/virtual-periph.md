@@ -83,7 +83,7 @@ overriding** the onboard response.
 (§1) the interposer holds the ROM window and can fill it, so **`1000–1FFF` becomes
 a 4 KB banked window** — which is how ROM 2.00 (#83) fits 11776 bytes of monitor +
 CCP + BDOS + CBIOS into a machine whose ROM window is only 8 KB. The bank is
-selected by a write to **`2300h`** while bank 2 is selected ([`docs/o1-rom-2.0.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-2.0.md)
+selected by a write to **`2300h`** while bank 2 is selected ([`docs/o1-rom-2.0.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-2.0.md)
 §4.3); with the Pico serving the window that write is a firmware register, not a
 hardware latch. The 4 KB the video RAM does not use is not the only spare space on
 this machine; the ROM mirror is another.
@@ -150,7 +150,7 @@ model for a clean single-port-pair decode.
 
 The interposer's **own** host↔firmware channel — the mailbox, the one port the
 machine's CP/M tooling talks to directly — is specified separately in
-[`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mailbox-protocol.md) (#155): it takes a port pair of its own, chosen so that
+[`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mailbox-protocol.md) (#155): it takes a port pair of its own, chosen so that
 a leaked write cannot move the bank latches.
 
 ## 4. The virtual peripherals (from the roadmap)
@@ -216,11 +216,11 @@ snooping a vintage bus and emitting stable modern video. Unlike the
 Apple II cards, the interposer sits *in the CPU socket* (ScreenPac-style),
 so it also sees bank-switch writes and can track which bank currently owns
 `F000-FFFF` (video RAM vs the dim-bit attribute bank — see
-[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md)).
+[`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md)).
 
 > Relationship to the real ScreenPac: the reverse-engineering phase sniffs
 > the real board like the other targets (#9 photos; service manual safety
-> copy in [`research/screenpac/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/screenpac/)). The HDMI personality is then the
+> copy in [`research/screenpac/`](https://github.com/Myrcurial/o1next/blob/main/research/screenpac/)). The HDMI personality is then the
 > "virtual ScreenPac" — plus a display output the original never had.
 
 ## 6. Coexistence with the real peripherals being reverse-engineered
@@ -256,7 +256,7 @@ the choice is argued once rather than re-derived per personality.
 
 ### The current rule, and its gap
 
-[`firmware/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/firmware/README.md) states the project rule: *"If we hold the drivers for a piece
+[`firmware/README.md`](https://github.com/Myrcurial/o1next/blob/main/firmware/README.md) states the project rule: *"If we hold the drivers for a piece
 of period hardware, we plan a personality for it."* That is necessary but not
 sufficient — on its own it says nothing about whether a personality can be
 *tested*, whether it collides with another, or whether the fitted ROM still
@@ -320,6 +320,6 @@ of #6, and it is the difference between "one personality at a time" and
 It is not a decision record, and nothing above has been chosen. The tier ordering
 is a proposal for sequencing. **One row is now decided:** the storage question
 (#8) resolved to the `acb4000-scsi` personality — emulate the Adaptec ACB-4000,
-not the ACT ([`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/harddisk-decision.md)). Drive C remains the easiest to build
+not the ACT ([`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1next/blob/main/docs/harddisk-decision.md)). Drive C remains the easiest to build
 **standalone** (#84), which is a different claim from "the only one worth
 emulating".

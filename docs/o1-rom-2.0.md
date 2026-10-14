@@ -33,7 +33,7 @@ mainboard, and the SFF board grafts the same capability in. **There is one ROM
 That also settles a documentation question that would otherwise duplicate this
 whole document: **OEM board + interposer ≡ LFF board + interposer**, because the
 LFF board is a faithful recreation of *just* the OEM board with the Dual Density
-upgrade built in (`hardware/o1ng/o1ng-lff/README.md`). There is no separate "LFF
+upgrade built in (`hardware/o1next/o1next-lff/README.md`). There is no separate "LFF
 path" to design for — one interposer brief covers both, and "the stock machine" in
 this document means the mainboard-plus-interposer combination.
 
@@ -575,9 +575,14 @@ can see — rows 24–31 are off-screen:
 
 | offset | content |
 |---|---|
-| `0FF8h` | `O1NG`, the magic |
-| `0FFCh` | the 16-bit sum of `0FF8h` bytes, little-endian |
-| `0FFEh` | reserved, zero |
+| `0FF8h` | `O1NEXT`, the magic — **six** bytes |
+| `0FFEh` | the 16-bit sum of `0000h`–`0FF7h`, little-endian |
+
+The trailer is eight bytes, as it always was: the magic grew from four bytes to
+six by **consuming the two reserved bytes at `0FFEh`**, so the checksum
+definition does not move — it still covers exactly the 4088 bytes before the
+trailer. The one cost is that the monitor's compare grows from four bytes to
+six, inside the 150-byte budget §4.4 accounts as about 126 used (#228).
 
 **The fallback is `o1next - press return`, and it costs nothing** — because ROM 2.0
 *replaces* the stock sign-on rather than adding to it:
@@ -656,10 +661,10 @@ hangs:
 | Warm boot works | a `Ctrl-C` (or a program exit) returns to `A>` **without** an FDC access |
 | *(CBIOS-ND build only)* the gate holds | `DIR A:` returns `Bdos Err on A: Select` rather than hanging in the FDC retry loop — the §5-question-4 null-DPH gate doing its job |
 
-The mechanism is the one #191 already built: `tools/emulator-setup/mame-osborne1ng/`
+The mechanism is the one #191 already built: `tools/emulator-setup/mame-osborne1nx/`
 is a MAME patch that adds a machine and a device, and the natural extension is a
 banked-ROM device plus the `2300h` latch — the same shape as the ACB-4000 card
-(`docs/osborne1ng-machine.md`). The harness is `tools/research/o1keys.sh` +
+(`docs/osborne1nx-machine.md`). The harness is `tools/research/o1keys.sh` +
 `tools/research/mame-boot-probe.sh`, which is what measured every row of
 `docs/mame-emulation.md` §4.
 
@@ -725,5 +730,5 @@ test rather than a result.
 - `tools/research/rom144-reassemble.sh`, `tools/research/acthex.py` — the
   toolchain proof (#203).
 - `docs/o1-rom-source.md`, `docs/o1-rom-variants.md`, `docs/o1-memory-io-map.md`,
-  `docs/mame-emulation.md`, `docs/osborne1ng-machine.md`, `docs/ozrom-1e.md`,
+  `docs/mame-emulation.md`, `docs/osborne1nx-machine.md`, `docs/ozrom-1e.md`,
   `docs/md10-system.md`, `docs/acb4000-host-adapter.md`.

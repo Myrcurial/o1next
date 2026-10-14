@@ -5,7 +5,7 @@ MS-DOS FAT12 360K diskettes — so a stock O1 (native Z80 CP/M, no
 CoPower-88) can exchange files with PC-formatted media.
 
 Tracks: #51; ships on the updated boot disk (#28); physical read path
-via the DD board / o1ng data separator (#49); coexists with the boot
+via the DD board / o1next data separator (#49); coexists with the boot
 disk's DD disk-table changes (#28, #95).
 
 ## Definition (deliberately small)

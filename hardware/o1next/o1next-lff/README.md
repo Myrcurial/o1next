@@ -1,10 +1,10 @@
-# o1ng-lff/ — 1:1 mainboard replacement (KiCad skeleton)
+# o1next-lff/ — 1:1 mainboard replacement (KiCad skeleton)
 
-Hierarchical schematic skeleton for the **large form factor** o1ng: the
+Hierarchical schematic skeleton for the **large form factor** o1next: the
 faithful 1:1 replacement mainboard for a real **OCC1 or OCC1A** chassis
 (see `../README.md` for the design philosophy — true to original,
 socketed DIP-40 Z80, interposer is the upgrade path). **This board is
-the restoration path, not the O1NG**: the O1NG is built on the SFF
+the restoration path, not the O1NEXT**: the O1NEXT is built on the SFF
 board, and this one does not become one.
 
 **This board is *only* the OEM board, recreated, with the Dual Density upgrade

@@ -8,7 +8,7 @@ has to carry an MD-10 *system*, and the archive holds none.
 
 Serves #179 (the personality) and #8 (the decision). Reads alongside
 `docs/harddisk-decision.md` §5–§9, `docs/acb4000-firmware.md`,
-`docs/acb4000-host-adapter.md` and `docs/osborne1ng-machine.md`.
+`docs/acb4000-host-adapter.md` and `docs/osborne1nx-machine.md`.
 
 ## 1. What was built, and where
 
@@ -39,7 +39,7 @@ contains a **transcription of the driver's own transaction routine**
 the shim with it.
 
 That matters because three of those quirks are load-bearing and were each a hang
-until they were right (`docs/osborne1ng-machine.md` §4):
+until they were right (`docs/osborne1nx-machine.md` §4):
 
 1. the status phase asserts PHASE and END but **not** REQ;
 2. the status byte survives two reads;
@@ -54,7 +54,7 @@ flipping one status bit, which produced 38 failures.
 Both were found while writing the target to the manual, and both are the kind of
 thing that is cheap now and expensive later.
 
-**`2F` is VERIFY, and `31` is SEARCH DATA EQUAL.** `docs/osborne1ng-machine.md`
+**`2F` is VERIFY, and `31` is SEARCH DATA EQUAL.** `docs/osborne1nx-machine.md`
 §5 and `docs/harddisk-decision.md` §7.2 call the verify pass `2F SEARCH DATA
 EQUAL`. The manual separates them: `2F` is `VERIFY` (5.4.5, no data phase — it
 checks the ECC of blocks already on the drive) and `31` is `SEARCH DATA EQUAL`
@@ -86,7 +86,7 @@ the suite exercises it through the driver's own routine. What is missing is on t
 
 - `HARD.COM` is a **hard-disk boot loader**, not an installer. It reads LBA 5 for
   eleven blocks (the `CCP`+`BDOS` of the O1 system layout), patches page zero and
-  jumps into what it read (`docs/osborne1ng-machine.md` §5). So the drive must
+  jumps into what it read (`docs/osborne1nx-machine.md` §5). So the drive must
   *already* carry an MD-10 system.
 - Nothing in the archive writes one. `PREP.COM` can now finish its format and
   verify (that is `2F`, above) and its partition initialiser (`2A`) can run — but
@@ -117,7 +117,7 @@ Two routes remain open, and neither is a controller problem:
 
 1. **Read the MD-10's memory map out of `HARDBIOS.SPR`** (static, no hardware) —
    it unblocks building the system image, and therefore the acceptance.
-2. **Give the MAME harness the personality.** `tools/emulator-setup/mame-osborne1ng/`
+2. **Give the MAME harness the personality.** `tools/emulator-setup/mame-osborne1nx/`
    currently delegates the SCSI side to MAME's generic `t10spc`/`t10sbc`, which
    is why `2F` had no handler. Pointing the card at this target would let the
    period software exercise the real logic, and would make `PREP.COM`'s
@@ -137,6 +137,6 @@ Two routes remain open, and neither is a controller problem:
   §7.2 (the drive table and `PYXIS13`), §7.3 (why the DPB values are absent).
 - `docs/acb4000-firmware.md` (the controller's firmware, and the `MODE SENSE`
   requirement), `docs/acb4000-host-adapter.md` §1 (the register protocol),
-  `docs/osborne1ng-machine.md` §3–§5 (the handshake quirks, and the acceptance).
+  `docs/osborne1nx-machine.md` §3–§5 (the handshake quirks, and the acceptance).
 - `firmware/acb4000-scsi/` — the implementation, its README and its tests.
 

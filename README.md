@@ -1,4 +1,4 @@
-# o1nextgen
+# o1next
 
 A general-purpose Z80 bus interposer for the Osborne 1, built around the
 Raspberry Pi Pico 2 W (RP2350 + CYW43439 WiFi), plus the research and
@@ -61,10 +61,10 @@ Downstream of all of it:
 - **O1 Next Generation (#49, #52)** — modern-parts Osborne 1 reproduction running
   original ROMs and software. **Two boards:** an **LFF board**, a 1:1 mainboard
   replacement for a real **OCC1 or OCC1A** chassis (the restoration path), and an
-  **SFF board**, fully integrated and deliberately *not* a 1:1 swap. **The O1NG is
+  **SFF board**, fully integrated and deliberately *not* a 1:1 swap. **The O1NEXT is
   the SFF board with the rest of the machine wrapped around it** — a ~8 cm thick
   portable in O1A blue/grey with an 8" 1024×768 HDMI panel and USB-C PD / 18650
-  power; the C64 Ultimate "Crystal" idea applied to an Osborne. `hardware/o1ng/`
+  power; the C64 Ultimate "Crystal" idea applied to an Osborne. `hardware/o1next/`
 - **Osborne-side software** — MOUNT.COM (#27), FATCOPY (#51), the CoPower-88
   driver (#26) and an updated boot disk (#28): `software/README.md`.
 
@@ -84,7 +84,7 @@ stale the day after it is written. The two live sources are:
   will carry each result named up front.
 
 The narrative version — how the research actually went, what was surprising, and
-the machines it is about — lives on the [Project Blog](https://myrcurial.github.io/o1nextgen/).
+the machines it is about — lives on the [Project Blog](https://myrcurial.github.io/o1next/).
 
 ## Repository layout
 

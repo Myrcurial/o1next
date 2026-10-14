@@ -12,15 +12,15 @@ listed as open — most importantly by showing that §10's `DFD.SPR` item was th
 wrong question (§4) — and it confirms that the *hardware* is a single design for
 both machines (§1).
 
-**Source:** [`research/drive_c/Drive_C_Executive_Users_Manual.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/Drive_C_Executive_Users_Manual.pdf), OCR layer at
+**Source:** [`research/drive_c/Drive_C_Executive_Users_Manual.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Executive_Users_Manual.pdf), OCR layer at
 `Drive_C_Executive_Users_Manual.ocr.txt`. Drive C:, 1690 65th Street, Emeryville
 CA. First edition July 1984, second printing 9/84; © 1984 *Drive C:, a joint
 venture*. 111 pages, image-only scan, OCR'd at 300 dpi per the
-[`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) convention. The Osborne 1 manual already in the archive is
+[`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) convention. The Osborne 1 manual already in the archive is
 `Drive_C_Users_Manual.pdf` — **second edition, June 1984**, same publisher.
 
 **Provenance** (recorded 2026-10-11, closing the open item in
-[`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md)): supplied by **Jim Rayburn** from a private Facebook
+[`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md)): supplied by **Jim Rayburn** from a private Facebook
 group, posted 2024-01-06 — two posts,
 [.../2063148960719887](https://www.facebook.com/groups/690000664701397/posts/2063148960719887/)
 and
@@ -55,9 +55,9 @@ a 0.1 s better load time on the Executive — which is a host difference, not a
 Drive C one.
 
 **This is the useful result for #84.** The Drive C is not two products; it is
-one box with two software personalities. The [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) contract
+one box with two software personalities. The [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) contract
 is therefore the contract for *both*, and a replacement built to it serves
-either machine. It also means the P3 work in [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6
+either machine. It also means the P3 work in [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6
 transfers wholesale — the Executive's port is the same port.
 
 The power figure is worth quoting precisely because it is the one number a
@@ -142,7 +142,7 @@ confirmation of §4.
 **That framing was the error, and the document half-knew it already**: its own
 appendix table quotes the vendor describing `DFD.SPR` as "**a substitute console
 command processor (CCP)**" that is "**automatically loaded**", and the
-[`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) row for the *FOGHORN* review says the same. But §10 item 4
+[`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) row for the *FOGHORN* review says the same. But §10 item 4
 was written as though the transport lived there, so the two statements sat
 unreconciled.
 
@@ -232,7 +232,7 @@ which is precisely what the Osborne 1 manual says in its feature list.
 Both manuals carry the same appendix (§7-5 / §6-5) giving the cable from the
 unit's **PRINTER/HARD DISK/8088** connector to a Centronics printer. That
 connector is a **26-pin card edge** — the same edge as P3 — and its pin
-assignments match our transcribed P3 table ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6, §6.2)
+assignments match our transcribed P3 table ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6, §6.2)
 **line for line**:
 
 | Drive C 26-pin edge | Signal (manual) | Our P3 table | Centronics |
@@ -254,13 +254,13 @@ Four things this buys us:
   the same eight our table lists.
 - **The dual-purpose pin 15 is confirmed.** It is `NDAC` on the bus and *Printer
   Busy* in the printer personality — precisely the "one pin, two meanings"
-  constraint [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6.2 already recorded, now corroborated
+  constraint [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6.2 already recorded, now corroborated
   by the product that has to live with it.
 - **The Drive C watches pin 13 (`NRFD`).** The manual is emphatic that a cable
   carrying Centronics pin 12 (Paper Error) to pin 13 "will interfere with normal
   Drive C operation if connected and MUST be removed". So the box must leave
   `NRFD` harmless as well as `NDAC` — a constraint for
-  [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md) §2.3.
+  [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §2.3.
 
 **One discrepancy, recorded rather than smoothed over:** our P3 table has pin 10
 as `REN` (`CB2`), while the Drive C's cable table lists pin 10 as **ground**
@@ -294,7 +294,7 @@ Worth listing, because absence is evidence about how the product was maintained:
 ## 8. What this changes
 
 **For #84, the Executive variant is not a second design to build.** It is the
-same box with a different loader, and the contract in [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)
+same box with a different loader, and the contract in [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)
 is the contract for both. The reproduction target does not change.
 
 **It removes work rather than adding it.** The `DFD.SPR` disassembly that
@@ -311,7 +311,7 @@ the interleave, the ground set and the dual-purpose pin 15.
 **It supplies the mechanical, electrical and performance envelope** (§1): 5.6 ×
 5.9 × 1.0 in, 1 lb, 11–14.5 VDC at 0.3 A max and **2.5 W nominal** for the 384K
 unit, 55,000 B/s throughput, ≈40 µs random-sector access. Those are now targets
-rather than unknowns in [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-design.md).
+rather than unknowns in [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md).
 
 ### What is still open
 
@@ -332,16 +332,16 @@ rather than unknowns in [`docs/drive-c-design.md`](https://github.com/Myrcurial/
 
 ## Sources
 
-- [`research/drive_c/Drive_C_Executive_Users_Manual.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/Drive_C_Executive_Users_Manual.pdf) and
+- [`research/drive_c/Drive_C_Executive_Users_Manual.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Executive_Users_Manual.pdf) and
   `Drive_C_Executive_Users_Manual.ocr.txt` — the Executive manual. First edition
   July 1984, second printing 9/84; © 1984 Drive C:, a joint venture. 111 pages,
-  image-only; OCR'd at 300 dpi per the [`research/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/research/README.md) convention.
+  image-only; OCR'd at 300 dpi per the [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) convention.
   Owner-supplied local file, 2026-10-11; source URL not yet recorded.
-- [`research/drive_c/Drive_C_Users_Manual.pdf`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/Drive_C_Users_Manual.pdf) and `…ocr.txt` — the Osborne 1
+- [`research/drive_c/Drive_C_Users_Manual.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Users_Manual.pdf) and `…ocr.txt` — the Osborne 1
   manual, second edition June 1984. The source of §4, §5 and most of §3.
-- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md) §5 (the frame), §8 (the DPB and the ceiling), §10
+- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §5 (the frame), §8 (the DPB and the ceiling), §10
   (open questions this closes or leaves).
-- [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-ieee488-port.md) §6/§6.2 — the P3 pinout §6 corroborates.
-- [`research/drive_c/extracted/dcl.com`](https://github.com/Myrcurial/o1nextgen/blob/main/research/drive_c/extracted/dcl.com) — `DRIVEC version 2.08`, `DCN version
+- [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6/§6.2 — the P3 pinout §6 corroborates.
+- [`research/drive_c/extracted/dcl.com`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/extracted/dcl.com) — `DRIVEC version 2.08`, `DCN version
   2.07`, and the `DFD     SPR` / `DCN     COM` / `DCU     COM` name literals
   quoted in §4.

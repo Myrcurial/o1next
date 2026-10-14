@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "1d76cda8-35e0-4f89-9933-bd05ba59b8aa")
   (paper "A4")
-  (title_block (title "o1ng-LFF: keyboard") (date "2026-10-09") (rev "0.0-block"))
+  (title_block (title "o1next-LFF: keyboard") (date "2026-10-09") (rev "0.0-block"))
   (lib_symbols)
   (text "Keyboard" (at 30 40.0 0) (effects (font (size 2 2))) (uuid "8575485d-ce07-45f9-8883-592e82375314"))
   (text "P4 connector (O1A 24-hole/20-pin, pin 19 = +12V via J6+R21), 8x8 matrix scan (74LS05-class OC drivers + pull-u" (at 30 47.62 0) (effects (font (size 2 2))) (uuid "3d686fe3-d1e4-4fa6-b520-d887fecc165b"))

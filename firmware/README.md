@@ -1,6 +1,6 @@
 # firmware/
 
-Firmware deliverables for the o1nextgen project, one folder per
+Firmware deliverables for the o1next project, one folder per
 component. Three target platforms: **RP2350** (Pico 2 W on the
 interposer), **ESP32** (WiFi modem, shared between the severable module
 and the interposer-onboard option), and **RP2040** (keyboard matrix

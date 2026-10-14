@@ -7,7 +7,7 @@ draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`.
 
 **Status:** design, first pass. The **arithmetic** (§2) and the **interface** (§3)
 are *measured* — from the shipped 1.44 bytes and from a shipped system disk's
-reserved tracks, with the tool in [`tools/research/romvec.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/romvec.py) reproducing the
+reserved tracks, with the tool in [`tools/research/romvec.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/romvec.py) reproducing the
 interface half. The **bank map, boot path and jump table** (§4–§5) are the
 *design*: what we intend to build, with the reasoning that got us there. The
 **contents of the boot are measured, not estimated — 7681 bytes (§2.3)** — and the
@@ -38,12 +38,12 @@ mainboard, and the SFF board grafts the same capability in. **There is one ROM
 That also settles a documentation question that would otherwise duplicate this
 whole document: **OEM board + interposer ≡ LFF board + interposer**, because the
 LFF board is a faithful recreation of *just* the OEM board with the Dual Density
-upgrade built in ([`hardware/o1ng/o1ng-lff/README.md`](https://github.com/Myrcurial/o1nextgen/blob/main/hardware/o1ng/o1ng-lff/README.md)). There is no separate "LFF
+upgrade built in ([`hardware/o1next/o1next-lff/README.md`](https://github.com/Myrcurial/o1next/blob/main/hardware/o1next/o1next-lff/README.md)). There is no separate "LFF
 path" to design for — one interposer brief covers both, and "the stock machine" in
 this document means the mainboard-plus-interposer combination.
 
 **OZROM 1E is the pattern, not the feature set.** Per the direction recorded on
-#83, and the measured shortcomings in [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md):
+#83, and the measured shortcomings in [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md):
 
 | Borrow — structural | Why | Explicitly not wanted |
 |---|---|---|
@@ -82,7 +82,7 @@ firmware says it reads 7680 bytes of "CCP/BDOS/CBIOS", and 4096 + 7680 = 11776.
 
 ### 2.1 The numbers are measured on a shipped disk too
 
-[`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/OS1SYSD.IMD) (DD, 1024-byte sectors, 5/track, 3
+[`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/shipped-software/OS1SYSD.IMD) (DD, 1024-byte sectors, 5/track, 3
 reserved tracks) carries the system image from the **CCP** upward, and every
 piece lands exactly where the source's equates say:
 
@@ -125,7 +125,7 @@ count 2560 bytes and be wrong by 512. The 2048 figure is the source's own guard:
 
 ### 2.2 Why 4 KB cannot hold it, and why the ROM page is not one block
 
-Bank 2 is the only place the CPU reads ROM ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §2):
+Bank 2 is the only place the CPU reads ROM ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2):
 
 | Range | Bank 2 |
 |---|---|
@@ -167,7 +167,7 @@ paging is needed for this boot at all.
 
 **What is deliberately *not* in the list.** The **CCP and BDOS**, 5632 bytes,
 because the ACB-4000 supplies them: `HARD.COM`'s BIOS reads 11 blocks from **LBA 5**
-into `0xC200` and jumps to it ([`docs/md10-system.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/md10-system.md) §3–§5). Carrying them in ROM as
+into `0xC200` and jumps to it ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §3–§5). Carrying them in ROM as
 well would be a second copy of bytes already on the drive, and would make the ROM
 decide which one wins.
 
@@ -184,7 +184,7 @@ monitor + CCP + BDOS + CBIOS with **no MD-10**. Neither is the boot described he
 The boot described here is **7681**, and any figure quoted for it has to name the
 list it came from.
 **The boot screen does not come out of the 511-byte spare, and does not need to.**
-[`research/boot-screen/`](https://github.com/Myrcurial/o1nextgen/blob/main/research/boot-screen/) holds the authored art and [`tools/research/rom2strokes.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom2strokes.py)
+[`research/boot-screen/`](https://github.com/Myrcurial/o1next/blob/main/research/boot-screen/) holds the authored art and [`tools/research/rom2strokes.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom2strokes.py)
 measures it: every raster-shaped encoding of the logo lands at **784–857 B** — raw
 striped bitmap 857, RLE 816, an exact rectangle cover 784 — because the letters are
 heavy and the cover is dominated by diagonals (the X is 72 rectangles where it is
@@ -210,7 +210,7 @@ never documented it outside the source.
 **Measured:** 53 entries, `0100h`–`019Eh`, 3 bytes each. The table ends exactly
 where the source's `IMSG:` sign-on message begins (`019Fh`), which is what makes
 53 the whole table rather than a guess — the first byte of `IMSG` is
-`'Z'-40h` = `1Ah` and `019Fh` holds `1Ah`. [`tools/research/romvec.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/romvec.py) prints the
+`'Z'-40h` = `1Ah` and `019Fh` holds `1Ah`. [`tools/research/romvec.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/romvec.py) prints the
 table, labels each entry from `rom144.asm`'s own table text, and cross-checks the
 binary's opcode sequence against the source's — **0 disagreements** on the 1.44
 ROM.
@@ -324,7 +324,7 @@ removed nothing else drives those data lines either, which is what makes this
 cheaper than the per-cycle bus race #83's earlier analysis worried about.
 
 **The socket bridge is not speculative as a technique.**
-[`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md) records **BrettHallen's 2732→2764 daughterboard image**
+[`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md) records **BrettHallen's 2732→2764 daughterboard image**
 (8 KiB, CRC32 `edc31846`): OCC 1.44 and OZROM 1E in one 2764, **with `A12`
 selecting between them** — banking in the ROM socket, built and tested, passively.
 That is prior art for the mechanical form, and it is why the bridge is a known-good
@@ -522,7 +522,7 @@ at the cost of one bank. `MEMTEST` is the first thing to move there.
 
 ### 4.8 The feature set: what to take from OZROM, and what to refuse
 
-OZROM 1E is the pattern for *how* to be a replacement ROM ([`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md)
+OZROM 1E is the pattern for *how* to be a replacement ROM ([`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md)
 §4–§8). It is also the cautionary tale: **its feature set is shaped by its part.**
 It had a 4 KB 2732, and the two things it gave up are things this project needs.
 
@@ -530,8 +530,8 @@ It had a 4 KB 2732, and the two things it gave up are things this project needs.
 
 | OZROM's choice | Why we refuse it |
 |---|---|
-| **IEEE-488 removed** — jump table `013F–0156` *were* the IEEE-488 routines, and calling one now "crashes the machine"; `IEEE-488 AS IOBYTE DEVICE 3 NOW NULL DEVICE` | **Drive C is an IEEE-488 device** (#22, [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/drive-c-protocol.md)) and we hold the driver's own source (`rom144.asm`, #6). OZROM could not have both. We can |
-| Video window cut to 3 KB (`F000–FBFF`), the last 1 KB (`FC00–FFFF`) spent on the redefinable keyboard | #24's VRAM shadow assumes the full `F000–FFFF`, and OZROM's move "constrains every later decision" ([`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md) §4) |
+| **IEEE-488 removed** — jump table `013F–0156` *were* the IEEE-488 routines, and calling one now "crashes the machine"; `IEEE-488 AS IOBYTE DEVICE 3 NOW NULL DEVICE` | **Drive C is an IEEE-488 device** (#22, [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)) and we hold the driver's own source (`rom144.asm`, #6). OZROM could not have both. We can |
+| Video window cut to 3 KB (`F000–FBFF`), the last 1 KB (`FC00–FFFF`) spent on the redefinable keyboard | #24's VRAM shadow assumes the full `F000–FFFF`, and OZROM's move "constrains every later decision" ([`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md) §4) |
 
 **Take — and there is room to take them:**
 
@@ -540,7 +540,7 @@ It had a 4 KB 2732, and the two things it gave up are things this project needs.
 | 52 / 80 / 104-column switch | **Yes** | On #24's design path, and it is **not a new mechanism**: the stock video-PIA write, register `2C00` with `EF61` (`PIAAD`) as the cached copy — the *same routine*, unchanged from `rom144.asm`, disassembled out of `OZROM_1E.BIN` at `016F` (§4.7) |
 | Chip-level memory tester that names the failing chip | **Yes** | The O1 has none, and it is #29's second oracle. TAB at power-up in OZROM; `MEMTEST` is already in §4.7's extension table |
 | A *documented* jump table, memory map and version | **Yes** | The stock ROM already publishes the 53-vector table (§3); OZROM's manual is precisely why third-party code could target it. The `O1ROM2.0` signature and `VERSION` (§4.7) are the same property |
-| The interrupt hook at `0EFF2h` — a bare `RET` continues, no register save/restore | **Yes** | #18. It is a **different `INTBL` slot and calling convention** from the RT-60A's `0EFF8h` ([`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/rt60a-analysis.md)); reconcile the two, do not merge them blindly |
+| The interrupt hook at `0EFF2h` — a bare `RET` continues, no register save/restore | **Yes** | #18. It is a **different `INTBL` slot and calling convention** from the RT-60A's `0EFF8h` ([`docs/rt60a-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rt60a-analysis.md)); reconcile the two, do not merge them blindly |
 | Time-of-day clock in `EF66–EF69` (BCD) | **Yes** | #7/#18. The cells are the machine's own, so this is not a new ABI |
 | CRC checking on disk access | **Yes** | Free correctness; the stock ROM does not do it |
 | Removing the *"Centronics printer not connected"* lockout on DD systems | **Yes** | #19, and cheap |
@@ -580,9 +580,14 @@ can see — rows 24–31 are off-screen:
 
 | offset | content |
 |---|---|
-| `0FF8h` | `O1NG`, the magic |
-| `0FFCh` | the 16-bit sum of `0FF8h` bytes, little-endian |
-| `0FFEh` | reserved, zero |
+| `0FF8h` | `O1NEXT`, the magic — **six** bytes |
+| `0FFEh` | the 16-bit sum of `0000h`–`0FF7h`, little-endian |
+
+The trailer is eight bytes, as it always was: the magic grew from four bytes to
+six by **consuming the two reserved bytes at `0FFEh`**, so the checksum
+definition does not move — it still covers exactly the 4088 bytes before the
+trailer. The one cost is that the monitor's compare grows from four bytes to
+six, inside the 150-byte budget §4.4 accounts as about 126 used (#228).
 
 **The fallback is `o1next - press return`, and it costs nothing** — because ROM 2.0
 *replaces* the stock sign-on rather than adding to it:
@@ -612,7 +617,7 @@ cosmetic.
 | 3 | Does the CCP need to be relocatable? | **No — pin it.** `MSIZE = 59`, `CCP = CB00h`, `BDOS = D300h`, `BIOS = E100h`, all as the vendor shipped them. `MOVCPM`/`SYSGEN` are disk-build tools for a disk build; a ROM build wants the layout fixed so the ROM's copy loop can be two `LDIR`s with literal addresses. It also keeps the CBIOS's `ROMCDE` arithmetic valid, which *requires* `BIOS & 0FFh == 00h` |
 | 4 | Keep floppy support, or drop it? | **Keep it.** The ROM carries the vendor's CBIOS unchanged, so a real disk still boots. The diskless case is handled at `SELDSK` by returning a **null DPH** when no media is present, which is documented CP/M behaviour (the BDOS then reports `Bdos Err on X: Select` for that drive) rather than a hang in the FDC retry loop. Deleting the drivers would save ROM space we do not need to save — the CBIOS is 2048 bytes either way, and it is already written |
 | 5 | Which socket/part on the replica? | **The ROM socket, and on a real machine no part in it.** The LFF board keeps a socket that takes a standard 1.44 ROM, so it is a stock machine on its own; with the interposer fitted, a daughterboard takes the socket and the **Pico serves the ROM**, so ROM 2.00 needs no new part and is updatable in flash. A **27128/2764 is only for a board with no interposer** — and there is no such board, so there is no larger part at all, not in any form. Every host (OEM + interposer, LFF + interposer, SFF) has the softROM. Because OEM board + interposer ≡ LFF board + interposer, there is one host to design for and one to test on |
-| 6 | What can we borrow from OZROM's memory map? | The **shape**, not the contents: a documented table and map, a documented version, a column switch, a memory test. Its specific choices — video RAM at `FC00–FFFF`, keyboard redefinition, IEEE-488 removed — are the ones #83 rules out. [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md) §5–§8 has the detail |
+| 6 | What can we borrow from OZROM's memory map? | The **shape**, not the contents: a documented table and map, a documented version, a column switch, a memory test. Its specific choices — video RAM at `FC00–FFFF`, keyboard redefinition, IEEE-488 removed — are the ones #83 rules out. [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md) §5–§8 has the detail |
 
 
 The `LDIR`/patch/jump body is **exactly 60 bytes**, not an estimate — measured at
@@ -623,17 +628,17 @@ The `LDIR`/patch/jump body is **exactly 60 bytes**, not an estimate — measured
 
 | Step | Tool | State |
 |---|---|---|
-| Monitor source assembles to the shipped 4096 bytes | **ACT80** (SORCIM 3.0/3.2, in-repo) under MAME | **Done** — #203/#204, byte-identical, CRC32 `c0596b14`. [`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom144-reassemble.sh) |
-| The jump table is what the source says it is | [`tools/research/romvec.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/romvec.py) | **Done** — 53 entries, 0 opcode disagreements |
+| Monitor source assembles to the shipped 4096 bytes | **ACT80** (SORCIM 3.0/3.2, in-repo) under MAME | **Done** — #203/#204, byte-identical, CRC32 `c0596b14`. [`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom144-reassemble.sh) |
+| The jump table is what the source says it is | [`tools/research/romvec.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/romvec.py) | **Done** — 53 entries, 0 opcode disagreements |
 | ROM 2.0's new monitor code assembles | ACT80 | Not started. New source, linked at the same addresses |
-| The system image's CCP+BDOS+CBIOS | **taken from the shipped disk**, not rebuilt | Available today — the reserved tracks of [`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/OS1SYSD.IMD), at image offsets `0000`, `0800` and `1600` (§2.1) |
-| The **ACB-4000 boot payload** (§2.3) | CBIOS + `HARD.COM`'s embedded BIOS at file offset `0x053A` + the 60-byte shim | Available — [`tools/research/hardbios.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/hardbios.py) already reads the BIOS; the shim is measured at `HARD.COM` `0x01E5`–`0x0220` |
-| **The image itself** | [`tools/research/rom2image.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom2image.py) | **Done** — **7681 bytes**, every anchor re-checked, CRC32 `aef92022`. It is a *content* image: the monitor is still the stock 1.44, so it does not boot until `rom2asm` lands and calls the shim at `1DC5` |
+| The system image's CCP+BDOS+CBIOS | **taken from the shipped disk**, not rebuilt | Available today — the reserved tracks of [`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/shipped-software/OS1SYSD.IMD), at image offsets `0000`, `0800` and `1600` (§2.1) |
+| The **ACB-4000 boot payload** (§2.3) | CBIOS + `HARD.COM`'s embedded BIOS at file offset `0x053A` + the 60-byte shim | Available — [`tools/research/hardbios.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/hardbios.py) already reads the BIOS; the shim is measured at `HARD.COM` `0x01E5`–`0x0220` |
+| **The image itself** | [`tools/research/rom2image.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom2image.py) | **Done** — **7681 bytes**, every anchor re-checked, CRC32 `aef92022`. It is a *content* image: the monitor is still the stock 1.44, so it does not boot until `rom2asm` lands and calls the shim at `1DC5` |
 | The no-disk payload (the *other* goal) | the 7680-byte system image split `4096 + 3584` | mechanical, from the above |
 
 **Why take the CCP/BDOS/CBIOS bytes rather than rebuild them:** the CBIOS's build
 recipe (`bios141.gen`) names **ACT 3.5e, DDT 2.2, SYSGEN 2.1 and MOVCPM**, and
-ACT 3.5e is *not in the archive* ([`docs/o1-rom-source.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-source.md); 3.0 and 3.2 are, and
+ACT 3.5e is *not in the archive* ([`docs/o1-rom-source.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-source.md); 3.0 and 3.2 are, and
 they agree with each other on `rom144.asm`). Rebuilding the CBIOS is therefore an
 open risk with no payoff: the vendor's own 2048 bytes are on the disk, and the
 whole point of the design is that they do not need to change. The *monitor* is the
@@ -661,12 +666,12 @@ hangs:
 | Warm boot works | a `Ctrl-C` (or a program exit) returns to `A>` **without** an FDC access |
 | *(CBIOS-ND build only)* the gate holds | `DIR A:` returns `Bdos Err on A: Select` rather than hanging in the FDC retry loop — the §5-question-4 null-DPH gate doing its job |
 
-The mechanism is the one #191 already built: [`tools/emulator-setup/mame-osborne1ng/`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/emulator-setup/mame-osborne1ng/)
+The mechanism is the one #191 already built: [`tools/emulator-setup/mame-osborne1nx/`](https://github.com/Myrcurial/o1next/blob/main/tools/emulator-setup/mame-osborne1nx/)
 is a MAME patch that adds a machine and a device, and the natural extension is a
 banked-ROM device plus the `2300h` latch — the same shape as the ACB-4000 card
-([`docs/osborne1ng-machine.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/osborne1ng-machine.md)). The harness is [`tools/research/o1keys.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/o1keys.sh) +
-[`tools/research/mame-boot-probe.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/mame-boot-probe.sh), which is what measured every row of
-[`docs/mame-emulation.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mame-emulation.md) §4.
+([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md)). The harness is [`tools/research/o1keys.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/o1keys.sh) +
+[`tools/research/mame-boot-probe.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/mame-boot-probe.sh), which is what measured every row of
+[`docs/mame-emulation.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mame-emulation.md) §4.
 
 **Not yet run.** The image does not exist yet, so this is the specification of the
 test rather than a result.
@@ -682,7 +687,7 @@ test rather than a result.
    banked loader.
 3. **If a register is wanted at `2300h`.** `2300h` is free per the schematic and the
    ROM source, but a write there has never been measured on a real machine — the
-   decode is described as sloppy ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md) §7). The *latch* it was
+   decode is described as sloppy ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §7). The *latch* it was
    proposed for is withdrawn (§4.1a); what would still need checking is that a write
    to `2300h` is a no-op the interposer can claim. `hardware-gated`.
 4. **Does the CBIOS really never call ROM vectors 10–12 and 16?** §3.2 says the
@@ -706,7 +711,7 @@ test rather than a result.
    make the Pico present it, and not how the ROM distinguishes "a frame is
    available" from "the flash is empty". The page-select mechanism is §4.1a's and
    is #12's; the rest is undesigned.
-9. **The mailbox protocol.** [`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mailbox-protocol.md) is the interposer's
+9. **The mailbox protocol.** [`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mailbox-protocol.md) is the interposer's
    *host*↔firmware channel (#155) and does not cover what the ROM asks the Pico
    for at boot. Nothing here defines that conversation, and the boot screen is the
    first thing that needs it — so it will otherwise accrete out of the first
@@ -714,21 +719,21 @@ test rather than a result.
 
 ## Sources
 
-- [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/BIOS-144-source/rom144.asm) — the monitor: the jump table
+- [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/rom144.asm) — the monitor: the jump table
   (`ORG 100h`, lines 507–581), `CBOOT` (641), `WBOOT` (728), `BCPM` (746), the
   boot-block counts (`LDK B,60` / `LDK B,44`), `START` (211), `HCBOOT` (4634).
-- [`research/source-code/BIOS-144-source/occbio15.asm`](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/BIOS-144-source/occbio15.asm) — the CBIOS's 34-entry jump
+- [`research/source-code/BIOS-144-source/occbio15.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/occbio15.asm) — the CBIOS's 34-entry jump
   table, `MSIZE`/`CCP`/`BIOS`/`BDOS`; `occbio35.asm` — `ROMRI`/`ROMCDE`/`ROMCD1`/
   `ROMJMP` and the `ROMVEC+3N` arithmetic; `occbio45.asm`, `occbio55.asm`,
   `occbio65.asm` — `HOME`, the warm boot, and the two hard-coded vectors;
   `occram15.asm` — the `CCP+1E00h` RAM area and the size guard; `occtxt6.ast` —
   `ROMVEC = 100h` and the `B*` constants (§3.2).
-- [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1nextgen/blob/main/research/roms/os1-144.rom) — the shipped 4096 bytes (CRC32 `c0596b14`).
-- [`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/OS1SYSD.IMD) — the DD system disk whose reserved
+- [`research/roms/os1-144.rom`](https://github.com/Myrcurial/o1next/blob/main/research/roms/os1-144.rom) — the shipped 4096 bytes (CRC32 `c0596b14`).
+- [`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/shipped-software/OS1SYSD.IMD) — the DD system disk whose reserved
   tracks carry the CCP/BDOS/CBIOS image (§2.1).
-- [`tools/research/romvec.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/romvec.py) — decodes and cross-checks the jump table.
-- [`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom144-reassemble.sh), [`tools/research/acthex.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/acthex.py) — the
+- [`tools/research/romvec.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/romvec.py) — decodes and cross-checks the jump table.
+- [`tools/research/rom144-reassemble.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom144-reassemble.sh), [`tools/research/acthex.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/acthex.py) — the
   toolchain proof (#203).
-- [`docs/o1-rom-source.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-source.md), [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-rom-variants.md), [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/o1-memory-io-map.md),
-  [`docs/mame-emulation.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/mame-emulation.md), [`docs/osborne1ng-machine.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/osborne1ng-machine.md), [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/ozrom-1e.md),
-  [`docs/md10-system.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/md10-system.md), [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1nextgen/blob/main/docs/acb4000-host-adapter.md).
+- [`docs/o1-rom-source.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-source.md), [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md), [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md),
+  [`docs/mame-emulation.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mame-emulation.md), [`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md), [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md),
+  [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md), [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md).

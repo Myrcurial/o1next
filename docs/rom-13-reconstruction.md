@@ -372,7 +372,7 @@ note to the MAME devs is:
 
 > Osborne 1 ROM 1.3 is not a dump — we do not have a 1.3 machine. It is
 > reconstructed from Osborne's own source, which survives on the OCC
-> engineering source disk `OSROM13.IMD` (bitsavers; also in the o1nextgen
+> engineering source disk `OSROM13.IMD` (bitsavers; also in the o1next
 > repo), read as an 8-inch 77-track FM/MFM disk with CP/M skew 3. The source
 > is 10 modules (`OCCROM0..9.ASM`) linked by `OCCROM03.ASM`, plus
 > `OCCRAM2.ASM` and the `OCCTXT` systext from `OSUTLSRC.IMD`.

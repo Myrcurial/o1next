@@ -18,7 +18,7 @@ Two artifacts come out:
 
   NAME.art.txt   the art as ASCII, assembler-ready (`db '...'` lines, the same
                  form as AUTOCPM) — this is the *source*, and it is what the
-                 o1ng could print at boot
+                 o1next could print at boot
   NAME.png       the same art rendered with the ROM's own glyph bitmaps, for the
                  web, pixel-exact because a pixel-art logo should not be scaled
 

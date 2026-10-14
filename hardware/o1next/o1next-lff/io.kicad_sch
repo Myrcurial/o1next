@@ -1,7 +1,7 @@
 (kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
   (uuid "a4cfe548-bc36-45da-9c94-2b40a0d70f13")
   (paper "A4")
-  (title_block (title "o1ng-LFF: io") (date "2026-10-09") (rev "0.0-block"))
+  (title_block (title "o1next-LFF: io") (date "2026-10-09") (rev "0.0-block"))
   (lib_symbols)
   (text "Serial + IEEE-488" (at 30 40.0 0) (effects (font (size 2 2))) (uuid "721ef4ee-841f-4e19-a584-47201a549e25"))
   (text "6850 ACIA (MODEM TTL P1 + RS-232 P2 per docs/o1-modem-serial.md), 6821 PIA IEEE-488 port, CTC for 60Hz interru" (at 30 47.62 0) (effects (font (size 2 2))) (uuid "c293f6a7-7af9-4daf-92d5-e143820a88fd"))

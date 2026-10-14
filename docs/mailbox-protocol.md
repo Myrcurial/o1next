@@ -49,11 +49,11 @@ small:
   CP/M-side presence. Neither is a mailbox client, so neither shapes the
   protocol.
 
-**And the O1NG is the same machine.** `hardware/o1ng/` puts the interposer on the
+**And the O1NEXT is the same machine.** `hardware/o1next/` puts the interposer on the
 same board as the rest of the machine rather than in the Z80 socket — but the
 bus, the address map and this port pair are unchanged, so a mailbox client
 written against this spec runs on a stock machine with a fitted interposer and on
-the O1NG-SFF without modification.
+the O1NEXT-SFF without modification.
 
 ## 2. Where it lives: a Z80 I/O port pair, not a bank-2 memory window
 

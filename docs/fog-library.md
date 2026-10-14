@@ -124,7 +124,7 @@ named after a dead computer became a general CP/M group, and this is the evidenc
 
 ## Notes on the catalogue - from the maintainer
 
-**This is the factory library, not a side archive.** The O1NG ships with onboard
+**This is the factory library, not a side archive.** The O1NEXT ships with onboard
 library flash, and this is what goes on it -- so the catalogue is a shipping
 manifest, not a curiosity. It's the bootstrap to "do something cool" that everyone
 looks for. The Research Assistant focused on the languages and compilers. I'm here
@@ -173,7 +173,7 @@ for you or teaching you how to fish either!
 
 **Note:** **The one disk that matters to this project directly.** Osborne 1 BIOS and monitor ROM source: ROM144.ASM, OCCBIO05-95.ASM, OCCRAM15/25.ASM and RELEASE.TXT -- the letter in which Osborne permitted FOG to reprint the BIOS listing. Ten of the seventeen files are byte-identical to the copy in this repo; the rest differ only by CRLF and CP/M padding. An independent second copy of the firmware source (#203).
 
-**Maintainer:** The firmware source, on a user-group disk, free. This is the disk that makes the O1NG's ROM 2.0 (#83) a reconstruction rather than a guess, and it is the reason the library belongs on the machine. Also a great way for you to experiment with adding your own features to a ROM. REMEMBER THE SIZE LIMITS THOUGH!!!!!
+**Maintainer:** The firmware source, on a user-group disk, free. This is the disk that makes the O1NEXT's ROM 2.0 (#83) a reconstruction rather than a guess, and it is the reason the library belongs on the machine. Also a great way for you to experiment with adding your own features to a ROM. REMEMBER THE SIZE LIMITS THOUGH!!!!!
 
 ### FOG010 - -FOG/CPM.010
 
@@ -325,7 +325,7 @@ for you or teaching you how to fish either!
 
 **Note:** **An Algol for CP/M**, with a 25 KB user manual and a suite of test programs. Algol on an Osborne 1 is exactly what no commercial archive would have kept.
 
-**Maintainer:** An Algol compiler on an Osborne 1. Nobody asked for this and somebody built it anyway. That is the community I want the O1NG to introduce people to.
+**Maintainer:** An Algol compiler on an Osborne 1. Nobody asked for this and somebody built it anyway. That is the community I want the O1NEXT to introduce people to.
 
 ### FOGLG7-8 - -FOG/LNG.007
 

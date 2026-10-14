@@ -65,6 +65,6 @@ bank**, and a **second-keyboard USB-A path**.
 ## Onboard storage
 
 The interposer carries enough flash to hold a **built-in library — at minimum the
-boot diskette** — so the machine is useful with no card inserted, and the O1NG can
+boot diskette** — so the machine is useful with no card inserted, and the O1NEXT can
 boot "factory" images out of the box. A DD diskette image is about
 400 KB, so a handful of SOIC-8 W25Q-class parts is effectively free.

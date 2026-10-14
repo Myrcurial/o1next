@@ -13,14 +13,14 @@ An unexpected side effect of this "let someone else worry about the details" par
 
 ## First Osborne Group (FOG) Library Annotated
 
-There's two files stashed in the [/docs](https://github.com/Myrcurial/o1nextgen/tree/main/docs/) folder that are just _useful_
-* [FOG Library](https://github.com/Myrcurial/o1nextgen/blob/main/docs/fog-library.md) -- a useful index of all of the FOG disks. Most of the indexes that are out there are not actually complete. This one is and it's easy to search. 
-* [FOG File Listing](https://github.com/Myrcurial/o1nextgen/blob/main/docs/fog-library-catalogue.tsv) -- this is a Tab Separated Values (TSV) file that lists every one of the 5,431 files on the FOG diskette archive with annotation if we can _mechanically derive_ what the file relates to. 
-* FOG Tools [1](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/fog_catalogue.py) [2](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/fog_commentary.py) [3](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/fog_extract.py) [4](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/fog_lbr.py)
+There's two files stashed in the [/docs](https://github.com/Myrcurial/o1next/tree/main/docs/) folder that are just _useful_
+* [FOG Library](https://github.com/Myrcurial/o1next/blob/main/docs/fog-library.md) -- a useful index of all of the FOG disks. Most of the indexes that are out there are not actually complete. This one is and it's easy to search. 
+* [FOG File Listing](https://github.com/Myrcurial/o1next/blob/main/docs/fog-library-catalogue.tsv) -- this is a Tab Separated Values (TSV) file that lists every one of the 5,431 files on the FOG diskette archive with annotation if we can _mechanically derive_ what the file relates to. 
+* FOG Tools [1](https://github.com/Myrcurial/o1next/blob/main/tools/research/fog_catalogue.py) [2](https://github.com/Myrcurial/o1next/blob/main/tools/research/fog_commentary.py) [3](https://github.com/Myrcurial/o1next/blob/main/tools/research/fog_extract.py) [4](https://github.com/Myrcurial/o1next/blob/main/tools/research/fog_lbr.py)
 
 ## Compile as a Service
 
-MAME has slots for ROMs that don't seem to exist - we have the source code for [ROM 1.3 stashed on an IMD](https://github.com/Myrcurial/o1nextgen/blob/main/research/source-code/OSROM13.IMD) in the research folders and a known working assembler for Osborne ROM source code (we produced a byte identical 1.44 ROM to prove the compiler and linker work the way you'd expect). MAME wants ROM files to be dumped from silicon with some real provenance. While I could go on a mission to drive around North America to grab old ROMs, I can also just make one. Side quest issues are lower priority but we do [track them](https://github.com/Myrcurial/o1nextgen/issues/205) in order to work on them. 
+MAME has slots for ROMs that don't seem to exist - we have the source code for [ROM 1.3 stashed on an IMD](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OSROM13.IMD) in the research folders and a known working assembler for Osborne ROM source code (we produced a byte identical 1.44 ROM to prove the compiler and linker work the way you'd expect). MAME wants ROM files to be dumped from silicon with some real provenance. While I could go on a mission to drive around North America to grab old ROMs, I can also just make one. Side quest issues are lower priority but we do [track them](https://github.com/Myrcurial/o1next/issues/205) in order to work on them. 
 
 # Every Day
 
