@@ -178,3 +178,17 @@ scratch programs, "figuring it out" notebooks/scripts.
   `:00000001FF`. `--recover-ff` handles the one damage #203 actually saw — a
   record that reaches the image with six non-hex bytes in it — and only when the
   record's *own* checksum agrees that its content was 16 bytes of `FF`.
+- **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
+  **7681-byte image** from the repo's own files and re-checks every anchor the
+  design quotes, exiting non-zero if one moves. In: the stock 1.44 monitor, the
+  CBIOS off `OS1SYSD.IMD`, and the MD-10 BIOS image plus its 60-byte
+  install/patch/jump block out of `HARD.COM` on the 2.01 utilities disk. Out:
+  monitor at `0000`, then the payload in the window — CBIOS `1000`, MD-10 BIOS
+  `1800`, shim `1DC5`, and **511 bytes spare** for the boot screen and the new
+  features. Two things worth knowing: **`HARD.COM` is a CP/M `.COM`, so its file
+  offset is its address minus `0x0100`** (reading the length operand at `0x0547`
+  as a file offset gives `0x6F3A` instead of `0x05C5`), and the shim is the
+  *vendor's own 60 bytes* with exactly two operands relocated — the `LD HL,nn`
+  source address and the `LD BC,(nn)` length. The monitor is still the stock
+  1.44, so the output is a **content image**: not bootable until `rom2asm` lands
+  and calls the shim. See `docs/o1-rom-2.0.md` §2.3 and §6.

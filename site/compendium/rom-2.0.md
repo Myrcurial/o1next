@@ -572,6 +572,7 @@ The `LDIR`/patch/jump body is **exactly 60 bytes**, not an estimate — measured
 | ROM 2.0's new monitor code assembles | ACT80 | Not started. New source, linked at the same addresses |
 | The system image's CCP+BDOS+CBIOS | **taken from the shipped disk**, not rebuilt | Available today — the reserved tracks of [`research/shipped-software/OS1SYSD.IMD`](https://github.com/Myrcurial/o1nextgen/blob/main/research/shipped-software/OS1SYSD.IMD), at image offsets `0000`, `0800` and `1600` (§2.1) |
 | The **ACB-4000 boot payload** (§2.3) | CBIOS + `HARD.COM`'s embedded BIOS at file offset `0x053A` + the 60-byte shim | Available — [`tools/research/hardbios.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/hardbios.py) already reads the BIOS; the shim is measured at `HARD.COM` `0x01E5`–`0x0220` |
+| **The image itself** | [`tools/research/rom2image.py`](https://github.com/Myrcurial/o1nextgen/blob/main/tools/research/rom2image.py) | **Done** — **7681 bytes**, every anchor re-checked, CRC32 `aef92022`. It is a *content* image: the monitor is still the stock 1.44, so it does not boot until `rom2asm` lands and calls the shim at `1DC5` |
 | The no-disk payload (the *other* goal) | the 7680-byte system image split `4096 + 3584` | mechanical, from the above |
 
 **Why take the CCP/BDOS/CBIOS bytes rather than rebuild them:** the CBIOS's build
