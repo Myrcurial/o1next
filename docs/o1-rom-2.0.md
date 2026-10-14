@@ -5,6 +5,8 @@ are *measured* — from the shipped 1.44 bytes and from a shipped system disk's
 reserved tracks, with the tool in `tools/research/romvec.py` reproducing the
 interface half. The **bank map, boot path and jump table** (§4–§5) are the
 *design*: what we intend to build, with the reasoning that got us there. The
+**contents of the boot are measured, not estimated — 7681 bytes (§2.3)** — and the
+**feature set is decided against OZROM's, including what to refuse (§4.8)**. The
 **hardware half of §4 is explicitly open** — there is no ROM 2.00 part (§4.1), and
 the window's address, paging and selector belong to #12's interface spec (§4.1a).
 What is not done is stated in §8.
@@ -55,6 +57,11 @@ The four pieces, all read from primary sources or the shipped bytes:
 | BDOS | **3584** | `D300–E0FF` | `BIOS = ccp+1600h` and the CCP/BDOS boundary at `ccp+806h` → `1600h − 800h = 0E00h` |
 | CBIOS | **2048** | `E100–E8FF` | `BIOS = ccp+1600h`, `MSIZE = 59` → the BIOS region is `E100–EBFF`; its own guard stops code at `CCP+1E00h = E900h` |
 | **Total resident** | **11776** | | **11.5 KB** |
+
+**This is the *no-disk-anywhere* list** — CP/M resident with no disk of any kind,
+real or virtual. It is **not** the list for the boot this project is building, which
+is shorter because the ACB-4000 supplies the CCP and BDOS: see §2.3 for that list
+and its single total.
 
 **The ROM's own boot code states the total, and it agrees.** `rom144.asm`'s
 `CBOOT` and `WBOOT` load the system in 128-byte blocks, and the counts are the
@@ -125,14 +132,52 @@ Bank 2 is the only place the CPU reads ROM (`docs/o1-memory-io-map.md` §2):
 
 So the ROM page offers **8 KB contiguous** (`0000–1FFF`) and **4 KB more at
 `3000–3FFF`** — but only by jumping *past* the assigned I/O block at `2000–2FFF`,
-so the two runs are not one block. **11776 bytes fits neither way, and there is no
-16 KB ROM to put it in: there never will be** (§4.1). The stock 2732 holds 4096 of
-which **150 bytes are free** (`0F6Ah–0FFFh`; the code ends at `0F69h` and the
-source's own guard is `IF RLWA > 0FFBH`).
+so the two runs are not one block.
 
-**Therefore the image cannot be presented as one contiguous block, and *how* it is
-presented is open** — see §4.1a. What *is* settled is that a larger physical part
-is not the answer.
+**The boot this project is building fits the contiguous 8 KB.** Interposer +
+ACB-4000, to `A>`, with no floppy ever read, is **7681 bytes** (§2.3) — 511 bytes
+to spare, and no paging. The 11776-byte figure in §2 is a *different* list for a
+*different* goal (CP/M resident with no disk of any kind): it is the one that fits
+neither run, and the one that needs §4.1a's paging. There is no 16 KB ROM in any
+case, and never will be (§4.1). The stock 2732 holds 4096 of which **150 bytes are
+free** (`0F6Ah–0FFFh`; the code ends at `0F69h` and the source's own guard is
+`IF RLWA > 0FFBH`).
+
+### 2.3 The contents, and the one number
+
+This is the goal the project is actually building: an **interposer + ACB-4000**
+that boots to `A>` on the hard disk with **no floppy read, ever** — virtual or
+physical. It has one content list and one total.
+
+| Piece | Bytes | Why it is there | Source |
+|---|---|---|---|
+| Monitor ROM | **4096** | the machine's ROM. Its boot path is replaced; its 53-vector jump table is kept | `rom144.asm` |
+| CBIOS | **2048** | **the MD-10 BIOS borrows 30 of its 34 jump-table entries.** Measured: `HARD.COM` copies `18 + 21 + 3 + 3 + 45 = 90` bytes from `(page zero+1)+3` = `0xE106` — CBIOS vectors 2–31 — into the MD-10 BIOS's slots at `0xD806`, `0xD86A`, `0xD82D`, `0xD87F` and `0xD833`. Those are `JMP`s into the CBIOS, so the CBIOS's code has to be in RAM for them to land anywhere | `OS1SYSD.IMD`, image offset `0x1600` |
+| MD-10 BIOS image | **1477** | the ACB-4000 driver, and the partial BIOS that reads the system off the hard disk. Copied to `0xD800` | `HARD.COM`, file offset `0x053A` (`0x5C5` bytes) |
+| install / patch / jump | **60** | all of the loader's work the ROM has to do: `LD HL,053Ah` / `LD DE,0D800h` / `LD BC,(0547h)` / `LDIR`, the five patching `LDIR`s, `XOR A` / `LD (0013h),A`, `JP 0D800h` | `HARD.COM`, `0x01E5`–`0x0220` |
+| **Total** | **7681** | | |
+
+**7681 bytes — and it fits the 8 KB contiguous window with 511 bytes to spare.** No
+paging is needed for this boot at all.
+
+**What is deliberately *not* in the list.** The **CCP and BDOS**, 5632 bytes,
+because the ACB-4000 supplies them: `HARD.COM`'s BIOS reads 11 blocks from **LBA 5**
+into `0xC200` and jumps to it (`docs/md10-system.md` §3–§5). Carrying them in ROM as
+well would be a second copy of bytes already on the drive, and would make the ROM
+decide which one wins.
+
+**Nor are the loader's other 1022 bytes.** `HARD.COM` is 2560 bytes — a 1082-byte
+loader and a 1478-byte embedded BIOS, of which 1477 are copied. The loader's banner,
+its presence probe and its `TEST UNIT READY` are diagnostics for a human installing
+a card; the MD-10 BIOS's own `BOOT` selects the card and reads. The shim does not
+need them.
+
+**One number, and it is this one.** Earlier notes carried "11.2 KB" and "11776
+bytes" for overlapping things, and the difference was never the arithmetic — it was
+the *list*. 11.2 KB was monitor + MD-10 + CCP/BDOS with **no CBIOS**; 11776 is
+monitor + CCP + BDOS + CBIOS with **no MD-10**. Neither is the boot described here.
+The boot described here is **7681**, and any figure quoted for it has to name the
+list it came from.
 
 ## 3. The interface that already exists
 
@@ -295,26 +340,32 @@ ROM 2.0's new monitor code has to fit in the **150 free bytes** of the 1.44
 layout. That budget is in §4.7, and it is the real design constraint of this
 whole document.
 
-### 4.3 The bank map — the content, not the addresses
+### 4.3 The content, and what it costs
 
-The split below is a **content** plan: what each 4 KB of payload is for. **Where
-those banks are presented, and what selects them, is open** (§4.1a), so read the
-"Bank" column as "payload slot" rather than as an address.
+The **payload** is what goes in the window; the monitor is not part of it. For the
+boot this project is building (§2.3) the payload is **3585 bytes**:
 
-| Bank | Holds | Size used | Why |
-|---|---|---|---|
-| 0 | system image bytes `0000–0FFF` (CCP first half + BDOS start) | 4096 | copied to `CB00h+` on cold boot |
-| 1 | system image bytes `1000–1DFF` (rest of the 7680) | 3584 | the rest; 512 bytes spare |
-| 2 | **MD-10 BIOS image** (1477 B) + its install/patch shim (~60 B) | ~1537 | `HCBOOT`'s real body for the hard-disk boot (#179) |
-| 3 | diagnostics: the chip-level memory test, and spare | — | the OZROM-borrowed tester (§4.7) |
+| Holds | Size | Why |
+|---|---|---|
+| **CBIOS** | 2048 | the running BIOS whose vectors 2–31 the MD-10 BIOS patches in (§4.6). Resident in RAM at `0xE100` |
+| **MD-10 BIOS image** | 1477 | copied to `0xD800` — the ACB-4000 driver, and the partial BIOS that reads the system off the drive |
+| **install / patch / jump** | 60 | §4.6, measured at `HARD.COM` `0x01E5`–`0x0220` |
+| spare | 511 | `8192` (the contiguous window) − `4096` (monitor) − `3585` |
+| **payload total** | **3585** | **7681 with the monitor** (§2.3) |
 
-Bank 2 is the point of overlap with #179: `HCBOOT` needs the MD-10 BIOS at
-`0D800h` and a jump to `0D882h`, and the BIOS image is 1477 bytes — it fits in one
-4 KB bank with room for the patch shim. So the hard-disk boot and the diskless
-CP/M boot ride in the same ROM, which is the point of building one image rather
-than two.
+**The no-disk goal's payload is a different, larger one** — the system image, 7680
+bytes (CCP + BDOS + CBIOS) — and *that* is the one that does not fit the contiguous
+window (§2.2). The two goals share one image and differ only in what has to be
+paged, which is the point of building one image rather than two.
 
-### 4.4 Cold boot
+**Where any of it is presented, and what selects it, is open** (§4.1a) — these are
+content slots, not addresses.
+
+### 4.4 Cold boot — the no-disk path
+
+This is the cold boot for the **no-disk** goal (CP/M out of the ROM). The boot this
+project is actually building is `HCBOOT`, the ACB-4000 path (§4.6), and that is the
+one §2.3 sizes.
 
 **The copy semantics below are the design; "latch bank *N*" is a placeholder for
 the open selector (§4.1a).** The destinations, the `LDIR` lengths and the final
@@ -370,17 +421,41 @@ rather than deleting the drivers.
 ### 4.6 HCBOOT, filled in
 
 `HCBOOT` is `JP 0000h` at `0F67h` — three bytes, and the ROM's own end-of-code
-guard sits right behind it. It becomes:
+guard sits right behind it. It becomes, essentially byte for byte, what `HARD.COM`'s
+loader does once its diagnostics are dropped — **60 bytes**, measured at `HARD.COM`
+`0x01E5`–`0x0220`:
 
 ```
-HCBOOT:  latch bank 2          ; the MD-10 BIOS image
-         copy 1477 bytes to 0D800h
-         patch the console slots from the ROM's jump table (5 LDIRs — HARD.COM's own code at 0x0200 is the worked example)
-         JP 0D882h             ; the MD-10 BIOS entry
+HCBOOT:  latch the MD-10 payload           ; the open selector (§4.1a)
+         LD   HL,053Ah                     ; the embedded BIOS in the ROM image
+         LD   DE,0D800h                    ; where the MD-10 BIOS lives
+         LD   BC,(0547h)                   ; 0x5C5 = 1477 bytes, read from the image
+         LDIR
+         LD   HL,(0001h)                   ; page zero+1 = the running BIOS's WBOOT
+         INC  HL / INC HL / INC HL         ; +3 -> vector 2
+         LD   DE,0D806h / LD C,12h / LDIR  ; 18 bytes -> 0xD806
+         LD   DE,0D86Ah / LD C,15h / LDIR  ; 21 bytes -> 0xD86A
+         LD   DE,0D82Dh / LD C,03h / LDIR  ;  3 bytes -> 0xD82D
+         LD   DE,0D87Fh / LD C,03h / LDIR  ;  3 bytes -> 0xD87F
+         LD   DE,0D833h / LD C,2Dh / LDIR  ; 45 bytes -> 0xD833
+         XOR  A
+         LD   (0013h),A                    ; page zero, drive A
+         JP   0D800h                       ; the MD-10 BIOS's own jump table
 ```
 
-The `latch bank 2` step is the open selector (§4.1a); the copy, the patch and the
-jump are not.
+Two things in that are load-bearing, and neither was obvious before it was read out
+of the file:
+
+- **The patch source is `(page zero+1)+3` — the *running* BIOS's jump table, not the
+  ROM's.** `LD HL,(0001h)` reads the `WBOOT` vector, so on a stock boot the source is
+  the **CBIOS at `0xE100`**, and the 90 bytes copied are its vectors 2–31. That is
+  why the CBIOS has to be resident (§2.3), and why it cannot be deleted from the
+  build as "not needed on a hard-disk machine".
+- **The jump is to `0D800h`, the BIOS's jump table**, not to `0D882h`'s `BOOT`
+  directly — entry 0 is a `JP` that gets there.
+
+The `latch` step is the open selector (§4.1a); the copy, the patch and the jump are
+measured.
 
 ### 4.7 The ROM 2.0 jump table, and the 150-byte budget
 
@@ -423,6 +498,50 @@ find out. **Plan B if it does not fit:** the loader moves into bank 3 and is pag
 in by a ~12-byte trampoline in the monitor, which buys a full 4 KB for loader code
 at the cost of one bank. `MEMTEST` is the first thing to move there.
 
+### 4.8 The feature set: what to take from OZROM, and what to refuse
+
+OZROM 1E is the pattern for *how* to be a replacement ROM (`docs/ozrom-1e.md`
+§4–§8). It is also the cautionary tale: **its feature set is shaped by its part.**
+It had a 4 KB 2732, and the two things it gave up are things this project needs.
+
+**Refuse, explicitly — both are 4 KB decisions, not ideas:**
+
+| OZROM's choice | Why we refuse it |
+|---|---|
+| **IEEE-488 removed** — jump table `013F–0156` *were* the IEEE-488 routines, and calling one now "crashes the machine"; `IEEE-488 AS IOBYTE DEVICE 3 NOW NULL DEVICE` | **Drive C is an IEEE-488 device** (#22, `docs/drive-c-protocol.md`) and we hold the driver's own source (`rom144.asm`, #6). OZROM could not have both. We can |
+| Video window cut to 3 KB (`F000–FBFF`), the last 1 KB (`FC00–FFFF`) spent on the redefinable keyboard | #24's VRAM shadow assumes the full `F000–FFFF`, and OZROM's move "constrains every later decision" (`docs/ozrom-1e.md` §4) |
+
+**Take — and there is room to take them:**
+
+| OZROM feature | Take? | Notes |
+|---|---|---|
+| 52 / 80 / 104-column switch | **Yes** | On #24's design path, and it is **not a new mechanism**: the stock video-PIA write, register `2C00` with `EF61` (`PIAAD`) as the cached copy — the *same routine*, unchanged from `rom144.asm`, disassembled out of `OZROM_1E.BIN` at `016F` (§4.7) |
+| Chip-level memory tester that names the failing chip | **Yes** | The O1 has none, and it is #29's second oracle. TAB at power-up in OZROM; `MEMTEST` is already in §4.7's extension table |
+| A *documented* jump table, memory map and version | **Yes** | The stock ROM already publishes the 53-vector table (§3); OZROM's manual is precisely why third-party code could target it. The `O1ROM2.0` signature and `VERSION` (§4.7) are the same property |
+| The interrupt hook at `0EFF2h` — a bare `RET` continues, no register save/restore | **Yes** | #18. It is a **different `INTBL` slot and calling convention** from the RT-60A's `0EFF8h` (`docs/rt60a-analysis.md`); reconcile the two, do not merge them blindly |
+| Time-of-day clock in `EF66–EF69` (BCD) | **Yes** | #7/#18. The cells are the machine's own, so this is not a new ABI |
+| CRC checking on disk access | **Yes** | Free correctness; the stock ROM does not do it |
+| Removing the *"Centronics printer not connected"* lockout on DD systems | **Yes** | #19, and cheap |
+| Software-redefinable keyboard plus eight function keys | **Not yet** | #45/#47. This is the one feature that costs **RAM** (1 KB at `FC00–FFFF`), not ROM, and it is the reason OZROM moved the video window. Do it with a RAM budget, never by taking video space |
+| 1793/1797 FDC notes; truer Televideo 912/920 emulation | **Not yet** | #20; not on this boot's path |
+
+**The rule this leaves us with, and its one constraint.** Every entry in the
+"refuse" table is a consequence of a 4 KB part. Ours is served from the interposer's
+own flash, and the boot needs 7681 of the 8192 contiguous bytes (§2.3) — so there is
+room in the *image* that OZROM never had.
+
+The constraint is narrower than that, and worth stating precisely: **the 4 KB monitor
+is still 4 KB**, with 150 free bytes (§4.7), and anything that must be resident there
+answers to that budget. The clock, the interrupt hook and the CRC check are bigger
+than that between them, so they cannot be monitor-resident. They do not have to be —
+the extension table at `01A8h` (§4.7) is the hook for code that lives in the window,
+and that is what the window is for. **The monitor stays a monitor; the new features
+live in the window and are reached through the table.**
+
+**So no — we do not have to drop a peripheral the way OZROM did.** IEEE-488 stays,
+the 4 KB video window stays, and the test of the design is that nothing in the
+"take" table above requires giving either one up.
+
 ## 5. The six open questions from #83, answered
 
 | # | Question | Answer |
@@ -435,8 +554,8 @@ at the cost of one bank. `MEMTEST` is the first thing to move there.
 | 6 | What can we borrow from OZROM's memory map? | The **shape**, not the contents: a documented table and map, a documented version, a column switch, a memory test. Its specific choices — video RAM at `FC00–FFFF`, keyboard redefinition, IEEE-488 removed — are the ones #83 rules out. `docs/ozrom-1e.md` §5–§8 has the detail |
 
 
-The `LDIR`/patch/jump body is the ~40–60 bytes #83's analysis identified, plus
-the bank latch write. It reuses `SYSLD`'s copy loop, so the marginal cost is small.
+The `LDIR`/patch/jump body is **exactly 60 bytes**, not an estimate — measured at
+`HARD.COM` `0x01E5`–`0x0220` (§4.6) — plus the bank/selector write.
 
 
 ## 6. The build (deliverable 2)
@@ -447,8 +566,8 @@ the bank latch write. It reuses `SYSLD`'s copy loop, so the marginal cost is sma
 | The jump table is what the source says it is | `tools/research/romvec.py` | **Done** — 53 entries, 0 opcode disagreements |
 | ROM 2.0's new monitor code assembles | ACT80 | Not started. New source, linked at the same addresses |
 | The system image's CCP+BDOS+CBIOS | **taken from the shipped disk**, not rebuilt | Available today — the reserved tracks of `research/shipped-software/OS1SYSD.IMD`, at image offsets `0000`, `0800` and `1600` (§2.1) |
-| The bank-0/1 payload | the 7680 bytes split `4096 + 3584` | mechanical, from the above |
-| The MD-10 BIOS payload | `HARD.COM`'s embedded copy at file offset `0x053A` | Available — `tools/research/hardbios.py` already reads it |
+| The **ACB-4000 boot payload** (§2.3) | CBIOS + `HARD.COM`'s embedded BIOS at file offset `0x053A` + the 60-byte shim | Available — `tools/research/hardbios.py` already reads the BIOS; the shim is measured at `HARD.COM` `0x01E5`–`0x0220` |
+| The no-disk payload (the *other* goal) | the 7680-byte system image split `4096 + 3584` | mechanical, from the above |
 
 **Why take the CCP/BDOS/CBIOS bytes rather than rebuild them:** the CBIOS's build
 recipe (`bios141.gen`) names **ACT 3.5e, DDT 2.2, SYSGEN 2.1 and MOVCPM**, and
@@ -458,12 +577,13 @@ open risk with no payoff: the vendor's own 2048 bytes are on the disk, and the
 whole point of the design is that they do not need to change. The *monitor* is the
 part we are writing, and that is the part the toolchain is proven for.
 
-The build therefore produces **one image, split into four 4 KB payload slots**
-(§4.3). That single artefact is what the SFF's flash holds, what the interposer's
-flash serves to the Pico, and what the emulator sees behind a banked-ROM device
-(§7). **One image, three consumers, no per-host variants.** How the slots are
-*presented* — and therefore what the emulator device has to model — is the open
-window decision (§4.1a); the image's content and its split are not.
+The build therefore produces **one image**: the 4096-byte monitor plus the
+3585-byte payload of §4.3 — **7681 bytes**, fitting the contiguous 8 KB window with
+511 to spare. That single artefact is what the SFF's flash holds, what the
+interposer's flash serves to the Pico, and what the emulator sees behind a
+banked-ROM device (§7). **One image, three consumers, no per-host variants.** How
+the payload is *presented* — and therefore what the emulator device has to model —
+is the open window decision (§4.1a); the image's content is not.
 
 ## 7. The boot test (deliverable 3)
 
