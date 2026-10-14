@@ -360,8 +360,18 @@ where they help. Two artifacts: `NAME.art.txt`, the art as ASCII `db` lines (the
 *source*, assembler-ready, the same form as AUTOCPM) and `NAME.png`, the art
 rendered with the ROM's glyphs.
 
-The site's masthead is generated this way: `site/assets/o1nextgen-wordmark.svg`
-(traced from the Osborne Computer Corporation logotype) goes in, and
-`site/assets/o1nextgen-logo.png` plus its `.art.txt` come out.
+The site's masthead *used to* be generated this way — the traced
+`site/assets/o1nextgen-wordmark.svg` (from the Osborne Computer Corporation
+logotype) went in, and `site/assets/o1nextgen-logo.art.txt` came out. It is not
+any more. Since #83 the masthead is the **boot screen's own art**, drawn rather
+than downsampled, because rasterising a traced outline at this size stair-steps:
+
+```
+tools/research/rom2strokes.py --logo site/assets/o1nextgen-logo.png
+```
+
+That takes `research/boot-screen/o1next-art.txt` and keeps the art's graphics
+only, so the wordmark carries no boot-screen text. The old `.art.txt` is kept as
+the record of the earlier approach.
 
 Needs `sips` for non-SVG input and `qlmanage` for SVG — both macOS built-ins.

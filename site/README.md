@@ -175,6 +175,18 @@ light screen — while the site's header is the machine's blue front panel
 (`--blue`, `#687898`). Dark-on-light reads wrong there, so the masthead is the
 screen's inverse, and the transparent ground lets the panel show through.
 
+**And it is the art's *graphics* only.** The art carries two strings that belong
+to the boot screen alone — the version caption `osborne 1 next rom 2.0 2026` and
+the prompt `press return to begin`, both nested in the X's counter — and both are
+*text* in the art's own alphabet, while every mark of the drawing is a graphics
+glyph. So the masthead drops the text and keeps the drawing: the screen says
+*which ROM this is and that it wants a keypress*, and a wordmark says neither. A
+caption added to the art later therefore cannot leak into the masthead.
+
+Nothing is lost by dropping them, because the art spells a blank cell `a` — and
+`a` is itself a text-range character, so a dropped cell draws the same nothing a
+blank one does. (That is also why no caption can contain the letter `a`.)
+
 ```
 tools/research/rom2strokes.py --logo site/assets/o1nextgen-logo.png
 ```
@@ -184,6 +196,11 @@ file is the boot screen and the wordmark**, so the site and the ROM cannot drift
 apart. The earlier wordmark — `assets/o1nextgen-logo.art.txt`, drawn by
 `tools/o1logo.py` to the geometry measured from AUTOCPM's logo art — is kept as
 the record of that approach; see below.
+
+It is a generated, committed file like the fonts and the book pages, so
+`.github/workflows/generated-artifacts.yml` runs
+`tools/research/rom2strokes.py --check` on every change and fails the build if it
+has drifted from the art.
 
 The letters are *drawn*, not downsampled: rasterising a traced outline at this
 size stair-steps badly, because the graphics set only resolves two sub-pixels per

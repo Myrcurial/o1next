@@ -43,6 +43,8 @@ WHAT IT FOUND (2026-10-14, #83)
 Usage:
     tools/research/rom2strokes.py                  # the stripe proof and the costs
     tools/research/rom2strokes.py --frame OUT.bin  # one 4096-byte video buffer
+    tools/research/rom2strokes.py --logo OUT.png   # the site masthead
+    tools/research/rom2strokes.py --check          # fail if the masthead is stale
 """
 import argparse
 import importlib.util
@@ -242,8 +244,15 @@ def rle_bytes(rows):
         os.path.join(repo, 'emulator-setup', 'roms', 'char.ua15'))
 
 
-def write_png(path, width, height, rows, alpha=False):
-    """A minimal PNG writer, stdlib only -- this tool must not need the venv."""
+def png_bytes(width, height, rows, alpha=False):
+    """A minimal PNG, as bytes -- stdlib only, this tool must not need the venv.
+
+    Split out from `write_png` so a render can be compared without touching the
+    filesystem: `check_logo()` re-renders in memory.  The filter is fixed (none)
+    and the compression is fixed (level 9), which is what makes the bytes
+    comparable at all -- `tools/romfont.py` writes and compares its PNG the same
+    way, for the same reason.
+    """
     import struct
     raw = bytearray()
     for row in rows:
@@ -256,19 +265,36 @@ def write_png(path, width, height, rows, alpha=False):
                 struct.pack(">I", zlib.crc32(tag + payload) & 0xFFFFFFFF))
 
     colour = 6 if alpha else 2
-    png = (b"\x89PNG\r\n\x1a\n" +
-           chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, colour, 0, 0, 0)) +
-           chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b""))
-    open(path, "wb").write(png)
+    return (b"\x89PNG\r\n\x1a\n" +
+            chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, colour, 0, 0, 0)) +
+            chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b""))
 
 
-def render_logo(rows, path, ink=(0xF1, 0xF4, 0xF6)):
+def write_png(path, width, height, rows, alpha=False):
+    """A minimal PNG writer, stdlib only -- this tool must not need the venv."""
+    open(path, "wb").write(png_bytes(width, height, rows, alpha))
+
+
+def logo_grid(rows, ink=(0xF1, 0xF4, 0xF6)):
     """The art as the site's masthead: light glyphs on a transparent ground.
 
     The site's header is the machine's blue front panel (`--blue`, #687898), and
     the Osborne's CRT was **paper white** -- dark characters on a light screen.
     On a blue band that reads wrong, so the masthead is the *inverse* of the
     screen: light glyphs, and no background at all, so the band shows through.
+
+    **The masthead is the art's *graphics*, and only its graphics.**  The art
+    carries two strings that belong to the boot screen alone -- the version
+    caption `osborne 1 next rom 2.0 2026` (row 12) and the prompt `press return
+    to begin` (row 14) -- and both are *text* in the art's own alphabet, while
+    every mark of the drawing is a graphics glyph.  So dropping the text glyphs
+    leaves the wordmark exactly, and a caption added to the art later cannot
+    leak into the masthead.
+
+    Nothing is lost by dropping them, because the art spells a blank cell `a`,
+    which *is* a text-range character: a dropped cell and a blank one draw the
+    same nothing.  (`a` is also why no caption can contain the letter `a` --
+    see `research/boot-screen/README.md`.)
     """
     repo = os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))))
@@ -282,17 +308,52 @@ def render_logo(rows, path, ink=(0xF1, 0xF4, 0xF6)):
             o = ord(ch)
             if GRAPHICS_FIRST <= o <= GRAPHICS_LAST:
                 code = o - ART_OFFSET
-            elif 0x20 <= o <= 0x7E:
-                code = o
             else:
+                # Text is the boot screen's, not the masthead's.  `frame()` keeps
+                # it -- there it *is* the sign-on; here it is dropped, which
+                # covers both captions and everything outside the graphics range.
                 continue
             for py in range(10):
                 b = rom[py * 128 + code]
                 for px in range(8):
                     if b >> (7 - px) & 1:
                         grid[r * 10 + py][c * 8 + px] = ink + (255,)
+    return w, h, grid
+
+
+def render_logo(rows, path, ink=(0xF1, 0xF4, 0xF6)):
+    """The masthead, written to `path`.  See `logo_grid()` for what it is."""
+    w, h, grid = logo_grid(rows, ink)
     write_png(path, w, h, grid, alpha=True)
     return path, w, h
+
+
+def check_logo(rows, path):
+    """Does the committed masthead still match the boot-screen art?
+
+    Bytes rather than pixels, because the render is deterministic -- the glyphs
+    come from a ROM in this repo, and the PNG is written with a fixed filter and
+    a fixed compression level -- so the comparison is exact and cheap.  It is
+    what `tools/romfont.py --check` does for the fonts, for the same reason: a
+    masthead that drifts from its source should fail here rather than ship.
+
+    Needs the standard library and two files in this repo, and nothing else, so
+    it runs where the host tooling does not exist.
+    """
+    if not os.path.exists(path):
+        print('masthead MISSING: %s' % path)
+        return 1
+    w, h, grid = logo_grid(rows)
+    want = png_bytes(w, h, grid, alpha=True)
+    have = open(path, 'rb').read()
+    if have == want:
+        print('masthead OK: %s matches the art (%dx%d, %d bytes)'
+              % (path, w, h, len(want)))
+        return 0
+    print('masthead STALE: %s does not match the art' % path)
+    print('  committed %d bytes, re-render %d bytes' % (len(have), len(want)))
+    print('  run: tools/research/rom2strokes.py --logo %s' % path)
+    return 1
 
 
 def render_frame(buf, path):
@@ -409,9 +470,20 @@ def main(argv=None):
                     help='render the art as the site masthead: light glyphs on a '
                          'transparent ground, i.e. the screen inverted, because '
                          'the site header is the machine\'s blue panel')
+    ap.add_argument('--check', action='store_true',
+                    help='verify the committed masthead still matches the art, '
+                         'and exit non-zero if it does not; writes nothing')
     args = ap.parse_args(argv)
 
     rows = load_art(args.art)
+
+    # --check sits before `glyphs()` on purpose: it needs the art and the
+    # character ROM, both of which are in this repo, and nothing else -- no
+    # o1art.py, no fontTools, no host tooling.  So CI can run it.
+    if args.check:
+        return check_logo(rows, os.path.join(repo, 'site', 'assets',
+                                             'o1nextgen-logo.png'))
+
     pat = {g: quadrant(b) for g, b in glyphs().items()}
     pat[BLANK] = 0
     report(rows, pat)

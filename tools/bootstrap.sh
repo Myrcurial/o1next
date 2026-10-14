@@ -267,6 +267,13 @@ check_required() {
         add_formula shellcheck
     fi
 
+    if have actionlint; then
+        ok_row actionlint "$(which_of actionlint) — $(actionlint --version 2>/dev/null | head -1)"
+    else
+        miss_row actionlint 'brew install actionlint'
+        add_formula actionlint
+    fi
+
     if have disk-analyse; then
         ok_row disk-analyse "$(which_of disk-analyse) — built from source, not in Homebrew"
     else

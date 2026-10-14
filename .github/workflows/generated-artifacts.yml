@@ -1,26 +1,29 @@
 name: generated artifacts
 
-# The site's font family and the book's chapter pages are *generated* and then
-# committed, because GitHub Pages serves the repository as-is -- the deploy
-# workflow builds Jekyll but does not run our tools.  That only stays true if
-# the generated files are kept in step with their sources: edit a document in
-# docs/ without re-running the builder and the published book silently goes
-# stale, still showing the old text.
+# The site's font family, the site's masthead and the book's chapter pages are
+# *generated* and then committed, because GitHub Pages serves the repository
+# as-is -- the deploy workflow builds Jekyll but does not run our tools.  That
+# only stays true if the generated files are kept in step with their sources:
+# edit a document in docs/ without re-running the builder and the published book
+# silently goes stale, still showing the old text.
 #
-# Both tools have a --check mode for exactly this, and neither needs the host
-# tooling that produced the files.  The PDF is deliberately *not* checked: it
-# needs typst, which this runner does not have, and it is committed rather than
-# built on deploy.
+# All three tools have a --check mode for exactly this, and none of them needs
+# the host tooling that produced the files.  The PDF is deliberately *not*
+# checked: it needs typst, which this runner does not have, and it is committed
+# rather than built on deploy.
 
 on:
   push:
     paths:
       - 'docs/**'
       - 'research/README.md'
+      - 'research/boot-screen/**'
       - 'book/**'
       - 'tools/romfont.py'
       - 'tools/build_book.py'
+      - 'tools/research/rom2strokes.py'
       - 'site/assets/fonts/**'
+      - 'site/assets/o1nextgen-logo.png'
       - 'site/compendium/**'
       - 'site/_includes/compendium-toc.html'
       - '.github/workflows/generated-artifacts.yml'
@@ -28,10 +31,13 @@ on:
     paths:
       - 'docs/**'
       - 'research/README.md'
+      - 'research/boot-screen/**'
       - 'book/**'
       - 'tools/romfont.py'
       - 'tools/build_book.py'
+      - 'tools/research/rom2strokes.py'
       - 'site/assets/fonts/**'
+      - 'site/assets/o1nextgen-logo.png'
       - 'site/compendium/**'
       - 'site/_includes/compendium-toc.html'
       - '.github/workflows/generated-artifacts.yml'
@@ -42,7 +48,7 @@ permissions:
 
 jobs:
   generated:
-    name: fonts + book pages match their sources
+    name: fonts + masthead + book pages match their sources
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +56,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
+      # The masthead check needs the standard library and two files in the repo,
+      # and nothing else -- so it runs before the one install this job has to do.
+      - name: Masthead matches the boot-screen art
+        run: python3 tools/research/rom2strokes.py --check
 
       # romfont.py rebuilds the whole family to compare bytes, so it needs the
       # same build-time dependency the tool documents.

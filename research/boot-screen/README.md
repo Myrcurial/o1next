@@ -57,6 +57,10 @@ seams. The `.png` files are the same thing already rendered.
 
 Kerning: **O→1 = 0**, then 1 → N → E → X → T at **1 each**.
 
+The message is the boot screen's, not the drawing's — which is why
+`tools/research/rom2strokes.py --logo` renders the art's *graphics* only: the
+site's masthead is this same file with both captions dropped. See `site/README.md`.
+
 **The logo is 26–152 = 127 columns, and fits the 128-column video buffer** with a
 column to spare. The *art* is 153 only because the 26 columns of rule to the left
 of the O are drawn — and those are consumed as the O slides, so they do not need
