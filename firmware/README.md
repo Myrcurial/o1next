@@ -27,6 +27,7 @@ See `software/` for code that runs on the Osborne itself (CP/M) and
 | `zimodem-fork/` | ESP32 | Zimodem fork: Hayes/telnet baseline + SSH + double-sided baud-rate buffer | #21, #56 | Medium (fork-and-extend) |
 | `keyboard-matrix/` | RP2040 | TinyUSB HID host → 8×8 matrix injection; shared by the standalone adapter, KVM, and front-panel USB port | #47, #45, #14 | Easy-medium |
 | `rom-ident/` | RP2350 (host-testable) | Identify the fitted ROM at boot by CRC32 (table generated from `docs/o1-rom-variants.md`) and gate the personalities on it: refuses Drive C / printer under OZROM 1E, degrades video to a warning | #86 | Gate + table done and tested; the socket read needs a board |
+| `rom-service/` | RP2350 | The ROM's window page 1 and the **boot frame in flash**: the ROM-service command class (`PRESENT`), two doors (I/O `0E7h`/`0EBh`, bank-2 `2300h`/`2301h`), one protocol | #247 | Easy-medium — the 8192-byte frame is generated, committed and drift-checked; the module itself is `docs/rom-pico-protocol.md`'s open item |
 
 ## Project rule
 

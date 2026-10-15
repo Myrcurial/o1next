@@ -298,21 +298,34 @@ scratch programs, "figuring it out" notebooks/scripts.
   that route is estimated, not demonstrated. `--frame` writes the answer instead:
   one window page is 4096 bytes and the video buffer is 128 × 32 = 4096 cells, so
   **one page is exactly one screen** and a frame is one `LDIR` — about 40 bytes of
-  ROM, with the frames in the interposer's flash. `--origin` picks which 128
+  ROM, with the frame in the Pico's own flash. `--origin` picks which 128
   columns of the 153-column art survive; the default keeps the *logo* and drops
   the hatch. See `research/boot-screen/README.md`.
-  `--png` renders the frame with the character generator, and `--logo` renders the
-  *art* as the site masthead — light glyphs on a transparent ground, i.e. the
-  screen inverted, because the site header is the machine's blue panel and the
-  Osborne's CRT was paper white. `--logo` keeps the art's **graphics only**: the
+  **The artifact is two halves** (2026-10-15, #247 step 8): the O1's video cell is
+  nine bits and the ninth is not in the video RAM but in a separate 4K×1 array that
+  `OUT (02h)` pages in, so `--frame` writes **8192 bytes — the character half then
+  the attribute half**, each a window page with **its own `O1NEXT` + 16-bit-sum
+  trailer at its own `0FF8h`**, and v1.0's attribute half is all `FFh` (every cell
+  bright; the ROM blits it whenever it validates, so dim accents need no ROM
+  change later). `--half chars|attrs` writes one half — the shape the ROM's
+  `PRESENT(1)`/`PRESENT(2)` delivers — and `--verify` validates a frame, or a
+  single half, off the disk with no art and no chargen, which is the whole
+  machine-free test. The committed asset is `firmware/rom-service/frame.bin`, and
+  `--check` re-builds it and compares bytes so the art and the firmware's copy
+  cannot drift.
+  `--png` renders the character half with the character generator, and `--logo`
+  renders the *art* as the site masthead — light glyphs on a transparent ground,
+  i.e. the screen inverted, because the site header is the machine's blue panel and
+  the Osborne's CRT was paper white. `--logo` keeps the art's **graphics only**: the
   version caption and the `press return to begin` prompt are *text* in the art's
   alphabet, so they are the boot screen's alone and do not belong on a wordmark.
   All 48 text cells in the art lie inside those two captions, and `a` — the blank
   cell — is itself in the text range, so a dropped cell draws the same nothing.
   `--check` re-renders the masthead in memory and compares it with the committed
   `site/assets/o1next-logo.png`, byte for byte, exiting non-zero if it has gone
-  stale. It needs the standard library and two files in the repo, and nothing
-  else, so `.github/workflows/generated-artifacts.yml` runs it.
+  stale — and does the same for the frame. It needs the standard library and files
+  in the repo, and nothing else, so
+  `.github/workflows/generated-artifacts.yml` runs it.
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
   **7695-byte image** from the repo's own files and re-checks every anchor the
   design quotes, exiting non-zero if one moves. In: the monitor (the stock 1.44, or

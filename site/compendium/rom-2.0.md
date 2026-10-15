@@ -465,6 +465,20 @@ content slots, not addresses.
 
 ### 4.4 Cold boot — the no-disk path
 
+> **Retired (2026-10-15).** The **no-disk** goal this section designs — CP/M
+> resident in ROM with no disk at all — is **not a goal any more**, and the
+> decision is a product one rather than a technical one. What the project wanted
+> was *"it turns on and is sitting at a useful prompt"*: **no floppy in the drive
+> to kick off the boot-transfer.** That is reached, and reached without this
+> section: the firmware serves drive letters (the interposer's own storage
+> personalities), so there is always a disk, and the MD-10's `HCBOOT` path (§4.6)
+> boots the hard disk with no floppy in the machine at all. The consequence is
+> that **the 11776-byte payload and its paging are gone from the plan** — the
+> largest open item in §8 item 1 shrinks to the 1-bit page-1 selector the boot
+> screen needs ([`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §5), and `SYSLD` and §4.5's
+> vector-1 retarget have nothing left to do. The section is kept because it is
+> the design of the *other* goal and the record of why it was dropped.
+
 This is the cold boot for the **no-disk** goal (CP/M out of the ROM). The boot this
 project is actually building is `HCBOOT`, the ACB-4000 path (§4.6), and that is the
 one §2.3 sizes.
@@ -501,6 +515,11 @@ equates put them: `0CB00h + 7680 = 0E900h`, which is `CCP+1E00h`, the first byte
 of the CBIOS's RAM area.
 
 ### 4.5 Warm boot
+
+> **Retired (2026-10-15), with §4.4.** With the firmware serving drive letters
+> there is always a system on `A:`, so warm boot reads it from the disk exactly as
+> the stock ROM does and **ROM vector 1 keeps its meaning**. The mechanism below
+> is kept as the design of the dropped no-disk goal.
 
 This is the part that is already solved by the hardware and only needed the
 source changed. The CBIOS's `WBOOT` calls **ROM vector 1** (`LDK DE,ROMVEC+3*1`);
@@ -834,9 +853,38 @@ them. The order at boot is: **print the text first, then page the frame in and
 check the trailer; if it is right, blit over the text.** A missing or malformed
 image leaves the message on screen, which is the whole point of having it.
 
-`tools/research/rom2strokes.py --frame` writes a frame with its trailer:
-4096 bytes, and the art is placed by `--origin` — see §2.3 for why that is not
-cosmetic.
+**And the blit is two passes, not one — measured 2026-10-15.** The O1's video cell
+is **9 bits**: 8 for the character and 1 for brightness, and the 9th bit is not in
+the video RAM. It lives in a *separate* 4K×1 array that `OUT (02h)` pages into
+`F000–FFFF`; `OUT (03h)` pages the character RAM back, and the array's low seven
+bits are not physically present and read high. Measured in `osborne1nx`:
+
+| | |
+|---|---|
+| with `OUT (02h)` then writing `00h` to `F000h` | reads back **`7Fh`** |
+| the palette (`palette_init_monochrome_highlight`) | 0 = black, 1 = `C0C0C0`, 2 = white |
+| the renderer (`BIT(attr,7) ? 2 : 1`) | **bit 7 set = bright, clear = dim** |
+| the array at the sign-on | 4072 × `FFh`, **24 × `7Fh`** — so it is not a blank slate |
+| the 116 character cells at the sign-on | all bright |
+
+So the screen **fills the attribute array bright before it blits** (`OUT (02h)`,
+4096 stores of `FFh`, `OUT (03h)`), because 24 stray dim cells would show in a
+4096-cell frame. That is 21.5 ms more, and it is what leaves the *frame* free to
+carry dim accents later with no ROM change: **the frame is two 4096-byte halves —
+characters and attributes — and v1.0's attribute half is all `FFh`.** The format,
+the trailer and the whole sequence are [`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §4.1 and §5.
+
+**And the frame lives in the Pico's own flash, not the library flash** — one
+frame, compiled into the firmware, swappable only by rebuilding it. The library
+flash holds the *default disks*.
+
+`tools/research/rom2strokes.py --frame` writes the whole artifact — **8192 bytes,
+the character half then the attribute half**, each with its own trailer at its own
+`0FF8h` — and the art is placed by `--origin`; see §2.3 for why that is not
+cosmetic. `--half` writes one half, `--verify` validates a half or a whole frame
+off the disk, and the copy the firmware compiles in is
+[`firmware/rom-service/frame.bin`](https://github.com/Myrcurial/o1next/blob/main/firmware/rom-service/frame.bin) — which `--check` re-builds and compares byte for
+byte, so the art and the asset cannot drift.
 
 ## 5. The six open questions from #83, answered
 
@@ -934,9 +982,11 @@ So the ROM's own half of deliverable 3 is done and measured; what is left is the
    **For the boot this project is building it is settled, measured, and needs no
    paging at all** — the window is `0000–1FFF`, because `mirror(0x1000)` in the
    machine's own address map *is* the undecoded `A12`, so a softROM that decodes
-   it gets two contiguous 4 KB pages for free (§4.1b). What remains open here is
-   the **no-disk** goal's 11776 bytes, which is the only thing that needs a
-   selector.
+   it gets two contiguous 4 KB pages for free (§4.1b).
+   **The 11776-byte half is retired (§4.4, §4.5)** — the no-disk goal was dropped
+   on 2026-10-15, so the paging problem went with it. What is left is **one bit**:
+   window page 1 is either the payload or a frame half, and [`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md)
+   §4.1 owns that selector.
    **And the boot's half is built**: `softrom_device` serves the window and
    `-softrom` names the image (§4.1b), accepted by `softrom-check.sh`; and
    ROM 2.0's monitor now *assembles* with `HCBOOT` filled in and runs the chain
@@ -961,23 +1011,22 @@ So the ROM's own half of deliverable 3 is done and measured; what is left is the
 6. **The 512 bytes of RAM residue.** Harmless to the build (we take a fixed 2048
    for the CBIOS), but it is a reminder that the *system image* is not a clean
    artefact and a future `SYSGEN`-equivalent should say so.
-7. **The memory map *at the moment the boot screen runs*.** §2.3 sizes what is
-   resident and §4.4 describes the copy, but neither states the map the monitor
-   sees when it decides to draw the screen — what is where, and what is safe to
-   overwrite. That is planning that has not been done, and §4.9's blit depends on
-   it: writing 4096 bytes to `F000h` is only safe if nothing else has claimed that
-   range yet.
-8. **Where the frame comes from in Pico-land, and how the ROM knows to ask for
-   it.** §4.9 says the frames live in the interposer's flash and that a marker
-   lets the ROM validate one — but not which flash slot, not what the ROM does to
-   make the Pico present it, and not how the ROM distinguishes "a frame is
-   available" from "the flash is empty". The page-select mechanism is §4.1a's and
-   is #12's; the rest is undesigned.
-9. **The mailbox protocol.** [`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mailbox-protocol.md) is the interposer's
-   *host*↔firmware channel (#155) and does not cover what the ROM asks the Pico
-   for at boot. Nothing here defines that conversation, and the boot screen is the
-   first thing that needs it — so it will otherwise accrete out of the first
-   implementation, which is exactly what #155 exists to prevent.
+7. **The memory map at the moment the boot screen runs.** **Answered and
+   measured** — [`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §6, which also records the BIT 9
+   finding: the 9th video bit is a separate 4K×1 array paged into `F000–FFFF` by
+   `OUT (02h)`, its polarity is measured from the palette, and the array is *not*
+   a blank slate — so the screen is **two passes**, not one (§4.9).
+8. **Where the frame comes from in Pico-land, and how the ROM asks for it.**
+   **Answered** — [`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §4 and §5. One frame, in the
+   **Pico's own flash**, compiled into the firmware; **two 4096-byte halves**
+   (characters and attributes) so the 9th bit is retained by construction; and the
+   trailer *is* the "is a frame there?" query, so there is no separate question.
+9. **The mailbox protocol for the ROM.** **Answered** — the same protocol, with
+   **two doors, one protocol**: the I/O pair `0E7h`/`0EBh` for userland (a TPA
+   program cannot reach bank 2) and a bank-2 register pair at `2300h`/`2301h` for
+   the ROM (which runs in bank 2, where the console path's own latch writes cannot
+   perturb a comparator-decoded claim). [`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §2 has the
+   measurement that decided it.
 10. **The hand-over: measured, built, and it is `CCPADR`.** The chain completed and
    the machine still did not reach `A0>`; the reason was **one cell**. The ROM's
    60 Hz interrupt handler exits through `ROMJP1` — `CCPADR (0EFD2h) + 1633h` — to

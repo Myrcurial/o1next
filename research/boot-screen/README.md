@@ -122,11 +122,23 @@ rectangles where it is structurally two strokes.
 **It does not need to fit.** One window page is 4096 bytes and the video buffer is
 128 × 32 = 4096 cells, so **one page is exactly one screen**; in bank 2 the window
 and the video RAM are both visible, so a frame is one `LDIR` from `1000h` to
-`F000h`. The frames live in the interposer's flash, not the ROM — about **40 bytes
+`F000h`. The frame lives in the **Pico's own flash**, not the ROM — about **40 bytes
 of ROM**, and the animation is the viewport slide, which is a register write.
 
+**And it is two halves.** The O1's video cell is nine bits — eight of character and
+one of brightness — and the ninth is not in the video RAM: it is a separate 4K×1
+array that `OUT (02h)` pages into `F000–FFFF`, and the array's low seven bits read
+high. So the artifact is **8192 bytes: the character half, then the attribute
+half**, each one window page with its own trailer, and v1.0's attribute half is all
+`FFh` — every cell bright. `--frame` writes both; `--half` writes one, which is the
+shape the ROM's `PRESENT(1)`/`PRESENT(2)` delivers. The contract is
+`docs/rom-pico-protocol.md` §4.1 and §5, and the committed asset — the firmware's
+copy — is `firmware/rom-service/frame.bin`.
+
 ```
-tools/research/rom2strokes.py --frame /tmp/frame.bin     # 4096 B, CRC32 898297ae
+tools/research/rom2strokes.py --frame /tmp/frame.bin              # 8192 B, CRC32 6eef5af9
+tools/research/rom2strokes.py --frame /tmp/chars.bin --half chars # 4096 B, one half
+tools/research/rom2strokes.py --verify /tmp/frame.bin             # do the trailers hold?
 ```
 
 **One thing had to give.** The art is 153 columns and a screen is 128, so 25
@@ -138,18 +150,22 @@ with or without it.
 
 ## The frame validates itself, and the fallback is free
 
-The frame is *someone else's file* — the interposer's flash is updatable and a
-hand-built image will get it wrong — so it carries a marker in the rows nobody can
-see (rows 24–31 are off-screen): `O1NEXT` at `0FF8h` — six bytes, the magic having
-grown by consuming the two reserved ones — and a 16-bit sum at `0FFEh`.
+The frame is *someone else's file* — the flash is updatable and a hand-built image
+will get it wrong — so it carries a marker in the rows nobody can see (rows 24–31
+are off-screen): `O1NEXT` at `0FF8h` — six bytes, the magic having grown by
+consuming the two reserved ones — and a 16-bit sum at `0FFEh`. **Each half carries
+its own**, so either validates without the other: the character half is checked
+*before* the blit, so the fallback text survives a bad frame, and the attribute half
+after — where a bad one costs only the bright fill that has already happened.
 
 If it is missing or wrong, the monitor leaves **`o1next - press return`** on the
 screen. That costs nothing, because ROM 2.0 replaces the stock sign-on rather than
 adding to it: 21 bytes of text plus 6 bytes of code, against `IMSG`'s **182** — so
 the fallback frees 155 bytes and pays for its own check out of them.
 
-Order at boot: print the text first, page the frame in, check the trailer, and blit
-over the text if it is right.
+Order at boot: print the text first, then `PRESENT(1)`, page the character half in
+and check its trailer, and blit over the text if it is right; then `PRESENT(2)` and
+the attribute half, which is blitted if *it* validates.
 
 ## Provenance
 
