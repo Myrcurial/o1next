@@ -7,7 +7,8 @@
 #   interposer with ROM 2.0's image in the softROM window, presses ESC at the
 #   sign-on prompt -- the monitor's HCBOOT entry -- and reads the chain back with
 #   rom2boot.lua (the CBIOS in RAM, the MD-10 BIOS in RAM, its vectors patched
-#   from the CBIOS's, the bank switch, and the system read off the drive).
+#   from the CBIOS's, the bank switch, the hand-over's stub and the store it
+#   makes, and -- with a drive -- the prompt the whole thing exists for).
 #
 # USAGE
 #   tools/emulator-setup/mame-osborne1nx/rom2-check.sh
@@ -17,7 +18,10 @@
 #   O1_ROM2_MONITOR a ROM 2.0 monitor image to use.  Unset means build one with
 #                   tools/research/rom2asm.sh first -- which takes a few minutes,
 #                   because the assembly runs on an emulated Osborne 1.
-#   O1_HARD         a CHD to mount, to also check the read off the drive
+#   O1_HARD         a CHD to mount, to check the boot as well as the chain: the
+#                   system is read off the drive and the machine has to reach
+#                   A0>.  Without it there is nothing to boot from, so the
+#                   prompt is reported and not failed.
 #   O1_ROMPATH      ROM path (default the repo's tools/emulator-setup/roms)
 #   O1_WORK         scratch directory (default /tmp/o1next-rom2-check)
 set -eu
@@ -92,8 +96,9 @@ else
     STATUS=$?
 fi
 
-# The harness's status is about the *chain* -- the CBIOS, the MD-10 BIOS, the
-# patch, the bank switch, the read off the drive.  Whether the machine then
-# reaches A0> is reported in its output and is not what this exits on: the chain
-# is what the ROM is responsible for.
+# The harness's status is the *chain*, and -- when a drive is mounted -- the
+# prompt: the CBIOS, the MD-10 BIOS, the patch, the bank switch, the hand-over's
+# store, the read off the drive, and then A0>, which is what the ROM is for.
+# Without a drive there is no system to read, so the prompt is reported rather
+# than failed; O1_HARD is what makes the boot itself part of the acceptance.
 exit "$STATUS"

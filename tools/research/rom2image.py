@@ -13,8 +13,9 @@ WHAT GOES IN (docs/o1-rom-2.0.md section 2.3)
     2048  CBIOS                the system image, offset 0x1600, off OS1SYSD.IMD
     1477  MD-10 BIOS image     `HARD.COM`, file offset 0x053A
       60  install/patch/jump   `HARD.COM`, file offsets 0x00E5-0x0120
+      14  the hand-over stub   what only RAM can run, so HCBOOT copies it there
     ----
-    7681  and it fits the 8 KB contiguous ROM window with 511 bytes to spare
+    7695  and it fits the 8 KB contiguous ROM window with 497 bytes to spare
 
     The **CCP and BDOS are not here**, by design: the ACB-4000 supplies them (11
     blocks from LBA 5 into 0xC200).  Nor are the loader's other 1022 bytes --
@@ -25,12 +26,29 @@ WHAT GOES IN (docs/o1-rom-2.0.md section 2.3)
 THE LAYOUT
     0000-0FFF  monitor (4096)          always mapped, never banked
     1000-17FF  CBIOS        -> 0xE100  the running BIOS the MD-10 BIOS patches from
-    1800-1DC4  MD-10 BIOS   -> 0xD800  copied by the shim
-    1DC5-1E00  the shim (60)           called from the monitor
-    1E01-1FFF  spare (511)             the boot screen, and the new features
+    1800-1DC4  MD-10 BIOS   -> 0xD800  copied by HCBOOT
+    1DC5-1E00  the loader block (60)   the vendor's, and nothing calls it
+    1E01-1E0E  the hand-over stub (14) copied by HCBOOT, and run in RAM at 0xE0F0
+    1E0F-1FFF  spare (497)             the boot screen, and the new features
 
     The payload occupies the window `1000-1FFF`; where it is *presented* is the
     interposer's softROM decision and is open (`docs/o1-rom-2.0.md` section 4.1a).
+
+THE HAND-OVER STUB, AND WHY IT IS IN THE PAYLOAD RATHER THAN IN THE MONITOR
+    HCBOOT's last act is a bank switch, taken by the CBIOS's own `SW2RAM`, so
+    the code it returns into has to be in RAM -- and the monitor is the bank it
+    is leaving.  That code is this stub: it writes the cell the ROM's own
+    `CBOOT` writes (`CCPADR`, which the ROM's 60 Hz exit adds `1633h` to), the
+    CBIOS's IOBYTE default, and jumps to the MD-10 BIOS's jump table.  Without
+    it the exit lands on `1633h` and the machine never comes back -- measured,
+    and proved by poking the same store in from outside (`rom2handover.lua`).
+
+    It lives in the payload's spare rather than in the monitor's own free tail,
+    because that tail is budgeted for the ROM 2.0 jump table and the new calls
+    (`docs/o1-rom-2.0.md` section 4.7).  `STUB_RAM` below is where it runs, and
+    the monitor names that address and this one: `check_stub_copy` looks for
+    HCBOOT's own `LD HL,1E01h / LD DE,0E0F0h / LD C,0Eh / LDIR` in the monitor
+    and fails the build if the two files disagree.
 
 THE SHIM IS THE VENDOR'S OWN BYTES, NOT A REWRITE
     The 60 bytes at `HARD.COM` 0x01E5-0x0220 are lifted verbatim.  Exactly two of
@@ -57,7 +75,7 @@ Usage:
     tools/research/rom2image.py                  # build to /tmp/rom2.rom
     tools/research/rom2image.py -o out.rom
     tools/research/rom2image.py --monitor rom2.asm.bin    # once rom2.asm exists
-    tools/research/rom2image.py --payload-only            # the 3585-byte payload
+    tools/research/rom2image.py --payload-only            # the 3599-byte payload
 """
 import argparse
 import importlib.util
@@ -77,12 +95,61 @@ MD10_OFF = 0x0800
 MD10_SIZE = 1477             # 0x5C5, read out of HARD.COM itself
 SHIM_OFF = 0x0DC5
 SHIM_SIZE = 60
-PAYLOAD_SIZE = 3585          # CBIOS + MD-10 + shim; 511 spare behind it
+STUB_OFF = 0x0E01            # the hand-over stub, right behind the shim
+STUB_SIZE = 14
+PAYLOAD_SIZE = STUB_OFF + STUB_SIZE     # 3599; 497 spare behind it
 
 # --- where the pieces land in RAM (what the shim and the CBIOS expect) -----
 
 CBIOS_RAM = 0xE100
 MD10_RAM = 0xD800
+
+# --- the hand-over stub, and where in RAM it has to run --------------------
+#
+# The ROM's own 60 Hz handler exits by returning *through the CBIOS*:
+# `ROMJP1` is `CCPADR + 1633h`, the CBIOS's `RRI` at `0E133h`, whose
+# `OUT (C),A` restores the bank (docs/o1-rom-2.0.md 4.6).  The ROM's `CBOOT`
+# writes `CCPADR`; `HARD.COM`'s loader -- which HCBOOT was lifted from -- does
+# not, so with it zero the exit lands on `1633h` and the machine never returns.
+#
+# `0CB00h` is **not** this boot's CCP, which is at `0C200h`.  It is the base the
+# exit adds the stock CCP-to-CBIOS offset to, and this boot keeps the CBIOS at
+# `0E100h` exactly as a floppy boot does, so the stock value is the right one:
+# `0CB00h + 1633h = 0E133h`.  The cell is written by a stub, not by HCBOOT,
+# because the bank has to be switched first and the monitor *is* the bank being
+# left -- `rom2handover.lua` proves the same store works when poked in from
+# outside, and `docs/o1-rom-2.0.md` 8 item 10 is the measurement.
+#
+# The stub runs at `0E0F0h`: 14 bytes in the 104-byte hole between the driver's
+# third allocation vector (`0DFA7h` + 241 = `0E098h`, `docs/md10-system.md`
+# 9.1) and the CBIOS at `0E100h`.  It has to be at or above `4000h`, because in
+# bank 2 anything below that is the ROM, the softROM's window or I/O rather than
+# RAM -- a write there is dropped.
+STUB_RAM = 0xE0F0
+
+# What the stub is, byte for byte.  Every operand is absolute, so there is
+# nothing to relocate and the bytes can be written down once.
+STUB = bytes([
+    0x21, 0x00, 0xCB,        # LD   HL,0CB00h    -- CCPADR, the exit's base
+    0x22, 0xD2, 0xEF,        # LD   (0EFD2h),HL  -- ... what it adds 1633h to
+    0x3E, 0x80,              # LD   A,80h        -- the CBIOS's IOBYTE default
+    0x32, 0x03, 0x00,        # LD   (0003h),A    -- ... for the console dispatch
+    0xC3, 0x00, 0xD8,        # JP   0D800h       -- the MD-10 BIOS's jump table
+])
+
+# HCBOOT's own copy of it, as the monitor assembles it: `LD HL,1E01h` /
+# `LD DE,0E0F0h` / `LD C,0Eh` / `LDIR`.  This is a *cross-file* anchor -- the
+# monitor names this tool's stub address and its length -- so it is checked
+# here rather than left to the two files to agree by hand.
+STUB_COPY = bytes([
+    0x21, 0x01, 0x1E,        # LD   HL,1E01h    -- the stub, in the window
+    0x11, 0xF0, 0xE0,        # LD   DE,0E0F0h   -- ... to RAM
+    0x0E, 0x0E,              # LD   C,0Eh       -- 14 bytes
+    0xED, 0xB0,              # LDIR
+])
+
+assert len(STUB) == STUB_SIZE, "STUB is %d bytes, not %d" % (len(STUB), STUB_SIZE)
+assert WINDOW + STUB_OFF == 0x1E01 and STUB_RAM == 0xE0F0
 
 # --- HARD.COM -------------------------------------------------------------
 #
@@ -213,6 +280,35 @@ def check_monitor(rom, stock):
             % (lo, hi, hi - lo + 1, ROM2_ENTRY, hi + 1))
 
 
+def check_stub_copy(monitor, stock):
+    """The monitor has to name this tool's stub, and where in RAM it goes.
+
+    HCBOOT ends by copying the stub out of the window and switching the bank to
+    it, so the monitor and the payload have to agree on an address and a length
+    -- and neither can check the other by running.  This is the check: HCBOOT's
+    own `LD HL,1E01h / LD DE,0E0F0h / LD C,0Eh / LDIR` is looked for in the
+    assembled monitor.  A monitor that is *not* the stock 1.44 has to have it;
+    the stock one has no HCBOOT at all, and then the stub is just content.
+    """
+    if monitor == stock:
+        return ("the monitor is the stock 1.44, so it has no HCBOOT: the stub at "
+                "0x%04X is content, not a boot" % (WINDOW + STUB_OFF))
+    at = monitor.find(STUB_COPY)
+    if at < 0:
+        raise Fail(
+            "the monitor does not copy the hand-over stub: no `LD HL,%04Xh / "
+            "LD DE,%04Xh / LD C,%02Xh / LDIR` in it.  HCBOOT and this tool "
+            "disagree about the stub's address or its length (rom2.diff against "
+            "STUB_OFF / STUB_RAM / STUB_SIZE here)"
+            % (WINDOW + STUB_OFF, STUB_RAM, STUB_SIZE))
+    if at < ROM2_ENTRY:
+        raise Fail("the stub copy is at 0x%04X, below the HCBOOT entry at 0x%04X"
+                   % (at, ROM2_ENTRY))
+    return ("HCBOOT copies the hand-over stub: %d bytes, 0x%04X -> 0x%04X "
+            "(the copy is at 0x%04X)"
+            % (STUB_SIZE, WINDOW + STUB_OFF, STUB_RAM, at))
+
+
 def check_sys_image(img):
     if len(img) != 0x1E00:
         raise Fail("system image is %d bytes, not 7680" % len(img))
@@ -302,6 +398,7 @@ def build(monitor, sysimg, hard, stock):
         check_monitor(monitor, stock),
         check_sys_image(sysimg),
         check_hard(hard),
+        check_stub_copy(monitor, stock),
     ]
 
     cbios = sysimg[CBIOS_OFF_IN_IMAGE:CBIOS_OFF_IN_IMAGE + CBIOS_SIZE]
@@ -319,12 +416,16 @@ def build(monitor, sysimg, hard, stock):
     payload[CBIOS_OFF:CBIOS_OFF + CBIOS_SIZE] = cbios
     payload[MD10_OFF:MD10_OFF + MD10_SIZE] = md10
     payload[SHIM_OFF:SHIM_OFF + SHIM_SIZE] = shim
+    payload[STUB_OFF:STUB_OFF + STUB_SIZE] = STUB
+    notes.append("the hand-over stub: %d bytes at 0x%04X, run from 0x%04X -- "
+                 "`CCPADR`, the CBIOS's IOBYTE, and the MD-10 BIOS's entry"
+                 % (STUB_SIZE, WINDOW + STUB_OFF, STUB_RAM))
 
     image = bytearray(monitor) + bytes(payload)
     return bytes(image), bytes(payload), notes
 
 
-def report(monitor, payload, notes, payload_only, out):
+def report(monitor, payload, notes, payload_only, out, stock_monitor):
     w = sys.stdout.write
     w("ROM 2.0 image -- docs/o1-rom-2.0.md section 2.3 (#83)\n")
     w("=" * 72 + "\n\n")
@@ -344,6 +445,9 @@ def report(monitor, payload, notes, payload_only, out):
         ("%04X-%04X  install / patch / jump" % (WINDOW + SHIM_OFF,
                                                 WINDOW + SHIM_OFF + SHIM_SIZE - 1),
          SHIM_SIZE, None),
+        ("%04X-%04X  the hand-over stub" % (WINDOW + STUB_OFF,
+                                           WINDOW + STUB_OFF + STUB_SIZE - 1),
+         STUB_SIZE, STUB_RAM),
     ]
     for label, size, ram in rows:
         w("  %-38s  %5d B   %s\n"
@@ -361,10 +465,17 @@ def report(monitor, payload, notes, payload_only, out):
     w("\n")
 
     w("The payload occupies the window; *where* it is presented is the softROM's\n"
-      "decision and is open (docs/o1-rom-2.0.md section 4.1a).  The monitor here\n"
-      "is the stock 1.44 -- ROM 2.0's own monitor is not written yet, so this is\n"
-      "a content image: it is not bootable until rom2.asm lands and calls the shim\n"
-      "at %04X.\n" % (WINDOW + SHIM_OFF))
+      "decision and is open (docs/o1-rom-2.0.md section 4.1a).\n")
+    if stock_monitor:
+        w("The monitor here is the stock 1.44: it has no HCBOOT, so this is a\n"
+          "content image -- nothing calls the shim at %04X or the stub at %04X.\n"
+          % (WINDOW + SHIM_OFF, WINDOW + STUB_OFF))
+    else:
+        w("The monitor here is ROM 2.0's: its HCBOOT does the loader block's work\n"
+          "in the monitor -- the machine forces it, because in bank 2 page zero is\n"
+          "the ROM -- and copies the stub at %04X into RAM, which is the store the\n"
+          "machine's own interrupt exit needs (section 4.6).\n"
+          % (WINDOW + STUB_OFF))
 
     written = payload if payload_only else (monitor + payload)
     with open(out, "wb") as fh:
@@ -396,7 +507,7 @@ def main(argv=None):
     ap.add_argument("--work", default="/tmp/o1rom2",
                     help="scratch directory for the de-skewed raw image")
     ap.add_argument("--payload-only", action="store_true",
-                    help="write just the 3585-byte payload")
+                    help="write just the %d-byte payload" % PAYLOAD_SIZE)
     args = ap.parse_args(argv)
 
     for label, path in (("monitor", args.monitor), ("system disk", args.sysimd),
@@ -419,7 +530,7 @@ def main(argv=None):
                          "The image would not be the one the design describes. "
                          "Fix the anchor or the design first." % exc)
 
-    report(monitor, payload, notes, args.payload_only, args.out)
+    report(monitor, payload, notes, args.payload_only, args.out, monitor == stock)
     return 0
 
 

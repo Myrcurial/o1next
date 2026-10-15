@@ -24,6 +24,18 @@
 #   So this fails if anything below 0F67h differs from the shipped ROM, and it
 #   reports the new code's extent against the guard.
 #
+# WHAT THE EMULATOR DOES TO THE HEX FILE
+#   The ACT80's hex output arrives on the floppy with runs of 0xC0DE where hex
+#   digits should be -- a handful of records per build, deterministically, the
+#   same damage docs/rom-13-reconstruction.md 7 diagnosed on the 1.44 build.
+#   It lands in the vendor's FF fill, so the image is *repaired* rather than
+#   guessed at: acthex.py fills the addresses no record covers from the shipped
+#   ROM (which is what a ROM 2.0 build is -- the 1.44 with new code above
+#   0F67h), and refuses the build outright if a hole falls inside the new
+#   code's own range, the one place a hole must never be.  Step 7 then checks
+#   that the image changes exactly as far as the assembler says the code goes,
+#   so a build that lost part of the code cannot pass as a longer one.
+#
 # ENVIRONMENT
 #   O1_ACT80    path to an ACT80.COM to use instead of the safety copy in
 #               research/act-assembler/ (#203)
@@ -102,24 +114,49 @@ O1_WAIT=60 \
     > "$WORK/act.log" 2>&1 || true
 grep -E "no ERRORs|ERROR|SORCIM|Hex file write error|Pass 2" "$WORK/act.log" || true
 
+# The assembler's own statement of how long the code is -- `LENGTH OF THIS ROM
+# IS = 0FB3` (rom144.asm's MSG, at the guard).  Steps 6 and 7 measure the image
+# against it, so it is read rather than assumed: without it there is nothing to
+# catch a build that lost part of the code on the way to the floppy.
+LWA="$(sed -n "s/.*LENGTH OF THIS ROM IS = \([0-9A-Fa-f]\{1,\}\).*/\1/p" \
+       "$WORK/act.log" | head -1)"
+[ -n "$LWA" ] || {
+    echo "rom2asm.sh: the listing does not say how long the ROM is (no" >&2
+    echo "  'LENGTH OF THIS ROM IS = ' in $WORK/act.log), so the image cannot" >&2
+    echo "  be checked against the assembler's own extent." >&2
+    exit 1; }
+echo "  the assembler says the code ends at 0x$LWA"
+
 echo "== 5. take ROM2.HEX off drive B =="
 python3 "$HERE/imdinfo.py" --raw "$WORK/run_b.raw" "$WORK/run_b.imd" >/dev/null
 cpmcp -f "$FMT" "$WORK/run_b.raw" 0:ROM2.HEX "$WORK/ROM2.HEX"
 
 echo "== 6. hex -> image =="
-# --reference fills the addresses no record covers from the shipped ROM, which is
-# what makes the 1.44 reassembly byte-identical (#203).  It *also* compares, and
-# exits 1 when the images differ -- which for ROM 2.0 they are meant to, so its
-# exit status is not the verdict here: step 7 is.
+# --fill-reference is what makes the image: a ROM 2.0 build *is* the shipped
+# 1.44 with new code above 0F67h, so a hole goes to the shipped ROM's own byte
+# -- which repairs the write-back damage in the vendor's FF fill, and restores
+# the stock byte for the source's own ORG holes (docs/rom-13-reconstruction.md
+# 7).  --reference also compares, and exits 1 when the images differ, which for
+# ROM 2.0 they are meant to, so status 1 is expected and step 7 is the verdict.
+# A *coverage* failure exits 2 and stops here instead: it means the new code's
+# own range has a hole in it, so the image would not be the one the source wrote.
+HEXSTATUS=0
 python3 "$HERE/acthex.py" "$WORK/ROM2.HEX" "$WORK/ROM2.bin" \
-    --recover-ff --reference "$REF" || true
+    --recover-ff --fill-reference "$REF" --reference "$REF" \
+    --covered-range 0F67 "$LWA" || HEXSTATUS=$?
+if [ "$HEXSTATUS" -gt 1 ]; then
+    echo "rom2asm.sh: acthex.py exited $HEXSTATUS -- the hex file is not this" >&2
+    echo "  build, and no image was written." >&2
+    exit 1
+fi
 
 echo "== 7. the invariant: nothing below the new code moved =="
-python3 - "$REF" "$WORK/ROM2.bin" "$OUT" <<'PY'
+python3 - "$REF" "$WORK/ROM2.bin" "$OUT" "$LWA" <<'PY'
 import sys, zlib
 stock = open(sys.argv[1], 'rb').read()
 built = open(sys.argv[2], 'rb').read()
 out = sys.argv[3]
+lwa = int(sys.argv[4], 16)        # where the assembler says the code ends
 
 ENTRY, GUARD = 0x0F67, 0x0FFB     # the HCBOOT entry, and the vendor's own guard
 if len(stock) != 4096:
@@ -140,10 +177,19 @@ if hi > GUARD:
     raise SystemExit('rom2asm.sh: the new code reaches 0x%04X, past the vendor\'s '
                      'guard at 0x%04X (rom144.asm: `IF RLWA > 0FFBH`)'
                      % (hi, GUARD))
+if hi != lwa:
+    raise SystemExit(
+        'rom2asm.sh: the image changes up to 0x%04X, but the assembler says the '
+        'code ends at 0x%04X.  The two have to agree -- everything above the '
+        'code is the vendor\'s own FF fill -- so a longer extent means the image '
+        'is not the one the source describes, and the emulator\'s floppy '
+        'write-back losing records is the usual cause '
+        '(docs/rom-13-reconstruction.md 7).  Re-run the assembly.' % (hi, lwa))
 
 print('  the stock 1.44 below 0x%04X: byte-identical (%d bytes)' % (ENTRY, ENTRY))
 print('  the new code: 0x%04X-0x%04X, %d bytes, %d free to the guard'
       % (lo, hi, hi - lo + 1, GUARD - hi))
+print('  and the assembler says the code ends at 0x%04X: the image agrees' % lwa)
 print('  HCBOOT 0x%04X: %s' % (ENTRY, built[ENTRY:hi + 1].hex(' ')))
 open(out, 'wb').write(built)
 print('  wrote %s (4096 bytes, CRC32 %08x)' % (out, zlib.crc32(built)))
