@@ -358,17 +358,27 @@ def check(img):
 # At N = 11 that is 86 of the 87 bytes.  A layout that does not fit is
 # refused, with the arithmetic -- there is no second home to spill into.
 #
-# KNOWN DEFECT (2026-10-15, #247) -- READ THIS BEFORE USING IT
-#     The driver this builds **boots**: the ROM hands over to it, it reaches
-#     `A0>` with no floppy, and its type table, per-drive table, shared DPH,
-#     DPB and ALVs are all correct in RAM.  It cannot, however, read drive
-#     `A:`'s directory: `DIR A:` answers `No file` and a `SAVE` answers
-#     `No space`, while `B:` works.  The vendor's driver does both on the same
-#     drive, and every observable cell -- the BDOS's own cells and the driver's
-#     read cache -- is **byte-identical** between the two, so the difference is
-#     in the card traffic and has not been found.  A per-drive-DPH variant
-#     fails identically, so it is not the shared DPH.  Do not treat the output
-#     as a working driver; the issue's handover comment has the evidence.
+# THE DEFECT THIS BUILD HAD, AND WHY IT IS WORTH KNOWING (2026-10-15, #247)
+#     The first revision of this build **booted** -- the ROM handed over to it,
+#     it reached `A0>` with no floppy, and its type table, per-drive table,
+#     shared DPH, DPB and ALVs were all correct in RAM -- and then could not
+#     read drive `A:`: `DIR A:` answered `No file`, `SAVE` answered `No space`,
+#     and every observable cell in RAM was **byte-identical** to the vendor's
+#     driver's.  Nothing in RAM was wrong because nothing in RAM *was* wrong:
+#     the LBA routine stored the CDB's LBA **byte-swapped**, so the card was
+#     asked for a different sector than the driver believed (`lba_routine`
+#     below has the detail).  Drive `B:` looked like it worked -- its swapped
+#     LBA landed in drive A:'s `E5h` tail, so writes and reads agreed with each
+#     other and disagreed with the partition -- which is why the symptom read
+#     as "A: only".
+#
+#     The instrument that found it is the card's own CDB trace: run the machine
+#     with `-log` and `[:acb4000] CDB ..` lines land in `error.log`.  A correct
+#     read of drive A:'s first sector is `CDB 08 00 00 14 01 00`; the broken
+#     build asked for `CDB 08 00 14 00 01 00` -- LBA 0x1400 instead of 0x0014.
+#     `rom2drives.lua` now reads the machine's own CDB back and compares its two
+#     LBA bytes against what the driver's own drive and sector cells imply, so
+#     this cannot come back unnoticed.
 #
 # Two routines change, and both stay inside the space they already occupy:
 #
@@ -466,6 +476,25 @@ def lba_routine(table, blocks):
     Entered with the drive number in 0x0D96F, and it returns carry **set** on
     success -- which is what DA11's `jr nc` reads.  The guard is the shipped
     one: a sector past the partition length is refused rather than wrapped.
+
+    THE CDB'S LBA IS **BIG-ENDIAN**, AND THAT IS A TRAP
+        The card is a SCSI target (the emulated one hands the CDB straight to
+        MAME's `scsi_harddisk_device`), so the LBA lives in a READ(6)'s bytes 2
+        and 3 as `LBA[15:8]` then `LBA[7:0]` -- **high byte first**.  The CDB
+        itself sits at 0xD9FA, so byte 2 is 0xD9FC and byte 3 is 0xD9FD, and
+        the *low* byte of the sum goes at the *higher* address.  A plain
+        `ld (0D9FCh),hl` writes L at 0xD9FC and H at 0xD9FD -- the bytes
+        swapped, and the card then seeks to a different LBA entirely.  It cost
+        a session: the swapped read of drive A: landed in A:'s own data area
+        rather than its directory, so `DIR A:` answered `No file` and `SAVE`
+        answered `No space`, while B: *appeared* to work because its swapped
+        LBA landed in A:'s `E5h` tail -- self-consistent, and wrong.
+
+        The shipped routine stores `de` with D and E already holding L and H
+        (`ld d,l` / `ld e,h`), which puts H at 0xD9FC and L at 0xD9FD.  This is
+        that idiom, and the evidence is the card's own trace: the vendor's boot
+        asks for LBA 5 as `CDB 08 00 00 05 0B 00`, and this routine asks for
+        drive A:'s first sector as `CDB 08 00 00 14 01 00`.
     """
     b = bytearray()
     b += bytes([0x3A, 0x6F, 0xD9])          # ld  a,(0d96fh)      the drive
@@ -490,7 +519,12 @@ def lba_routine(table, blocks):
     b += bytes([0x19])                      # add hl,de
     b += bytes([0x30, 0x01])                # jr nc,$+3
     b += bytes([0x3C])                      # inc a               the carry
-    b += bytes([0x22, 0xFC, 0xD9])          # ld (0d9fch),hl      CDB LBA
+    # The CDB's LBA is big-endian (see above): byte 2 at 0xD9FC is LBA[15:8]
+    # and byte 3 at 0xD9FD is LBA[7:0].  `ld (0d9fch),hl` would put them the
+    # other way round, so DE is loaded D=L / E=H and stored -- the shipped
+    # routine's own idiom, at the cost of the three bytes the slot had spare.
+    b += bytes([0x55, 0x5C])                # ld d,l / ld e,h
+    b += bytes([0xED, 0x53, 0xFC, 0xD9])    # ld (0d9fch),de      CDB bytes 2,3
     b += bytes([0x32, 0xFB, 0xD9])          # ld (0d9fbh),a       CDB byte 1
     b += bytes([0x37])                      # scf
     b += bytes([0xC9])                      # ret
@@ -854,10 +888,6 @@ def main(argv=None):
                   % (args.outfile, len(out), zlib.crc32(out) & 0xFFFFFFFF))
             print("\n  what the patched file now says:")
             print(grow_check(out))
-            print("\n  WARNING: this driver boots and its tables are correct, "
-                  "but it cannot read\n  drive A:'s directory (`DIR A:` -> "
-                  "`No file`, `SAVE` -> `No space`) while B:\n  works.  See "
-                  "#247's handover comment before using it for anything.")
             print("\nNEXT: rom2image.py --hard, then rom2-check.sh with "
                   "O1_HARD=<the drive>\n  (tools/emulator-setup/mame-osborne1nx/)")
             return 0

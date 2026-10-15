@@ -16,6 +16,17 @@
 --   would list, and the second one's directory would silently be the first
 --   one's.
 --
+--   And it reads the *card's* side too: the machine's own CDB at D9FA, whose
+--   LBA is compared **byte by byte** against what the driver's own drive and
+--   sector cells say it should be.  That is the check neither the screen nor a
+--   RAM dump can make.  On 2026-10-15 the grown driver stored the CDB's LBA
+--   bytes the wrong way round, so drive A:'s first sector was read as LBA
+--   0x1400 instead of 0x0014: the machine booted, `A0>` appeared, every cell in
+--   RAM matched the vendor's driver byte for byte, and `DIR A:` answered
+--   `No file` because the card had been asked for the wrong sector.  Drive B:
+--   *appeared* to work, because its swapped LBA landed in A:'s `E5h` tail --
+--   self-consistent and wrong.  See `tools/research/md10dpb.py`'s `lba_routine`.
+--
 --   N is not an argument -- it is read from the driver's own type table at
 --   DD5E, so the harness checks the driver that is actually in the machine.
 --
@@ -68,22 +79,50 @@ local function wait_for(pat, t)
   while e < t do if find(pat) then return true end; emu.wait(0.5); e = e + 0.5 end
   return false
 end
--- The last screen row holding `pat` -- a DIR listing is the newest thing on
--- screen, and the listings above it are older drives'.  A *command echo* also
--- holds the name (`A0>SAVE 1 A:AA.DAT`), so the echo is skipped: that is what
--- made an earlier revision of this harness pass a drive nothing was written to.
-local function last_row_with(pat)
-  local r, best = rows(), nil
-  for i = 0, 31 do
-    local line = r[i]
-    if line:find(pat, 1, true) and not line:find("SAVE", 1, true)
-       and not line:find("DIR ", 1, true) then best = line end
+-- The rows the machine printed *after* a command echo, and nothing else.
+--
+-- Two things this has to get right, and an earlier revision got both wrong.
+-- A CP/M `DIR` row is `A: AA       DAT` -- the name and the extension are
+-- separated by spaces and there is **no dot** -- so a listing can never be
+-- matched on `AA.DAT`; it is matched on the doubled letter, which is why the
+-- file name is the drive letter twice.  And the rows *above* the echo are the
+-- previous drives' listings, so scoping the search to the rows below the echo
+-- is what stops drive C:'s listing from passing for drive B:'s, and what stops
+-- the isolation check from reading an old listing as a fresh leak.
+local function rows_after(pat)
+  local r, from = rows(), nil
+  for i = 0, 31 do if r[i]:find(pat, 1, true) then from = i + 1 end end
+  local out = {}
+  if from then for i = from, 31 do out[#out + 1] = r[i] end end
+  return out
+end
+local function listing_has(drive, what)
+  for _, line in ipairs(rows_after(drive .. "0>DIR " .. drive .. ":")) do
+    if line:find(what, 1, true) then return line end
   end
-  return best
+  return nil
 end
 local function letter(i) return string.char(65 + i) end
 local function w(a) return P:read_u8(a) + P:read_u8(a + 1) * 256 end
 local function alv_of(i) return w(TABLE + i * ENTRY + 3) end
+-- A drive's partition start, from the driver's own table at DD6E: three bytes,
+-- 24-bit, because eleven 7.5 MiB partitions end past a 16-bit LBA.
+local function start_of(i)
+  local o = TABLE + i * ENTRY
+  return P:read_u8(o) + P:read_u8(o + 1) * 256 + P:read_u8(o + 2) * 65536
+end
+-- The LBA the machine last asked the card for, read back out of the machine's
+-- own CDB at D9FA.  The card is a SCSI target, so the LBA is **big-endian** in
+-- the READ(6)'s bytes 2 and 3: byte 2 at D9FC is LBA[15:8] and byte 3 at D9FD
+-- is LBA[7:0].  A driver that stores them the other way round still boots and
+-- still keeps every cell in RAM byte-identical to the vendor's -- it just asks
+-- the card for a different sector, which is the defect this check exists to
+-- catch: on 2026-10-15 the grown driver read drive A: as LBA 0x1400 instead of
+-- 0x0014, so `DIR A:` answered `No file` (#247).
+local function cdb_lba()
+  return P:read_u8(0xD9FB) * 65536 + P:read_u8(0xD9FC) * 256
+         + P:read_u8(0xD9FD)
+end
 
 logf("ROM 2.0's HCBOOT, N hard-disk drives (#247 step 6)")
 logf("  sign-on: " .. tostring(wait_for("Insert disk", 25)))
@@ -116,25 +155,45 @@ verdict("the floppies moved up behind the disk (drive " .. n .. " is type 80h)",
 -- drive letter *doubled* (`AA.DAT`), so a listing row can be matched on a
 -- string the extension does not contain -- `DA` matched `DAT`, which is how an
 -- earlier revision passed a drive nothing had been written to.
+--
+-- The last check is the one neither the screen nor a RAM dump can make: what
+-- the *card* was asked for.  A byte-swapped LBA still boots and still leaves
+-- every cell in RAM matching the vendor's driver's, so only the card's side can
+-- see it.
 logf("")
-logf("a file on each drive, and the drive's own ALV:")
+logf("a file on each drive, its own ALV, and the LBA the card was asked for:")
 local alvs = {}
 for i = 0, n - 1 do
   local L = letter(i)
-  local name = L .. L .. ".DAT"
+  local name = L .. L
   kb:post(L .. ":\r")
   local at = wait_for(L .. "0>", 15)
-  kb:post("SAVE 1 " .. L .. ":" .. name .. "\r")
+  kb:post("SAVE 1 " .. L .. ":" .. name .. ".DAT\r")
   emu.wait(4)
   kb:post("DIR " .. L .. ":\r")
   emu.wait(4)
-  local row = last_row_with(name)
+  local row = listing_has(L, name)
   local alv = alv_of(i)
   local first = P:read_u8(alv)
   alvs[i] = first
-  verdict(string.format("%s0> exists, SAVE 1 %s:%s, DIR %s: lists it  "
+  verdict(string.format("%s0> exists, SAVE 1 %s:%s.DAT, DIR %s: lists it  "
                         .. "(ALV %04X = %02X)", L, L, name, L, alv, first),
-          at and (row ~= nil) and (first % 16) == (ALV_DIR_BITS % 16))
+          at and (row ~= nil) and (first & ALV_DIR_BITS) == ALV_DIR_BITS)
+  -- And the card's side.  The driver keeps the drive and the sector it last
+  -- worked with, so the LBA the card *should* have been asked for is
+  -- start + sector, and the two bytes are checked **separately** -- byte 2 at
+  -- D9FC is LBA[15:8] and byte 3 at D9FD is LBA[7:0].  That separation is the
+  -- whole point: on 2026-10-15 the grown driver stored them the other way
+  -- round, and on two of the three drives the resulting LBA happened to have
+  -- equal bytes (0x3C3C, 0x7878), so the *value* looked right while the bytes
+  -- were reversed.  Drive A:'s read did not, and this is what named the defect.
+  local drv, sec = P:read_u8(0xD96F), w(0xD970)
+  local want = start_of(drv) + sec
+  local hi, lo = P:read_u8(0xD9FC), P:read_u8(0xD9FD)
+  verdict(string.format("%s:'s read went to LBA %d, as the driver's cells say "
+                        .. "(%d + %d; bytes %02X %02X)", L, cdb_lba(), start_of(drv),
+                        sec, hi, lo),
+          (hi == math.floor(want / 256) % 256) and (lo == want % 256))
 end
 
 -- The ALVs are the check a screen cannot make: N drives sharing one would all
@@ -154,8 +213,8 @@ for i = 0, n - 2 do
   wait_for(letter(i + 1) .. "0>", 15)
   kb:post("DIR " .. letter(i + 1) .. ":\r")
   emu.wait(4)
-  local row = last_row_with(letter(i) .. letter(i) .. ".DAT")
-  if row and row:find(letter(i) .. letter(i), 1, true) then
+  local row = listing_has(letter(i + 1), letter(i) .. letter(i))
+  if row then
     isolated = false
     logf(string.format("  drive %s lists drive %s's file: %s",
                        letter(i + 1), letter(i), row))
