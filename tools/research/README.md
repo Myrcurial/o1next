@@ -156,11 +156,26 @@ scratch programs, "figuring it out" notebooks/scripts.
   the LBA 4 runtime table and its `E5h` regions, from a raw image or a CHD. The
   readback half of the geometry capability: it is what says whether `md10prep.sh`
   produced the layout it was asked for (#247).
+- **`md10dpb.py`** — the **driver patch** (#247): rewrites the MD-10's DPB and its
+  three ALV pointers in `HARD.COM`, so CP/M's idea of a hard-disk partition can be
+  something other than the shipped 15399 blocks. One DPB per drive is what the
+  three descriptors *should* have — they share one, which is why three partitions
+  cannot differ in size — and the ALVs are sized from each `DSM` and laid out in
+  the RAM that is actually free (`DDC5-E0EF` then `EC00-EE7F`, 1451 bytes; the
+  hand-over stub, the CBIOS and `DIRBUF` are never touched). It re-derives the
+  shipped DPB field for field, so patching for 15399 reproduces the vendor's file
+  **byte for byte**, and it **refuses** what does not fit, what is past PREP.COM's
+  measured 8 MiB ceiling, and an unequal layout (three DPBs are 30 bytes of new
+  data and `HARD.COM` has one byte free). `--selftest` is the derivation and the
+  pocket arithmetic; `--check` reads a patched file back.
 - **`md10prep.sh`** — the **repeatable new-geometry capability** (#247): builds a
   blank labelled drive, drives the archive's own `PREP.COM` through its menus with
   `o1keys.lua`, reads the drive back, extracts the header and O/S artifacts, and
   reports the O/S's relocation base. `md10prep.sh 321,8,18 3 /tmp/md10` reproduces
-  the PYXIS27 floor-pin drive **byte for byte**. It is a *host* script — it wants
+  the PYXIS27 floor-pin drive **byte for byte**. `eqN` (e.g. `eq3`) is
+  PREP.COM's option 4, "Non-standard equal drive partitioning", which is the only
+  way to a bigger partition — and it is capped at 16384 blocks (8 MiB), measured.
+  It is a *host* script — it wants
   MAME, the patched `osborne1nx` machine (`$O1_MAME`) and `chdman` — so it is not
   shipped tooling.
 
