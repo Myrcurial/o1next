@@ -53,6 +53,10 @@
 #   O1_ROMPATH  ROM path, when it is not beside this script; must be absolute.
 #   O1_HARD     a CHD to mount as the ACB-4000's hard disk.
 #   O1_BIOS     an optional MAME BIOS slot.
+#   O1_SOFTROM  a ROM image to serve the ROM window from -- the interposer's
+#               softROM (#247).  With none the window is the machine's own 1.44,
+#               so the machine is a stock `osborne1`.  Unlike a floppy, this is
+#               read-only: MAME never writes back into it.
 #   O1_RUNDIR   where MAME keeps cfg/ snap/ and copied floppies.  Default: `run/`
 #               beside this script when it is staged, `~/.o1next-mame` otherwise.
 #               MAME writes those into the *current* directory, so this script
@@ -177,6 +181,14 @@ if [ -n "$HARD" ]; then
     HARD="$(abspath "$HARD")"
 fi
 
+# The softROM image is read-only to MAME (the device is not writeable), so it is
+# mounted as given -- there is nothing to copy it away from.
+SOFTROM="${O1_SOFTROM:-}"
+if [ -n "$SOFTROM" ]; then
+    [ -f "$SOFTROM" ] || { echo "boot-o1next.sh: no such ROM image: $SOFTROM" >&2; exit 1; }
+    SOFTROM="$(abspath "$SOFTROM")"
+fi
+
 # MAME's default is full screen, and `-window` is the only thing that keeps the
 # mac OSD off the whole display; it is harmless for the SDL OSD.
 set -- osborne1nx -window -skip_gameinfo -rompath "$ROMPATH"
@@ -184,6 +196,7 @@ if [ -n "${O1_BIOS:-}" ]; then set -- "$@" -bios "$O1_BIOS"; fi
 if [ -n "$FLOP1" ]; then set -- "$@" -flop1 "$FLOP1"; fi
 if [ -n "$FLOP2" ]; then set -- "$@" -flop2 "$FLOP2"; fi
 if [ -n "$HARD" ]; then set -- "$@" -harddisk "$HARD"; fi
+if [ -n "$SOFTROM" ]; then set -- "$@" -softrom "$SOFTROM"; fi
 if [ -n "${O1_SECONDS:-}" ]; then set -- "$@" -seconds_to_run "$O1_SECONDS"; fi
 
 if [ "$STAGED" = 1 ]; then
@@ -196,6 +209,11 @@ echo "  rompath:   $ROMPATH"
 echo "  drive A:   ${FLOP1:-<empty>}"
 echo "  drive B:   ${FLOP2:-<empty>}"
 echo "  hard disk: ${HARD:-<none>}"
+if [ -n "$SOFTROM" ]; then
+    echo "  softROM:   $SOFTROM"
+else
+    echo "  softROM:   none -- the machine's own ROM"
+fi
 echo "  cfg/snap:  $RUNDIR"
 echo "  quit with  Esc, or the window's close button"
 if [ -z "$HARD" ]; then

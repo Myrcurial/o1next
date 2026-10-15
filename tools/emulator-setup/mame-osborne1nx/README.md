@@ -19,15 +19,18 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `apply.sh` | apply it to a source tree, optionally build the subtarget, optionally run the probe |
 | `o1next-probe.lua` | the headless check: the I/O decode, and the card's presence probe |
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
+| `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
+| `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
 | `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
 | `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
 
-The patch touches five files:
+The patch touches six files:
 
-- `src/mame/osborne/osborne1.cpp` — the `osborne1nx` machine and its I/O map
+- `src/mame/osborne/osborne1.cpp` — the `osborne1nx` machine, its I/O map and its ROM window
 - `src/mame/mame.lst` — registers the machine (MAME builds its driver list from this)
-- `scripts/src/machine.lua` — registers the new device's sources
+- `scripts/src/machine.lua` — registers the new devices' sources
 - `src/devices/machine/acb4000_host_adapter.{h,cpp}` — the card, new
+- `src/devices/machine/softrom.{h,cpp}` — the ROM window, new
 
 ## Applying it
 
@@ -46,6 +49,18 @@ Then run it:
 ```sh
 mame osborne1nx -rompath tools/emulator-setup/roms \
     -flop1 research/shipped-software/OS1UTLS.IMD
+```
+
+**`-softrom` mounts a ROM image over the machine's own** — the interposer's
+softROM, serving the 8 KB window `0000-1FFF` (#247). With none mounted the
+window is the machine's stock 1.44, so an image-less `osborne1nx` *is* an
+`osborne1`; with `tools/research/rom2image.py`'s 7681-byte image mounted it boots
+identically too, because that image's monitor is still the stock 1.44. See "The
+softROM window" below, and `softrom-check.sh` for the acceptance.
+
+```sh
+tools/research/rom2image.py -o /tmp/rom2.rom
+mame osborne1nx -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom
 ```
 
 **That is the headless shape and `mame` on `PATH` has no such machine** — it is a
@@ -85,7 +100,44 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | `HARD.COM` reaches the controller | **yes** — real commands (`TEST UNIT READY`, then `READ` LBA 5 ×11 — the `CCP`+`BDOS` it boots) |
 | the **data phase** (`INQUIRY`, `MODE SENSE`, `READ CAPACITY`, `READ`) | **yes** — 22/22 checks, `o1next-dataphase.lua` |
 | the **data-out** phase (`MODE SELECT`, `SEND DIAGNOSTIC`) | **yes** — both complete |
+| the **softROM window** — all 8 KB of `0000-1FFF`, three ways | **yes** — `o1next-softrom.lua`, all 8192 bytes, in `softrom-check.sh` |
+| **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
+| **`-softrom` (the 7681-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
+| the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** — re-measured after the window change, unchanged |
 | `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
+
+### The softROM window
+
+`-softrom` mounts an image over the machine's ROM window, which the interposer
+serves itself (docs/o1-rom-2.0.md §4.1b). The window is **8 KB — `0000-1FFF`** —
+because the mainboard never decoded `A12`: the stock machine reads its 4 KB
+monitor twice across it, and MAME's own map says so in one line
+(`.mirror(0x1000)` *is* the undecoded `A12`). The softROM decodes it, so:
+
+| Image | The window |
+|---|---|
+| none | the machine's own ROM region, mirrored — a stock machine |
+| 4 KB or less | the image, mirrored — the image *is* the stock part |
+| larger | two pages: `0000-0FFF` and `1000-1FFF`; past the image's end, `0xFF` (erased flash) |
+
+`tools/research/rom2image.py`'s image is **7681 bytes** — the stock monitor plus
+the 3585-byte payload — so the 511 bytes it does not cover are the payload's
+spare, and they read `0xFF`.
+
+**Why the boot alone is not the acceptance.** The stock monitor never reads page
+1, so a softROM that failed to take over that page would boot identically and
+silently — an override that only reached `0000-0FFF` looks exactly like a working
+one. `o1next-softrom.lua` therefore reads the window back and compares all 8192
+bytes against what the device says it should be; `softrom-check.sh` runs that
+three ways and the boot comparison three ways, and is one command:
+
+```sh
+tools/emulator-setup/mame-osborne1nx/softrom-check.sh
+```
+
+Measured on 2026-10-14: `PASS` on all five, with the 7681-byte image reading
+`C3 ED E4 …` at `1000h` (the CBIOS's first bytes) against `31 C1 EF …` at `0000h`
+(the monitor's), and `FF` from `1E01h` to `1FFFh`.
 
 ### Driving a transfer
 
