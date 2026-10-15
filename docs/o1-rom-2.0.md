@@ -384,6 +384,35 @@ The `A12`/`A13` latch at `2300h` that §4.1a withdrew was for a *part*; a softRO
 needs no such thing, and this is where that stops being an argument and becomes
 an address map.
 
+**And it is now built and measured.** `softrom_device` is
+`src/devices/machine/softrom.{h,cpp}` in the patched tree
+(`tools/emulator-setup/mame-osborne1nx/`), `osborne1nx_mem()` is the one line
+above, and the image is named on the machine's own command line after the
+device's tag — `-softrom rom2.rom`. What the window serves:
+
+| Image | The window |
+|---|---|
+| none | the machine's own ROM region, mirrored — a stock machine |
+| 4 KB or less | the image, mirrored: the image *is* the stock part |
+| larger | two pages, `0000-0FFF` and `1000-1FFF`; past the image's end, `0xFF` (erased flash) |
+
+`tools/emulator-setup/mame-osborne1nx/softrom-check.sh` is the acceptance, and it
+is all of it:
+
+- **the window is the device's** — `o1next-softrom.lua` reads all 8192 bytes back
+  and compares them against the table above. This half is not optional: the stock
+  monitor never reads page 1, so an override that reached only `0000-0FFF` would
+  boot identically and silently.
+- **the boot is identical** — `osborne1nx` with no image mounted, and with
+  `rom2image.py`'s 7681-byte image mounted, both produce a screen dump
+  byte-identical to `osborne1`'s, `A>` included (the machine name is the only
+  difference).
+
+Measured 2026-10-14: all five checks pass. The 7681-byte image reads
+`31 C1 EF D3` at `0000h` (the monitor) and `C3 ED E4 C3` at `1000h` (the CBIOS,
+which is `JP`s), with `FF` from `1E01h` to `1FFFh` — the payload's 511-byte
+spare. The MD-10 hard-disk boot to `A0>`/`B0>`/`C0>` is unchanged.
+
 ### 4.2 The invariant that keeps the CBIOS working
 
 **The monitor is never banked.** Only the window moves, wherever it ends up
@@ -728,6 +757,8 @@ filled in from the hard-disk chain that is already measured.
    it gets two contiguous 4 KB pages for free (§4.1b). What remains open here is
    the **no-disk** goal's 11776 bytes, which is the only thing that needs a
    selector.
+   **And the boot's half is built**: `softrom_device` serves the window and
+   `-softrom` names the image (§4.1b), accepted by `softrom-check.sh`.
 2. **Does ROM 2.0's monitor code fit in 150 bytes?** The estimate in §4.7 says yes
    with ~24 bytes to spare; the assembler's guard is the arbiter. Plan B is a
    banked loader.
