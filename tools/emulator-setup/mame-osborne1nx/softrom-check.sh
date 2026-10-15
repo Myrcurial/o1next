@@ -15,7 +15,7 @@
 #        and compares all 8192 bytes against what the device says it should be.
 #
 #     2. **The boot is identical.**  With no image mounted the machine must boot
-#        identically to `osborne1`, and with rom2image.py's 7681-byte image
+#        identically to `osborne1`, and with rom2image.py's 7695-byte image
 #        mounted it must boot identically *too* -- because that image's monitor is
 #        still the stock 1.44.  That second one is the pass/fail that proves the
 #        plumbing before any monitor code exists.
@@ -80,7 +80,7 @@ echo "  rompath: $ROMPATH"
 echo "  work:    $WORK"
 echo
 
-# rom2image.py's image: 4096 monitor + 3585 payload = 7681 of the 8192-byte
+# rom2image.py's image: 4096 monitor + 3599 payload = 7695 of the 8192-byte
 # window, and its monitor is still the stock 1.44 (docs/o1-rom-2.0.md 2.3).
 "$REPO/tools/research/rom2image.py" -o "$WORK/rom2.rom" > "$WORK/rom2image.log" 2>&1
 echo "image: $(wc -c < "$WORK/rom2.rom" | tr -d ' ') bytes, from rom2image.py ($WORK/rom2image.log)"
@@ -118,7 +118,7 @@ window() {   # window LABEL LOG [IMAGE]
 
 window "no image -- the monitor, mirrored"           "$WORK/window-none.log"
 window "a 4 KB image -- the stock part, mirrored"    "$WORK/window-4k.log"   "$MONITOR"
-window "the 7681-byte image -- two pages"            "$WORK/window-rom2.log" "$WORK/rom2.rom"
+window "the 7695-byte image -- two pages"            "$WORK/window-rom2.log" "$WORK/rom2.rom"
 
 # --- 2. the boot, three ways ------------------------------------------------
 # The stock machine is in the same binary, so all three runs are comparable
@@ -148,7 +148,7 @@ echo
 # otherwise expected to be identical, screen dump included.  (Plain `sh`: the
 # comparisons go through files, not process substitution.)
 grep -v '^MACHINE' "$WORK/boot-stock.log" > "$WORK/boot-stock.txt"
-for pair in "boot-none.log:no image" "boot-rom2.log:the 7681-byte image"; do
+for pair in "boot-none.log:no image" "boot-rom2.log:the 7695-byte image"; do
     log="${pair%%:*}"; label="${pair#*:}"
     grep -v '^MACHINE' "$WORK/$log" > "$WORK/$log.txt"
     if diff "$WORK/boot-stock.txt" "$WORK/$log.txt" > "$WORK/$log.diff" 2>&1; then

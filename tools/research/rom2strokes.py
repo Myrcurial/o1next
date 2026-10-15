@@ -3,7 +3,7 @@
 
 WHY THIS EXISTS
     ROM 2.00's boot screen is hand-drawn (`research/boot-screen/`) and has to be
-    produced by the machine.  `docs/o1-rom-2.0.md` section 2.3 leaves **511 bytes
+    produced by the machine.  `docs/o1-rom-2.0.md` section 2.3 leaves **497 bytes
     of the ROM window spare**, so the question is whether the art can be described
     in that budget -- and the answer is not obvious either way, which is why it is
     measured here rather than guessed.
@@ -410,7 +410,7 @@ def report(rows, pat):
     print('-' * 72)
     print('%-2s %5d %6d %7d %7d %8d' % ('', *tot))
     print()
-    print('The ROM window spare is 511 B (docs/o1-rom-2.0.md section 2.3).  Every')
+    print('The ROM window spare is 497 B (docs/o1-rom-2.0.md section 2.3).  Every')
     print('raster-shaped encoding lands in the same band and none of them fits:')
     print('the letters are heavy, so there is little redundancy to exploit, and the')
     print('cover is dominated by diagonals -- the X is 72 rectangles where it is')

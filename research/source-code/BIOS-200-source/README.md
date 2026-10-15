@@ -26,7 +26,7 @@ before applying this.
 prompt (`rom144.asm`, `JZ HCBOOT`). In 1.44 it is a documented stub, `JMP START`.
 In ROM 2.0 it is the ACB-4000 cold boot: the same copy, patch and jump that
 `HARD.COM`'s loader performs (measured at `HARD.COM` `0x01E5`–`0x0220`,
-`docs/o1-rom-2.0.md` §4.6), with two differences the machine forces:
+`docs/o1-rom-2.0.md` §4.6), with three differences the machine forces:
 
 - **the source is the window, not a file on a disk.** The CBIOS is at `1000h` and
   the MD-10 BIOS at `1800h` in the softROM's window (`rom2image.py`'s layout), and
@@ -37,11 +37,22 @@ In ROM 2.0 it is the ACB-4000 cold boot: the same copy, patch and jump that
   bytes — so the shim's `LD HL,(0001H)` cannot be used as it stands. The ROM
   knows where it put the CBIOS; `HARD.COM` had to ask. `0E106h` is the CBIOS's
   vector 2, which is what `(page zero+1)+3` resolves to on a booted system.
+- **the hand-over's store has to run in RAM, so `HCBOOT` copies it there.** The
+  ROM's 60 Hz handler returns *through the CBIOS* at `CCPADR + 1633h`, and
+  `CCPADR` is the ROM's own `CBOOT`'s to write — `HARD.COM`'s loader never did, and
+  without it the machine stops at `1633h` for ever (`docs/o1-rom-2.0.md` §4.6).
+  `HCBOOT` copies a 14-byte stub out of the payload's spare (`1E01h`, from
+  `tools/research/rom2image.py`) into RAM at `0E0F0h` and pushes *that* address,
+  so the store lands before the MD-10 BIOS runs. The stub writes `CCPADR`, the
+  CBIOS's IOBYTE default, and jumps to `0D800h`.
 
 The bank switch is last, and it is the CBIOS's own `SW2RAM` (`0E8E2h` in the
-shipped bytes) with the MD-10 BIOS's entry pushed as its return address: the
-monitor's code is *in* the bank it is switching away from, so the switch has to
-be taken by code that survives it.
+shipped bytes): the monitor's code is *in* the bank it is switching away from, so
+the switch has to be taken by code that survives it. What is pushed as its return
+address is therefore the stub in RAM, not the MD-10 BIOS's entry.
+
+As built it is **77 bytes**, `0F67`–`0FB3`, with **72 bytes free** to the vendor's
+own guard, and everything below `0F67h` is byte-identical to the shipped 1.44.
 
 ## Building it
 

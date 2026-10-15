@@ -8,9 +8,14 @@
 --   (docs/o1-rom-2.0.md 4.6).  That is a *chain*, and a boot comparison cannot
 --   see it: this reads each stage back.
 --
---   It also records the chain's current limit honestly.  What the ROM does is
---   complete; what happens after it is not, and the harness says where the
---   machine ends up rather than pretending the boot finished.
+--   It also records where the chain ends, and it is the machine's own interrupt
+--   exit: the ROM's 60 Hz handler returns through the CBIOS at `CCPADR + 1633h`,
+--   and `CCPADR` is the ROM's own `CBOOT`'s to write.  That store can only be
+--   made from RAM, so `HCBOOT` copies a 14-byte stub out of the payload's spare,
+--   switches the bank to it, and the stub makes the store.  So this checks the
+--   chain *and* the prompt: with a drive mounted the machine has to reach `A0>`,
+--   and without one there is no system to read and the chain is what the run is
+--   about (docs/o1-rom-2.0.md 4.6, 8 item 10).
 --
 -- Run it as a *standalone* -autoboot_script, with the image mounted:
 --
@@ -37,6 +42,9 @@ local WINDOW = 0x1000          -- the softROM's window, bank 2 only
 local CBIOS, CBIOS_LEN = 0xE100, 2048
 local MD10, MD10_LEN = 0xD800, 1477
 local CCP = 0xC200
+local STUB_SRC, STUB = 0x1E01, 0xE0F0   -- the hand-over stub: window -> RAM
+local STUB_LEN = 14
+local CCPADR, CCPADR_VALUE = 0xEFD2, 0xCB00
 local PATCHES = { {0xE106, 0xD806, 0x12}, {0xE118, 0xD86A, 0x15},
                   {0xE12D, 0xD82D, 0x03}, {0xE130, 0xD87F, 0x03},
                   {0xE133, 0xD833, 0x2D} }
@@ -74,6 +82,22 @@ local function peek(a, n)
   local t = {}
   for i = 0, n - 1 do t[#t + 1] = string.format("%02X", P:read_u8(a + i)) end
   return table.concat(t, " ")
+end
+-- The window is bank 2 only, and the bank follows the CPU: at the sign-on prompt
+-- the monitor is running from the ROM, so the window is visible *then* -- and by
+-- the end of a run that boots, the machine is running from RAM, where a read of
+-- 1000h is a read of RAM.  So the chain's sources are snapshotted while they can
+-- be read, and the copies in RAM are compared against the snapshots.
+local function snapshot(addr, n)
+  local t = {}
+  for i = 0, n - 1 do t[#t + 1] = P:read_u8(addr + i) end
+  return t
+end
+local function same_table(t, addr)
+  for i = 1, #t do
+    if t[i] ~= P:read_u8(addr + i - 1) then return false, i - 1 end
+  end
+  return true
 end
 -- Write 5A to 1000h and read it back: RAM mode keeps it, ROM mode does not, and
 -- 1000h is the one address that tells them apart without touching the guest.
@@ -114,6 +138,18 @@ end
 logf("ROM 2.0's HCBOOT, measured in the machine")
 logf("  sign-on: " .. tostring(wait_for("Insert disk", 25)))
 
+-- Read the window now, while the bank is still the monitor's.  Everything the
+-- chain copies is compared against these, not against the window at the end.
+local e = 0
+while e < 10 and bank() ~= "ROM" do emu.wait(0.5); e = e + 0.5 end
+logf("  the bank at the sign-on prompt: " .. bank())
+local win = { cbios = snapshot(WINDOW, CBIOS_LEN),
+              md10  = snapshot(WINDOW + 0x800, 6),
+              stub  = snapshot(STUB_SRC, STUB_LEN) }
+logf("  the window: CBIOS " .. peek(WINDOW, 4) ..
+     ", MD-10 " .. peek(WINDOW + 0x800, 4) ..
+     ", stub " .. peek(STUB_SRC, STUB_LEN))
+
 local esc = esc_code()
 logf(string.format("  ESC is natkeyboard code %s", esc and string.format("%06X", esc) or "NOT FOUND"))
 if not esc then os.exit(1) end
@@ -128,16 +164,15 @@ emu.wait(4)
 
 logf("")
 logf("the chain the ROM runs:")
--- The window is visible here (bank 2), and so is the RAM above 3FFFh, so the
--- copies are checked against their *source* rather than against bytes typed in.
+-- The window was read at the sign-on prompt (bank 2); the RAM is live.
 verdict("the CBIOS is at 0E100h, and it is the window's 1000h",
-        (same(CBIOS, WINDOW, CBIOS_LEN)))
+        (same_table(win.cbios, CBIOS)))
 -- The MD-10 BIOS *runs* after it lands and uses its own RAM cells (its parameter
 -- block, its CDB), so comparing all 1477 bytes against the window's copy after
 -- the fact is not meaningful.  What is checked is that it is there -- its own two
 -- vectors, which the patch does not touch -- and that the patch landed.
 verdict("the MD-10 BIOS's own jump table is at 0D800h",
-        (same(MD10, WINDOW + 0x800, 6)))
+        (same_table(win.md10, MD10)))
 local patched = true
 for _, p in ipairs(PATCHES) do
   local ok = same(p[2], p[1], p[3])
@@ -146,6 +181,16 @@ end
 verdict("it is patched from the CBIOS's vectors (5 LDIRs, 90 bytes)", patched)
 verdict("the bank switched to RAM at some point after ESC (observed: " ..
         tostring(ram_seen) .. ")", ram_seen)
+-- The hand-over's own store, and the only part of the chain that has to run in
+-- RAM: HCBOOT copies the stub out of the payload's spare and switches the bank
+-- to it, and the stub writes the cell the ROM's 60 Hz exit adds 1633h to
+-- (docs/o1-rom-2.0.md 4.6).  Without it the exit lands on 1633h and the machine
+-- never comes back -- which is what rom2handover.lua proved by poking it.
+verdict("the hand-over stub is in RAM at 0E0F0h, and it is the window's 1E01h",
+        (same_table(win.stub, STUB)))
+verdict(string.format("CCPADR (0EFD2h) is %04Xh, the store the ROM's own CBOOT "
+                      .. "makes", CCPADR_VALUE),
+        (P:read_u8(CCPADR) + P:read_u8(CCPADR + 1) * 256) == CCPADR_VALUE)
 if os.getenv("O1_ROM2_DRIVE") then
   verdict("the system was read off the drive into 0C200h",
           (P:read_u8(CCP) == 0xC3))
@@ -156,24 +201,30 @@ logf("  page zero   " .. peek(0, 8) .. "   (in bank 2 this is the ROM, not RAM)"
 logf("  0E100       " .. peek(CBIOS, 8))
 logf("  0D800       " .. peek(MD10, 8))
 logf("  0C200       " .. peek(CCP, 8))
+logf("  0E0F0       " .. peek(STUB, STUB_LEN) .. "   (the hand-over stub, in RAM)")
 logf("  bank now    " .. bank())
-logf(string.format("  CCPADR      %04X   (must be CB00h -- see docs/o1-rom-2.0.md 8.10)",
-                   P:read_u8(0xEFD2) + P:read_u8(0xEFD3) * 256))
+logf(string.format("  CCPADR      %04X   (CB00h -- what the 60 Hz exit adds 1633h "
+                   .. "to, docs/o1-rom-2.0.md 4.6)",
+                   P:read_u8(CCPADR) + P:read_u8(CCPADR + 1) * 256))
 logf(string.format("  ROMRAM      %02X", P:read_u8(0xEF08)))
 
 logf("")
-if find("A0>") then
-  logf("BOOT: A0> -- ROM 2.0 booted the hard disk")
+-- The prompt is the ROM's own business now that the hand-over is in it: with a
+-- drive mounted there is a system to read, and the machine has to reach it.
+local at_prompt = find("A0>")
+if os.getenv("O1_ROM2_DRIVE") then
+  verdict("the machine reached A0> -- the ROM booted the hard disk, no floppy",
+          at_prompt)
+  if not at_prompt then
+    logf("  A drive is mounted, so there was a system to read and the machine did")
+    logf("  not reach it.  The chain above says how far it got: the stub in RAM and")
+    logf("  CCPADR are the hand-over, and the rest is the MD-10 BIOS's own boot")
+    logf("  (docs/o1-rom-2.0.md 4.6, 8 item 10).")
+  end
 else
-  logf("BOOT: no A0>.  The chain above is what the ROM does; the hand-over is one")
-  logf("  store short.  Measured: CCPADR (0EFD2h) is 0000h, so the 60 Hz handler's")
-  logf("  return-to-RAM exit (ROMJP1 = CCPADR+1633h) lands on 1633h -- the softROM's")
-  logf("  page 1, the payload's own copy of the CBIOS's console dispatch -- and that")
-  logf("  reads IOBYTE from a page zero that in ROM mode is the ROM (D3h, the IEEE")
-  logf("  device), so the machine waits in the ROM's IEEE routine for ever.")
-  logf("  The fix is proved before it is built: rom2handover.lua pokes")
-  logf("  CCPADR=CB00h into RAM after the hand-over and the machine reaches A0>.")
-  logf("  See docs/o1-rom-2.0.md 4.6 and 8 item 10.")
+  logf("BOOT: no drive mounted, so the prompt is not checked -- there is no system")
+  logf("  to read.  Mount one with O1_HARD to check the boot as well as the chain.")
+  if at_prompt then logf("  (it reached A0> anyway)") end
 end
 logf(string.format("ROM2BOOT: %s", (fail == 0) and "the chain is complete" or "CHAIN INCOMPLETE"))
 os.exit(fail == 0 and 0 or 1)

@@ -39,9 +39,29 @@ WHY THIS EXISTS
     stays an error. It is not a general hex-repair mode and does not pretend to
     be one -- it recovers exactly the damage #203 saw.
 
+    Two options exist because that write-back damage can also arrive as a *run*
+    of records replaced by `0xC0DE` pairs (#247), where the checksum no longer
+    says anything and `--recover-ff` cannot help:
+
+    * `--fill-reference REF` fills the addresses no record covers from REF
+      rather than from `--fill`.  That is the honest fill for a ROM 2.0 build,
+      which is *defined* as the shipped 1.44 with new code above `0F67h`
+      (`docs/o1-rom-2.0.md` 4.2): a hole in the vendor's FF tail is repaired
+      with the FF the vendor's own `ECHO 0FFFH-RLWA ! DB 0FFH` would have put
+      there, and a hole below the new code is repaired with the stock byte that
+      the design says has to be there anyway.
+    * `--covered-range LO HI` refuses to build at all when any address in
+      `LO..HI` is missing from the hex file, because that is the one place a
+      hole must never be: the new code's own range.  Without it, a lost record
+      *inside* the code would be filled from the reference with FF and the
+      image would look like a clean build.  It exits 2, so a caller can tell it
+      from `--reference`'s exit 1 ("the image differs from the reference",
+      which for ROM 2.0 is the *expected* result).
+
 USAGE
     acthex.py IN.hex OUT.bin [--fill 00] [--size 4096] [--reference ROM]
                              [--recover-ff] [--merge OTHER.hex ...]
+                             [--fill-reference ROM] [--covered-range LO HI]
 
     --reference compares the built image against a known-good ROM: CRC32s, the
     differing offsets and their bytes. Exits 1 if they differ, so the shell
@@ -116,7 +136,20 @@ def record_map(path, size):
     return out
 
 
-def build(path, size, fill, recover=False, merge=()):
+def addr_ranges(addrs):
+    """A sorted address list as `A-B` ranges, for a log line."""
+    out = []
+    for a in addrs:
+        if out and a == out[-1][1] + 1:
+            out[-1][1] = a
+        else:
+            out.append([a, a])
+    return " ".join("%04X" % r[0] if r[0] == r[1] else "%04X-%04X" % (r[0], r[1])
+                    for r in out)
+
+
+def build(path, size, fill, recover=False, merge=(), fill_reference=None):
+    """Return (image, holes): the image, and the addresses no record covered."""
     img = bytearray([fill]) * size
     covered = set()
     records = malformed = badsum = recovered = 0
@@ -187,7 +220,28 @@ def build(path, size, fill, recover=False, merge=()):
             added += 1
         print(f"acthex.py: {extra}: {added} additional records merged "
               f"({len(covered)}/{size} bytes covered)", file=sys.stderr)
-    return bytes(img)
+    # The addresses no record covers are not noise.  They are the source's own
+    # ORG holes and the one byte the ACT80's fill (`ECHO 0FFFH-RLWA ! DB 0FFH`)
+    # stops short of -- and, when the emulator's write-back loses a record, the
+    # records that went missing.  So they are always reported, and where the
+    # image gets its bytes for them is a decision, not a default.
+    holes = [i for i in range(size) if i not in covered]
+    print(f"acthex.py: {len(holes)} addresses no record covers: "
+          f"{addr_ranges(holes)}", file=sys.stderr)
+
+    if fill_reference:
+        ref = open(fill_reference, "rb").read()
+        if len(ref) < size:
+            print(f"acthex.py: --fill-reference {fill_reference} is {len(ref)} "
+                  f"bytes, shorter than {size}", file=sys.stderr)
+            return None, holes
+        for i in holes:
+            img[i] = ref[i]
+        print(f"acthex.py: those {len(holes)} bytes come from {fill_reference} "
+              f"-- the image is the reference with the records overlaid",
+              file=sys.stderr)
+
+    return bytes(img), holes
 
 
 def main():
@@ -205,9 +259,32 @@ def main():
                     help="another run's hex file; records it holds that the "
                          "first does not are merged in (repeatable).  For the "
                          "flaky MAME write-back -- see the docstring.")
+    ap.add_argument("--fill-reference", metavar="ROM",
+                    help="fill the addresses no record covers from ROM instead "
+                         "of from --fill: the image is the reference with the "
+                         "records overlaid (see the docstring)")
+    ap.add_argument("--covered-range", nargs=2, metavar=("LO", "HI"),
+                    type=lambda s: int(s, 16), default=None,
+                    help="the range the records have to cover wholly; a hole "
+                         "inside it exits 2 rather than building (see the "
+                         "docstring)")
     a = ap.parse_args()
 
-    img = build(a.hexfile, a.size, int(a.fill, 16), a.recover_ff, a.merge)
+    img, holes = build(a.hexfile, a.size, int(a.fill, 16), a.recover_ff,
+                       a.merge, a.fill_reference)
+    if img is None:
+        return 1
+    if a.covered_range:
+        lo, hi = a.covered_range
+        inside = [i for i in holes if lo <= i <= hi]
+        if inside:
+            print(f"acthex.py: {len(inside)} addresses in {lo:04x}-{hi:04x} are "
+                  f"covered by no record: {addr_ranges(inside)}\n"
+                  f"  That is the new code's own range, so the hex file is not "
+                  f"the build: the emulator's floppy write-back lost records "
+                  f"(docs/rom-13-reconstruction.md 7).  Re-run the assembly.",
+                  file=sys.stderr)
+            return 2
     open(a.out, "wb").write(img)
     print(f"acthex.py: wrote {a.out} ({len(img)} bytes, fill {a.fill})")
     print(f"acthex.py: CRC32 {binascii.crc32(img):08x}")
