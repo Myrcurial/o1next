@@ -111,6 +111,13 @@ def hoff(addr):
 # --- the anchors ----------------------------------------------------------
 
 ROM_CRC32 = 0xC0596B14
+# The only bytes ROM 2.0 may touch: the HCBOOT stub (`JP 0000h` at 0F67h, three
+# bytes) and everything after it, which the vendor's own guard leaves free
+# (`IF RLWA > 0FFBH`, rom144.asm).  The vendor's code ends at 0F69h, so
+# everything below 0F67h is the monitor as shipped and must stay byte-identical
+# -- the CBIOS calls ROM routines by absolute address (docs/o1-rom-2.0.md 4.2),
+# so a moved byte down there is a moved anchor, not a feature.
+ROM2_ENTRY = 0x0F67
 CCP_HEAD = bytes([0xC3, 0x5C, 0xCE])          # JP 0CE5Ch; 0xCE-3 = 0xCB = the CCP page
 BDOS_ENTRY_OFF = 0x0806
 BDOS_ENTRY = bytes([0xC3, 0x11, 0xD3])        # JP 0D311h
@@ -173,13 +180,37 @@ class Fail(Exception):
     pass
 
 
-def check_monitor(rom):
+def check_monitor(rom, stock):
+    """The monitor: the vendor's 1.44, and ROM 2.0 only in the free tail of it.
+
+    A CRC is the whole check for the stock image.  For a ROM 2.0 monitor the
+    check is the *invariant* the design rests on instead -- everything below the
+    HCBOOT entry is byte-identical to the stock ROM, and the change lives in
+    `ROM2_ENTRY..0FFF` -- because that is what "the monitor never moves" means
+    (§4.2), and it is a stronger statement than a CRC the tool would have to be
+    told in advance.
+    """
     if len(rom) != MONITOR_SIZE:
         raise Fail("monitor is %d bytes, not %d" % (len(rom), MONITOR_SIZE))
-    crc = zlib.crc32(rom)
+
+    crc = zlib.crc32(stock)
     if crc != ROM_CRC32:
-        raise Fail("monitor CRC32 is %08x, not %08x" % (crc, ROM_CRC32))
-    return "monitor %d bytes, CRC32 %08x" % (len(rom), crc)
+        raise Fail("the stock reference's CRC32 is %08x, not %08x"
+                   % (crc, ROM_CRC32))
+
+    if rom == stock:
+        return "monitor 4096 bytes, the stock 1.44 (CRC32 %08x)" % crc
+
+    diff = [i for i in range(MONITOR_SIZE) if rom[i] != stock[i]]
+    lo, hi = diff[0], diff[-1]
+    if lo < ROM2_ENTRY:
+        raise Fail("monitor differs from the stock 1.44 at 0x%04X, below the "
+                   "HCBOOT entry at 0x%04X -- that is a moved anchor, not ROM 2.0"
+                   % (lo, ROM2_ENTRY))
+    return ("monitor 4096 bytes, ROM 2.0: the stock 1.44 with 0x%04X-0x%04X "
+            "changed (%d bytes of code and fill, 0x%04X-0x%04X free to the "
+            "vendor's guard)"
+            % (lo, hi, hi - lo + 1, ROM2_ENTRY, hi + 1))
 
 
 def check_sys_image(img):
@@ -265,10 +296,10 @@ def relocate_shim(shim, image_addr):
 # the build
 # --------------------------------------------------------------------------
 
-def build(monitor, sysimg, hard):
+def build(monitor, sysimg, hard, stock):
     """Return (image, payload, notes) -- the checks run here and raise Fail."""
     notes = [
-        check_monitor(monitor),
+        check_monitor(monitor, stock),
         check_sys_image(sysimg),
         check_hard(hard),
     ]
@@ -352,7 +383,9 @@ def main(argv=None):
                     help="where to write the image (default /tmp/rom2.rom)")
     ap.add_argument("--monitor",
                     default=os.path.join(repo, "research", "roms", "os1-144.rom"),
-                    help="the monitor: 4096 bytes (default the stock 1.44)")
+                    help="the monitor: 4096 bytes (default the stock 1.44; a ROM "
+                         "2.0 monitor is the stock one with only its free tail "
+                         "changed, which is what the check enforces)")
     ap.add_argument("--sysimd", default=os.path.join(
         repo, "research", "shipped-software", "OS1SYSD.IMD"),
         help="the shipped system disk the CBIOS comes off")
@@ -373,10 +406,14 @@ def main(argv=None):
     os.makedirs(args.work, exist_ok=True)
 
     monitor = open(args.monitor, "rb").read()
+    # The stock 1.44 is the reference for both the CRC anchor and the "nothing
+    # below 0F67h moved" check, so it is read from a fixed path rather than from
+    # --monitor: a ROM 2.0 monitor is checked *against* the stock one.
+    stock = open(os.path.join(repo, "research", "roms", "os1-144.rom"), "rb").read()
     try:
         sysimg = read_sys_image(args.sysimd, args.work)
         hard = read_hard_com(args.harddisk)
-        image, payload, notes = build(monitor, sysimg, hard)
+        image, payload, notes = build(monitor, sysimg, hard, stock)
     except Fail as exc:
         raise SystemExit("rom2image.py: ANCHOR MOVED -- %s\n"
                          "The image would not be the one the design describes. "

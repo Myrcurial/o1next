@@ -544,6 +544,43 @@ of the file:
 The `latch` step is the open selector (§4.1a); the copy, the patch and the jump are
 measured.
 
+**Built, and measured in the machine.** ROM 2.0's monitor is `rom144.asm` plus one
+diff — `research/source-code/BIOS-200-source/rom2.diff` — assembled by the vendor's
+own ACT80 (`tools/research/rom2asm.sh`, the pipeline #203 proved). The result is
+checked against the invariant the design rests on: **the stock 1.44 below `0F67h`
+is byte-identical** (3,943 bytes) and the new code is **67 bytes**, `0F67`–`0FA9`,
+with **82 bytes free** to the vendor's guard.
+
+Two things the machine forced, and neither is visible in the source:
+
+- **Page zero is the ROM in bank 2, so the shim's `LD HL,(0001H)` cannot be used
+  as it stands.** `HCBOOT` runs from the monitor, in bank 2, where `0000–1FFF` is
+  the ROM window: a write to page zero is dropped and a read returns *this file's*
+  bytes — `(0001H)` reads `C1 EF`, the operand of the monitor's own
+  `LD SP,0EFC1H`, not a BIOS vector. `HARD.COM` had to ask page zero where the
+  BIOS was; the ROM knows, and uses the CBIOS's vector 2 at `0E106H`, which is
+  what `(page zero+1)+3` resolves to on a booted system (§2.3).
+- **The bank switch has to be taken by code that survives it.** The monitor's own
+  code is in the bank it is leaving, so `HCBOOT` ends by pushing the MD-10 BIOS's
+  entry and jumping to the CBIOS's `SW2RAM` (`0E8E2H` in the shipped bytes):
+  `SW2RAM` switches the bank, and its `RET` lands on the pushed address.
+
+`tools/emulator-setup/mame-osborne1nx/rom2-check.sh` measures the chain, and it
+passes: the CBIOS is at `0E100H` and is the window's `1000H`; the MD-10 BIOS's
+jump table is at `0D800H`; it is patched from the CBIOS's vectors, all 90 bytes
+into the five slots; the bank switches to RAM; and with a drive mounted the system
+is read off it into `0C200H` (`C3 C8 C4 …`).
+
+**What is not done is the hand-over.** The machine does not reach `A0>`, and the
+measurement says why: after the chain the guest is in the ROM's IEEE-488 output
+routine with the bank back in ROM. `CBOOT` is what initialises the CBIOS's RAM —
+the IOBYTE at page zero+3, `LLIMIT`, `IEADR`, the DMA cells — and nothing has run
+it, so the first console call the MD-10 BIOS makes is dispatched with those cells
+uninitialised. `HCBOOT` therefore needs **CBOOT's initialisation without CBOOT's
+final jump** (CBOOT ends by entering the CCP, which is not loaded yet on this
+path), and that code has to run *after* the bank switch — that is, from RAM, which
+is a decision about where it lives and the next step.
+
 ### 4.7 The ROM 2.0 jump table, and the 150-byte budget
 
 The legacy table is preserved exactly — 53 entries, same numbers, same semantics
@@ -584,6 +621,12 @@ LARGE` guard will fail the assembly if it is wrong — which is the right place 
 find out. **Plan B if it does not fit:** the loader moves into bank 3 and is paged
 in by a ~12-byte trampoline in the monitor, which buys a full 4 KB for loader code
 at the cost of one bank. `MEMTEST` is the first thing to move there.
+
+**Measured, not estimated.** `HCBOOT` as built is **67 bytes** — `0F67`–`0FA9` —
+with 82 bytes still free to the guard, and the stock 1.44 below `0F67h` is
+byte-identical (§4.6). The estimate above was ~126 of 150 for the whole new
+monitor; `HCBOOT` is the part of it that is written, and it came in under its
+share.
 
 ### 4.8 The feature set: what to take from OZROM, and what to refuse
 
@@ -758,7 +801,10 @@ filled in from the hard-disk chain that is already measured.
    the **no-disk** goal's 11776 bytes, which is the only thing that needs a
    selector.
    **And the boot's half is built**: `softrom_device` serves the window and
-   `-softrom` names the image (§4.1b), accepted by `softrom-check.sh`.
+   `-softrom` names the image (§4.1b), accepted by `softrom-check.sh`; and
+   ROM 2.0's monitor now *assembles* with `HCBOOT` filled in and runs the chain
+   into the MD-10 BIOS (§4.6), accepted by `rom2-check.sh`. What is left of the
+   chain is the hand-over — CBOOT's initialisation, from RAM (§4.6, item 10).
 2. **Does ROM 2.0's monitor code fit in 150 bytes?** The estimate in §4.7 says yes
    with ~24 bytes to spare; the assembler's guard is the arbiter. Plan B is a
    banked loader.
@@ -793,6 +839,18 @@ filled in from the hard-disk chain that is already measured.
    for at boot. Nothing here defines that conversation, and the boot screen is the
    first thing that needs it — so it will otherwise accrete out of the first
    implementation, which is exactly what #155 exists to prevent.
+10. **The hand-over: CBOOT's initialisation, and where that code lives.** The
+   chain works and stops one step short (§4.6). `HCBOOT` gets the CBIOS and the
+   MD-10 BIOS into RAM and hands over, but `CBOOT` is what initialises the CBIOS's
+   own RAM — the IOBYTE, `LLIMIT`, `IEADR`, the DMA cells — and on this path
+   nothing has run it, so the MD-10 BIOS's first console call is dispatched with
+   those cells uninitialised and the guest ends up in the ROM's IEEE-488 routine.
+   `CBOOT` itself cannot be called: it finishes by entering the CCP, which is not
+   loaded yet. So the next step is that initialisation *without* its final jump,
+   and it has to run after the bank switch — from RAM. **Where it lives is the
+   decision** (a stub in the payload's spare, copied into RAM by `HCBOOT`, is the
+   obvious shape), and it is the same question §8 item 7 asks about the map at the
+   moment the boot screen runs.
 
 ## Sources
 
