@@ -173,6 +173,23 @@ echo "=== the operating system's relocation base (md10reloc.py) ==="
 if "$HERE/md10reloc.py" --os "$OUTDIR/md10-os.bin" \
         --out "$OUTDIR/md10-os-fixed.bin"; then
     echo "  -> $OUTDIR/md10-os-fixed.bin is the bootable O/S for this drive"
+    # 6. and put it *on* the drive, because the installer's own base is not
+    #    always the load base (measured: `eq11` comes out at 0xB900, nine pages
+    #    low, and `321,8,18 eq11` at 0xC100) and an O/S at the wrong base
+    #    warm-boots for ever (#198).  `configured.raw` stays exactly what
+    #    PREP.COM wrote; the corrected drive is its own artifact.
+    if cmp -s "$OUTDIR/md10-os.bin" "$OUTDIR/md10-os-fixed.bin"; then
+        echo "  PREP.COM's base was already the load base; the drive boots as it is"
+        cp "$OUTDIR/configured.raw" "$OUTDIR/bootable.raw"
+    else
+        echo "  correcting the drive: the O/S at LBA 5 is replaced"
+        cp "$OUTDIR/configured.raw" "$OUTDIR/bootable.raw"
+        dd if="$OUTDIR/md10-os-fixed.bin" of="$OUTDIR/bootable.raw" \
+            bs=512 seek=5 count=11 conv=notrunc 2>/dev/null
+    fi
+    "$CHDMAN" createhd -i "$OUTDIR/bootable.raw" -o "$OUTDIR/bootable.chd" \
+        -c none -chs "$CHS" -ss 512 -f >/dev/null 2>&1 || \
+        echo "  (no bootable.chd: chdman createhd failed)" >&2
 else
     echo "  md10reloc.py refused to write; read its report above before using" >&2
     echo "  this drive -- an O/S at the wrong base warm-boots for ever (#198)" >&2
@@ -200,8 +217,11 @@ echo
 echo "wrote, in $OUTDIR:"
 echo "  work.chd          the configured drive (as MAME left it)"
 echo "  configured.raw    the same drive, extracted"
+echo "  bootable.raw      the same drive with the O/S at its load base -- boot this"
+echo "  bootable.chd      bootable.raw as a CHD, for -harddisk"
 echo "  lba0-15.bin       its first sixteen blocks (a header artifact)"
 echo "  md10-os.bin       the O/S PREP.COM wrote (LBA 5, 11 blocks)"
+echo "  md10-os-fixed.bin the same O/S re-relocated to 0xC200, if it needed it"
 echo "  keys.txt          the PREP.COM session, for the record"
 echo "  prep.log          the session's output -- the evidence"
 

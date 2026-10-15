@@ -29,6 +29,26 @@ WHY THIS EXISTS
     subtracted a constant `--shift` whatever the delta was, which silently
     broke an already-correct capture.
 
+    **A capture can also sit *below* the load base, and that is not fatal
+    (measured 2026-10-15).** `md10prep.sh 1200,8,18 eq11` writes base `0xB900`
+    -- nine pages low -- and `md10prep.sh 321,8,18 eq11` writes `0xC100`, one
+    page low, while `eq3`/`eq6` and the standard partition options all come out
+    at `0xC200`.  `PREP.COM` does not store a base: it relocates with a bit-map
+    walk (`add a,<page>` at `2A9E`, self-patched) and *computes* the page as
+    `*(0x0002) - ceil(size/0x100)`, where `*(0x0002)` is the top of the memory it
+    is running in and `size` is accumulated over its own 24-byte drive-table
+    records (`0x277C`-`0x2830`); the CCP is then placed `0x16` pages below that
+    and the BDOS `+8` above the CCP (`0x292F`-`0x295F`).  So the page is a
+    property of the *run*, and it moves as the layout grows -- which is why the
+    bigger layouts miss.
+
+    The correction is a page *add*, so it works in either direction: a capture
+    below the load base is shifted **up** by the same arithmetic that shifts one
+    above it **down**.  And the load base is not a matter of taste -- the image
+    is 0x1600 bytes and the MD-10 BIOS starts at 0xD800, so the only placement
+    that fits is `0xD800 - 0x1600 = 0xC200`.  That is the check: the two regions
+    must agree on the shift, and the CCP's entry must land on `LD SP,nn`.
+
 WHY THE CORRECTION IS MEASURED, NOT GUESSED
     `HARDCCP.SPR` and `HARDBDOS.SPR` on the 2.01 utilities disk are the
     *relocatable* source `PREP.COM` relocates from (each carries a 0x100-byte
@@ -133,6 +153,7 @@ def build(args):
 
     out = bytearray(captured)
     total = 0
+    seen = []
     for label, lo, hi, base, body in regions:
         delta, hist = relocate_delta(captured[lo:hi], body)
         spread = {k: v for k, v in hist.items() if v > 4}
@@ -155,14 +176,18 @@ def build(args):
             pages = args.shift // 0x100
             print("  --shift override: 0x%X" % args.shift)
         print("  relocation delta %02X (a base 0x%04X) -> load base 0x%04X: "
-              "%d page(s)" % (delta, delta << 8, base, pages))
-        if pages < 0:
-            print("  capture sits %d page(s) *below* 0x%04X; refusing"
-                  % (-pages, base))
-            return 1
+              "%+d page(s) (%s)"
+              % (delta, delta << 8, base, pages,
+                 "down" if pages > 0 else "up" if pages < 0 else "none"))
+        seen.append((label, pages))
         if pages == 0:
             print("  already at its load base -- nothing to change")
             continue
+        # One page *add* either way.  The capture is `body` relocated to
+        # `delta << 8` and the load base is `base`, so every relocated operand
+        # high byte moves by `(base >> 8) - delta` -- down when the capture is
+        # above the load base, up when it is below.  `out[i] = captured[i] -
+        # pages` is that sum, so it needs no sign test.
         n = 0
         for i in range(lo, hi):
             j = i - lo
@@ -172,6 +197,16 @@ def build(args):
                 n += 1
         total += n
         print("  %d bytes re-relocated" % n)
+
+    # The regions are one image, so they must agree about the shift.  They are
+    # relocated by the same page in every capture measured, so a disagreement
+    # means the delta derivation is wrong for one of them -- and the CCP/BDOS
+    # placement is a fixed 8 pages apart (`PREP.COM`'s `add a,008h` at 0x295D),
+    # so a half-corrected image is a warm-boot loop rather than a crash.
+    if len({p for _, p in seen}) > 1:
+        print("  the regions disagree about the shift (%s); refusing to guess"
+              % ", ".join("%s %+d" % t for t in seen))
+        return 1
 
     if args.dry_run:
         print("dry run: nothing written (%d bytes would change)" % total)
