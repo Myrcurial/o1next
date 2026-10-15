@@ -630,7 +630,7 @@ dump at `A0>` on a booted machine (and the sources for the rest) gives the map:
 | `E100-E8FF` | the CBIOS | no |
 | `E900-EA7F` | the CBIOS's own ALV, CSV and scratch (`occram15.asm`, `ORG CCP+1E00h`, guarded by `YYY > MRAM`) | no |
 | `EA80-EAFF` | `MRAM`, the ROM's host buffer | no |
-| `EB00-EBFF` | unclaimed, unmeasured — this patch does not use it | ? |
+| `EB00-EBFF` | **inside `HSTBUF`** — the monitor's own 1152-byte host buffer, `MRAM = 0EA80h` with `HSTBUF: DS 1024+128` (`occram25.asm`), so `EB00` is its interior. The CBIOS uses it as the **deblocking transfer buffer** (`occbio65.asm`: `LDK DE,HSTBUF ;initial offset`) and re-points the **ROM's DMA** at it on every warm boot (`occbio55.asm`: `LDK HL,HSTBUF` / `STO HL,DMADR ;set ROM DMA address`). **Not ours.** Zero when idle, which is exactly the trap | no |
 | `EC00-EE7F` | **Pocket B**, 640 bytes | **yes** |
 | `EE80-EEFF` | `DIRBUF`, shared by all three drives | no |
 | `EF00-EFFF` | the monitor's cells and stack (`ROMSTK` `EFC1`, `CCPADR` `EFD2`, …), live after the hand-over | no |
@@ -656,13 +656,32 @@ of two unrelated limits: `ALV = disk / (8 x block)`, so 16 KiB blocks would put
 32 MiB partitions at 256 bytes each, inside the budget with room to spare.
 `--bsh` is in the tool for that day.
 
-One more field is worth recording rather than fixing. The shipped DPB has
-`EXM = 1` with `BSH = 5`, where the standard relation
-(`EXM = 2^(BSH-3) - 1`, i.e. 16 block pointers must cover `(EXM+1) x 16 KiB`)
-gives **3**. The shipped value is the one that boots and takes a write, so the
-tool keeps it at `BSH = 5` and uses the standard value elsewhere; `--exm`
-overrides. Whether `EXM = 1` mis-handles a file past one logical extent is *not*
-measured — nothing has ever written more than 1 KB to an MD-10 partition (§9.1).
+One more field, and it turned out to be wrong in the *tool* rather than in the
+vendor. The shipped DPB has `EXM = 1` with `BSH = 5`, and an earlier revision of
+`md10dpb.py` recorded that as the vendor being internally inconsistent: the
+relation it knew — `EXM = 2^(BSH-3) - 1`, i.e. 16 block pointers must cover
+`(EXM+1) x 16 KiB` — gives **3**. It does not. Digital Research's own DPB
+generator settles it. `DISKDEF.LIB`, in the CP/M 2.2 sources
+(`UTILSRC/DISKDEF`):
+
+```
+blkval  set  bls/1024          ; number of kilobytes/block
+extmsk  set  0                 ; fill from right with 1's
+...
+; may be double byte allocation
+    if  (dks) > 256
+    extmsk  set  (extmsk shr 1)
+    endif
+```
+
+so the mask is **halved once the disk is past 255 blocks**, because a directory
+entry then holds eight 16-bit block pointers instead of sixteen and one entry
+therefore covers half as many bytes. That is Alteration Guide Table 6-9 as well
+(BLS 8,192: 7 for `DSM < 256`, 3 for `DSM > 255`). **`EXM = 1` at
+`BSH = 5` / `DSM = 1923` is correct.** The tool had it right only because
+`BSH = 5` was hardcoded; at every other block size it wrote the `DSM < 256`
+value, which is 7 where `BSH = 6` wants 3. Fixed 2026-10-15 (§9.3); `--exm`
+still overrides.
 
 **3. What `PREP.COM` will actually make.** Its partition menu has five entries,
 not three:
@@ -724,6 +743,120 @@ be patched in place: they have to come from ROM 2.0's `HCBOOT` payload (497 byte
 spare, `rom2.diff`) or from a grown `HARD.COM`. `md10dpb.py` refuses an unequal
 layout with that reason rather than guessing. And a partition past 8 MiB needs a
 partition table written outside `PREP.COM`.
+
+
+### 9.3 The block size: `BSH = 6`, measured (2026-10-15)
+
+§9.2 ends on `ALV = disk / (8 x block)` and notes that `--bsh` was in the tool
+"for that day". This is that day, and the day's result is that **the toolset
+already does 8 KiB blocks** — with one field wrong, now fixed.
+
+**What it costs to change.** Nothing outside the DPB. The partition records in
+the label hold **512-byte sectors** (`CP/M-A start=20 length=15399`), not CP/M
+blocks, so the drive, the partition table, `PREP.COM` and the BIOS are all
+unchanged; `BSH`/`BLM`/`EXM`/`DSM`/`AL0` are BDOS-side fields, and the BDOS does
+the record-to-sector arithmetic from `SPT` (which is the partition *in records*,
+so the sector number stays linear and both block sizes fit the same 16-bit
+field). The same PYXIS27 drive boots either way.
+
+**Measured, in the machine.** `rom2-check.sh` with `O1_BSH=6` patches the DPB,
+feeds the patched `HARD.COM` to `rom2image.py --hard`, and runs the same nine
+checks:
+
+| | shipped `BSH=5` | `BSH=6` |
+|---|---|---|
+| DPB at `DDB6` | `9c f0 05 1f 01 83 07 ff 03 ff 00 …` | `9c f0 06 3f 03 c1 03 ff 03 f0 00 …` |
+| `BLM` / `EXM` / `DSM` / `AL0` | `1F` / 1 / 1923 / `FF` | `3F` / 3 / 961 / `F0` |
+| blocks per partition | 1924 | 962 |
+| **the partition** | 7 880 704 B | 7 880 704 B |
+| directory blocks | 8 | 4 |
+| **usable file space** | 7 847 936 B | **7 847 936 B** |
+| ALV per drive | 241 B | **121 B** |
+| three ALVs | 723 of 1451 B | **363 of 1451 B** |
+| `rom2-check.sh` | 9 PASS, `A0>` | **9 PASS, `A0>`** |
+
+The allocation is right, not just the boot. Reading the machine's own ALV at
+`DDC5` out of RAM at `A0>` and after two `SAVE`s:
+
+| step | allocated blocks | expected |
+|---|---|---|
+| at `A0>` | 4 | the directory's 4 blocks (`AL0 = F0`) |
+| after `SAVE 200 T.DAT` (51 200 B) | 11 (+7) | `ceil(51200/8192)` = 7 |
+| after `SAVE 1 S.DAT` (256 B) | 12 (+1) | `ceil(256/8192)` = 1 |
+
+and `DIR` lists both files. Those two points also bracket the small-file slack:
+**12% wasted on a 51 KB file, 97% on a 256-byte one**, with a FOG-library-like
+mix averaging about 42% at 8 KiB against 24% at 4 KiB.
+
+**What it buys, and what it does not.** Per-partition capacity is *identical* —
+1916 x 4096 = 958 x 8192 — so 8 KiB blocks give **no capacity on their own**.
+What they give is the ALV back, and the ALV is the per-drive cost (`CKS = 0`
+because the media is fixed, so there is no checksum vector). An 8 MiB partition
+at each block size:
+
+| `BLS` | `BSH` | blocks | ALV | drives in 1451 B | total |
+|---|---|---|---|---|---|
+| 2 KiB | 4 | 4096 | 512 B | 2 | 16 MB |
+| 4 KiB | 5 | 2048 | 256 B | 5 | 40 MB |
+| **8 KiB** | **6** | **1024** | **128 B** | **11** | **88 MB** |
+| 16 KiB | 7 | 512 | 64 B | 22 | 176 MB |
+
+CP/M has 16 letters and two go to the floppies, so 14 are available to the disk —
+**at `BSH = 6` the ALV binds first, at 11 partitions (88 MB)**. So the block size
+is not itself a capacity feature: it is what makes the drive *count* reachable,
+and the count is what the descriptor table has to be grown to. Until that is
+done, 8 KiB blocks would cost density and buy nothing.
+
+**But the ALV is not the whole per-drive cost, and the rest is the swing factor.**
+A drive also needs its **24-byte descriptor**, and the driver's table is full at
+three: it sits at `DD6E` inside the BIOS image with the DPB immediately after it
+at `DDB6`, and the image itself ends at `DDC5` — Pocket A. So the descriptors need
+a home of their own. **Settled 2026-10-15: there is no fourth home to find.** The
+one region the map above left as `?`, `EB00-EBFF`, is the *interior* of the
+monitor's own `HSTBUF` (see §9.2), so the free RAM is exactly the 1451 bytes, and
+the descriptors have to come out of it:
+
+| descriptors come from | per drive | drives at 8 MiB | drives at 7.5 MiB |
+|---|---|---|---|
+| their own 24 bytes, out of the 1451 | 152 B | **9** | 9 |
+| **a shared DPH**, 4-byte (DPB, ALV) pair each + one 18-byte DPH | 132 B | **10** | **11** |
+
+**And the shared-DPH question is answered — measured, 2026-10-15.** The type table at
+`DD5E` maps drive to descriptor, so one byte points drive 3 (`D:`) at descriptor 0 —
+the same one `A:` uses. That is the *extreme* case of sharing: two letters, one
+descriptor, one DPH, one ALV, one DPB. It works, both ways:
+
+```
+A0>SAVE 1 A:A.DAT          A0>DIR D:
+                           D: A        DAT        <- D: shows A:'s file
+A0>SAVE 1 D:D.DAT          A0>DIR A:
+                           A: A        DAT : D        DAT
+A0>DIR E:                  Unformatted diskette on drive B
+```
+
+So **a per-drive DPH is not required** — the DPH's 8 scratch bytes do not need to be
+per-drive state, which is the thing that would have forced 24 bytes each. Only what
+*genuinely* differs must be per drive: the **ALV** (which must be unique) and the
+**DPB** (for unequal partitions). A shared 18-byte DPH with those two pointers copied
+in at `SELDSK` time costs 4 bytes a drive. The floppies simply move up: `E:` was the
+first physical floppy in that run, not `D:`.
+
+**So the answer is 11 partitions of 7.5 MiB, or 10 of 8 MiB** — 82.5 MB and 80 MB
+respectively — and **9** is the floor if the shared DPH turns out not to hold up
+under real traffic. What is left is implementing it, not deciding it.
+
+One trap worth recording, because it caught this session: a **stale ROM 2.0
+monitor image** in a scratch directory (built before #247 step 4, so still
+`CP 1Bh` at `0x0048`) makes `rom2image.py` refuse with "the sign-on dispatch is
+not ROM 2.0's key map". That is the check working — rebuild with `rom2asm.sh`.
+
+**Not an in-place conversion.** Block numbers *are* byte offsets, so changing
+`BSH` on a populated partition scrambles the mapping: the directory entries
+survive, the block lists do not. Re-create the partitions and re-copy the files.
+That costs nothing here — we build drives with `PREP.COM` and there is no
+installed base to be compatible with — but it is why this is a design decision
+and not a field upgrade.
+
 
 
 ## 10. The test that was named, and its answer

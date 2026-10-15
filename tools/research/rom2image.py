@@ -523,14 +523,23 @@ def main(argv=None):
         repo, "research", "adaptec",
         "Osborne Hard Disk Control Software Version 2.01 (1984).img"),
         help="the 2.01 utilities disk HARD.COM comes off")
+    ap.add_argument("--hard", default=None,
+                    help="a *raw* HARD.COM to use instead of pulling the vendor's "
+                         "off --harddisk, for a patched driver -- e.g. one from "
+                         "tools/research/md10dpb.py.  Saves writing a CP/M image "
+                         "just to change 15 bytes of DPB.")
     ap.add_argument("--work", default="/tmp/o1rom2",
                     help="scratch directory for the de-skewed raw image")
     ap.add_argument("--payload-only", action="store_true",
                     help="write just the %d-byte payload" % PAYLOAD_SIZE)
     args = ap.parse_args(argv)
 
-    for label, path in (("monitor", args.monitor), ("system disk", args.sysimd),
-                        ("HARD.COM disk", args.harddisk)):
+    checks = [("monitor", args.monitor), ("system disk", args.sysimd)]
+    if not args.hard:
+        checks.append(("HARD.COM disk", args.harddisk))
+    else:
+        checks.append(("HARD.COM", args.hard))
+    for label, path in checks:
         if not os.path.exists(path):
             raise SystemExit("rom2image.py: no %s at %s" % (label, path))
     os.makedirs(args.work, exist_ok=True)
@@ -542,7 +551,10 @@ def main(argv=None):
     stock = open(os.path.join(repo, "research", "roms", "os1-144.rom"), "rb").read()
     try:
         sysimg = read_sys_image(args.sysimd, args.work)
-        hard = read_hard_com(args.harddisk)
+        if args.hard:
+            hard = open(args.hard, "rb").read()
+        else:
+            hard = read_hard_com(args.harddisk)
         image, payload, notes = build(monitor, sysimg, hard, stock)
     except Fail as exc:
         raise SystemExit("rom2image.py: ANCHOR MOVED -- %s\n"
