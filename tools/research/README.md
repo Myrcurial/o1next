@@ -212,8 +212,15 @@ scratch programs, "figuring it out" notebooks/scripts.
   `:00000001FF`. `--recover-ff` handles the one damage #203 actually saw — a
   record that reaches the image with six non-hex bytes in it — and only when the
   record's *own* checksum agrees that its content was 16 bytes of `FF`.
+  Two more options exist for the damage that arrives as a *run* of records
+  replaced by `0xC0DE` pairs, where the checksum says nothing (#247): every gap is
+  reported, `--fill-reference ROM` takes the gap bytes from the reference — the
+  honest fill for a ROM 2.0 build, which *is* the shipped 1.44 with new code above
+  `0F67h` — and `--covered-range LO HI` **refuses to build** (exit 2) when a gap
+  falls inside the new code's own range, which is the one place a gap must never
+  be. See `docs/rom-13-reconstruction.md` §7 for the hazard itself.
 - **`rom2strokes.py`** — reads the authored boot-screen art as *geometry*, to see
-  whether it fits ROM 2.00's **511-byte** window spare, and settles that it does
+  whether it fits ROM 2.00's **497-byte** window spare, and settles that it does
   not need to. Three findings, all measured (#83):
   **the stripes are free** — the art is 14 content rows interleaved with 14 blank
   ones, so a stem spanning nine content rows is one continuous stem the machine
@@ -243,16 +250,21 @@ scratch programs, "figuring it out" notebooks/scripts.
   stale. It needs the standard library and two files in the repo, and nothing
   else, so `.github/workflows/generated-artifacts.yml` runs it.
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
-  **7681-byte image** from the repo's own files and re-checks every anchor the
-  design quotes, exiting non-zero if one moves. In: the stock 1.44 monitor, the
-  CBIOS off `OS1SYSD.IMD`, and the MD-10 BIOS image plus its 60-byte
-  install/patch/jump block out of `HARD.COM` on the 2.01 utilities disk. Out:
-  monitor at `0000`, then the payload in the window — CBIOS `1000`, MD-10 BIOS
-  `1800`, shim `1DC5`, and **511 bytes spare** for the boot screen and the new
-  features. Two things worth knowing: **`HARD.COM` is a CP/M `.COM`, so its file
-  offset is its address minus `0x0100`** (reading the length operand at `0x0547`
-  as a file offset gives `0x6F3A` instead of `0x05C5`), and the shim is the
-  *vendor's own 60 bytes* with exactly two operands relocated — the `LD HL,nn`
-  source address and the `LD BC,(nn)` length. The monitor is still the stock
-  1.44, so the output is a **content image**: not bootable until `rom2asm` lands
-  and calls the shim. See `docs/o1-rom-2.0.md` §2.3 and §6.
+  **7695-byte image** from the repo's own files and re-checks every anchor the
+  design quotes, exiting non-zero if one moves. In: the monitor (the stock 1.44, or
+  ROM 2.0's), the CBIOS off `OS1SYSD.IMD`, the MD-10 BIOS image plus the vendor's
+  60-byte loader block out of `HARD.COM` on the 2.01 utilities disk, and the
+  14-byte hand-over stub (#247). Out: monitor at `0000`, then the payload in the
+  window — CBIOS `1000`, MD-10 BIOS `1800`, the vendor's loader block `1DC5`, the
+  stub `1E01`, and **497 bytes spare** for the boot screen and the new features.
+  Things worth knowing: **`HARD.COM` is a CP/M `.COM`, so its file offset is its
+  address minus `0x0100`** (reading the length operand at `0x0547` as a file offset
+  gives `0x6F3A` instead of `0x05C5`); the loader block is the *vendor's own 60
+  bytes* with exactly two operands relocated — the `LD HL,nn` source address and
+  the `LD BC,(nn)` length — and **nothing calls it**, because the machine forces
+  `HCBOOT` to do that work in the monitor (`docs/o1-rom-2.0.md` §4.6); and the
+  stub's address and length are a *cross-file* anchor, so the tool looks for
+  `HCBOOT`'s own `LD HL,1E01h / LD DE,0E0F0h / LD C,0Eh / LDIR` in the monitor and
+  fails the build if the two files disagree. Built on the stock monitor the image
+  is a **content image** and does not boot; built on ROM 2.0's it boots (§4.6, §7).
+  See `docs/o1-rom-2.0.md` §2.3 and §6.

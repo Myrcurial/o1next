@@ -59,7 +59,7 @@ mame osborne1nx -rompath tools/emulator-setup/roms \
 **`-softrom` mounts a ROM image over the machine's own** — the interposer's
 softROM, serving the 8 KB window `0000-1FFF` (#247). With none mounted the
 window is the machine's stock 1.44, so an image-less `osborne1nx` *is* an
-`osborne1`; with `tools/research/rom2image.py`'s 7681-byte image mounted it boots
+`osborne1`; with `tools/research/rom2image.py`'s 7695-byte image mounted it boots
 identically too, because that image's monitor is still the stock 1.44. See "The
 softROM window" below, and `softrom-check.sh` for the acceptance.
 
@@ -107,7 +107,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the **data-out** phase (`MODE SELECT`, `SEND DIAGNOSTIC`) | **yes** — both complete |
 | the **softROM window** — all 8 KB of `0000-1FFF`, three ways | **yes** — `o1next-softrom.lua`, all 8192 bytes, in `softrom-check.sh` |
 | **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
-| **`-softrom` (the 7681-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
+| **`-softrom` (the 7695-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
 | **ROM 2.0's `HCBOOT`** — the CBIOS, the MD-10 BIOS, its patch, the bank, the read | **yes** — `rom2boot.lua`, five checks, in `rom2-check.sh` |
 | ROM 2.0 booting the hard disk to `A0>` | **not yet** — one store short, and the store is measured and the fix proved (`rom2trace.lua`, `rom2bank.lua`, `rom2handover.lua`); see below |
 | the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** — re-measured after the window change, unchanged |
@@ -127,8 +127,8 @@ monitor twice across it, and MAME's own map says so in one line
 | 4 KB or less | the image, mirrored — the image *is* the stock part |
 | larger | two pages: `0000-0FFF` and `1000-1FFF`; past the image's end, `0xFF` (erased flash) |
 
-`tools/research/rom2image.py`'s image is **7681 bytes** — the stock monitor plus
-the 3585-byte payload — so the 511 bytes it does not cover are the payload's
+`tools/research/rom2image.py`'s image is **7695 bytes** — the stock monitor plus
+the 3599-byte payload — so the 497 bytes it does not cover are the payload's
 spare, and they read `0xFF`.
 
 **Why the boot alone is not the acceptance.** The stock monitor never reads page
@@ -142,9 +142,10 @@ three ways and the boot comparison three ways, and is one command:
 tools/emulator-setup/mame-osborne1nx/softrom-check.sh
 ```
 
-Measured on 2026-10-14: `PASS` on all five, with the 7681-byte image reading
-`C3 ED E4 …` at `1000h` (the CBIOS's first bytes) against `31 C1 EF …` at `0000h`
-(the monitor's), and `FF` from `1E01h` to `1FFFh`.
+Measured on 2026-10-14, and again on 2026-10-15 with the hand-over in the image:
+`PASS` on all five, with the 7695-byte image reading `C3 ED E4 …` at `1000h` (the
+CBIOS's first bytes) against `31 C1 EF …` at `0000h` (the monitor's), the hand-over
+stub at `1E01h`, and `FF` from `1E0Fh` to `1FFFh`.
 
 ### ROM 2.0's monitor, and `HCBOOT`
 
@@ -159,13 +160,16 @@ harness reads the chain back stage by stage:
   PASS  the MD-10 BIOS's own jump table is at 0D800h
   PASS  it is patched from the CBIOS's vectors (5 LDIRs, 90 bytes)
   PASS  the bank switched to RAM at some point after ESC
+  PASS  the hand-over stub is in RAM at 0E0F0h, and it is the window's 1E01h
+  PASS  CCPADR (0EFD2h) is CB00h, the store the ROM's own CBOOT makes
   PASS  the system was read off the drive into 0C200h     (with O1_HARD)
+  PASS  the machine reached A0> -- the ROM booted the hard disk, no floppy
 ```
 
-The chain is what the ROM is responsible for, and it is complete. The machine does
-**not** then reach `A0>`, and the reason is measured — it is one cell, `CCPADR`
-(`0EFD2h`), which the ROM's own `CBOOT` writes and `HCBOOT` was lifted without
-(`docs/o1-rom-2.0.md` §4.6, §8 item 10):
+The chain *and* the prompt are what the ROM is responsible for, and both are
+complete: with a drive mounted the machine reaches `A0>` **with no floppy in it**.
+The last piece was one cell, `CCPADR` (`0EFD2h`) — the cell the ROM's own `CBOOT`
+writes and `HCBOOT` was lifted without (`docs/o1-rom-2.0.md` §4.6, §8 item 10):
 
 - The ROM's 60 Hz interrupt handler ends by returning *through the CBIOS* —
   `ROMJP1` = `CCPADR + 1633h`, the CBIOS's `RRI`, whose `OUT (C),A` restores the
@@ -180,19 +184,20 @@ The chain is what the ROM is responsible for, and it is complete. The machine do
 
 `rom2trace.lua` samples the PC and unwinds the stack to show where the machine
 went; `rom2bank.lua` taps the IOBYTE read and the bank selects to show why. The
-contrast is the finding:
+same instrument, before the store was built and after:
 
-| | stock boot | ROM 2.0's hand-over |
-|---|---|---|
-| reads of `0003h` | 858, **all `80h`** (RAM → CRTOUT) | **1, returning `D3h`** (the ROM → IEEE) |
-| bank selects | 454 `OUT 0`, 492 `OUT 1` | 1 `OUT 1` (HCBOOT), 1 `OUT 0` (the trampoline) |
-| `CCPADR` → the handler's exit | **`CB00h` → `E133h`**, the CBIOS's `RRI` | **`0000h` → `1633h`**, the payload |
+| | stock boot | ROM 2.0, before the store | **ROM 2.0, with it** |
+|---|---|---|---|
+| reads of `0003h` | 858, **all `80h`** (RAM → CRTOUT) | **1, returning `D3h`** (the ROM → IEEE) | **11, all `80h`** (RAM → CRTOUT) |
+| bank selects | 454 `OUT 0`, 492 `OUT 1` | 1 `OUT 1` (HCBOOT), 1 `OUT 0` (the trampoline) | 6 `OUT 0`, **44 `OUT 1`** |
+| `CCPADR` → the handler's exit | **`CB00h` → `E133h`**, the CBIOS's `RRI` | **`0000h` → `1633h`**, the payload | **`CB00h` → `E133h`** |
 
-**The fix is that one store, and it is proved before it is built.** Poke
-`CCPADR = CB00h` (and the CBIOS's own IOBYTE, `80h`, at page zero+3) into RAM just
-after the hand-over and the machine boots to `A0>` **with no floppy in the
-machine**. What is left is where that code lives — it must run after the bank
-switch, so from RAM.
+**The store is built.** `rom2handover.lua` proved it first by poking `CCPADR` into
+RAM from outside; `HCBOOT` now does it itself — it copies a 14-byte stub out of the
+payload's spare into RAM at `0E0F0h`, pushes *that* address instead of `0D800h`,
+and `SW2RAM`'s `RET` enters it. `rom2boot.lua` reads the stub's bytes back and
+checks `CCPADR`, so a build that lost the store fails the run rather than sitting
+at the sign-on prompt for ever.
 
 **A stale `/tmp/rom2.rom` looks exactly like `HCBOOT` not working.** The image is
 two steps (`rom2asm.sh`, then `rom2image.py`); reuse an older `/tmp/rom2.rom` and
