@@ -20,8 +20,16 @@
 #   tools/research/md10prep.sh 321,4,18 2 /tmp/md10 MD10SYS    # PYXIS13, MD-10
 #
 #   PARTITIONS is 2, 3 or 6 -- PREP.COM's "Two / Three / Six logical drives"
-#   (MD-10 / MD-20 / MD-44).  Only 2 and 3 have a captured layout; 6 is offered
-#   because the menu has it, and it will warn about the DPB below.
+#   (MD-10 / MD-20 / MD-44), each a *fixed* layout -- or `eqN`, which is
+#   PREP.COM's option 4, "Non-standard equal drive partitioning", N drives
+#   dividing the disk.  That is the only way to a bigger partition, and it is
+#   also capped: PREP.COM refuses a partition over **16384 blocks (8 MiB)**,
+#   measured -- see md10dpb.py, and docs/md10-system.md 9.2.
+#
+#   A trap worth knowing, because it cost a reproduction: after the partition step
+#   PREP.COM returns to the *main* menu by itself, for every option, so an `esc`
+#   there exits the program.  The session below waits for "Initializing all
+#   partitions" and then presses nothing until it is back at the main menu.
 #
 #   The O/S is *not* left ready to boot.  PREP.COM relocates it to whatever base
 #   its own arithmetic picks, which is not always the load address (two captures
@@ -64,10 +72,18 @@ esac
 [ -f "$UTILS" ] || { echo "md10prep.sh: the 2.01 utilities disk is missing: $UTILS" >&2; exit 1; }
 
 case "$PARTS" in
-    2) MENU_KEY=1 ;;
-    3) MENU_KEY=2 ;;
-    6) MENU_KEY=3 ;;
-    *) echo "md10prep.sh: PARTITIONS must be 2, 3 or 6 (PREP.COM's menu)" >&2; exit 1;;
+    2) MENU_KEY=1 ; EXTRA="" ;;
+    3) MENU_KEY=2 ; EXTRA="" ;;
+    6) MENU_KEY=3 ; EXTRA="" ;;
+    eq*) N="${PARTS#eq}"
+         case "$N" in
+             ''|*[!0-9]*) echo "md10prep.sh: eq needs a count, e.g. eq3" >&2; exit 1 ;;
+         esac
+         MENU_KEY=4
+         EXTRA="wait number of logical drives
+type $N" ;;
+    *) echo "md10prep.sh: PARTITIONS must be 2, 3, 6 or eqN (PREP.COM's menu)" >&2
+       exit 1;;
 esac
 
 mkdir -p "$OUTDIR"
@@ -114,9 +130,9 @@ sleep 3
 key 4
 wait Partition definition menu
 key $MENU_KEY
-sleep 12
-key esc
-sleep 2
+$EXTRA
+wait Initializing all partitions
+sleep 30
 key 3
 wait drive address
 key cr
@@ -169,8 +185,15 @@ shared DPB for all hard-disk drives (DSM=1923 -> 7.5 MiB usable), so a partition
 larger than 15399 blocks is bigger than CP/M will ever use, and a smaller one is
 over-claimed by CP/M -- writing a large file to it runs into the next partition
 (docs/md10-system.md 9).  PYXIS27 with three 15399-block partitions is the layout
-that matches, and it is `md10drive.py --layout md20`.  Making the driver support
-larger partitions is #247's driver-patch step.
+that matches, and it is `md10drive.py --layout md20`.
+
+`tools/research/md10dpb.py` is the patch for that: give it the three partition
+sizes and it rewrites the DPB and the three ALV pointers in HARD.COM, placing the
+ALVs in the RAM that is actually free.  At the shipped 15399 it reproduces the
+vendor's file byte for byte; at PREP.COM's 16384-block (8 MiB) ceiling it fits
+with 683 bytes of the 1451 to spare.  Past 8 MiB, PREP.COM will not make the
+partition and three *different* sizes need three DPBs, which HARD.COM has no room
+for -- docs/md10-system.md 9.2.
 NOTE
 
 echo
