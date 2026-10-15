@@ -3,7 +3,11 @@
 **Status: design — a proposal.** The ROM side of #247 is built and measured
 (steps 1–7: the banked window, `HCBOOT`, the hand-over, the 11-drive driver). The
 screen's *mechanism* is measured in the machine. **The firmware side does not
-exist**, and this is the contract it is written against.
+exist**, and this is the contract it is written against — except for the door
+itself, which the *emulated* interposer now implements (`softrom_device`'s
+selector and transaction, `romservice-check.sh`) so that the ROM's screen code
+can be written and proved against it. See §2 for the address, which the machine
+corrected, and §7 item 1 for what is left open.
 
 Answers **#247 step 8**. Reads alongside `docs/mailbox-protocol.md` (the
 *host*↔firmware channel, #155 — this is a different client of the same firmware),
@@ -34,7 +38,24 @@ not a preference.
 | Client | Runs in | Can reach | Door |
 |---|---|---|---|
 | `MOUNT.COM` (#27), the clock publisher (#18) | **bank 1** — the TPA, at `0100h` | I/O ports only | **`0E7h`/`0EBh`** — `mailbox-protocol.md` §2 |
-| **ROM 2.0's monitor** | **bank 2**, with the window mapped over `0000–3FFF` | bank-2 memory, and I/O | **`2300h`/`2301h`** — a bank-2 register pair |
+| **ROM 2.0's monitor** | **bank 2**, with the window mapped over `0000–3FFF` | bank-2 memory, and I/O | **`2800h`/`2801h`** — a bank-2 register pair |
+
+**The pair was `2300h`/`2301h` in this document's first draft, and the machine
+corrected it (2026-10-15).** `o1-memory-io-map.md` §7 calls `2300–23FF` the
+largest clean block, and the block's *edges* are clean — but the onboard selects
+check two address bits each, so `0x2301` is the floppy's **track register** as
+well as the keyboard's row 0, and `0x2300` is the floppy's command/status
+register. That is measured, not inferred: `docs/o1-mainboard-schematic.md` §7a
+records it ("`0x2301` is keyboard *and* floppy"), `tools/o1_mame_probe.lua`'s C9
+report prints it, and `o1next-romservice.lua` re-measures it in the machine that
+has the door — the reply register reads what `0x2101` reads, and a reply ANDed
+with a track register sitting at `00h` reads *not ready* for ever. **`2800h` is
+inside the same recommended region and is the part of it that nothing selects**:
+no device mask matches A11 set with A8/A9/A10 clear, so the stock decode reads
+`FFh` there and the door answers alone. §7 item 1 and `o1-memory-io-map.md` §7
+carry the same correction. (The other clean part of that region, `2400–27FF`, is
+the SCREEN-PAC's own decode — presence bit included — which the video
+personality needs.)
 
 **Why the ROM cannot use the ports as its primary door.** The machine's
 **bank/video latch is written on the console path**: `OUT (02h)` and `OUT (03h)`
@@ -42,7 +63,7 @@ toggle the 9th video bit, and the monitor's own reset code wrote the latch
 **301 times in the first second** — `02h` ×150, `03h` ×151 — measured. On a
 comparator-decoded board (Rev B: the 74AHCT688 watches `A8–15`) an I/O claim has
 to see every I/O cycle, and the console path is the busiest I/O this machine has.
-A **bank-2 register is decoded precisely** — `2300h` puts `23h` on `A8–15`, so
+A **bank-2 register is decoded precisely** — `2800h` puts `28h` on `A8–15`, so
 `ADDR_HIT` is exact and the console path is untouched.
 
 **Why `MOUNT.COM` cannot use the memory door.** A program at `0100h` cannot
@@ -50,16 +71,17 @@ select bank 2 without its next instruction fetch coming back as ROM
 (`mailbox-protocol.md` §2). That is not a limitation to work around; it is why
 every onboard device on this machine is reached through the ROM.
 
-**`2300–23FF` is already the recommended block** — `o1-memory-io-map.md` §7 calls
-it "the largest clean block", between the keyboard (`2201–2280`) and IEEE-488
-(`2900–2903`). This document claims two bytes of it.
+**`2800–28FF` is inside the recommended block** — `o1-memory-io-map.md` §7 names
+`2300–28FF` free between the keyboard (`2201–2280`) and IEEE-488 (`2900–2903`),
+and its clean 256 bytes are the ones from `2800h` up. This document claims two
+bytes of it.
 
 **The door's own register layout** is the only thing that differs between them:
 
 | Door | write (`OUT` / store) | read (`IN` / load) |
 |---|---|---|
 | userland | `0E7h` — request: opcode, then operands | `0EBh` — reply: `0` = not ready, else the length, then the bytes |
-| romland | `2300h` — the same request | `2301h` — the same reply |
+| romland | `2800h` — the same request | `2801h` — the same reply |
 
 Both numbers are **firmware constants**, and the protocol is base-relative: if a
 measurement on hardware says otherwise, one line in the firmware and one in each
@@ -218,7 +240,7 @@ no MD-10 BIOS. From `o1-rom-2.0.md` §4.4 and §4.2, confirmed in the machine:
 | `0000–0FFF` | the monitor, in the ROM window, **bank 2** | **no** — it is executing |
 | `1000–1FFF` | window page 1 — the payload, or the frame while the screen is up | yes, and the door owns which |
 | `2000–2FFF` | bank-2 onboard I/O window (memory-mapped) | **no** — it is the machine's I/O |
-| `2300–2301` | **this channel's registers**, inside that window | the firmware's |
+| `2800–2801` | **this channel's registers**, inside that window | the firmware's |
 | `4000–EFFF` | bank-1 RAM, mirrored in bank 2 | yes — nothing has claimed it yet |
 | `F000–FFFF` | the video RAM, or the attribute array when BIT 9 is set | yes — this is the target |
 
@@ -235,11 +257,18 @@ and resets the operand count, so a wedged ROM recovers with `NOP`.
 
 ## 7. What is not decided
 
-1. **The two register addresses.** `2300h`/`2301h` are a proposal, chosen because
-   `o1-memory-io-map.md` §7 calls `2300–23FF` the largest clean block and because
-   the comparator decodes `23h` on `A8–15` exactly. They are confirmed (or
-   corrected) by measurement on hardware, and the protocol is base-relative, so
-   nothing else moves with them.
+1. ~~**The two register addresses.**~~ **Settled by measurement (2026-10-15): the
+   door is at `2800h`/`2801h`, not `2300h`/`2301h`.** The first draft chose
+   `2300–23FF` on `o1-memory-io-map.md` §7's word that it was the largest clean
+   block. It is not clean: the onboard selects check two address bits, so
+   `0x2301` is the floppy's track register *and* the keyboard's row 0
+   (`docs/o1-mainboard-schematic.md` §7a, `tools/o1_mame_probe.lua` C9) — and a
+   reply ANDed with a track register reading `00h` never becomes ready, while a
+   request written to `0x2300` is a floppy command. `2800h` is the part of the
+   same recommended region that nothing selects. Measured in the emulated
+   interposer itself by `o1next-romservice.lua`, whose first check is exactly
+   that comparison; the protocol is base-relative, so the correction moved one
+   constant in the device, one in the machine's map, and the numbers here.
 2. **Whether the attribute half wants a trailer.** It costs eight bytes of the
    ROM's budget to check. The alternative is to trust it whenever the character
    half validates, which is defensible — a bad attribute half is 24 dim cells, not
