@@ -166,8 +166,21 @@ scratch programs, "figuring it out" notebooks/scripts.
   shipped DPB field for field, so patching for 15399 reproduces the vendor's file
   **byte for byte**, and it **refuses** what does not fit, what is past PREP.COM's
   measured 8 MiB ceiling, and an unequal layout (three DPBs are 30 bytes of new
-  data and `HARD.COM` has one byte free). `--selftest` is the derivation and the
-  pocket arithmetic; `--check` reads a patched file back.
+  data and `HARD.COM` has one byte free). `--selftest` is the derivation, the
+  pocket arithmetic, the extent mask at every block size and the drive-count
+  budget; `--check` reads a patched file back.
+  - **`--bsh`** sets the CP/M block size. `6` (8 KiB blocks) is the one worth
+    knowing: it costs nothing outside the DPB — the drive, the partition table,
+    `PREP.COM` and the BIOS are unchanged — and it cuts the ALV to 121 bytes per
+    drive, so the free 1451 bytes hold **11 partitions of 8 MiB** instead of 5.
+    Measured to boot to `A0>` (`rom2-check.sh` with `O1_BSH=6`;
+    `docs/md10-system.md` §9.3).
+  - **`EXM`** is derived from Digital Research's own `DISKDEF.LIB`:
+    `2**(BSH-3)-1`, **halved past 255 blocks**. An earlier revision read
+    Alteration Guide Table 6-9's first column only and hardcoded the shipped
+    `EXM=1` at `BSH=5` — right by accident — so every other block size got the
+    `DSM < 256` value (7 where `BSH=6` wants 3). Fixed 2026-10-15; `--exm`
+    overrides, and `--selftest` now checks all four block sizes.
 - **`md10prep.sh`** — the **repeatable new-geometry capability** (#247): builds a
   blank labelled drive, drives the archive's own `PREP.COM` through its menus with
   `o1keys.lua`, reads the drive back, extracts the header and O/S artifacts, and
@@ -272,6 +285,10 @@ scratch programs, "figuring it out" notebooks/scripts.
   14-byte hand-over stub (#247). Out: monitor at `0000`, then the payload in the
   window — CBIOS `1000`, MD-10 BIOS `1800`, the vendor's loader block `1DC5`, the
   stub `1E01`, and **497 bytes spare** for the boot screen and the new features.
+  **`--hard`** takes a *raw* `HARD.COM` instead of pulling the vendor's off
+  `--harddisk`, which is how a patched driver gets in without writing a CP/M
+  image just to change 15 bytes of DPB (`md10dpb.py`, and `rom2-check.sh`'s
+  `O1_BSH`).
   Things worth knowing: **`HARD.COM` is a CP/M `.COM`, so its file offset is its
   address minus `0x0100`** (reading the length operand at `0x0547` as a file offset
   gives `0x6F3A` instead of `0x05C5`); the loader block is the *vendor's own 60

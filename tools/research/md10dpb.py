@@ -145,12 +145,31 @@ def dpb_for(blocks, bsh, exm=None):
         else:
             al1 |= 0x80 >> (i - 8)
     if exm is None:
-        # The vendor ships EXM=1 with BSH=5.  The standard relation
-        # (EXM = 2**(BSH-3) - 1, i.e. 16 block pointers must cover
-        # (EXM+1) x 16 KiB) gives 3 for BSH=5, so the shipped DPB is internally
-        # inconsistent -- and it is the one that boots and takes a write, so it
-        # stays the default for BSH=5 and the standard value is used elsewhere.
-        exm = 1 if bsh == 5 else (1 << (bsh - 3)) - 1
+        # The extent mask, out of Digital Research's own DPB generator --
+        # DISKDEF.LIB, in the CP/M 2.2 sources (`UTILSRC/DISKDEF`):
+        #
+        #     blkval  set  bls/1024          ; number of kilobytes/block
+        #     extmsk  set  0                 ; fill from right with 1's
+        #     ...
+        #     ; may be double byte allocation
+        #     if  (dks) > 256
+        #     extmsk  set  (extmsk shr 1)
+        #     endif
+        #
+        # So it is 2**(BSH-3)-1, **halved once the disk is past 255 blocks** --
+        # because a directory entry then holds eight 16-bit block pointers
+        # instead of sixteen, so one entry covers half as many bytes.  That is
+        # Alteration Guide Table 6-9 as well (BLS 8,192: 7 for DSM<256, 3 for
+        # DSM>255).
+        #
+        # Which means the vendor's shipped EXM=1 at BSH=5 is *correct*, not
+        # inconsistent: 3 is the DSM<256 value, and their DSM is 1923.  An
+        # earlier revision of this tool read Table 6-9's first column only,
+        # hardcoded 1 for BSH=5 (accidentally right) and wrote the DSM<256
+        # value at every other block size -- 7 where BSH=6 wants 3.
+        exm = (1 << (bsh - 3)) - 1
+        if cpm_blocks > 256:
+            exm >>= 1
     return {"SPT": blocks * (SECTOR // RECORD), "BSH": bsh,
             "BLM": (block_bytes // RECORD) - 1, "EXM": exm,
             "DSM": cpm_blocks - 1, "DRM": DRM, "AL0": al0, "AL1": al1,
@@ -327,6 +346,39 @@ def selftest():
         print("    %6d blocks  DSM=%-5d ALV=%4d x3 = %5d  %-7s %s"
               % (blocks, dd["DSM"], alv_size(dd), need,
                  "fits" if need <= total else "TOO BIG", what))
+
+    # EXM at every block size, against DISKDEF.LIB's own arithmetic.  This is
+    # what the 2026-10-15 BSH=6 test found the hard way: the value the tool
+    # wrote at BSH=5 was right, and every other block size got the DSM<256
+    # value -- 7 where BSH=6 wants 3.
+    print("\n  the extent mask at every block size (DISKDEF.LIB: 2**(BSH-3)-1,")
+    print("  halved past 255 blocks), checked against the derivation:")
+    print("    %5s %4s %7s %6s %7s" % ("BLS", "BSH", "blocks", "EXM", "Table"))
+    for bsh in (4, 5, 6, 7):
+        dd = dpb_for(16384, bsh)
+        want_exm = (1 << (bsh - 3)) - 1
+        if dd["DSM"] + 1 > 256:
+            want_exm >>= 1
+        if dd["EXM"] != want_exm:
+            raise Fail("BSH=%d derives EXM=%d; DISKDEF.LIB says %d"
+                       % (bsh, dd["EXM"], want_exm))
+        print("    %4dK %4d %7d %6d %7d" % ((128 << bsh) // 1024, bsh,
+                                            dd["DSM"] + 1, dd["EXM"], want_exm))
+
+    # The drive count, which is what the ALV budget is *for*: an 8 MiB
+    # partition at each block size, and how many of them fit in the free RAM.
+    # CKS=0 (fixed media) is why the ALV is the whole per-drive cost.
+    print("\n  an 8 MiB partition (PREP.COM's 16384-sector ceiling) costs, in RAM:")
+    print("    %5s %4s %7s %8s %8s %9s"
+          % ("BLS", "BSH", "blocks", "ALV", "drives", "total MB"))
+    for bsh in (4, 5, 6, 7):
+        dd = dpb_for(16384, bsh)
+        alv = alv_size(dd)
+        n = total // alv
+        print("    %4dK %4d %7d %7dB %8d %9.1f"
+              % ((128 << bsh) // 1024, bsh, dd["DSM"] + 1, alv, n, n * 8.0))
+    print("    (CP/M has 16 letters; two go to the floppies, so 14 are available")
+    print("     to the disk -- at BSH=6 the ALV binds first, at 11.)")
     return 0
 
 
