@@ -859,15 +859,94 @@ and not a field upgrade.
 
 
 
+### 9.4 The N-drive driver, built and measured — and the byte order that was wrong (2026-10-15)
+
+§9.3 decided the drive count and §9.2 built the DPB half of the patch. This is the
+other half: **`md10dpb.py --grow`**, which turns the vendor's three fixed
+descriptors into N, and the acceptance that says it works.
+
+**What it writes.** The three 24-byte descriptors at `DD6E` are the whole of
+`DD6E-DDC4`, so that region is the only home an N-drive table has. A drive costs
+**five bytes** — its 24-bit partition start (sixteen bits is not enough: eleven
+7.5 MiB partitions end at LBA 154010) and its ALV pointer — and the DPH, the DPB
+and the select/length fields are shared, so `5N + 16 + 15 <= 87`. Two routines
+change inside the space they already occupy: `SELDSK`'s hard-disk tail
+(`D8F6-D90C`) copies the drive's ALV pointer into the shared DPH, and the LBA
+routine (`D90D-D939`) reads the drive's start out of the table instead of the
+descriptor's prefix. The type table at `DD5E` becomes `00 01 .. 0(N-1)` and the
+floppies move up behind the disk, which is why eleven partitions put them at `L:`
+and `M:`.
+
+**The defect it shipped with, and what found it.** The first revision **booted** —
+the ROM handed over, `A0>` appeared with no floppy, and the type table, the
+per-drive table, the shared DPH, the DPB and every ALV were correct in RAM — and
+then could not read drive `A:`'s directory: `DIR A:` answered `No file` and `SAVE`
+answered `No space`, while `B:` worked. Every cell in RAM was **byte-identical**
+to the vendor's driver's, because nothing in RAM was wrong: the LBA routine stored
+the CDB's LBA **byte-swapped**.
+
+The card is a SCSI target, so the LBA lives in a `READ(6)`'s bytes 2 and 3 as
+`LBA[15:8]` then `LBA[7:0]` — **high byte first**. The CDB is at `D9FA`, so byte 2
+is `D9FC` and byte 3 is `D9FD`, and the *low* byte of the sum belongs at the
+*higher* address. `ld (0D9FCh),hl` writes `L` at `D9FC` and `H` at `D9FD`. The
+vendor's routine instead does `ld d,l` / `ld e,h` / `ld (0D9FCh),de`, which puts
+`H` first; that is the idiom, and the fix costs the three bytes the slot had spare.
+
+**The instrument was the card's own CDB trace.** Run the machine with `-log` and
+`[:acb4000] CDB ..` lines land in `error.log`. The vendor's own boot asks for LBA 5
+as `CDB 08 00 00 05 0B 00`; the broken build asked for drive `A:`'s first sector as
+`CDB 08 00 14 00 01 00` — LBA `0x1400` instead of `0x0014`. And the reason the
+symptom read as "`A:` only" is that a swapped LBA is not always a *wrong-looking*
+one: `B:`'s and `C:`'s swapped reads landed in drive `A:`'s `E5h` tail, where
+writes and reads agreed with each other and disagreed with the partition, so those
+two drives **appeared** to work. Two of the three also produced a byte-symmetric
+LBA (`0x3C3C`, `0x7878`), which is invisible in the value — so the harness compares
+the two CDB bytes **separately** against what the driver's own drive and sector
+cells imply, not the decoded LBA.
+
+**The acceptance: `rom2drives.lua`, 27 checks, eleven drives.** The driver is built
+from a drive's own label and booted from the ROM with no floppy; the harness then
+selects each drive, `SAVE`s a distinct file, `DIR`s it back, reads each drive's own
+ALV out of RAM through the driver's table, checks no drive lists another's file,
+and checks the LBA the *card* was asked for. Both layouts pass:
+
+| | PYXIS27, 3 x 15399 | `1200,8,18 eq11`, 11 x 15706 |
+|---|---|---|
+| shared DPH | `DD7D` | `DDA5` |
+| DPB | `SPT=61596 BSH=6 BLM=63 EXM=3 DSM=961` | `SPT=62824 BSH=6 BLM=63 EXM=3 DSM=980` |
+| ALV per drive | 121 B | 123 B |
+| ALVs | 363 of 1451 B | **1353 of 1451 B** |
+| `rom2drives.lua` | every check | **27 PASS, `A0>`..`K0>`** |
+
+The negative control is the same harness against the pre-fix image: it fails on
+`A:`–`G:`, `J:` and `K:`, with `D:` reading LBA 8888 where the driver's cells say
+47138 — `22 B8` for `B8 22`, a textbook swap.
+
+**And the next step is blocked by something else, now measured.** `PREP.COM`'s
+relocation base is **not** constant, and it is not a stale-capture artifact: it is
+reproducible and it is a function of the partition layout. `md10prep.sh 1200,8,18
+eq11` writes an O/S at base **`0xB900`** — `md10reloc.py` reports `relocation delta
+B9`, nine pages *below* the `0xC200` the hand-over loads at, and refuses to write —
+while the three-partition PYXIS27 drive comes out at `0xC200`, correct. A drive
+with eleven partitions therefore boots into the `#198` warm-boot loop no matter how
+good the driver is, which is why the eleven-drive acceptance above is run against
+a drive whose O/S is already at `0xC200`. **The open question from §9.3's
+predecessor is now on the critical path**: `md10prep.sh eqN` cannot produce a
+bootable drive until the base is understood (or forced), and §9.3's "what is left
+is implementing it, not deciding it" is not quite true — one more thing has to be
+understood first.
+
 ## 10. The test that was named, and its answer
 
 An earlier revision of this section named a test: watch the card's CDB while the
 guest is at the login, or build a drive whose partition table matches the driver's
-static descriptors. **Neither was needed, and the premise was wrong.** The CDB is
-*always* `08 00 00 05 0b 00` — LBA 5, the boot read — and it comes back with
-status `00` (GOOD), so there is no login to watch and no partition-table
-disagreement to reconcile. The blocker was in the operating system's relocation
-(§7), which no amount of drive-building would have fixed.
+static descriptors. **Neither was needed, and the premise was wrong.** On a machine
+that never gets past the boot read the CDB is *always* `08 00 00 05 0b 00` — LBA 5,
+the boot read — and it comes back with status `00` (GOOD), so there is no login to
+watch and no partition-table disagreement to reconcile. (A machine that *does* get
+past it issues many, which is what §9.4's trace reads.) The blocker was in the
+operating system's relocation (§7), which no amount of drive-building would have
+fixed.
 
 The answer, in the order it was measured:
 
@@ -914,6 +993,8 @@ B** is what makes it a boot rather than a banner (§7).
   address, and checks that the CCP entry lands on `LD SP,nn`.
 - `tools/research/md10drive.py` — lays an O/S image onto a drive (`--os`).
 - `tools/emulator-setup/mame-osborne1nx/` — the `osborne1nx` machine (#191).
+  `rom2drives.lua` is §9.4's acceptance — `A0>`..`N0>`, a file on each drive, each
+  drive's own ALV, and the CDB's LBA bytes against the driver's own cells.
 - `docs/osborne1nx-machine.md` §6 (the header field map), §5 (the harness
   findings); `docs/harddisk-decision.md` §7.2–§7.3;
   `docs/acb4000-host-adapter.md` §1, §4.

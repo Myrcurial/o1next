@@ -181,6 +181,25 @@ scratch programs, "figuring it out" notebooks/scripts.
     `EXM=1` at `BSH=5` — right by accident — so every other block size got the
     `DSM < 256` value (7 where `BSH=6` wants 3). Fixed 2026-10-15; `--exm`
     overrides, and `--selftest` now checks all four block sizes.
+  - **`--grow`** is the **N-drive build** (#247 step 6): it reads a configured
+    drive's own label for the partition count and starts, and rewrites `HARD.COM`
+    from three fixed descriptors to N — a five-byte-per-drive table (24-bit start
+    + ALV pointer) in `DD6E-DDC4`, one shared DPH, one DPB, the ALVs in the free
+    1451 bytes, and the two routines that change (`SELDSK`'s hard-disk tail and
+    the LBA routine) inside the space they already occupy. Equal partitions are a
+    condition of the build, not a convenience, because the DPB is shared.
+    `--drive` takes a **raw** image. **Measured to boot and hold: eleven drives
+    `A0>`..`K0>`** on `1200,8,18 eq11`, every one written and read back, each with
+    its own ALV — `rom2drives.lua`, 27 checks (`docs/md10-system.md` §9.4).
+    - **The defect it shipped with, for the record:** the first revision's LBA
+      routine stored the CDB's LBA **byte-swapped** (`ld (0D9FCh),hl` writes `L`
+      first; a `READ(6)` wants `LBA[15:8]` first). It booted, and every cell in
+      RAM matched the vendor's driver's byte for byte, so the only thing that saw
+      it was the *card*: `-log` and the `[:acb4000] CDB ..` trace, which showed
+      drive `A:` being read as LBA `0x1400` instead of `0x0014`. Fixed by using
+      the shipped idiom (`ld d,l` / `ld e,h` / `ld (0D9FCh),de`), and
+      `rom2drives.lua` now checks the two CDB bytes **separately** — a
+      byte-symmetric LBA hides the swap in the value.
 - **`md10prep.sh`** — the **repeatable new-geometry capability** (#247): builds a
   blank labelled drive, drives the archive's own `PREP.COM` through its menus with
   `o1keys.lua`, reads the drive back, extracts the header and O/S artifacts, and
@@ -188,6 +207,11 @@ scratch programs, "figuring it out" notebooks/scripts.
   the PYXIS27 floor-pin drive **byte for byte**. `eqN` (e.g. `eq3`) is
   PREP.COM's option 4, "Non-standard equal drive partitioning", which is the only
   way to a bigger partition — and it is capped at 16384 blocks (8 MiB), measured.
+  **Its relocation report matters**: the base PREP.COM picks is a function of the
+  partition layout, not a constant — the three-partition PYXIS27 drive comes out at
+  `0xC200` (correct) and `eq11` comes out at `0xB900`, nine pages low, which
+  warm-boots for ever (#198) however good the driver is. `md10reloc.py` refuses
+  rather than guesses (`docs/md10-system.md` §9.4).
   It is a *host* script — it wants
   MAME, the patched `osborne1nx` machine (`$O1_MAME`) and `chdman` — so it is not
   shipped tooling.

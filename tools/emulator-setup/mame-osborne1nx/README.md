@@ -26,6 +26,7 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
 | `rom2bank.lua` | the same question from the other side — **taps**: the IOBYTE read, and the bank selects, on this machine and on a stock boot (#247) |
 | `rom2handover.lua` | **the fix, proved before it is built** — poke `CCPADR` and the machine reaches `A0>` (#247) |
+| `rom2drives.lua` | **the N-drive acceptance** — `A0>`..`N0>`, a file written and read back on every drive, each drive's own ALV, and the LBA the *card* was asked for (#247) |
 | `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
 | `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
 
@@ -111,6 +112,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | **ROM 2.0's `HCBOOT`** — the CBIOS, the MD-10 BIOS, its patch, the bank, the read | **yes** — `rom2boot.lua`, five checks, in `rom2-check.sh` |
 | ROM 2.0 booting the hard disk to `A0>` | **yes** — nine checks in `rom2-check.sh` including the prompt, and again on 8 KiB blocks with `O1_BSH=6` (`docs/md10-system.md` §9.3) |
 | the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** — re-measured after the window change, unchanged |
+| the **N-drive driver** — 11 drives `A0>`..`K0>`, a file on each, each its own ALV, each read landing inside its own partition | **yes** — `rom2drives.lua`, 27 checks, `docs/md10-system.md` §9.4 |
 | `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
 
 ### The softROM window
