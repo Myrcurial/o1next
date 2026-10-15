@@ -22,7 +22,7 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
 | `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
-| `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, RETURN, and what the monitor then does (#247) |
+| `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, RETURN, and what the monitor then does; `O1_BSH=6` re-runs the same nine checks on 8 KiB blocks (#247) |
 | `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
 | `rom2bank.lua` | the same question from the other side — **taps**: the IOBYTE read, and the bank selects, on this machine and on a stock boot (#247) |
 | `rom2handover.lua` | **the fix, proved before it is built** — poke `CCPADR` and the machine reaches `A0>` (#247) |
@@ -109,7 +109,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
 | **`-softrom` (the 7695-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
 | **ROM 2.0's `HCBOOT`** — the CBIOS, the MD-10 BIOS, its patch, the bank, the read | **yes** — `rom2boot.lua`, five checks, in `rom2-check.sh` |
-| ROM 2.0 booting the hard disk to `A0>` | **not yet** — one store short, and the store is measured and the fix proved (`rom2trace.lua`, `rom2bank.lua`, `rom2handover.lua`); see below |
+| ROM 2.0 booting the hard disk to `A0>` | **yes** — nine checks in `rom2-check.sh` including the prompt, and again on 8 KiB blocks with `O1_BSH=6` (`docs/md10-system.md` §9.3) |
 | the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** — re-measured after the window change, unchanged |
 | `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
 

@@ -23,6 +23,16 @@
 #                   system is read off the drive and the machine has to reach
 #                   A0>.  Without it there is nothing to boot from, so the
 #                   prompt is reported and not failed.
+#   O1_BSH          a CP/M block shift to patch HARD.COM's DPB to before the
+#                   image is built -- 5 is the shipped 4 KiB, 6 is 8 KiB.  This
+#                   is the check that a non-shipped block size still boots: the
+#                   DPB is rewritten with tools/research/md10dpb.py and fed to
+#                   rom2image.py with --hard, and *everything else* -- the
+#                   drive, the partition table, the BIOS -- is unchanged.
+#   O1_PARTS        the partition sizes to patch in (default 15399,15399,15399,
+#                   the shipped layout); only meaningful with O1_BSH.
+#   O1_UTILS        the 2.01 utilities image HARD.COM comes off (default the
+#                   repo's copy under research/adaptec/)
 #   O1_ROMPATH      ROM path (default the repo's tools/emulator-setup/roms)
 #   O1_WORK         scratch directory (default /tmp/o1next-rom2-check)
 set -eu
@@ -65,8 +75,25 @@ fi
 [ -f "$MONITOR" ] || { echo "rom2-check.sh: no such monitor: $MONITOR" >&2; exit 1; }
 
 echo "== the image: the monitor plus rom2image.py's payload =="
-python3 "$REPO/tools/research/rom2image.py" --monitor "$MONITOR" \
-    -o "$WORK/rom2.rom" --work "$WORK/rom2image" > "$WORK/rom2image.log" 2>&1
+UTILS="${O1_UTILS:-$REPO/research/adaptec/Osborne Hard Disk Control Software Version 2.01 (1984).img}"
+if [ -n "${O1_BSH:-}" ]; then
+    PARTS="${O1_PARTS:-15399,15399,15399}"
+    echo "  block size: BSH=$O1_BSH, partitions $PARTS -- patching the DPB first"
+    python3 "$REPO/tools/research/md10dpb.py" --utils "$UTILS" \
+        --extract "$WORK/HARD.COM" > "$WORK/md10dpb.log" 2>&1
+    python3 "$REPO/tools/research/md10dpb.py" "$WORK/HARD.COM" \
+        "$WORK/HARD-bsh$O1_BSH.com" --parts "$PARTS" --bsh "$O1_BSH" \
+        >> "$WORK/md10dpb.log" 2>&1 || {
+        echo "rom2-check.sh: the DPB patch failed -- see $WORK/md10dpb.log" >&2
+        exit 1; }
+    grep -E '^  DPB at|^  CP/M sees|^  ALV ' "$WORK/md10dpb.log" | sed 's/^/  /'
+    python3 "$REPO/tools/research/rom2image.py" --monitor "$MONITOR" \
+        --hard "$WORK/HARD-bsh$O1_BSH.com" \
+        -o "$WORK/rom2.rom" --work "$WORK/rom2image" > "$WORK/rom2image.log" 2>&1
+else
+    python3 "$REPO/tools/research/rom2image.py" --monitor "$MONITOR" \
+        -o "$WORK/rom2.rom" --work "$WORK/rom2image" > "$WORK/rom2image.log" 2>&1
+fi
 grep -E '^  ok  monitor|^wrote' "$WORK/rom2image.log"
 
 # MAME writes back into a CHD as it runs, so the drive is a copy too.
