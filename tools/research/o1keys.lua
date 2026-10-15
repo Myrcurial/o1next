@@ -96,9 +96,24 @@ local function type_text(s)
   for i = 1, #s do kb:post(s:sub(i, i)); emu.wait(0.15) end
 end
 
+-- ESC is *not* ASCII 27 on this machine.  The Osborne's ESC key is declared
+-- `PORT_CHAR(UCHAR_MAMEKEY(ESC))`, so the natural keyboard has no entry for
+-- 0x1B: `post("\27")` matches no port and presses nothing, silently.  The code
+-- that does press it is looked up in the natkeyboard's own table, so a MAME that
+-- numbers its key codes differently still works.  (This was wrong until #247:
+-- `key esc` had never pressed anything.)
+local function mamekey(name)
+  for line in kb:dump():gmatch("[^\n]+") do
+    local code, ch = line:match("^([0-9A-F]+) %((.-)%)")
+    if ch == name then return tonumber(code, 16) end
+  end
+end
+
 local function key(token)
   if token == "cr" then kb:post("\r")
-  elseif token == "esc" then kb:post("\27")
+  elseif token == "esc" then
+    local esc = mamekey("Escape")
+    if esc then kb:post(utf8.char(esc)) else kb:post("\27") end
   else kb:post(token) end
 end
 
