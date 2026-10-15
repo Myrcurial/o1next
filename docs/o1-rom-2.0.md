@@ -873,9 +873,13 @@ the trailer and the whole sequence are `docs/rom-pico-protocol.md` §4.1 and §5
 frame, compiled into the firmware, swappable only by rebuilding it. The library
 flash holds the *default disks*.
 
-`tools/research/rom2strokes.py --frame` writes a frame with its trailer:
-4096 bytes, and the art is placed by `--origin` — see §2.3 for why that is not
-cosmetic.
+`tools/research/rom2strokes.py --frame` writes the whole artifact — **8192 bytes,
+the character half then the attribute half**, each with its own trailer at its own
+`0FF8h` — and the art is placed by `--origin`; see §2.3 for why that is not
+cosmetic. `--half` writes one half, `--verify` validates a half or a whole frame
+off the disk, and the copy the firmware compiles in is
+`firmware/rom-service/frame.bin` — which `--check` re-builds and compares byte for
+byte, so the art and the asset cannot drift.
 
 ## 5. The six open questions from #83, answered
 

@@ -200,9 +200,12 @@ half at `1000h`, and one `LDIR` moves it to `F000h`.
 **The frame is not the art.** `research/boot-screen/` holds the authored art
 (153 × 27 cells for the wordmark, or 125 × 28 for the 1NG one), and
 `tools/research/rom2strokes.py --frame` places it into the 128 × 32 grid with the
-trailer — the art's rows 24–31 are off-screen and carry it. The frame is a build
-artifact of that art, and it belongs in the firmware's build so the two cannot
-drift.
+trailer — the art's rows 24–31 are off-screen and carry it. It writes **both
+halves**, each with its own trailer, so one command produces the whole 8192-byte
+artifact; `--half chars|attrs` writes one, `--verify` checks one or both off the
+disk with nothing but the file, and the frame is a build artifact of that art. It
+is committed at `firmware/rom-service/frame.bin`, and `--check` re-builds it and
+compares bytes, so the art, the asset and the firmware's copy cannot drift.
 
 
 ## 6. The memory map at the moment the screen runs, and what happens when it fails
