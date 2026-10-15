@@ -37,11 +37,21 @@ work and a known-good test suite — these personalities are pure win.
 
 ## Cross-cutting constraints
 
-- **Radio jitter:** CYW43 activity adds jitter — bus capture and MFM
-  flux emulation run pinned to core1/PIO with WiFi IRQs fenced off, or
-  WiFi is gated during capture/flux windows.
-- **One modem codebase:** the ESP32 Zimodem fork serves both the
-  severable module and (leaning) an interposer-onboard ESP32; see
-  `hardware/interposer/README.md` for the decision record.
+- **Radio jitter — and why it is no longer the interposer's problem.** The
+  interposer used to carry a **Pico 2 W *module***, whose CYW43439 sat alongside
+  the RP2350 and added jitter to bus capture and MFM flux emulation. **That is no
+  longer the design**: the board carries the bare **RP2354** part — which is where
+  the firmware and the splash frame live — and the radio is an **ESP32 on UART0**
+  (GP38/39). So the jitter source has moved *off* the bus-critical chip entirely,
+  which is strictly better for every personality. The rule becomes a **link**
+  rule rather than a fencing rule: the ESP32 is never asked for anything inside a
+  capture or flux window, and the UART link is the only thing crossing between
+  them. (Corrected 2026-10-15: this section named CYW43, which is a module we no
+  longer fit.)
+- **One modem codebase:** the ESP32 Zimodem fork serves both the severable module
+  and the interposer's onboard ESP32. **The variant is not yet chosen** — C3, C5
+  (dual band) or S3/S3A (SSH headroom) — and the decision needs the modem's own
+  requirements written down first; see #21, #56 and
+  `hardware/interposer/README.md`.
 - **Level shifting** is a hardware concern (74AHCT/HCT) — firmware
   assumes clean 3.3 V logic at the RP2350 pins.
