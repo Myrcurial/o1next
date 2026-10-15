@@ -656,13 +656,32 @@ of two unrelated limits: `ALV = disk / (8 x block)`, so 16 KiB blocks would put
 32 MiB partitions at 256 bytes each, inside the budget with room to spare.
 `--bsh` is in the tool for that day.
 
-One more field is worth recording rather than fixing. The shipped DPB has
-`EXM = 1` with `BSH = 5`, where the standard relation
-(`EXM = 2^(BSH-3) - 1`, i.e. 16 block pointers must cover `(EXM+1) x 16 KiB`)
-gives **3**. The shipped value is the one that boots and takes a write, so the
-tool keeps it at `BSH = 5` and uses the standard value elsewhere; `--exm`
-overrides. Whether `EXM = 1` mis-handles a file past one logical extent is *not*
-measured — nothing has ever written more than 1 KB to an MD-10 partition (§9.1).
+One more field, and it turned out to be wrong in the *tool* rather than in the
+vendor. The shipped DPB has `EXM = 1` with `BSH = 5`, and an earlier revision of
+`md10dpb.py` recorded that as the vendor being internally inconsistent: the
+relation it knew — `EXM = 2^(BSH-3) - 1`, i.e. 16 block pointers must cover
+`(EXM+1) x 16 KiB` — gives **3**. It does not. Digital Research's own DPB
+generator settles it. `DISKDEF.LIB`, in the CP/M 2.2 sources
+(`UTILSRC/DISKDEF`):
+
+```
+blkval  set  bls/1024          ; number of kilobytes/block
+extmsk  set  0                 ; fill from right with 1's
+...
+; may be double byte allocation
+    if  (dks) > 256
+    extmsk  set  (extmsk shr 1)
+    endif
+```
+
+so the mask is **halved once the disk is past 255 blocks**, because a directory
+entry then holds eight 16-bit block pointers instead of sixteen and one entry
+therefore covers half as many bytes. That is Alteration Guide Table 6-9 as well
+(BLS 8,192: 7 for `DSM < 256`, 3 for `DSM > 255`). **`EXM = 1` at
+`BSH = 5` / `DSM = 1923` is correct.** The tool had it right only because
+`BSH = 5` was hardcoded; at every other block size it wrote the `DSM < 256`
+value, which is 7 where `BSH = 6` wants 3. Fixed 2026-10-15 (§9.3); `--exm`
+still overrides.
 
 **3. What `PREP.COM` will actually make.** Its partition menu has five entries,
 not three:
@@ -724,6 +743,82 @@ be patched in place: they have to come from ROM 2.0's `HCBOOT` payload (497 byte
 spare, `rom2.diff`) or from a grown `HARD.COM`. `md10dpb.py` refuses an unequal
 layout with that reason rather than guessing. And a partition past 8 MiB needs a
 partition table written outside `PREP.COM`.
+
+
+### 9.3 The block size: `BSH = 6`, measured (2026-10-15)
+
+§9.2 ends on `ALV = disk / (8 x block)` and notes that `--bsh` was in the tool
+"for that day". This is that day, and the day's result is that **the toolset
+already does 8 KiB blocks** — with one field wrong, now fixed.
+
+**What it costs to change.** Nothing outside the DPB. The partition records in
+the label hold **512-byte sectors** (`CP/M-A start=20 length=15399`), not CP/M
+blocks, so the drive, the partition table, `PREP.COM` and the BIOS are all
+unchanged; `BSH`/`BLM`/`EXM`/`DSM`/`AL0` are BDOS-side fields, and the BDOS does
+the record-to-sector arithmetic from `SPT` (which is the partition *in records*,
+so the sector number stays linear and both block sizes fit the same 16-bit
+field). The same PYXIS27 drive boots either way.
+
+**Measured, in the machine.** `rom2-check.sh` with `O1_BSH=6` patches the DPB,
+feeds the patched `HARD.COM` to `rom2image.py --hard`, and runs the same nine
+checks:
+
+| | shipped `BSH=5` | `BSH=6` |
+|---|---|---|
+| DPB at `DDB6` | `9c f0 05 1f 01 83 07 ff 03 ff 00 …` | `9c f0 06 3f 03 c1 03 ff 03 f0 00 …` |
+| `BLM` / `EXM` / `DSM` / `AL0` | `1F` / 1 / 1923 / `FF` | `3F` / 3 / 961 / `F0` |
+| blocks per partition | 1924 | 962 |
+| **the partition** | 7 880 704 B | 7 880 704 B |
+| directory blocks | 8 | 4 |
+| **usable file space** | 7 847 936 B | **7 847 936 B** |
+| ALV per drive | 241 B | **121 B** |
+| three ALVs | 723 of 1451 B | **363 of 1451 B** |
+| `rom2-check.sh` | 9 PASS, `A0>` | **9 PASS, `A0>`** |
+
+The allocation is right, not just the boot. Reading the machine's own ALV at
+`DDC5` out of RAM at `A0>` and after two `SAVE`s:
+
+| step | allocated blocks | expected |
+|---|---|---|
+| at `A0>` | 4 | the directory's 4 blocks (`AL0 = F0`) |
+| after `SAVE 200 T.DAT` (51 200 B) | 11 (+7) | `ceil(51200/8192)` = 7 |
+| after `SAVE 1 S.DAT` (256 B) | 12 (+1) | `ceil(256/8192)` = 1 |
+
+and `DIR` lists both files. Those two points also bracket the small-file slack:
+**12% wasted on a 51 KB file, 97% on a 256-byte one**, with a FOG-library-like
+mix averaging about 42% at 8 KiB against 24% at 4 KiB.
+
+**What it buys, and what it does not.** Per-partition capacity is *identical* —
+1916 x 4096 = 958 x 8192 — so 8 KiB blocks give **no capacity on their own**.
+What they give is the ALV back, and the ALV is the per-drive cost (`CKS = 0`
+because the media is fixed, so there is no checksum vector). An 8 MiB partition
+at each block size:
+
+| `BLS` | `BSH` | blocks | ALV | drives in 1451 B | total |
+|---|---|---|---|---|---|
+| 2 KiB | 4 | 4096 | 512 B | 2 | 16 MB |
+| 4 KiB | 5 | 2048 | 256 B | 5 | 40 MB |
+| **8 KiB** | **6** | **1024** | **128 B** | **11** | **88 MB** |
+| 16 KiB | 7 | 512 | 64 B | 22 | 176 MB |
+
+CP/M has 16 letters and two go to the floppies, so 14 are available to the disk —
+**at `BSH = 6` the ALV binds first, at 11 partitions (88 MB)**. So the block size
+is not itself a capacity feature: it is what makes the drive *count* reachable,
+and the count is what the descriptor table has to be grown to. Until that is
+done, 8 KiB blocks would cost density and buy nothing.
+
+One trap worth recording, because it caught this session: a **stale ROM 2.0
+monitor image** in a scratch directory (built before #247 step 4, so still
+`CP 1Bh` at `0x0048`) makes `rom2image.py` refuse with "the sign-on dispatch is
+not ROM 2.0's key map". That is the check working — rebuild with `rom2asm.sh`.
+
+**Not an in-place conversion.** Block numbers *are* byte offsets, so changing
+`BSH` on a populated partition scrambles the mapping: the directory entries
+survive, the block lists do not. Re-create the partitions and re-copy the files.
+That costs nothing here — we build drives with `PREP.COM` and there is no
+installed base to be compatible with — but it is why this is a design decision
+and not a field upgrade.
+
 
 
 ## 10. The test that was named, and its answer
