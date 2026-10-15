@@ -630,7 +630,7 @@ dump at `A0>` on a booted machine (and the sources for the rest) gives the map:
 | `E100-E8FF` | the CBIOS | no |
 | `E900-EA7F` | the CBIOS's own ALV, CSV and scratch (`occram15.asm`, `ORG CCP+1E00h`, guarded by `YYY > MRAM`) | no |
 | `EA80-EAFF` | `MRAM`, the ROM's host buffer | no |
-| `EB00-EBFF` | unclaimed, unmeasured — this patch does not use it | ? |
+| `EB00-EBFF` | **inside `HSTBUF`** — the monitor's own 1152-byte host buffer, `MRAM = 0EA80h` with `HSTBUF: DS 1024+128` (`occram25.asm`), so `EB00` is its interior. The CBIOS uses it as the **deblocking transfer buffer** (`occbio65.asm`: `LDK DE,HSTBUF ;initial offset`) and re-points the **ROM's DMA** at it on every warm boot (`occbio55.asm`: `LDK HL,HSTBUF` / `STO HL,DMADR ;set ROM DMA address`). **Not ours.** Zero when idle, which is exactly the trap | no |
 | `EC00-EE7F` | **Pocket B**, 640 bytes | **yes** |
 | `EE80-EEFF` | `DIRBUF`, shared by all three drives | no |
 | `EF00-EFFF` | the monitor's cells and stack (`ROMSTK` `EFC1`, `CCPADR` `EFD2`, …), live after the hand-over | no |
@@ -811,18 +811,22 @@ done, 8 KiB blocks would cost density and buy nothing.
 A drive also needs its **24-byte descriptor**, and the driver's table is full at
 three: it sits at `DD6E` inside the BIOS image with the DPB immediately after it
 at `DDB6`, and the image itself ends at `DDC5` — Pocket A. So the descriptors need
-a home of their own, and which home decides the count:
+a home of their own. **Settled 2026-10-15: there is no fourth home to find.** The
+one region the map above left as `?`, `EB00-EBFF`, is the *interior* of the
+monitor's own `HSTBUF` (see §9.2), so the free RAM is exactly the 1451 bytes, and
+the descriptors have to come out of it:
 
-| descriptors come from | drives at 8 MiB |
-|---|---|
-| the same 1451 bytes as the ALVs (24 + 128 = 152 B each) | **9** |
-| the unmeasured `EB00-EBFF` pocket (256 B, 10 x 24) | **10** |
-| somewhere free — none identified | 11 (the ALV's own ceiling) |
+| descriptors come from | per drive | drives at 8 MiB | drives at 7.5 MiB |
+|---|---|---|---|
+| **their own 24 bytes, out of the 1451** | 152 B | **9** | 9 |
+| **a shared DPH built at `SELDSK` time**, 4-byte pointer pair each | 132 B | **10** | **11** |
 
-**Where the descriptors live is the first thing the drive-count work has to
-settle**, and it is cheap to settle: `EB00-EBFF` is the one unclaimed region in
-the map above and has never been measured. `md10dpb.py --selftest` prints the ALV
-budget and says so.
+**So the answer is 9 partitions, or 10–11 if the driver can avoid a per-drive DPH**
+— and that is the first question step 6 of #247 has to settle, because it is worth
+two whole partitions. The descriptors themselves need no `SELDSK` change: the table
+is *contiguous* from `DD6E`, the region `DD6E-DDC4` is descriptors and DPB and
+nothing else, so the table grows in place over the old DPB slot and on into Pocket A
+once the DPB is moved. `md10dpb.py --selftest` prints the ALV budget and says so.
 
 One trap worth recording, because it caught this session: a **stale ROM 2.0
 monitor image** in a scratch directory (built before #247 step 4, so still

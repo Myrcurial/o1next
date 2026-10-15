@@ -379,12 +379,13 @@ def selftest():
               % ((128 << bsh) // 1024, bsh, dd["DSM"] + 1, alv, n, n * 8.0))
     print("    (CP/M has 16 letters; two go to the floppies, so 14 are available")
     print("     to the disk -- at BSH=6 the ALV binds first, at 11.)")
-    print("    A drive also needs its 24-byte descriptor, and the table in the BIOS")
-    print("    image is full at three (DD6E, with the DPB immediately after at")
-    print("    DDB6).  Out of the same 1451 bytes that is 9 drives at 8 MiB; out of")
-    print("    the unmeasured EB00-EBFF pocket (256 B) it is 10.  Where the")
-    print("    descriptors live is the first thing the drive-count work has to")
-    print("    settle -- the ALV budget is what comes after it.")
+    print("    A drive also needs its 24-byte descriptor, and the region DD6E-DDC4")
+    print("    is descriptors and DPB and nothing else -- so the table grows in")
+    print("    place, over the old DPB slot and on into Pocket A once the DPB")
+    print("    moves.  Out of the same 1451 bytes that is 9 drives at 8 MiB; a")
+    print("    shared DPH built at SELDSK time (4 bytes a drive) makes it 10, or 11")
+    print("    at 7.5 MiB partitions.  EB00-EBFF is not a third pocket -- it is the")
+    print("    interior of the monitor's own HSTBUF (docs/md10-system.md 9.2).")
     return 0
 
 
