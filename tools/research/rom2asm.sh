@@ -21,8 +21,11 @@
 #   address (docs/o1-rom-2.0.md 4.2), so a byte moved anywhere below that is a
 #   moved anchor, not a feature -- and the assembler's own guard is the only
 #   other thing standing between us and a monitor that is subtly not the 1.44.
-#   So this fails if anything below 0F67h differs from the shipped ROM, and it
-#   reports the new code's extent against the guard.
+#   So this fails if anything below 0F67h differs from the shipped ROM, with one
+#   deliberate exception: the sign-on dispatch's two key immediates, which the
+#   boot-key change moves (#247 step 4, docs/o1-rom-2.0.md 3.3), and which are
+#   checked *for value* rather than merely tolerated.  It also reports the new
+#   code's extent against the guard.
 #
 # WHAT THE EMULATOR DOES TO THE HEX FILE
 #   The ACT80's hex output arrives on the floppy with runs of 0xC0DE where hex
@@ -159,6 +162,13 @@ out = sys.argv[3]
 lwa = int(sys.argv[4], 16)        # where the assembler says the code ends
 
 ENTRY, GUARD = 0x0F67, 0x0FFB     # the HCBOOT entry, and the vendor's own guard
+# The sign-on dispatch's two key immediates, and the *only* bytes below the
+# HCBOOT entry that ROM 2.0 moves (#247 step 4): `CMP ESC` -> `CMP CR`, so
+# RETURN is the hard disk, and `CMP CR` -> `CMP ':'`, so ':' is floppy A.  `"`
+# is unchanged, and START clears DSKSWP on every pass, so ':' is always drive A.
+# Everything else below ENTRY is an anchor the CBIOS calls by absolute address
+# (docs/o1-rom-2.0.md 4.2), so it is not allowed to move at all.
+KEYS = {0x0048: (0x1B, 0x0D), 0x0050: (0x0D, 0x3A)}
 if len(stock) != 4096:
     raise SystemExit('rom2asm.sh: the reference is %d bytes, not 4096' % len(stock))
 if len(built) != 4096:
@@ -168,11 +178,23 @@ diff = [i for i in range(4096) if stock[i] != built[i]]
 if not diff:
     raise SystemExit('rom2asm.sh: the assembly is the stock 1.44 -- '
                      'HCBOOT was not filled in')
-lo, hi = diff[0], diff[-1]
-if lo < ENTRY:
+for a, (was, now) in sorted(KEYS.items()):
+    if stock[a] != was:
+        raise SystemExit('rom2asm.sh: the reference holds 0x%02X at 0x%04X, not '
+                         '0x%02X -- it is not the shipped 1.44' % (stock[a], a, was))
+    if built[a] != now:
+        raise SystemExit('rom2asm.sh: the sign-on dispatch at 0x%04X is 0x%02X, not '
+                         '0x%02X -- ROM 2.0 boots the hard disk on RETURN and the '
+                         'floppies on : and " (docs/o1-rom-2.0.md 3.3)'
+                         % (a, built[a], now))
+below = [i for i in diff if i < ENTRY]
+odd = [i for i in below if i not in KEYS]
+if odd:
     raise SystemExit('rom2asm.sh: the assembly differs from the 1.44 at 0x%04X, '
                      'below the HCBOOT entry at 0x%04X -- that is a moved anchor, '
-                     'not ROM 2.0' % (lo, ENTRY))
+                     'not ROM 2.0' % (odd[0], ENTRY))
+above = [i for i in diff if i >= ENTRY]
+lo, hi = above[0], above[-1]
 if hi > GUARD:
     raise SystemExit('rom2asm.sh: the new code reaches 0x%04X, past the vendor\'s '
                      'guard at 0x%04X (rom144.asm: `IF RLWA > 0FFBH`)'
@@ -186,7 +208,9 @@ if hi != lwa:
         'write-back losing records is the usual cause '
         '(docs/rom-13-reconstruction.md 7).  Re-run the assembly.' % (hi, lwa))
 
-print('  the stock 1.44 below 0x%04X: byte-identical (%d bytes)' % (ENTRY, ENTRY))
+print('  the stock 1.44 below 0x%04X: byte-identical, except the two sign-on key '
+      'bytes (#247 step 4)' % ENTRY)
+print('  the boot keys: RETURN -> HCBOOT, ":" -> floppy A, \'"\' -> floppy B')
 print('  the new code: 0x%04X-0x%04X, %d bytes, %d free to the guard'
       % (lo, hi, hi - lo + 1, GUARD - hi))
 print('  and the assembler says the code ends at 0x%04X: the image agrees' % lwa)

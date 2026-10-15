@@ -10,7 +10,7 @@
 --   see it.
 --
 --   This is the instrument that answers it.  It samples the PC finely from the
---   moment ESC is pressed, catches the first entry into the IEEE routine, and
+--   moment RETURN is pressed, catches the first entry into the IEEE routine, and
 --   then reads the call chain off the stack -- because the PC stream alone
 --   cannot name the caller.  The routine at 09EBh-0A4Fh is a *leaf*: push hl,
 --   all `jr`, pop hl, ret.  So the word at SP is its own return address, and the
@@ -30,11 +30,11 @@
 --
 -- Environment:
 --   O1_ROM2_SAMPLE  seconds between PC samples (default 0.01)
---   O1_ROM2_SPAN    seconds to keep sampling after ESC (default 8)
+--   O1_ROM2_SPAN    seconds to keep sampling after RETURN (default 8)
 --
--- ESC is not ASCII 27 on this machine -- the Osborne's ESC key is declared
--- PORT_CHAR(UCHAR_MAMEKEY(ESC)), so the code is read out of the natkeyboard's
--- own table here, as rom2boot.lua and o1keys.lua do.
+-- RETURN is the monitor's HCBOOT entry now (#247 step 4), and it is a plain
+-- carriage return.  This harness used to press ESC, which on this machine is a
+-- MAME *key* code and had to be read out of the natkeyboard's own table.
 
 local M = manager.machine
 local CPU = M.devices[":maincpu"]
@@ -110,12 +110,6 @@ local function why_return(w)
   return nil
 end
 
-local function esc_code()
-  for line in kb:dump():gmatch("[^\n]+") do
-    local code, name = line:match("^([0-9A-F]+) %((.-)%)")
-    if name == "Escape" then return tonumber(code, 16) end
-  end
-end
 local function rows()
   local out = {}
   for r = 0, 31 do
@@ -148,12 +142,7 @@ logf("ROM 2.0's boot after HCBOOT's chain -- what calls the IEEE routine")
 local signed = wait_for("Insert disk", 25)
 logf("  sign-on: " .. tostring(signed))
 
-local esc = esc_code()
-logf(string.format("  ESC is natkeyboard code %s",
-                   esc and string.format("%06X", esc) or "NOT FOUND"))
-if not esc then os.exit(1) end
-
--- Press ESC and sample.  The ring buffer is the run-up to the first IEEE
+-- Press RETURN and sample.  The ring buffer is the run-up to the first IEEE
 -- sample, which is what "catch the caller" means when the sample is coarser
 -- than the call: the stack then supplies the exact address.
 local ring, ring_max = {}, 24
@@ -169,7 +158,7 @@ local function push(pc, sp, b, pz)
   if #ring > ring_max then table.remove(ring, 1) end
 end
 
-kb:post(utf8.char(esc))
+kb:post("\r")
 local elapsed = 0
 while elapsed < SPAN do
   emu.wait(SAMPLE)

@@ -1,12 +1,12 @@
 -- rom2boot.lua -- what ROM 2.0's HCBOOT does, measured in the machine (#247).
 --
 -- WHY THIS EXISTS
---   ROM 2.0's monitor fills in HCBOOT -- the entry the monitor takes when ESC is
---   pressed at the sign-on prompt -- with the ACB-4000 cold boot: the CBIOS and
---   the MD-10 BIOS come out of the softROM's window into RAM, the MD-10 BIOS is
---   patched with the CBIOS's vectors, and the machine hands over to it
---   (docs/o1-rom-2.0.md 4.6).  That is a *chain*, and a boot comparison cannot
---   see it: this reads each stage back.
+--   ROM 2.0's monitor fills in HCBOOT -- the entry the monitor takes when RETURN
+--   is pressed at the sign-on prompt (#247 step 4; docs/o1-rom-2.0.md 3.3) --
+--   with the ACB-4000 cold boot: the CBIOS and the MD-10 BIOS come out of the
+--   softROM's window into RAM, the MD-10 BIOS is patched with the CBIOS's
+--   vectors, and the machine hands over to it (docs/o1-rom-2.0.md 4.6).  That is
+--   a *chain*, and a boot comparison cannot see it: this reads each stage back.
 --
 --   It also records where the chain ends, and it is the machine's own interrupt
 --   exit: the ROM's 60 Hz handler returns through the CBIOS at `CCPADR + 1633h`,
@@ -27,11 +27,13 @@
 --   O1_ROM2_DRIVE  set when a hard disk is mounted, to also check that the system
 --                  is read off it into 0xC200
 --
--- ESC is not ASCII 27 on this machine.  The Osborne's ESC key is declared
--- `PORT_CHAR(UCHAR_MAMEKEY(ESC))`, so `natkeyboard:post("\27")` matches no port
--- and presses nothing -- see o1keys.lua's `key esc`, which had the same bug.  The
--- code that does press it is read out of the natkeyboard's own table here, rather
--- than hard-coded, so it survives a MAME that numbers its key codes differently.
+-- RETURN is the key, and it is a plain carriage return (#247 step 4).  ROM 2.0's
+-- sign-on dispatch boots the machine's own hard disk on RETURN, `:` is floppy A
+-- and `"` is floppy B, and ESC is released (docs/o1-rom-2.0.md 3.3).  The
+-- dispatch's two key bytes are read back out of the running monitor below.  The
+-- harness used to press ESC, which on this machine is a MAME *key* code and had
+-- to be read out of the natkeyboard's own table (see o1keys.lua's `key esc`);
+-- RETURN needs none of that.
 
 local M = manager.machine
 local P = M.devices[":maincpu"].spaces["program"]
@@ -108,12 +110,6 @@ local function bank()
   P:write_u8(WINDOW, before)
   return (after == 0x5A) and "RAM" or "ROM"
 end
-local function esc_code()
-  for line in kb:dump():gmatch("[^\n]+") do
-    local code, name = line:match("^([0-9A-F]+) %((.-)%)")
-    if name == "Escape" then return tonumber(code, 16) end
-  end
-end
 local function same(a, b, n)
   for i = 0, n - 1 do
     if P:read_u8(a + i) ~= P:read_u8(b + i) then return false, i end
@@ -150,12 +146,20 @@ logf("  the window: CBIOS " .. peek(WINDOW, 4) ..
      ", MD-10 " .. peek(WINDOW + 0x800, 4) ..
      ", stub " .. peek(STUB_SRC, STUB_LEN))
 
-local esc = esc_code()
-logf(string.format("  ESC is natkeyboard code %s", esc and string.format("%06X", esc) or "NOT FOUND"))
-if not esc then os.exit(1) end
+-- The key map itself, read out of the running monitor (#247 step 4).  Below
+-- 0F67h these two immediates are the *only* bytes ROM 2.0 moves, and they are the
+-- whole difference between "a facerolled RETURN boots a disk nobody asked for"
+-- and the machine's own hard disk: 0047h/0048h is the `CMP` after `CALL CI`, and
+-- 004Fh/0050h the one after `LD HL,DSKSWP`.  Read now, while the bank is the
+-- monitor's.
+local KEY_CR, KEY_COLON = 0x0D, 0x3A
+verdict("the sign-on dispatch is ROM 2.0's key map (RETURN = the hard disk, " ..
+        "':' = floppy A, '\"' = floppy B)",
+        P:read_u8(0x0047) == 0xFE and P:read_u8(0x0048) == KEY_CR and
+        P:read_u8(0x004F) == 0xFE and P:read_u8(0x0050) == KEY_COLON)
 
 local ram_seen = false
-kb:post(utf8.char(esc))
+kb:post("\r")
 for i = 1, 40 do
   emu.wait(0.05)
   if bank() == "RAM" then ram_seen = true end
@@ -179,7 +183,7 @@ for _, p in ipairs(PATCHES) do
   patched = patched and ok
 end
 verdict("it is patched from the CBIOS's vectors (5 LDIRs, 90 bytes)", patched)
-verdict("the bank switched to RAM at some point after ESC (observed: " ..
+verdict("the bank switched to RAM at some point after RETURN (observed: " ..
         tostring(ram_seen) .. ")", ram_seen)
 -- The hand-over's own store, and the only part of the chain that has to run in
 -- RAM: HCBOOT copies the stub out of the payload's spare and switches the bank

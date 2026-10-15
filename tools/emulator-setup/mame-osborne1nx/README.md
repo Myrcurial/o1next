@@ -22,7 +22,7 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
 | `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
-| `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, ESC, and what the monitor then does (#247) |
+| `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, RETURN, and what the monitor then does (#247) |
 | `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
 | `rom2bank.lua` | the same question from the other side — **taps**: the IOBYTE read, and the bank selects, on this machine and on a stock boot (#247) |
 | `rom2handover.lua` | **the fix, proved before it is built** — poke `CCPADR` and the machine reaches `A0>` (#247) |
@@ -152,14 +152,16 @@ stub at `1E01h`, and `FF` from `1E0Fh` to `1FFFh`.
 `tools/research/rom2asm.sh` assembles ROM 2.0's monitor — the vendor's 1.44 with
 the new code in the free tail of it — with the vendor's own ACT80, and
 `rom2-check.sh` measures what the new code *does*: with the image in the window and
-no floppy, **ESC** at the sign-on prompt is the monitor's `HCBOOT` entry, and the
-harness reads the chain back stage by stage:
+no floppy, **RETURN** at the sign-on prompt is the monitor's `HCBOOT` entry
+(`:` is floppy A and `"` is floppy B — #247 step 4), and the harness reads the
+chain back stage by stage:
 
 ```
+  PASS  the sign-on dispatch is ROM 2.0's key map (RETURN = the hard disk, ':' = floppy A, '"' = floppy B)
   PASS  the CBIOS is at 0E100h, and it is the window's 1000h
   PASS  the MD-10 BIOS's own jump table is at 0D800h
   PASS  it is patched from the CBIOS's vectors (5 LDIRs, 90 bytes)
-  PASS  the bank switched to RAM at some point after ESC
+  PASS  the bank switched to RAM at some point after RETURN
   PASS  the hand-over stub is in RAM at 0E0F0h, and it is the window's 1E01h
   PASS  CCPADR (0EFD2h) is CB00h, the store the ROM's own CBOOT makes
   PASS  the system was read off the drive into 0C200h     (with O1_HARD)
@@ -201,18 +203,23 @@ at the sign-on prompt for ever.
 
 **A stale `/tmp/rom2.rom` looks exactly like `HCBOOT` not working.** The image is
 two steps (`rom2asm.sh`, then `rom2image.py`); reuse an older `/tmp/rom2.rom` and
-the window serves the *stock* monitor, whose `0F67h` is still `JMP START` — so ESC
-does nothing and the machine sits at the sign-on prompt for ever. `rom2-check.sh`
-builds the image itself, so it cannot hit this; a hand-run trace can. Check the
-image before believing a negative: `0F67h` must be `21 00 10` (`LD HL,1000h`), not
-`C3 00 00`.
+the window serves the *stock* monitor, whose `0F67h` is still `JMP START` — so
+RETURN takes the stock floppy-A path and the machine never enters `HCBOOT`.
+`rom2-check.sh` builds the image itself, so it cannot hit this; a hand-run trace
+can. Check the image before believing a negative: `0F67h` must be `21 00 10`
+(`LD HL,1000h`), not `C3 00 00`.
 
 
-**ESC needs the key code, not the character.** The Osborne's ESC key is
-`PORT_CHAR(UCHAR_MAMEKEY(ESC))`, so `natkeyboard:post("\27")` matches no port and
-presses nothing — silently. Both harnesses here find the code in the
-natkeyboard's own table (`natkeyboard:dump()`: `0010003B (Escape)`), and
-`tools/research/o1keys.lua`'s `key esc` had the same bug until #247.
+**The boot key is RETURN, and it is a plain carriage return (#247 step 4).** The
+monitor's sign-on dispatch boots the machine's own hard disk on RETURN, `:` is
+floppy A and `"` is floppy B, and ESC is released — it falls through to the
+prompt's `JR START` like any unclaimed key. Every harness here used to press ESC,
+which on this machine is a *key* code (`PORT_CHAR(UCHAR_MAMEKEY(ESC))`), so
+`natkeyboard:post("\27")` matched no port and pressed nothing — silently, and the
+code had to be read out of the natkeyboard's own table (`natkeyboard:dump()`:
+`0010003B (Escape)`). RETURN retires all of that. `tools/research/o1keys.lua`'s
+`key esc` still exists and still reads the code from the table, because
+`PREP.COM`'s menus need it — see `docs/md10-system.md` §2.
 
 ### Driving a transfer
 
