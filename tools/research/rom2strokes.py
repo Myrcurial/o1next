@@ -37,14 +37,29 @@ WHAT IT FOUND (2026-10-14, #83)
     **And it does not need to fit.**  One window page is 4096 bytes and the video
     buffer is 128 x 32 = 4096 cells, so **one page is exactly one screen**; in
     bank 2 the window and the video RAM are both visible (`docs/o1-rom-2.0.md`
-    section 4.4), so a frame is one `LDIR` from `1000h` to `F000h`, and the frames
-    live in the interposer's flash rather than the ROM.  `--frame` writes one.
+    section 4.4), so a frame is one `LDIR` from `1000h` to `F000h`, and the frame
+    lives in the Pico's own flash rather than the ROM.  `--frame` writes it.
+
+    **The frame is two halves, and each validates itself** (2026-10-15, #247 step
+    8).  The O1's video cell is nine bits -- eight of character and one of
+    brightness -- and the ninth is not in the video RAM: it is a separate 4K x 1
+    array that `OUT (02h)` pages into `F000-FFFF`, and its low seven bits read
+    high because they are not physically present.  So the artifact is **8192
+    bytes, the character half then the attribute half**, each half a window page
+    with its own trailer at its own `0FF8h` -- either half validates without the
+    other -- and v1.0's attribute half is all `FFh`, every cell bright.  That is
+    a *frame*, not a limit of the format: the ROM blits the attribute half
+    whenever it validates, so a later frame can carry dim accents with no ROM
+    change.  The contract is `docs/rom-pico-protocol.md` sections 4.1 and 5.
 
 Usage:
     tools/research/rom2strokes.py                  # the stripe proof and the costs
-    tools/research/rom2strokes.py --frame OUT.bin  # one 4096-byte video buffer
+    tools/research/rom2strokes.py --frame OUT.bin  # 8192 bytes: two halves
+    tools/research/rom2strokes.py --frame OUT.bin --half attrs   # just one half
+    tools/research/rom2strokes.py --verify OUT.bin # do its trailers hold?
     tools/research/rom2strokes.py --logo OUT.png   # the site masthead
-    tools/research/rom2strokes.py --check          # fail if the masthead is stale
+    tools/research/rom2strokes.py --check          # fail if the masthead *or* the
+                                                   # committed frame is stale
 """
 import argparse
 import importlib.util
@@ -86,6 +101,24 @@ FRAME = STRIDE * ROWS                     # 4096: one buffer, and one window pag
 MAGIC = b'O1NEXT'
 TRAILER = 8
 TRAILER_AT = FRAME - TRAILER
+
+# --- the frame's two halves ------------------------------------------------
+#
+# The artifact is **8192 bytes: two 4096-byte halves, characters then
+# attributes**, because the O1's video cell is nine bits and the ninth is not in
+# the video RAM -- it lives in a separate 4K x 1 array that `OUT (02h)` pages
+# into `F000-FFFF` (#247 step 8; `docs/rom-pico-protocol.md` section 5).  Each
+# half is one window page, so `PRESENT(1)` and `PRESENT(2)` deliver them one at a
+# time, and **each half carries the same trailer at its own `0FF8h`**, so either
+# validates without the other.
+#
+# v1.0's attribute half is all `FFh`, and that is a frame rather than a limit of
+# the format: bit 7 set is *bright* (the renderer is `BIT(attr,7) ? 2 : 1`) and
+# the array's low seven bits read high because they are not physically there, so
+# `FFh` is the array's own image of an all-bright screen, byte for byte.
+
+ATTR_BRIGHT = 0xFF
+HALF_NAMES = ('chars', 'attrs')
 
 # --- the fallback sign-on -------------------------------------------------
 #
@@ -421,8 +454,27 @@ def report(rows, pat):
     print('that route is estimated, not demonstrated.')
 
 
-def frame(rows, origin):
-    """One video buffer: the art placed so that `origin` lands at column 0.
+def seal(body):
+    """A half: the body, then six bytes of magic, then the 16-bit sum of it.
+
+    The sum covers exactly the 4088 bytes *before* the trailer, which is why the
+    magic could grow from four bytes to six by eating the two reserved bytes
+    without moving the checksum's definition (#228).
+    """
+    if len(body) != TRAILER_AT:
+        raise ValueError('a half is %d bytes of body, not %d'
+                         % (TRAILER_AT, len(body)))
+    checksum = sum(body) & 0xFFFF
+    return bytes(body) + MAGIC + bytes([checksum & 0xFF, checksum >> 8])
+
+
+def trailer_sum(half):
+    """The 16-bit sum a half carries at `0FFEh`, little-endian, read back."""
+    return half[TRAILER_AT + 6] | (half[TRAILER_AT + 7] << 8)
+
+
+def chars_half(rows, origin):
+    """The character half: the art placed so that `origin` lands at column 0.
 
     The buffer holds **glyph codes**, not art characters, so the `sui 65` split
     is applied here, at build time -- the ROM never has to branch.  0x41-0x61 is
@@ -449,10 +501,102 @@ def frame(rows, origin):
             elif 0x20 <= o <= 0x7E:
                 buf[r * STRIDE + col] = o
 
-    # The validity marker, in rows nobody can see.
-    body = bytes(buf[:TRAILER_AT])
-    checksum = sum(body) & 0xFFFF
-    return body + MAGIC + bytes([checksum & 0xFF, checksum >> 8])
+    # The validity marker, in rows nobody can see -- and its own trailer, because
+    # a half that arrives alone must be able to say whether it is intact.
+    return seal(buf[:TRAILER_AT])
+
+
+def attrs_half():
+    """The attribute half: every cell bright, and its own trailer.
+
+    `FFh` rather than `80h`, because `FFh` is what the array *reads back* for a
+    bright cell -- its low seven bits are not physically present and read high --
+    so this half is the array's own image of an all-bright screen, byte for byte.
+    The eight trailer bytes sit in cells 4088-4095, which are row 31: off-screen
+    on the machine, exactly as the character half's are.
+    """
+    return seal(bytes([ATTR_BRIGHT]) * TRAILER_AT)
+
+
+def halves(rows, origin):
+    """Both halves, in the order the firmware serves them -- `PRESENT(1)` and
+    `PRESENT(2)` (`docs/rom-pico-protocol.md` section 4): characters, then
+    attributes."""
+    return chars_half(rows, origin), attrs_half()
+
+
+def frame(rows, origin):
+    """The whole artifact: 8192 bytes, two self-validating 4096-byte halves."""
+    return b''.join(halves(rows, origin))
+
+
+def check_half(half, name):
+    """`(ok, message)` -- does this half carry a good trailer at its own `0FF8h`?
+
+    The check is the monitor's own and nothing more: six bytes of magic, then a
+    16-bit sum of everything before them.  That is deliberate rather than lazy --
+    the trailer is *also* the "is a frame there?" query, so a missing frame, an
+    erased frame and a corrupt one are the same case, and there is no second
+    failure mode to invent (`docs/rom-pico-protocol.md` section 6).
+    """
+    if len(half) != FRAME:
+        return False, '%s: %d bytes, not %d' % (name, len(half), FRAME)
+    if half[TRAILER_AT:] != seal(half[:TRAILER_AT])[TRAILER_AT:]:
+        return False, ('%s: trailer %r + %04x, and the body sums to %04x'
+                       % (name, bytes(half[TRAILER_AT:TRAILER_AT + len(MAGIC)]),
+                          trailer_sum(half), sum(half[:TRAILER_AT]) & 0xFFFF))
+    return True, '%s: %s + sum %04x' % (name, MAGIC.decode(), trailer_sum(half))
+
+
+def check_frame(buf, name):
+    """Validate a whole 8192-byte artifact, half by half.  True if both hold."""
+    if len(buf) != 2 * FRAME:
+        print('%s: %d bytes, not %d -- two halves' % (name, len(buf), 2 * FRAME))
+        return False
+    ok = True
+    for i, half_name in enumerate(HALF_NAMES):
+        good, message = check_half(buf[i * FRAME:(i + 1) * FRAME], half_name)
+        print('  %-4s %s' % ('ok' if good else 'BAD', message))
+        ok = ok and good
+    return ok
+
+
+def verify(path):
+    """Validate a frame, or a single half, straight off the disk.  True if it
+    holds.  This is the whole machine-free test: a half is self-describing, so
+    nothing else -- not the art, not the chargen -- is needed to check one."""
+    buf = open(path, 'rb').read()
+    if len(buf) == 2 * FRAME:
+        return check_frame(buf, path)
+    good, message = check_half(buf, os.path.basename(path))
+    print('  %-4s %s' % ('ok' if good else 'BAD', message))
+    return good
+
+
+def check_asset(rows, path, origin):
+    """Does the committed frame still match the art?  `--check`'s other half.
+
+    Bytes rather than a trailer, because the build is deterministic -- the art is
+    in this repo and the placement is arithmetic -- so a drift is an exact
+    difference and not a judgement.  It is what `check_logo()` does for the
+    masthead, for the same reason: the frame is a firmware asset compiled into
+    the Pico's flash, and an asset that has drifted from its source should fail
+    here rather than ship (`docs/rom-pico-protocol.md` section 5).
+    """
+    if not os.path.exists(path):
+        print('frame MISSING: %s' % path)
+        print('  run: tools/research/rom2strokes.py --frame %s' % path)
+        return 1
+    want = frame(rows, origin)
+    have = open(path, 'rb').read()
+    if have == want:
+        print('frame OK: %s matches the art (%d bytes = %s, then %s)'
+              % (path, len(want), HALF_NAMES[0], HALF_NAMES[1]))
+        return 0
+    print('frame STALE: %s does not match the art' % path)
+    print('  committed %d bytes, re-build %d bytes' % (len(have), len(want)))
+    print('  run: tools/research/rom2strokes.py --frame %s' % path)
+    return 1
 
 
 def main(argv=None):
@@ -463,30 +607,45 @@ def main(argv=None):
     ap.add_argument('--art', default=os.path.join(
         repo, 'research', 'boot-screen', 'o1next-art.txt'))
     ap.add_argument('--frame', metavar='OUT.bin',
-                    help='also write one 4096-byte video buffer')
+                    help='write the frame: 8192 bytes, the character half then '
+                         'the attribute half, each with its own trailer')
+    ap.add_argument('--half', choices=HALF_NAMES,
+                    help='with --frame, write just that one 4096-byte half -- the '
+                         'shape PRESENT(1)/PRESENT(2) delivers')
+    ap.add_argument('--verify', metavar='IN.bin',
+                    help='validate a frame, or a single half, and exit non-zero '
+                         'if a trailer does not hold; writes nothing')
     ap.add_argument('--origin', type=int, default=26,
                     help='art column to place at buffer column 0 (default 26, '
                          'the O\'s left edge: the logo fits, the hatch does not)')
     ap.add_argument('--png', metavar='OUT.png',
-                    help='render the frame with the character generator, so the '
-                         'screen can be looked at')
+                    help='render the character half with the character generator, '
+                         'so the screen can be looked at')
     ap.add_argument('--logo', metavar='OUT.png',
                     help='render the art as the site masthead: light glyphs on a '
                          'transparent ground, i.e. the screen inverted, because '
                          'the site header is the machine\'s blue panel')
     ap.add_argument('--check', action='store_true',
-                    help='verify the committed masthead still matches the art, '
-                         'and exit non-zero if it does not; writes nothing')
+                    help='verify the committed masthead and the committed frame '
+                         'still match the art, and exit non-zero if they do not; '
+                         'writes nothing')
     args = ap.parse_args(argv)
 
     rows = load_art(args.art)
 
-    # --check sits before `glyphs()` on purpose: it needs the art and the
-    # character ROM, both of which are in this repo, and nothing else -- no
-    # o1art.py, no fontTools, no host tooling.  So CI can run it.
+    # --verify and --check sit before `glyphs()` on purpose: both need the art
+    # and files in this repo, and nothing else -- no o1art.py, no fontTools, no
+    # host tooling.  So CI can run them, and a frame can be checked where the
+    # art is not.
+    if args.verify:
+        return 0 if verify(args.verify) else 1
+
     if args.check:
-        return check_logo(rows, os.path.join(repo, 'site', 'assets',
-                                             'o1next-logo.png'))
+        rc = check_logo(rows, os.path.join(repo, 'site', 'assets',
+                                           'o1next-logo.png'))
+        rc |= check_asset(rows, os.path.join(repo, 'firmware', 'rom-service',
+                                             'frame.bin'), args.origin)
+        return rc
 
     pat = {g: quadrant(b) for g, b in glyphs().items()}
     pat[BLANK] = 0
@@ -499,21 +658,46 @@ def main(argv=None):
         print('  -- the screen inverted, for the site header\'s blue panel')
 
     if args.frame:
-        buf = frame(rows, args.origin)
+        chars, attrs = halves(rows, args.origin)
+        image = {'chars': chars, 'attrs': attrs}.get(args.half, chars + attrs)
         with open(args.frame, 'wb') as fh:
-            fh.write(buf)
-        cs = buf[TRAILER_AT + 6] | (buf[TRAILER_AT + 7] << 8)
+            fh.write(image)
         print()
-        print('wrote %s: %d bytes = %d x %d cells = one window page (4096)'
-              % (args.frame, len(buf), STRIDE, ROWS))
-        print('  CRC32    %08x' % (zlib.crc32(buf) & 0xFFFFFFFF))
-        print('  trailer  %r + sum %04x, in row %d (off-screen, only %d shown)'
-              % (MAGIC, cs, TRAILER_AT // STRIDE, VISIBLE))
+        if args.half:
+            print('wrote %s: %d bytes = the %s half, one window page'
+                  % (args.frame, len(image), args.half))
+        else:
+            print('wrote %s: %d bytes = two %d-byte halves, %s then %s'
+                  % (args.frame, len(image), FRAME, HALF_NAMES[0], HALF_NAMES[1]))
+        print('  CRC32    %08x' % (zlib.crc32(image) & 0xFFFFFFFF))
+        print('  chars    %s + sum %04x -- the art, in glyph codes'
+              % (MAGIC.decode(), trailer_sum(chars)))
+        print('  attrs    %s + sum %04x -- all %02Xh, every cell bright'
+              % (MAGIC.decode(), trailer_sum(attrs), ATTR_BRIGHT))
+        print('  trailers in row %d at each half\'s own 0FF8h, off-screen '
+              '(only %d rows are shown)' % (TRAILER_AT // STRIDE, VISIBLE))
         print()
-        print('The blit is one LDIR of 4096 bytes: 4096 x 21 T-states = 86016,')
-        print('which at 4 MHz is 21.5 ms.  A fiftieth of a second, against a')
+        print('Each half validates itself, and that is checked here rather than')
+        print('asserted -- the trailer is the only thing a monitor can test for:')
+        if args.half:
+            good, message = check_half(image, args.half)
+            print('  %-4s %s' % ('ok' if good else 'BAD', message))
+            ok = good
+        else:
+            ok = check_frame(image, args.frame)
+        if not ok:
+            print()
+            print('the frame this tool just wrote does not validate -- that is a')
+            print('bug in this tool, not a bad image')
+            return 1
+        print()
+        print('The blit is one LDIR of 4096 bytes per half: 4096 x 21 T-states =')
+        print('86016, which at 4 MHz is 21.5 ms.  Two halves are 43 ms, against a')
         print('floppy boot measured in seconds -- the frame is free in the only')
-        print('sense that matters, which is that the machine cannot feel it.')
+        print('sense that matters, which is that the machine cannot feel it.  The')
+        print('bright fill of the attribute array is 21.5 ms more, and it happens')
+        print('before the character half goes up: 24 of the array\'s 4096 cells')
+        print('read dim at the sign-on, and they would show in a 4096-cell frame.')
         print()
         print('The fallback is free too, because it *replaces* the stock sign-on')
         print('rather than joining it:')
@@ -530,14 +714,20 @@ def main(argv=None):
         print('So the fallback *frees* %d bytes, and pays for its own check.'
               % (IMSG_LEN - FALLBACK_LEN - 6))
         print()
-        print('Order at boot: print the text first, then page the frame in and')
-        print('check the trailer; if it is right, blit over the text.  A missing')
-        print('or hand-built image leaves the message on screen, which is the')
-        print('whole point -- and the check is a compare against six bytes plus')
+        print('Order at boot: print the text first, then PRESENT(1), page the')
+        print('character half in and check its trailer; if it is right, blit over')
+        print('the text.  Then PRESENT(2) and the attribute half, which is blitted')
+        print('if *it* validates and costs only the bright fill otherwise.  A')
+        print('missing or hand-built image leaves the message on screen, which is')
+        print('the whole point -- and the check is a compare against six bytes plus')
         print('a 16-bit sum, which is a loop over the page and about 20 ms.')
+        print()
+        print('The frame is the firmware asset at firmware/rom-service/frame.bin,')
+        print('and --check re-builds it from this art and compares bytes, so the')
+        print('two cannot drift.')
 
         if args.png:
-            render_frame(buf, args.png)
+            render_frame(chars, args.png)
             print()
             print('rendered %s -- all 32 rows, so the trailer is visible at the'
                   % args.png)
