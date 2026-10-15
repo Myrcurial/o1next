@@ -769,6 +769,27 @@ byte-identical (§4.6). That is 67 bytes of copy, patch and jump, plus the 10-by
 the whole new monitor; `HCBOOT` is the part of it that is written, and it came in
 under its share.
 
+**And the boot screen does not fit in the 72 that are left (measured 2026-10-15,
+#247 turn 3).** The screen's code — the attribute fill, the fallback text, the
+door helper, the trailer check and the two `LDIR` blits — is **182 bytes**, and
+the assembler's own guard says so in its own words:
+
+```
+I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.
+```
+
+So §8 item 2's question is answered: **the monitor code does not fit in 150
+bytes**, and the screen is the piece that proves it. The code is written and
+measured in [`research/source-code/BIOS-200-source/rom2-screen.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-200-source/rom2-screen.asm) (with the
+per-piece arithmetic), and it needs a home rather than a squeeze — a **third
+content id in the softROM** (`PRESENT(3)`, a 4096-byte blob in the Pico's flash
+beside the frame, reached by a ~21-byte stub that copies page 1 to RAM and jumps
+into it; recommended, because it needs no payload change and the screen code is
+firmware like the frame), the **payload's spare** (`1E0Fh`–`1FFFh`, 497 bytes,
+where the hand-over stub already lives), or this section's **Plan B** (a banked
+loader). Any of the three fits in the tail's 72 bytes, because the monitor's share
+becomes the stub.
+
 ### 4.8 The feature set: what to take from OZROM, and what to refuse
 
 OZROM 1E is the pattern for *how* to be a replacement ROM ([`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md)
@@ -994,9 +1015,15 @@ So the ROM's own half of deliverable 3 is done and measured; what is left is the
    chain is the hand-over, and it is named: `CCPADR` (`0EFD2h`), the ROM's own
    `CBOOT`'s store, without which the interrupt handler's exit cannot return to RAM
    (§4.6, item 10).
-2. **Does ROM 2.0's monitor code fit in 150 bytes?** The estimate in §4.7 says yes
-   with ~24 bytes to spare; the assembler's guard is the arbiter. Plan B is a
-   banked loader.
+2. **Does ROM 2.0's monitor code fit in 150 bytes?** **Answered — no, and the boot
+   screen is the piece that proves it** (measured 2026-10-15, §4.7). `HCBOOT` took
+   77 of the 150; the screen's code is 182 bytes against the 72 that are left, and
+   the assembler's own guard said `CODE TOO LARGE`. The screen code is written and
+   measured in [`research/source-code/BIOS-200-source/rom2-screen.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-200-source/rom2-screen.asm); what it
+   needs is a **home** — a third softROM content id (`PRESENT(3)`, recommended), the
+   payload's spare, or Plan B's banked loader — because the monitor's share then
+   becomes a ~21-byte stub that copies it to RAM and jumps. The rest of the
+   monitor's extensions (`BANKSEL`, `SCRMOD`, `VERSION`) are still estimates.
 3. **If a register is wanted at `2300h`.** `2300h` is free per the schematic and the
    ROM source, but a write there has never been measured on a real machine — the
    decode is described as sloppy ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §7). The *latch* it was

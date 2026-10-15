@@ -165,10 +165,26 @@ Everything below is measured on `osborne1nx` unless marked.
    the same 4096 bytes of window page 1, so presenting the frame evicts the
    payload, and the hand-over needs it (§5).
 
-Two 4096-byte passes ≈ **43 ms**, against a floppy boot measured in seconds. The
-ROM cost sits inside the 72 free bytes `o1-rom-2.0.md` §4.7 leaves below `0FB4h` —
-and the assembler's own `IF RLWA > 0FFBH / .9 ERROR CODE TOO LARGE` guard is the
-arbiter, which is the right place to find out.
+Two 4096-byte passes ≈ **43 ms**, against a floppy boot measured in seconds. **The
+ROM cost does not fit the monitor's tail, and the assembler's own guard is what
+said so** (2026-10-15, #247 turn 3): the 1.44 layout leaves 150 bytes above
+`0F67h`, `HCBOOT` took 77 of them (`0F67h`–`0FB3h`), and the screen's code — the
+fill, the text, the door, the trailer and the two blits — is **182 bytes**:
+
+```
+I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.
+```
+
+That is the guard `IF RLWA > 0FFBH / .9 ERROR CODE TOO LARGE` doing its job, and
+it settles §4.7's "does the monitor code fit" question in the negative. The code
+is written and measured — `research/source-code/BIOS-200-source/rom2-screen.asm` —
+and it needs a home: **a third content id in the softROM** (`PRESENT(3)` serving a
+4096-byte blob in the Pico's flash, beside the frame, with a ~21-byte stub in the
+monitor that copies page 1 to RAM and jumps into it — the recommended one, because
+the screen code is firmware like the frame and no payload change is needed), the
+**payload's spare** (497 bytes at `1E0Fh`, where the hand-over stub already lives),
+or §4.7's **Plan B** (a banked loader). All three fit; the choice is the
+maintainer's, and the code is home-agnostic.
 
 ### 4.2 Result codes
 
