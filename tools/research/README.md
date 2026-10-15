@@ -150,8 +150,18 @@ scratch programs, "figuring it out" notebooks/scripts.
   the measured delta and that region's load base, so an already-correct capture is
   left alone; `--shift` overrides the derivation. It then **refuses to write** an
   image whose CCP entry does not land on `LD SP,nn`, because that image would
-  warm-boot for ever (#198). Three captures measured and they do **not** agree on
-  a base — which is why the derivation replaced the old constant `0x100` (#247).
+  warm-boot for ever (#198). Captures measured and they do **not** agree on a base
+  — which is why the derivation replaced the old constant `0x100` (#247).
+  - **A capture can sit *below* the load base, and it is shifted up.** `PREP.COM`
+    *computes* the base rather than storing one — a bit-map walk with a
+    self-patched `ADD A,<page>` at `2A9E`, the page being `*(0x0002)` minus a size
+    accumulated over its own 24-byte drive-table records, with the CCP `0x16`
+    pages below it and the BDOS `+8` above the CCP — so the bigger layouts miss:
+    `1200,8,18 eq11` comes out at `0xB900` (nine pages low) and `321,8,18 eq11`
+    at `0xC100`, while `eq3`/`eq6` and the standard options land on `0xC200`. The
+    correction is a page *add*, so it works either way. The regions must agree on
+    the shift, and the result is verified byte for byte against a drive that
+    already booted (`docs/md10-system.md` §9.5).
 - **`md10table.py`** — prints a drive's disk label, its 28-byte partition records,
   the LBA 4 runtime table and its `E5h` regions, from a raw image or a CHD. The
   readback half of the geometry capability: it is what says whether `md10prep.sh`
@@ -207,11 +217,13 @@ scratch programs, "figuring it out" notebooks/scripts.
   the PYXIS27 floor-pin drive **byte for byte**. `eqN` (e.g. `eq3`) is
   PREP.COM's option 4, "Non-standard equal drive partitioning", which is the only
   way to a bigger partition — and it is capped at 16384 blocks (8 MiB), measured.
-  **Its relocation report matters**: the base PREP.COM picks is a function of the
-  partition layout, not a constant — the three-partition PYXIS27 drive comes out at
-  `0xC200` (correct) and `eq11` comes out at `0xB900`, nine pages low, which
-  warm-boots for ever (#198) however good the driver is. `md10reloc.py` refuses
-  rather than guesses (`docs/md10-system.md` §9.4).
+  **It finishes the drive**: `PREP.COM` computes the O/S's relocation base rather
+  than storing one, and the bigger layouts miss (`eq11` comes out at `0xB900`, nine
+  pages low, which warm-boots for ever (#198)). So the script re-relocates the O/S
+  with `md10reloc.py` and writes the corrected image back at LBA 5, reporting
+  **`bootable.raw` / `bootable.chd`** — `configured.raw` stays exactly what the
+  installer left. `1200,8,18 eq11` then boots from the ROM with no floppy to
+  `A0>`..`K0>` (`docs/md10-system.md` §9.5).
   It is a *host* script — it wants
   MAME, the patched `osborne1nx` machine (`$O1_MAME`) and `chdman` — so it is not
   shipped tooling.

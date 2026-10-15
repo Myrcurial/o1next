@@ -922,19 +922,110 @@ The negative control is the same harness against the pre-fix image: it fails on
 `A:`–`G:`, `J:` and `K:`, with `D:` reading LBA 8888 where the driver's cells say
 47138 — `22 B8` for `B8 22`, a textbook swap.
 
-**And the next step is blocked by something else, now measured.** `PREP.COM`'s
-relocation base is **not** constant, and it is not a stale-capture artifact: it is
-reproducible and it is a function of the partition layout. `md10prep.sh 1200,8,18
-eq11` writes an O/S at base **`0xB900`** — `md10reloc.py` reports `relocation delta
-B9`, nine pages *below* the `0xC200` the hand-over loads at, and refuses to write —
-while the three-partition PYXIS27 drive comes out at `0xC200`, correct. A drive
-with eleven partitions therefore boots into the `#198` warm-boot loop no matter how
-good the driver is, which is why the eleven-drive acceptance above is run against
-a drive whose O/S is already at `0xC200`. **The open question from §9.3's
-predecessor is now on the critical path**: `md10prep.sh eqN` cannot produce a
-bootable drive until the base is understood (or forced), and §9.3's "what is left
-is implementing it, not deciding it" is not quite true — one more thing has to be
-understood first.
+**And the drive the eleven-drive acceptance runs against had to be corrected
+first** — `PREP.COM`'s relocation base is not constant. That is §9.5, and it is
+now understood rather than worked around.
+
+### 9.5 The relocation base, answered — and the v1.0 ceiling (2026-10-15)
+
+`PREP.COM` relocates `HARDCCP.SPR`/`HARDBDOS.SPR` before writing the O/S to a
+drive, and the base it picks is not constant. That was recorded as an open
+question and deliberately not chased; it then turned out to be on the critical
+path, because `md10prep.sh eq11` produces a drive that warm-boots for ever (#198).
+
+**It is not a stale capture, and it is not random — it is a function of the
+layout.** Measured by building each drive with `md10prep.sh` and reading the CCP's
+first instruction, which is `JP <base + 0x2C8>`:
+
+| `md10prep.sh` | partitions | blocks each | base | pages below `0xC200` |
+|---|---|---|---|---|
+| `321,8,18 6` (option 3) | 6 | 7704 | `0xC200` | 0 |
+| `321,8,18 eq6` (option 4) | 6 | 7704 | `0xC200` | 0 |
+| `321,8,18 eq3` | 3 | 15399 | `0xC200` | 0 |
+| `321,8,18 eq11` | 11 | 4202 | `0xC100` | 1 |
+| `1200,8,18 eq11` | 11 | 15706 | `0xB900` | 9 |
+
+The *option* is not it — `eq6` and option 3 agree. What moves the base is the
+layout growing: 3 and 6 partitions land on the load base, 11 do not, and the same
+eleven partitions land further down on the bigger drive.
+
+**The mechanism, out of `PREP.COM`'s own code.** It does not store a base; it
+computes one. The relocator is a bit-map walk — `2A7A`-`2AB0` reads a map byte,
+`SLA C` a bit at a time, and for each set bit does `LD A,(HL) / ADD A,<page> /
+LD (HL),A`, with the `<page>` **self-patched into the instruction at `2A9F`**. The
+page comes from `0x2807`-`0x2830`:
+
+```
+2825  ld bc,(0438ah)
+2829  add hl,bc        ; the size, accumulated over the drive table
+282a  dec hl
+282b  inc h            ; ceil to a page
+282c  ld a,(00002h)    ; the top of the memory PREP.COM is running in
+282f  sub h
+2830  ld (02a9fh),a    ; <- the page the relocator will add
+```
+
+and the two halves are placed from it at `0x292F`-`0x295F`:
+
+```
+292f  ld a,(02a9fh)
+2932  sub 016h         ; the CCP goes 0x16 pages below it
+2949  ld hl,02b65h     ; 'HARDCCP.SPR'
+295a  ld a,(02a9fh)
+295d  add a,008h       ; the BDOS goes 8 pages above the CCP
+2965  ld hl,02b71h     ; 'HARDBDOS.SPR'
+```
+
+The `+8` is the check that this is the right reading: the measured CCP/BDOS page
+delta is `0xCA - 0xC2 = 8`, exactly. The size that moves the page is accumulated
+over PREP.COM's own 24-byte drive-table records at `0x277C`-`0x27C3` (`LD IY,045A3h
+… ADD IY,BC` with `BC = 0x18`, `DJNZ`), which is why it grows with the partition
+count and with the partition size, and why the *top of memory PREP.COM sees*
+(`*(0x0002)`) enters at all — the base is a property of the **run**, not of the
+drive.
+
+**And the correct base is not a matter of opinion.** `HARD.COM`'s own boot routine
+reads the system to `0xC200` (`LD HL,0C200h`) and jumps; the ROM 2.0 `HCBOOT`
+chain does the same. The image is `0x1600` bytes and the MD-10 BIOS starts at
+`0xD800`, so the only placement that fits is `0xD800 - 0x1600 = 0xC200`. A capture
+nine pages low is not a different convention, it is the installer's arithmetic
+missing — which the eleven-partition acceptance showed independently, by failing
+to boot.
+
+**So the tool corrects it, in either direction.** `md10reloc.py` derives the page
+per region from the SPR bodies and the load base, and the correction is a page
+*add*: a capture below the load base is shifted **up** by the same arithmetic that
+shifts one above it **down** (`out[i] = captured[i] - (delta - base>>8)` needs no
+sign test). Two things now hold it honest: the CCP and BDOS regions must agree on
+the shift, and the CCP's entry must land on `LD SP,nn`. The result is verified
+against a drive that already booted — the eleven-partition re-relocation is
+**byte-for-byte identical** to the O/S on the drive the previous session had
+hand-corrected, 790 bytes moved and no other byte touched.
+
+**And `md10prep.sh` now finishes the job**: it writes the corrected O/S back at
+LBA 5 and reports `bootable.raw` / `bootable.chd`, keeping `configured.raw` exactly
+as the installer left it. So the whole capability is one command — geometry in,
+bootable drive out — and step 7's acceptance runs on nothing hand-made:
+
+```
+md10prep.sh 1200,8,18 eq11 /tmp/step7      # PREP.COM drives itself
+md10dpb.py HARD.COM HARD11.COM --grow --drive /tmp/step7/bootable.raw
+rom2image.py --hard HARD11.COM -o rom2.rom
+mame osborne1nx -softrom rom2.rom -harddisk /tmp/step7/bootable.chd \
+     -autoboot_script rom2drives.lua       # 27 PASS, A0> .. K0>
+```
+
+**The v1.0 ceiling, as one number: 11 partitions.** It is the *table* that binds,
+not the ALVs and not `PREP.COM`: the per-drive table, one shared DPH and one DPB
+must fit `DD6E-DDC4`, which is 87 bytes, at 5 bytes a drive plus 16 plus 15 —
+`5N + 31 <= 87`, so `N <= 11`. `md10dpb.py --grow` refuses N=12 with exactly that
+arithmetic, and refuses it *before* the ALV budget is consulted (12 ALVs of 113
+bytes would fit in the 1451). At the largest partitions that also satisfy both the
+ALV budget and `PREP.COM`'s 8 MiB ceiling on a `1200,8,18` drive, that is
+**11 x 15706 blocks = 88 456 192 bytes**, with the ALVs taking 1353 of the 1451
+free bytes and CP/M seeing 981 blocks of 8 KiB (8 036 352 bytes) per drive. The
+storage row of #128 gets to say *eleven drives*, and it is a measurement, not an
+estimate.
 
 ## 10. The test that was named, and its answer
 
@@ -990,7 +1081,10 @@ B** is what makes it a boot rather than a banner (§7).
   `peek` and `poke` directives, which are how every "measured" above was taken.
   `peek`/`poke` take bare hex (`peek dd5e 4`) as well as `0x`-prefixed.
 - `tools/research/md10reloc.py` — re-applies the SPR relocation at the load
-  address, and checks that the CCP entry lands on `LD SP,nn`.
+  address, in either direction, and checks that the CCP entry lands on
+  `LD SP,nn` and that the two regions agree on the shift (§9.5). `PREP.COM`
+  itself is disassembled with `z80dasm -a -g 0x100` off the archive's 2.01
+  utilities disk; §9.5's addresses are that listing's.
 - `tools/research/md10drive.py` — lays an O/S image onto a drive (`--os`).
 - `tools/emulator-setup/mame-osborne1nx/` — the `osborne1nx` machine (#191).
   `rom2drives.lua` is §9.4's acceptance — `A0>`..`N0>`, a file on each drive, each
