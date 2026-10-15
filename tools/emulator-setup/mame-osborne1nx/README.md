@@ -21,6 +21,8 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
+| `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
+| `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, ESC, and what the monitor then does (#247) |
 | `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
 | `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
 
@@ -103,6 +105,8 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the **softROM window** — all 8 KB of `0000-1FFF`, three ways | **yes** — `o1next-softrom.lua`, all 8192 bytes, in `softrom-check.sh` |
 | **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
 | **`-softrom` (the 7681-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
+| **ROM 2.0's `HCBOOT`** — the CBIOS, the MD-10 BIOS, its patch, the bank, the read | **yes** — `rom2boot.lua`, five checks, in `rom2-check.sh` |
+| ROM 2.0 booting the hard disk to `A0>` | **not yet** — the chain is complete and the hand-over is not; see below |
 | the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** — re-measured after the window change, unchanged |
 | `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
 
@@ -138,6 +142,36 @@ tools/emulator-setup/mame-osborne1nx/softrom-check.sh
 Measured on 2026-10-14: `PASS` on all five, with the 7681-byte image reading
 `C3 ED E4 …` at `1000h` (the CBIOS's first bytes) against `31 C1 EF …` at `0000h`
 (the monitor's), and `FF` from `1E01h` to `1FFFh`.
+
+### ROM 2.0's monitor, and `HCBOOT`
+
+`tools/research/rom2asm.sh` assembles ROM 2.0's monitor — the vendor's 1.44 with
+the new code in the free tail of it — with the vendor's own ACT80, and
+`rom2-check.sh` measures what the new code *does*: with the image in the window and
+no floppy, **ESC** at the sign-on prompt is the monitor's `HCBOOT` entry, and the
+harness reads the chain back stage by stage:
+
+```
+  PASS  the CBIOS is at 0E100h, and it is the window's 1000h
+  PASS  the MD-10 BIOS's own jump table is at 0D800h
+  PASS  it is patched from the CBIOS's vectors (5 LDIRs, 90 bytes)
+  PASS  the bank switched to RAM at some point after ESC
+  PASS  the system was read off the drive into 0C200h     (with O1_HARD)
+```
+
+The chain is what the ROM is responsible for, and it is complete. The machine does
+**not** then reach `A0>`: `CBOOT` is what initialises the CBIOS's own RAM (the
+IOBYTE, `LLIMIT`, `IEADR`, the DMA cells), nothing has run it, and the MD-10
+BIOS's first console call is dispatched with those cells uninitialised — the guest
+ends up in the ROM's IEEE-488 routine with the bank back in ROM. That initialisation
+is the next step, and it has to run after the bank switch, i.e. from RAM:
+`docs/o1-rom-2.0.md` §4.6 and §8 item 10.
+
+**ESC needs the key code, not the character.** The Osborne's ESC key is
+`PORT_CHAR(UCHAR_MAMEKEY(ESC))`, so `natkeyboard:post("\27")` matches no port and
+presses nothing — silently. Both harnesses here find the code in the
+natkeyboard's own table (`natkeyboard:dump()`: `0010003B (Escape)`), and
+`tools/research/o1keys.lua`'s `key esc` had the same bug until #247.
 
 ### Driving a transfer
 
