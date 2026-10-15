@@ -150,8 +150,18 @@ scratch programs, "figuring it out" notebooks/scripts.
   the measured delta and that region's load base, so an already-correct capture is
   left alone; `--shift` overrides the derivation. It then **refuses to write** an
   image whose CCP entry does not land on `LD SP,nn`, because that image would
-  warm-boot for ever (#198). Three captures measured and they do **not** agree on
-  a base — which is why the derivation replaced the old constant `0x100` (#247).
+  warm-boot for ever (#198). Captures measured and they do **not** agree on a base
+  — which is why the derivation replaced the old constant `0x100` (#247).
+  - **A capture can sit *below* the load base, and it is shifted up.** `PREP.COM`
+    *computes* the base rather than storing one — a bit-map walk with a
+    self-patched `ADD A,<page>` at `2A9E`, the page being `*(0x0002)` minus a size
+    accumulated over its own 24-byte drive-table records, with the CCP `0x16`
+    pages below it and the BDOS `+8` above the CCP — so the bigger layouts miss:
+    `1200,8,18 eq11` comes out at `0xB900` (nine pages low) and `321,8,18 eq11`
+    at `0xC100`, while `eq3`/`eq6` and the standard options land on `0xC200`. The
+    correction is a page *add*, so it works either way. The regions must agree on
+    the shift, and the result is verified byte for byte against a drive that
+    already booted (`docs/md10-system.md` §9.5).
 - **`md10table.py`** — prints a drive's disk label, its 28-byte partition records,
   the LBA 4 runtime table and its `E5h` regions, from a raw image or a CHD. The
   readback half of the geometry capability: it is what says whether `md10prep.sh`
@@ -181,6 +191,25 @@ scratch programs, "figuring it out" notebooks/scripts.
     `EXM=1` at `BSH=5` — right by accident — so every other block size got the
     `DSM < 256` value (7 where `BSH=6` wants 3). Fixed 2026-10-15; `--exm`
     overrides, and `--selftest` now checks all four block sizes.
+  - **`--grow`** is the **N-drive build** (#247 step 6): it reads a configured
+    drive's own label for the partition count and starts, and rewrites `HARD.COM`
+    from three fixed descriptors to N — a five-byte-per-drive table (24-bit start
+    + ALV pointer) in `DD6E-DDC4`, one shared DPH, one DPB, the ALVs in the free
+    1451 bytes, and the two routines that change (`SELDSK`'s hard-disk tail and
+    the LBA routine) inside the space they already occupy. Equal partitions are a
+    condition of the build, not a convenience, because the DPB is shared.
+    `--drive` takes a **raw** image. **Measured to boot and hold: eleven drives
+    `A0>`..`K0>`** on `1200,8,18 eq11`, every one written and read back, each with
+    its own ALV — `rom2drives.lua`, 27 checks (`docs/md10-system.md` §9.4).
+    - **The defect it shipped with, for the record:** the first revision's LBA
+      routine stored the CDB's LBA **byte-swapped** (`ld (0D9FCh),hl` writes `L`
+      first; a `READ(6)` wants `LBA[15:8]` first). It booted, and every cell in
+      RAM matched the vendor's driver's byte for byte, so the only thing that saw
+      it was the *card*: `-log` and the `[:acb4000] CDB ..` trace, which showed
+      drive `A:` being read as LBA `0x1400` instead of `0x0014`. Fixed by using
+      the shipped idiom (`ld d,l` / `ld e,h` / `ld (0D9FCh),de`), and
+      `rom2drives.lua` now checks the two CDB bytes **separately** — a
+      byte-symmetric LBA hides the swap in the value.
 - **`md10prep.sh`** — the **repeatable new-geometry capability** (#247): builds a
   blank labelled drive, drives the archive's own `PREP.COM` through its menus with
   `o1keys.lua`, reads the drive back, extracts the header and O/S artifacts, and
@@ -188,6 +217,13 @@ scratch programs, "figuring it out" notebooks/scripts.
   the PYXIS27 floor-pin drive **byte for byte**. `eqN` (e.g. `eq3`) is
   PREP.COM's option 4, "Non-standard equal drive partitioning", which is the only
   way to a bigger partition — and it is capped at 16384 blocks (8 MiB), measured.
+  **It finishes the drive**: `PREP.COM` computes the O/S's relocation base rather
+  than storing one, and the bigger layouts miss (`eq11` comes out at `0xB900`, nine
+  pages low, which warm-boots for ever (#198)). So the script re-relocates the O/S
+  with `md10reloc.py` and writes the corrected image back at LBA 5, reporting
+  **`bootable.raw` / `bootable.chd`** — `configured.raw` stays exactly what the
+  installer left. `1200,8,18 eq11` then boots from the ROM with no floppy to
+  `A0>`..`K0>` (`docs/md10-system.md` §9.5).
   It is a *host* script — it wants
   MAME, the patched `osborne1nx` machine (`$O1_MAME`) and `chdman` — so it is not
   shipped tooling.

@@ -859,15 +859,185 @@ and not a field upgrade.
 
 
 
+### 9.4 The N-drive driver, built and measured — and the byte order that was wrong (2026-10-15)
+
+§9.3 decided the drive count and §9.2 built the DPB half of the patch. This is the
+other half: **`md10dpb.py --grow`**, which turns the vendor's three fixed
+descriptors into N, and the acceptance that says it works.
+
+**What it writes.** The three 24-byte descriptors at `DD6E` are the whole of
+`DD6E-DDC4`, so that region is the only home an N-drive table has. A drive costs
+**five bytes** — its 24-bit partition start (sixteen bits is not enough: eleven
+7.5 MiB partitions end at LBA 154010) and its ALV pointer — and the DPH, the DPB
+and the select/length fields are shared, so `5N + 16 + 15 <= 87`. Two routines
+change inside the space they already occupy: `SELDSK`'s hard-disk tail
+(`D8F6-D90C`) copies the drive's ALV pointer into the shared DPH, and the LBA
+routine (`D90D-D939`) reads the drive's start out of the table instead of the
+descriptor's prefix. The type table at `DD5E` becomes `00 01 .. 0(N-1)` and the
+floppies move up behind the disk, which is why eleven partitions put them at `L:`
+and `M:`.
+
+**The defect it shipped with, and what found it.** The first revision **booted** —
+the ROM handed over, `A0>` appeared with no floppy, and the type table, the
+per-drive table, the shared DPH, the DPB and every ALV were correct in RAM — and
+then could not read drive `A:`'s directory: `DIR A:` answered `No file` and `SAVE`
+answered `No space`, while `B:` worked. Every cell in RAM was **byte-identical**
+to the vendor's driver's, because nothing in RAM was wrong: the LBA routine stored
+the CDB's LBA **byte-swapped**.
+
+The card is a SCSI target, so the LBA lives in a `READ(6)`'s bytes 2 and 3 as
+`LBA[15:8]` then `LBA[7:0]` — **high byte first**. The CDB is at `D9FA`, so byte 2
+is `D9FC` and byte 3 is `D9FD`, and the *low* byte of the sum belongs at the
+*higher* address. `ld (0D9FCh),hl` writes `L` at `D9FC` and `H` at `D9FD`. The
+vendor's routine instead does `ld d,l` / `ld e,h` / `ld (0D9FCh),de`, which puts
+`H` first; that is the idiom, and the fix costs the three bytes the slot had spare.
+
+**The instrument was the card's own CDB trace.** Run the machine with `-log` and
+`[:acb4000] CDB ..` lines land in `error.log`. The vendor's own boot asks for LBA 5
+as `CDB 08 00 00 05 0B 00`; the broken build asked for drive `A:`'s first sector as
+`CDB 08 00 14 00 01 00` — LBA `0x1400` instead of `0x0014`. And the reason the
+symptom read as "`A:` only" is that a swapped LBA is not always a *wrong-looking*
+one: `B:`'s and `C:`'s swapped reads landed in drive `A:`'s `E5h` tail, where
+writes and reads agreed with each other and disagreed with the partition, so those
+two drives **appeared** to work. Two of the three also produced a byte-symmetric
+LBA (`0x3C3C`, `0x7878`), which is invisible in the value — so the harness compares
+the two CDB bytes **separately** against what the driver's own drive and sector
+cells imply, not the decoded LBA.
+
+**The acceptance: `rom2drives.lua`, 27 checks, eleven drives.** The driver is built
+from a drive's own label and booted from the ROM with no floppy; the harness then
+selects each drive, `SAVE`s a distinct file, `DIR`s it back, reads each drive's own
+ALV out of RAM through the driver's table, checks no drive lists another's file,
+and checks the LBA the *card* was asked for. Both layouts pass:
+
+| | PYXIS27, 3 x 15399 | `1200,8,18 eq11`, 11 x 15706 |
+|---|---|---|
+| shared DPH | `DD7D` | `DDA5` |
+| DPB | `SPT=61596 BSH=6 BLM=63 EXM=3 DSM=961` | `SPT=62824 BSH=6 BLM=63 EXM=3 DSM=980` |
+| ALV per drive | 121 B | 123 B |
+| ALVs | 363 of 1451 B | **1353 of 1451 B** |
+| `rom2drives.lua` | every check | **27 PASS, `A0>`..`K0>`** |
+
+The negative control is the same harness against the pre-fix image: it fails on
+`A:`–`G:`, `J:` and `K:`, with `D:` reading LBA 8888 where the driver's cells say
+47138 — `22 B8` for `B8 22`, a textbook swap.
+
+**And the drive the eleven-drive acceptance runs against had to be corrected
+first** — `PREP.COM`'s relocation base is not constant. That is §9.5, and it is
+now understood rather than worked around.
+
+### 9.5 The relocation base, answered — and the v1.0 ceiling (2026-10-15)
+
+`PREP.COM` relocates `HARDCCP.SPR`/`HARDBDOS.SPR` before writing the O/S to a
+drive, and the base it picks is not constant. That was recorded as an open
+question and deliberately not chased; it then turned out to be on the critical
+path, because `md10prep.sh eq11` produces a drive that warm-boots for ever (#198).
+
+**It is not a stale capture, and it is not random — it is a function of the
+layout.** Measured by building each drive with `md10prep.sh` and reading the CCP's
+first instruction, which is `JP <base + 0x2C8>`:
+
+| `md10prep.sh` | partitions | blocks each | base | pages below `0xC200` |
+|---|---|---|---|---|
+| `321,8,18 6` (option 3) | 6 | 7704 | `0xC200` | 0 |
+| `321,8,18 eq6` (option 4) | 6 | 7704 | `0xC200` | 0 |
+| `321,8,18 eq3` | 3 | 15399 | `0xC200` | 0 |
+| `321,8,18 eq11` | 11 | 4202 | `0xC100` | 1 |
+| `1200,8,18 eq11` | 11 | 15706 | `0xB900` | 9 |
+
+The *option* is not it — `eq6` and option 3 agree. What moves the base is the
+layout growing: 3 and 6 partitions land on the load base, 11 do not, and the same
+eleven partitions land further down on the bigger drive.
+
+**The mechanism, out of `PREP.COM`'s own code.** It does not store a base; it
+computes one. The relocator is a bit-map walk — `2A7A`-`2AB0` reads a map byte,
+`SLA C` a bit at a time, and for each set bit does `LD A,(HL) / ADD A,<page> /
+LD (HL),A`, with the `<page>` **self-patched into the instruction at `2A9F`**. The
+page comes from `0x2807`-`0x2830`:
+
+```
+2825  ld bc,(0438ah)
+2829  add hl,bc        ; the size, accumulated over the drive table
+282a  dec hl
+282b  inc h            ; ceil to a page
+282c  ld a,(00002h)    ; the top of the memory PREP.COM is running in
+282f  sub h
+2830  ld (02a9fh),a    ; <- the page the relocator will add
+```
+
+and the two halves are placed from it at `0x292F`-`0x295F`:
+
+```
+292f  ld a,(02a9fh)
+2932  sub 016h         ; the CCP goes 0x16 pages below it
+2949  ld hl,02b65h     ; 'HARDCCP.SPR'
+295a  ld a,(02a9fh)
+295d  add a,008h       ; the BDOS goes 8 pages above the CCP
+2965  ld hl,02b71h     ; 'HARDBDOS.SPR'
+```
+
+The `+8` is the check that this is the right reading: the measured CCP/BDOS page
+delta is `0xCA - 0xC2 = 8`, exactly. The size that moves the page is accumulated
+over PREP.COM's own 24-byte drive-table records at `0x277C`-`0x27C3` (`LD IY,045A3h
+… ADD IY,BC` with `BC = 0x18`, `DJNZ`), which is why it grows with the partition
+count and with the partition size, and why the *top of memory PREP.COM sees*
+(`*(0x0002)`) enters at all — the base is a property of the **run**, not of the
+drive.
+
+**And the correct base is not a matter of opinion.** `HARD.COM`'s own boot routine
+reads the system to `0xC200` (`LD HL,0C200h`) and jumps; the ROM 2.0 `HCBOOT`
+chain does the same. The image is `0x1600` bytes and the MD-10 BIOS starts at
+`0xD800`, so the only placement that fits is `0xD800 - 0x1600 = 0xC200`. A capture
+nine pages low is not a different convention, it is the installer's arithmetic
+missing — which the eleven-partition acceptance showed independently, by failing
+to boot.
+
+**So the tool corrects it, in either direction.** `md10reloc.py` derives the page
+per region from the SPR bodies and the load base, and the correction is a page
+*add*: a capture below the load base is shifted **up** by the same arithmetic that
+shifts one above it **down** (`out[i] = captured[i] - (delta - base>>8)` needs no
+sign test). Two things now hold it honest: the CCP and BDOS regions must agree on
+the shift, and the CCP's entry must land on `LD SP,nn`. The result is verified
+against a drive that already booted — the eleven-partition re-relocation is
+**byte-for-byte identical** to the O/S on the drive the previous session had
+hand-corrected, 790 bytes moved and no other byte touched.
+
+**And `md10prep.sh` now finishes the job**: it writes the corrected O/S back at
+LBA 5 and reports `bootable.raw` / `bootable.chd`, keeping `configured.raw` exactly
+as the installer left it. So the whole capability is one command — geometry in,
+bootable drive out — and step 7's acceptance runs on nothing hand-made:
+
+```
+md10prep.sh 1200,8,18 eq11 /tmp/step7      # PREP.COM drives itself
+md10dpb.py HARD.COM HARD11.COM --grow --drive /tmp/step7/bootable.raw
+rom2image.py --hard HARD11.COM -o rom2.rom
+mame osborne1nx -softrom rom2.rom -harddisk /tmp/step7/bootable.chd \
+     -autoboot_script rom2drives.lua       # 27 PASS, A0> .. K0>
+```
+
+**The v1.0 ceiling, as one number: 11 partitions.** It is the *table* that binds,
+not the ALVs and not `PREP.COM`: the per-drive table, one shared DPH and one DPB
+must fit `DD6E-DDC4`, which is 87 bytes, at 5 bytes a drive plus 16 plus 15 —
+`5N + 31 <= 87`, so `N <= 11`. `md10dpb.py --grow` refuses N=12 with exactly that
+arithmetic, and refuses it *before* the ALV budget is consulted (12 ALVs of 113
+bytes would fit in the 1451). At the largest partitions that also satisfy both the
+ALV budget and `PREP.COM`'s 8 MiB ceiling on a `1200,8,18` drive, that is
+**11 x 15706 blocks = 88 456 192 bytes**, with the ALVs taking 1353 of the 1451
+free bytes and CP/M seeing 981 blocks of 8 KiB (8 036 352 bytes) per drive. The
+storage row of #128 gets to say *eleven drives*, and it is a measurement, not an
+estimate.
+
 ## 10. The test that was named, and its answer
 
 An earlier revision of this section named a test: watch the card's CDB while the
 guest is at the login, or build a drive whose partition table matches the driver's
-static descriptors. **Neither was needed, and the premise was wrong.** The CDB is
-*always* `08 00 00 05 0b 00` — LBA 5, the boot read — and it comes back with
-status `00` (GOOD), so there is no login to watch and no partition-table
-disagreement to reconcile. The blocker was in the operating system's relocation
-(§7), which no amount of drive-building would have fixed.
+static descriptors. **Neither was needed, and the premise was wrong.** On a machine
+that never gets past the boot read the CDB is *always* `08 00 00 05 0b 00` — LBA 5,
+the boot read — and it comes back with status `00` (GOOD), so there is no login to
+watch and no partition-table disagreement to reconcile. (A machine that *does* get
+past it issues many, which is what §9.4's trace reads.) The blocker was in the
+operating system's relocation (§7), which no amount of drive-building would have
+fixed.
 
 The answer, in the order it was measured:
 
@@ -911,9 +1081,14 @@ B** is what makes it a boot rather than a banner (§7).
   `peek` and `poke` directives, which are how every "measured" above was taken.
   `peek`/`poke` take bare hex (`peek dd5e 4`) as well as `0x`-prefixed.
 - `tools/research/md10reloc.py` — re-applies the SPR relocation at the load
-  address, and checks that the CCP entry lands on `LD SP,nn`.
+  address, in either direction, and checks that the CCP entry lands on
+  `LD SP,nn` and that the two regions agree on the shift (§9.5). `PREP.COM`
+  itself is disassembled with `z80dasm -a -g 0x100` off the archive's 2.01
+  utilities disk; §9.5's addresses are that listing's.
 - `tools/research/md10drive.py` — lays an O/S image onto a drive (`--os`).
 - `tools/emulator-setup/mame-osborne1nx/` — the `osborne1nx` machine (#191).
+  `rom2drives.lua` is §9.4's acceptance — `A0>`..`N0>`, a file on each drive, each
+  drive's own ALV, and the CDB's LBA bytes against the driver's own cells.
 - `docs/osborne1nx-machine.md` §6 (the header field map), §5 (the harness
   findings); `docs/harddisk-decision.md` §7.2–§7.3;
   `docs/acb4000-host-adapter.md` §1, §4.
