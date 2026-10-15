@@ -266,6 +266,16 @@ page zero   c3 03 d8 40 00 c3 06 ca      JP 0D803h, IOBYTE 40h, drive 0, JP 0CA0
 0xD9FA      08 00 00 05 0b 00            CDB: READ, LBA 5, 11 blocks
 ```
 
+**Correction (2026-10-14, #247): page zero+1 is `0E103H`, and the source is the
+CBIOS — not `0EFC1H`, and not the ROM's jump table.** The dump just above is the
+evidence: `0xD806` is `C3 2E E7`, and `C3 2E E7` is the CBIOS's vector 2, whose
+slot is at `0E106H` (`0E103H` holds `C3 13 E5`). The CBIOS writes page zero
+itself, as `JP BIOS+3` = `0E103H` (`occbio55.asm`, `BCCP`). `0EFC1H` is not a table
+at all: it is `ROMSTK`, the monitor's stack top (`rom144.asm`), and it is what a
+read of `0001H` returns **while the ROM is mapped** — the operand of the monitor's
+own `LD SP,0EFC1H`. That is the bank-2 trap ROM 2.0's `HCBOOT` has to work around
+(`docs/o1-rom-2.0.md` §4.6): in bank 2 the monitor cannot read or write page zero.
+
 ## 6. `0x0559`–`0x055D` is not an unwritten block (#178)
 
 `docs/acb4000-host-adapter.md` §4 and `docs/harddisk-decision.md` §7.3 both
