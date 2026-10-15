@@ -36,13 +36,10 @@
  	TIMER_CALLBACK_MEMBER(video_callback);
  	TIMER_CALLBACK_MEMBER(acia_rxc_txc_callback);
  
-@@ -304,6 +308,31 @@
+@@ -307,6 +311,36 @@
+ };
  
- 	required_device<palette_device> m_palette;
- 	required_region_ptr<u8>         m_p_nuevo;
-+};
-+
-+
+ 
 +// The emulated interposer: a stock Osborne-1 whose Z80 sits behind a card that
 +// decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
 +// answer on 30h-33h -- the ports its driver demands and the stock machine
@@ -53,7 +50,8 @@
 +	osborne1nx_state(const machine_config &mconfig, device_type type, const char *tag) :
 +		osborne1_state(mconfig, type, tag),
 +		m_acb4000(*this, "acb4000"),
-+		m_softrom(*this, "softrom")
++		m_softrom(*this, "softrom"),
++		m_frame(*this, "frame")
 +	{
 +	}
 +
@@ -63,12 +61,19 @@
 +	void osborne1nx_mem(address_map &map) ATTR_COLD;
 +	void osborne1nx_io(address_map &map) ATTR_COLD;
 +
++	u8 bank2_peripherals_r(offs_t offset);
++	void bank2_peripherals_w(offs_t offset, u8 data);
++
 +	required_device<acb4000_host_adapter_device> m_acb4000;
 +	required_device<softrom_device> m_softrom;
- };
- 
- 
-@@ -801,6 +830,19 @@
++	required_device<o1frame_device> m_frame;
++};
++
++
+ u8 osborne1_state::bank2_peripherals_r(offs_t offset)
+ {
+ 	// Since each peripheral only checks two bits, many addresses will
+@@ -801,6 +835,80 @@
  	osborne1_mem(map);
  
  	m_rom_view[0](0x2000, 0x2fff).mirror(0x1000).rw(FUNC(osborne1sp_state::bank2_peripherals_r), FUNC(osborne1sp_state::bank2_peripherals_w));
@@ -80,15 +85,76 @@
 +	osborne1_mem(map);
 +
 +	// The interposer's softROM owns the whole ROM window: page 0 (0000-0fff) is
-+	// the monitor and page 1 (1000-1fff) is the payload (docs/o1-rom-2.0.md
-+	// 4.1b).  The mainboard never decoded A12, so the stock machine reads its
-+	// 4 KB twice across this one entry; the softROM decodes it, and with no
-+	// image mounted it falls back to the machine's own ROM region.
++	// the monitor and page 1 (1000-1fff) is the payload, or one half of the boot
++	// frame when the ROM has asked for it (docs/o1-rom-2.0.md 4.1b,
++	// docs/rom-pico-protocol.md 5).  The mainboard never decoded A12, so the
++	// stock machine reads its 4 KB twice across this one entry; the softROM
++	// decodes it, and with no image mounted it falls back to the machine's own
++	// ROM region.
 +	m_rom_view[0](0x0000, 0x1fff).r(m_softrom, FUNC(softrom_device::read)).unmapw();
++
++	// Bank 2's memory-mapped I/O, with the interposer's own registers on top --
++	// the same range the stock machine maps, re-added the way osborne1sp re-adds
++	// it, because the onboard selects are sloppy and the door has to be ANDed
++	// with them (see DOOR_BASE).
++	m_rom_view[0](0x2000, 0x2fff).mirror(0x1000).rw(FUNC(osborne1nx_state::bank2_peripherals_r), FUNC(osborne1nx_state::bank2_peripherals_w));
++}
++
++
++// The ROM service's door lives at DOOR_BASE, and *which* address that is is a
++// measurement rather than a preference.
++//
++// The protocol proposed 2300h/2301h (docs/rom-pico-protocol.md 2, 7 item 1), on
++// the grounds that o1-memory-io-map.md 7 calls 2300-23FF the largest clean
++// block.  It is not clean, and the reason is in this driver: the onboard selects
++// check only two address bits, so 2300h/2301h are also the floppy controller's
++// command/status and track registers and the keyboard's row 0 -- measured, and
++// recorded in docs/o1-mainboard-schematic.md 7a ("0x2301 is keyboard *and*
++// floppy", from tools/o1_mame_probe.lua's C9 report).  A reply register ANDed
++// with the FDC's track register -- 0x00 at the sign-on -- reads "not ready" for
++// ever, and a request written to 2300h is a floppy command.
++//
++// 2800h is inside the block o1-memory-io-map.md 7 recommends (2300-28FF) and is
++// the part of it nothing selects: no device mask matches A11 set with A8/A9/A10
++// clear, so the stock decode reads 0xFF there and the door answers alone.  The
++// rest of that region is not free either -- 2400h-27FF is the SCREEN-PAC's own
++// decode, presence bit included (2400h, bit 2 LOW = fitted), which the video
++// personality needs.
++//
++// The protocol is base-relative, so this is the whole of the correction: one
++// constant here, one in the ROM's client code, and the docs.
++static constexpr offs_t DOOR_BASE = 0x2800;   // bank 2: the request, then the reply
++
++u8 osborne1nx_state::bank2_peripherals_r(offs_t offset)
++{
++	// The bus fight is modelled rather than assumed away: the interposer's
++	// registers are ANDed with whatever else this address selects, exactly as
++	// the stock machine ANDs its own colliding devices.  At DOOR_BASE that is
++	// nothing, which is the point of choosing it -- and the same code is what
++	// would show the corruption if the door were moved back onto a device.
++	u8 data = osborne1_state::bank2_peripherals_r(offset);
++
++	offs_t const a = offset + 0x2000;
++	if ((a == DOOR_BASE) || (a == DOOR_BASE + 1))
++		data &= m_softrom->door_read(int(a - DOOR_BASE));
++
++	return data;
++}
++
++void osborne1nx_state::bank2_peripherals_w(offs_t offset, u8 data)
++{
++	// only the request register takes writes; the reply register is read-only
++	if ((offset + 0x2000) == DOOR_BASE)
++	{
++		m_softrom->door_write(0, data);
++		return;
++	}
++
++	osborne1_state::bank2_peripherals_w(offset, data);
  }
  
  
-@@ -827,6 +869,21 @@
+@@ -827,6 +935,21 @@
  	map(0x04, 0x04).rw("crtc", FUNC(mc6845_device::status_r), FUNC(mc6845_device::address_w));
  	map(0x05, 0x05).rw("crtc", FUNC(mc6845_device::register_r), FUNC(mc6845_device::register_w));
  	// seems to be something at 0x06 as well, but no idea what - BIOS writes 0x07 on boot
@@ -110,7 +176,7 @@
  }
  
  
-@@ -1065,6 +1122,34 @@
+@@ -1065,6 +1188,40 @@
  }
  
  
@@ -139,13 +205,19 @@
 +	// the stock ROM (docs/o1-rom-2.0.md 4.1b)
 +	SOFTROM(config, m_softrom);
 +	m_softrom->set_monitor_region("maincpu");
++
++	// the boot frame, in the Pico's own flash: page 1 serves its two halves when
++	// the ROM asks for them through the door (docs/rom-pico-protocol.md 5).  The
++	// slot is always here; with no -frame mounted the door answers "no such
++	// content" and the ROM keeps its own text, which is the fallback path.
++	O1FRAME(config, m_frame);
 +}
 +
 +
  ROM_START( osborne1 )
  	ROM_DEFAULT_BIOS("ver144")
  	ROM_SYSTEM_BIOS( 0, "vera",   "BIOS version A" )
-@@ -1096,6 +1181,16 @@
+@@ -1096,6 +1253,16 @@
  
  #define rom_osborne1sp rom_osborne1
  
@@ -162,7 +234,7 @@
  ROM_START( osborne1nv )
  	ROM_REGION(0x1000, "maincpu", 0)
  	ROM_LOAD( "monrom-rev1.51-12.ud11", 0x0000, 0x1000, CRC(298da402) SHA1(7fedd070936ccfe98f96d6e0ac71689666da79cb) )
-@@ -1114,3 +1209,4 @@
+@@ -1114,3 +1281,4 @@
  COMP( 1981, osborne1,   0,        0,      osborne1,   osborne1,   osborne1_state,   empty_init, "Osborne",       "Osborne-1",                 MACHINE_SUPPORTS_SAVE )
  COMP( 1983, osborne1sp, osborne1, 0,      osborne1sp, osborne1,   osborne1sp_state, empty_init, "Osborne",       "Osborne-1 with SCREEN-PAC", MACHINE_SUPPORTS_SAVE )
  COMP( 1984, osborne1nv, osborne1, 0,      osborne1nv, osborne1nv, osborne1nv_state, empty_init, "Osborne/Nuevo", "Osborne-1 (Nuevo Video)",   MACHINE_SUPPORTS_SAVE )
@@ -744,43 +816,62 @@
 +}
 --- /dev/null
 +++ b/src/devices/machine/softrom.h
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,192 @@
 +// license:BSD-3-Clause
 +// copyright-holders:James Arlen
 +/***************************************************************************
 +
-+    softROM -- the ROM window, served from an image file
++    softROM -- the ROM window, the frame slot, and the ROM service's door
 +
 +    The interposer sits on the Z80 bus and presents the ROM window itself, so
 +    the machine's ROM is an image in flash rather than a part in the socket
-+    (docs/o1-rom-2.0.md sections 4.1 and 4.1b).  This device is that window.
++    (docs/o1-rom-2.0.md sections 4.1 and 4.1b).  This file is that window, the
++    slot the boot frame is mounted in, and the register pair the ROM asks for
++    either of them through (docs/rom-pico-protocol.md sections 2-5).
 +
-+    The window is 8 KB -- 0000-1FFF -- because the mainboard never decoded A12.
++    THE WINDOW.  8 KB -- 0000-1FFF -- because the mainboard never decoded A12.
 +    MAME's own map for the stock machine says so in one line:
 +
 +        m_rom_view[0](0x0000, 0x0fff).mirror(0x1000).rom()...
 +
 +    `mirror(0x1000)` *is* the undecoded A12: the 4 KB monitor appears twice
-+    across the window.  Decoding it gives two contiguous 4 KB pages with no
-+    latch, no selector and no paging:
++    across the window.  Decoding it gives two contiguous 4 KB pages:
 +
 +        0000-0FFF   page 0   the monitor -- the 4 KB that must never move
-+        1000-1FFF   page 1   the payload -- CBIOS, MD-10 BIOS, the shim
++        1000-1FFF   page 1   the payload, or one half of the boot frame
 +
 +    An image of 4 KB or less *is* the stock part and mirrors; a larger one gives
 +    both pages.  With no image mounted the window serves the machine's own ROM
-+    region, so an image-less machine boots exactly as the stock one does --
-+    which is the acceptance that proves the plumbing before any monitor code
-+    exists.
++    region, so an image-less machine boots exactly as the stock one does -- the
++    acceptance that proves the plumbing before any monitor code exists.  Past
++    the end of an image the window reads 0xFF, which is what erased flash
++    answers.
 +
-+    Past the end of an image the window reads 0xFF, which is what erased flash
-+    answers.  rom2image.py's image is 7681 bytes of the 8192, and the 511 bytes
-+    it does not cover are the payload's spare.
++    PAGE 1'S SELECTOR.  The boot screen is not the payload.  The O1's video cell
++    is nine bits -- eight of character, one of brightness -- and the ninth is not
++    in the video RAM, so the frame is *two* 4096-byte halves, characters and
++    attributes, and each is a window page in its turn.  `PRESENT(id)` selects:
++    0 the payload, 1 the frame's character half, 2 its attribute half.  v1.0's
++    attribute half is all 0xFF -- every cell bright -- because bit 7 set is
++    bright and that is what the array reads back, its low seven bits not being
++    physically present.
 +
-+    The image is named on the machine's own command line, after this device's
++    THE DOOR.  A bank-2 register pair the machine maps.  The machine owns the
++    address -- osborne1.cpp's DOOR_BASE note says which and why, and it is a
++    measurement rather than a preference -- and this owns the transaction:
++
++        write  the request: opcode, then its operands, one byte at a time
++        read   the reply: 0 = not ready, else the length, then the bytes
++
++    The transaction, the result codes and the recovery rule are the mailbox
++    protocol's (docs/mailbox-protocol.md section 3): same opcodes, same replies,
++    same behaviour, so a firmware that implements one implements both.  The one
++    command the screen needs is `PRESENT`.
++
++    Both images are named on the machine's own command line, after each device's
 +    tag:
 +
-+        mame osborne1nx -softrom rom2.rom
++        mame osborne1nx -softrom rom2.rom -frame frame.bin
 +
 +***************************************************************************/
 +
@@ -790,6 +881,42 @@
 +#pragma once
 +
 +#include <vector>
++
++
++// The frame slot: the boot frame, mounted from its own file (-frame).  It is the
++// interposer's flash asset rather than a window, so it is a device of its own
++// rather than a second image on the window device -- device_image_interface is
++// one image per device, and the two are mounted and swapped separately, which is
++// what lets the harness run with a frame, a corrupt frame and no frame at all
++// (docs/rom-pico-protocol.md section 5).
++class o1frame_device : public device_t, public device_image_interface
++{
++public:
++	o1frame_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++
++	static constexpr u32 FRAME_SIZE = 0x2000;   // two 4096-byte halves
++
++	bool mounted() const { return !m_data.empty(); }
++	const std::vector<u8> &data() const { return m_data; }
++
++protected:
++	// device_t
++	virtual void device_start() override ATTR_COLD;
++
++	// device_image_interface
++	virtual std::pair<std::error_condition, std::string> call_load() override;
++	virtual void call_unload() override;
++	virtual bool is_readable() const noexcept override { return true; }
++	virtual bool is_writeable() const noexcept override { return false; }
++	virtual bool is_creatable() const noexcept override { return false; }
++	virtual bool is_reset_on_load() const noexcept override { return true; }
++	virtual const char *file_extensions() const noexcept override { return "bin,rom"; }
++	virtual const char *image_type_name() const noexcept override { return "frame"; }
++	virtual const char *image_brief_type_name() const noexcept override { return "frame"; }
++
++private:
++	std::vector<u8> m_data;
++};
 +
 +
 +class softrom_device : public device_t, public device_image_interface
@@ -803,6 +930,15 @@
 +	// The stock part, named by the machine that owns the region.  It is what
 +	// the window serves with no image mounted, and what a 4 KB image mirrors.
 +	void set_monitor_region(const char *tag) { m_monitor.set_tag(tag); }
++
++	// The ROM service's door.  `reg` is 0 = the request, 1 = the reply.  A read
++	// of the request register does not drive -- it answers 0xff -- so the
++	// machine can AND it with whatever else the bus has selected there.
++	u8 door_read(int reg);
++	void door_write(int reg, u8 data);
++
++	// what page 1 serves, for the harness and for the record
++	u8 page1() const { return m_page1; }
 +
 +protected:
 +	// device_t
@@ -823,43 +959,136 @@
 +	static constexpr u32 WINDOW_SIZE = 0x2000;  // 8 KB: 0000-1fff, A12 decoded
 +	static constexpr u32 STOCK_SIZE  = 0x1000;  // the monitor: 4 KB at 0000-0fff
 +
-+	required_region_ptr<u8> m_monitor;  // the stock part, from the machine
-+	offs_t                  m_mask;     // how the stock part mirrors: A12 ignored
-+	std::vector<u8>         m_image;    // the mounted image, empty if none
-+	bool                    m_mirror;   // the image is the stock part, so it mirrors
++	// what page 1 serves -- the content ids of PRESENT (docs/rom-pico-protocol.md
++	// section 4)
++	enum : u8
++	{
++		PAGE_PAYLOAD     = 0,   // CBIOS + MD-10 BIOS + the hand-over stub
++		PAGE_FRAME_CHARS = 1,   // the frame's character half
++		PAGE_FRAME_ATTRS = 2    // the frame's attribute half, the 9th bit
++	};
++
++	// the ROM service's command set and result codes (docs/mailbox-protocol.md
++	// section 4, plus the one code the ROM's class adds)
++	static constexpr u8 OP_NOP     = 0x00;
++	static constexpr u8 OP_ECHO    = 0x01;
++	static constexpr u8 OP_PRESENT = 0x40;
++	static constexpr u8 OP_INFO    = 0x41;
++	static constexpr u8 RC_OK             = 0x00;
++	static constexpr u8 RC_UNKNOWN_OPCODE = 0x01;
++	static constexpr u8 RC_NO_CONTENT     = 0x09;
++	static constexpr u8 INFO_VERSION      = 0x01;
++	static constexpr u8 INFO_FLAG_FRAME   = 0x01;   // a frame is mounted
++
++	bool has_frame();
++
++	void request(u8 data);
++	void execute();
++	void answer(u8 code, u8 const *payload, unsigned len);
++	void reset_transaction();
++
++	// The frame slot.  The tag is absolute because a finder resolves relative to
++	// the device that owns it, and the slot is the machine's, not this one's.
++	required_region_ptr<u8>         m_monitor;  // the stock part, from the machine
++	optional_device<o1frame_device> m_frame;    // the frame slot, ":frame"
++	offs_t                          m_mask;     // how the stock part mirrors: A12 ignored
++	std::vector<u8>                 m_image;    // the mounted image, empty if none
++	bool                            m_mirror;   // the image is the stock part, so it mirrors
++
++	u8  m_page1;            // what page 1 serves
++	u8  m_request;          // the opcode being assembled, 0 if none
++	u8  m_operands[4];      // its operands, as they arrive
++	u8  m_operand_count;    // how many have arrived
++	u8  m_reply[8];         // the reply, m_reply[0] the result code
++	u8  m_reply_len;        // how long it is, 0 = nothing pending
++	u8  m_reply_at;         // how much of it has been read out
 +};
 +
-+// device type definition
++// device type definitions
 +DECLARE_DEVICE_TYPE(SOFTROM, softrom_device)
++DECLARE_DEVICE_TYPE(O1FRAME, o1frame_device)
 +
 +#endif // MAME_MACHINE_SOFTROM_H
 --- /dev/null
 +++ b/src/devices/machine/softrom.cpp
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,304 @@
 +// license:BSD-3-Clause
 +// copyright-holders:James Arlen
 +/***************************************************************************
 +
-+    softROM -- the ROM window, served from an image file
++    softROM -- the ROM window, the frame slot, and the ROM service's door
 +
-+    See softrom.h for the window and what an image has to be, and
-+    docs/o1-rom-2.0.md sections 4.1 and 4.1b for where both come from.
++    See softrom.h for the window, the selector and the transaction, and
++    docs/rom-pico-protocol.md sections 2-5 for where all three come from.
 +
 +***************************************************************************/
 +
 +#include "emu.h"
 +#include "softrom.h"
 +
-+// device type definition
++// device type definitions
 +DEFINE_DEVICE_TYPE(SOFTROM, softrom_device, "softrom", "SoftROM (the ROM window, from an image file)")
++DEFINE_DEVICE_TYPE(O1FRAME, o1frame_device, "o1frame", "O1 boot frame (two 4096-byte halves, from a file)")
 +
++
++//-------------------------------------------------
++//  o1frame_device -- the frame slot
++//-------------------------------------------------
++
++o1frame_device::o1frame_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
++	: device_t(mconfig, O1FRAME, tag, owner, clock)
++	, device_image_interface(mconfig, *this)
++{
++}
++
++void o1frame_device::device_start()
++{
++}
++
++std::pair<std::error_condition, std::string> o1frame_device::call_load()
++{
++	// A frame is two halves and nothing else: the ROM serves each one into page
++	// 1 whole, so a short frame would leave the rest of a half reading 0xFF.
++	// The *trailer* is deliberately not checked here -- the frame is someone
++	// else's file, the check is the ROM's, and a missing frame, an erased frame
++	// and a corrupt one are one case (docs/rom-pico-protocol.md section 6).
++	u32 const len = length();
++	if (len != FRAME_SIZE)
++		return std::make_pair(image_error::INVALIDLENGTH,
++				util::string_format("a frame is two 4096-byte halves: %u bytes, not %u",
++					len, FRAME_SIZE));
++
++	m_data.resize(len);
++	if (fread(&m_data[0], len) != len)
++	{
++		m_data.clear();
++		return std::make_pair(std::errc::io_error, "could not read the frame");
++	}
++	return std::make_pair(std::error_condition(), std::string());
++}
++
++void o1frame_device::call_unload()
++{
++	m_data.clear();
++}
++
++
++//-------------------------------------------------
++//  softrom_device -- the window, the selector and the door
++//-------------------------------------------------
 +
 +softrom_device::softrom_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
 +	: device_t(mconfig, SOFTROM, tag, owner, clock)
 +	, device_image_interface(mconfig, *this)
 +	, m_monitor(*this, DEVICE_SELF)
++	, m_frame(*this, ":frame")
 +	, m_mask(0)
 +	, m_mirror(false)
++	, m_page1(PAGE_PAYLOAD)
++	, m_request(0)
++	, m_operand_count(0)
++	, m_reply_len(0)
++	, m_reply_at(0)
 +{
 +}
 +
@@ -890,6 +1119,10 @@
 +	// 4 KB or less is the stock part, and the stock part mirrors; anything
 +	// larger is the two pages of the window
 +	m_mirror = (len <= STOCK_SIZE);
++
++	// a new image is a new payload, so page 1 goes back to it: the frame is
++	// served by request, never by accident
++	m_page1 = PAGE_PAYLOAD;
 +	return std::make_pair(std::error_condition(), std::string());
 +}
 +
@@ -897,10 +1130,23 @@
 +{
 +	m_image.clear();
 +	m_mirror = false;
++	m_page1 = PAGE_PAYLOAD;
 +}
 +
 +u8 softrom_device::read(offs_t offset)
 +{
++	// Page 1 is the selector's: the payload, or one half of the frame.  The
++	// frame is the interposer's own flash asset rather than part of the window
++	// image, so it is served whatever that image is -- and past its end the
++	// flash is erased, exactly as it is past the end of a window image.
++	if ((offset >= STOCK_SIZE) && (m_page1 != PAGE_PAYLOAD) && has_frame())
++	{
++		offs_t const a = (offset - STOCK_SIZE)
++				+ ((m_page1 == PAGE_FRAME_ATTRS) ? (o1frame_device::FRAME_SIZE / 2) : 0);
++		std::vector<u8> const &frame = m_frame->data();
++		return (a < frame.size()) ? frame[a] : 0xff;
++	}
++
 +	if (!m_image.empty())
 +	{
 +		offs_t const a = m_mirror ? (offset & m_mask) : offset;
@@ -912,4 +1158,161 @@
 +	// no image: the machine's own ROM, read across the window exactly as the
 +	// stock machine reads it
 +	return m_monitor[offset & m_mask];
++}
++
++
++//-------------------------------------------------
++//  the ROM service's door
++//-------------------------------------------------
++
++bool softrom_device::has_frame()
++{
++	return bool(m_frame) && m_frame->mounted();
++}
++
++void softrom_device::reset_transaction()
++{
++	m_request = 0;
++	m_operand_count = 0;
++}
++
++void softrom_device::answer(u8 code, u8 const *payload, unsigned len)
++{
++	m_reply[0] = code;
++	for (unsigned i = 0; i < len; i++)
++		m_reply[1 + i] = payload[i];
++	m_reply_len = 1 + len;
++	m_reply_at = 0;
++}
++
++void softrom_device::execute()
++{
++	u8 const op = m_request;
++	u8 const operand = m_operand_count ? m_operands[0] : 0;
++	reset_transaction();
++
++	switch (op)
++	{
++	case OP_ECHO:
++		// the presence probe: the byte comes back (mailbox-protocol.md 3)
++		answer(RC_OK, &operand, 1);
++		break;
++
++	case OP_INFO:
++		{
++			// for the web UI and for a human, not for the ROM: the ROM never
++			// asks whether a frame exists, because the trailer *is* the query
++			// (docs/rom-pico-protocol.md 4).  The flag is how something that is
++			// not the ROM tells a firmware with a frame from one without.
++			u8 const payload[2] = { INFO_VERSION, u8(has_frame() ? INFO_FLAG_FRAME : 0) };
++			answer(RC_OK, payload, 2);
++		}
++		break;
++
++	case OP_PRESENT:
++		// Page 1 is the payload, or one of the frame's halves.  An id the
++		// firmware does not serve answers 09h and leaves page 1 alone, so the
++		// ROM keeps whatever it had (docs/rom-pico-protocol.md section 4.2).
++		if (operand == PAGE_PAYLOAD)
++		{
++			m_page1 = PAGE_PAYLOAD;
++			answer(RC_OK, nullptr, 0);
++		}
++		else if (((operand == PAGE_FRAME_CHARS) || (operand == PAGE_FRAME_ATTRS)) && has_frame())
++		{
++			m_page1 = operand;
++			answer(RC_OK, nullptr, 0);
++		}
++		else
++		{
++			answer(RC_NO_CONTENT, nullptr, 0);
++		}
++		break;
++
++	default:
++		answer(RC_UNKNOWN_OPCODE, nullptr, 0);
++		break;
++	}
++}
++
++void softrom_device::request(u8 data)
++{
++	// A write while a reply is pending abandons it and starts a new transaction,
++	// so a wedged client cannot wedge the firmware (mailbox-protocol.md 3).
++	m_reply_len = 0;
++	m_reply_at = 0;
++
++	if (!m_request)
++	{
++		// the first byte of a transaction is the opcode
++		switch (data)
++		{
++		case OP_ECHO:
++		case OP_PRESENT:
++			m_request = data;
++			m_operand_count = 0;
++			return;
++
++		case OP_INFO:
++			// no operands, so the reply is immediate
++			m_request = data;
++			m_operand_count = 0;
++			execute();
++			return;
++
++		case OP_NOP:
++			// "reset: abandon a partial request, answer OK" -- and the way back
++			// to a known state from anything (mailbox-protocol.md 3)
++			reset_transaction();
++			answer(RC_OK, nullptr, 0);
++			return;
++
++		default:
++			// an unknown opcode answers 01h and resets the operand count
++			reset_transaction();
++			answer(RC_UNKNOWN_OPCODE, nullptr, 0);
++			return;
++		}
++	}
++
++	if (m_operand_count < std::size(m_operands))
++		m_operands[m_operand_count++] = data;
++
++	unsigned const wanted =
++			(m_request == OP_ECHO) ? 1 :
++			(m_request == OP_PRESENT) ? 1 : 0;
++	if (m_operand_count >= wanted)
++		execute();
++}
++
++u8 softrom_device::door_read(int reg)
++{
++	// The request register is write-only, so it does not drive the bus.
++	if (reg != 1)
++		return 0xff;
++
++	// 0 = not ready, poll again.  N > 0 is the reply's length, and the next N
++	// reads are its bytes (mailbox-protocol.md 3).
++	if (!m_reply_len)
++		return 0;
++	if (!m_reply_at)
++	{
++		m_reply_at = 1;
++		return m_reply_len;
++	}
++
++	u8 const data = m_reply[m_reply_at - 1];
++	if (++m_reply_at > m_reply_len)
++	{
++		m_reply_len = 0;
++		m_reply_at = 0;
++	}
++	return data;
++}
++
++void softrom_device::door_write(int reg, u8 data)
++{
++	// only the request register takes writes; the reply register is read-only
++	if (reg == 0)
++		request(data);
 +}
