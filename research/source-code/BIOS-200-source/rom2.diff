@@ -1,0 +1,56 @@
+--- a/ROM144.ASM
++++ b/ROM2.ASM
+@@ -4642,9 +4642,52 @@
+ 
+ 	PROC
+ 
+-	JMP	START
++;ROM 2.0'S COLD BOOT OFF THE ACB-4000 (#247).  docs/o1-rom-2.0.md 4.6: the same
++;copy, patch and jump HARD.COM'S loader does, with the two differences the
++;machine forces.  The source is the window rather than a file on a disk, and the
++;patch source is the CBIOS'S fixed address rather than a read through page zero:
++;in bank 2 page zero IS this ROM, a write there is dropped, and a read there
++;returns the ROM, so `LD HL,(0001H)` would read this file's own first bytes.
++
++	LK	HL,1000H		;CBIOS, out of the window
++	LK	DE,0E100H		;... to where the stock system keeps it
++	LK	BC,800H		;2048 bytes
++	LDIR
+ 
++	LK	HL,1800H		;the MD-10 BIOS, out of the window
++	LK	DE,0D800H		;... to where HARD.COM puts it
++	LK	BC,5C5H		;1477 bytes, the length the image carries
++	LDIR
+ 
++;THE MEASURED PATCH (HARD.COM 01E5H-0220H): CBIOS VECTORS 2-31 INTO THE MD-10
++;BIOS'S SLOTS, SO ITS CONSOLE AND ITS FLOPPY ARE THE MACHINE'S
++
++	LK	HL,0E106H		;CBIOS vector 2 -- what (page zero+1)+3 is on a booted system
++	LK	DE,0D806H
++	LK	C,12H
++	LDIR
++	LK	DE,0D86AH
++	LK	C,15H
++	LDIR
++	LK	DE,0D82DH
++	LK	C,03H
++	LDIR
++	LK	DE,0D87FH
++	LK	C,03H
++	LDIR
++	LK	DE,0D833H
++	LK	C,2DH
++	LDIR
++
++;INTO THE MD-10 BIOS, BUT THE BANK FIRST: ITS BOOT PATCHES PAGE ZERO, AND THAT
++;WRITE IS DROPPED WHILE THIS ROM IS MAPPED.  SW2RAM IS THE CBIOS'S OWN SWITCH,
++;IN THE RAM JUST FILLED, AND ITS RET TAKES THE ADDRESS PUSHED HERE.
++
++	LK	HL,0D800H
++	PUSH	HL
++	JMP	0E8E2H		;SW2RAM, in the shipped CBIOS
++
++
+ RLWA	=	*		;LWA OF ROM RESIDENT CODE
+ 
+ 	MSG	'LENGTH OF THIS ROM IS = ',RLWA-1
