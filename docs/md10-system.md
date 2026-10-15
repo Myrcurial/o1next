@@ -818,15 +818,32 @@ the descriptors have to come out of it:
 
 | descriptors come from | per drive | drives at 8 MiB | drives at 7.5 MiB |
 |---|---|---|---|
-| **their own 24 bytes, out of the 1451** | 152 B | **9** | 9 |
-| **a shared DPH built at `SELDSK` time**, 4-byte pointer pair each | 132 B | **10** | **11** |
+| their own 24 bytes, out of the 1451 | 152 B | **9** | 9 |
+| **a shared DPH**, 4-byte (DPB, ALV) pair each + one 18-byte DPH | 132 B | **10** | **11** |
 
-**So the answer is 9 partitions, or 10–11 if the driver can avoid a per-drive DPH**
-— and that is the first question step 6 of #247 has to settle, because it is worth
-two whole partitions. The descriptors themselves need no `SELDSK` change: the table
-is *contiguous* from `DD6E`, the region `DD6E-DDC4` is descriptors and DPB and
-nothing else, so the table grows in place over the old DPB slot and on into Pocket A
-once the DPB is moved. `md10dpb.py --selftest` prints the ALV budget and says so.
+**And the shared-DPH question is answered — measured, 2026-10-15.** The type table at
+`DD5E` maps drive to descriptor, so one byte points drive 3 (`D:`) at descriptor 0 —
+the same one `A:` uses. That is the *extreme* case of sharing: two letters, one
+descriptor, one DPH, one ALV, one DPB. It works, both ways:
+
+```
+A0>SAVE 1 A:A.DAT          A0>DIR D:
+                           D: A        DAT        <- D: shows A:'s file
+A0>SAVE 1 D:D.DAT          A0>DIR A:
+                           A: A        DAT : D        DAT
+A0>DIR E:                  Unformatted diskette on drive B
+```
+
+So **a per-drive DPH is not required** — the DPH's 8 scratch bytes do not need to be
+per-drive state, which is the thing that would have forced 24 bytes each. Only what
+*genuinely* differs must be per drive: the **ALV** (which must be unique) and the
+**DPB** (for unequal partitions). A shared 18-byte DPH with those two pointers copied
+in at `SELDSK` time costs 4 bytes a drive. The floppies simply move up: `E:` was the
+first physical floppy in that run, not `D:`.
+
+**So the answer is 11 partitions of 7.5 MiB, or 10 of 8 MiB** — 82.5 MB and 80 MB
+respectively — and **9** is the floor if the shared DPH turns out not to hold up
+under real traffic. What is left is implementing it, not deciding it.
 
 One trap worth recording, because it caught this session: a **stale ROM 2.0
 monitor image** in a scratch directory (built before #247 step 4, so still

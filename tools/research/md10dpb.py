@@ -384,8 +384,9 @@ def selftest():
     print("    place, over the old DPB slot and on into Pocket A once the DPB")
     print("    moves.  Out of the same 1451 bytes that is 9 drives at 8 MiB; a")
     print("    shared DPH built at SELDSK time (4 bytes a drive) makes it 10, or 11")
-    print("    at 7.5 MiB partitions.  EB00-EBFF is not a third pocket -- it is the")
-    print("    interior of the monitor's own HSTBUF (docs/md10-system.md 9.2).")
+    print("    at 7.5 MiB partitions -- and the shared DPH is *measured*: pointing")
+    print("    drive 3 at descriptor 0 in the type table gives two letters one")
+    print("    descriptor and it works, both ways (docs/md10-system.md 9.3).")
     return 0
 
 
