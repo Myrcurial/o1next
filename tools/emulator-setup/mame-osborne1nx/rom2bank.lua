@@ -23,21 +23,25 @@
 --   space from Lua, so it waits a fixed time rather than watching for the prompt.
 --
 -- USAGE
---   The same script drives both machines, because the comparison is the point:
+--   The same script drives both machines, because the comparison is the point.
+--   Both boot on RETURN now (#247 step 4): on a stock machine RETURN is floppy A,
+--   and on ROM 2.0's it is the hard disk, so what separates the runs is the
+--   machine and its `-softrom`, not the key.
 --
---     # the stock boot (needs RETURN; a copy of the disk, since MAME writes back)
+--     # the stock boot (a copy of the disk, since MAME writes back into it)
 --     SDL_VIDEODRIVER=dummy mame osborne1 -flop1 /tmp/sys.imd -video none \
 --       -sound none -nothrottle -rompath tools/emulator-setup/roms \
 --       -autoboot_script rom2bank.lua -seconds_to_run 20
 --
---     # ROM 2.0's hand-over (needs ESC)
---     O1_BANK_ESC=1 SDL_VIDEODRIVER=dummy mame osborne1nx -video none \
+--     # ROM 2.0's hand-over
+--     O1_BANK_ROM=1 SDL_VIDEODRIVER=dummy mame osborne1nx -video none \
 --       -sound none -nothrottle -rompath tools/emulator-setup/roms \
 --       -softrom /tmp/rom2.rom -harddisk /tmp/md10/hd.chd \
 --       -autoboot_script rom2bank.lua -seconds_to_run 20
 --
 -- ENVIRONMENT
---   O1_BANK_ESC  press ESC (the ROM 2.0 path) instead of RETURN (the stock boot)
+--   O1_BANK_ROM  this is ROM 2.0's machine, and it only sets the log's heading --
+--                both machines boot on RETURN, so nothing else depends on it
 
 local M = manager.machine
 local CPU = M.devices[":maincpu"]
@@ -68,21 +72,11 @@ IOS:install_write_tap(0x00, 0x01, "sel", function(off, data)
   end
 end)
 
-local esc
-for line in kb:dump():gmatch("[^\n]+") do
-  local code, name = line:match("^([0-9A-F]+) %((.-)%)")
-  if name == "Escape" then esc = tonumber(code, 16) end
-end
-
-logf(os.getenv("O1_BANK_ESC") and "the ROM 2.0 hand-over path (ESC)"
-    or "the stock boot path (RETURN)")
+logf(os.getenv("O1_BANK_ROM")
+    and "ROM 2.0's hand-over path (RETURN -> the hard disk)"
+    or "the stock boot path (RETURN -> floppy A)")
 emu.wait(1.2)
-if os.getenv("O1_BANK_ESC") then
-  if not esc then logf("no ESC code in the natkeyboard table"); os.exit(1) end
-  kb:post(utf8.char(esc))
-else
-  kb:post("\r")
-end
+kb:post("\r")
 emu.wait(8)
 
 logf("")

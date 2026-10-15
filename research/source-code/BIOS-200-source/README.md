@@ -13,7 +13,9 @@ is that it *is* the shipped 1.44 with new code in the free tail of it — the
 CBIOS calls ROM routines by absolute address (`docs/o1-rom-2.0.md` §4.2), so a
 byte moved anywhere below the new code is a moved anchor, not a feature. The diff
 is the change; `tools/research/rom2asm.sh` applies it, assembles the result with
-the vendor's own ACT80, and checks that nothing below the new code moved.
+the vendor's own ACT80, and checks that nothing below the new code moved — with
+**one** deliberate exception, the sign-on dispatch's two key bytes, which it
+checks *by value* rather than merely tolerating (the second hunk below).
 
 **The diff is against the *normalised* source** — `rom144.asm` as CP/M wants it,
 CRLF, with the three stray CRs the capture has treated as the line breaks they
@@ -22,8 +24,9 @@ before applying this.
 
 ## What the change is
 
-`HCBOOT` — the entry the monitor takes when **ESC** is pressed at the sign-on
-prompt (`rom144.asm`, `JZ HCBOOT`). In 1.44 it is a documented stub, `JMP START`.
+`HCBOOT` — the entry the monitor takes when **RETURN** is pressed at the sign-on
+prompt (`rom144.asm`, `JZ HCBOOT`; #247 step 4). In 1.44 it is a documented stub,
+`JMP START`.
 In ROM 2.0 it is the ACB-4000 cold boot: the same copy, patch and jump that
 `HARD.COM`'s loader performs (measured at `HARD.COM` `0x01E5`–`0x0220`,
 `docs/o1-rom-2.0.md` §4.6), with three differences the machine forces:
@@ -52,7 +55,25 @@ the switch has to be taken by code that survives it. What is pushed as its retur
 address is therefore the stub in RAM, not the MD-10 BIOS's entry.
 
 As built it is **77 bytes**, `0F67`–`0FB3`, with **72 bytes free** to the vendor's
-own guard, and everything below `0F67h` is byte-identical to the shipped 1.44.
+own guard.
+
+## The two hunks
+
+**1. The boot keys (#247 step 4), and they are two bytes.** The sign-on dispatch
+(`rom144.asm` ~295-309) is three comparisons, and the change is *in place*:
+`CMP ESC` becomes `CMP CR`, so `RETURN` is the machine's own hard disk, and
+`CMP CR` becomes `CMP ':'`, so `:` is floppy A. `"` is unchanged, and `ESC` is
+released — it falls through to the prompt's `JR START` like any unclaimed key. No
+code is added, no address moves, and the new code's extent is unchanged at
+`0F67`–`0FB3`. `START` clears `0EF00h`-`0EFEFh` on every pass — `DSKSWP`
+(`0EFC7h`) included — which is what makes `:` reliably drive A. These are the
+only bytes below `0F67h` that ROM 2.0 moves (`0x0048` and `0x0050` in the image),
+and `rom2asm.sh` and `rom2image.py` both check them *by value*, so a monitor
+carrying the old map — or a third value — stops the build with the map in the
+message.
+
+**2. `HCBOOT`, in the free tail above `0F67h`.** Everything else below `0F67h` is
+byte-identical to the shipped 1.44.
 
 ## Building it
 

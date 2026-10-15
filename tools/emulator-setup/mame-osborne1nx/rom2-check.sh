@@ -4,11 +4,12 @@
 # WHY THIS EXISTS
 #   rom2asm.sh proves the *assembly* is the vendor's 1.44 with new code only where
 #   the guard left room.  This proves the new code *runs*: it boots the emulated
-#   interposer with ROM 2.0's image in the softROM window, presses ESC at the
-#   sign-on prompt -- the monitor's HCBOOT entry -- and reads the chain back with
-#   rom2boot.lua (the CBIOS in RAM, the MD-10 BIOS in RAM, its vectors patched
-#   from the CBIOS's, the bank switch, the hand-over's stub and the store it
-#   makes, and -- with a drive -- the prompt the whole thing exists for).
+#   interposer with ROM 2.0's image in the softROM window, presses RETURN at the
+#   sign-on prompt -- the monitor's HCBOOT entry, since #247 step 4 -- and reads
+#   the chain back with rom2boot.lua (the CBIOS in RAM, the MD-10 BIOS in RAM, its
+#   vectors patched from the CBIOS's, the bank switch, the sign-on dispatch's own
+#   key bytes, the hand-over's stub and the store it makes, and -- with a drive --
+#   the prompt the whole thing exists for).
 #
 # USAGE
 #   tools/emulator-setup/mame-osborne1nx/rom2-check.sh

@@ -35,16 +35,17 @@
 #
 #   To boot **ROM 2.0's own boot** -- the hard disk entered from the ROM, with no
 #   floppy in the machine at all (#247) -- build the monitor and the image, point
-#   O1_SOFTROM at it, and press ESC at the sign-on prompt:
+#   O1_SOFTROM at it, and press RETURN at the sign-on prompt:
 #
 #     tools/research/rom2asm.sh -o /tmp/rom2-monitor.rom     # a few minutes
 #     tools/research/rom2image.py --monitor /tmp/rom2-monitor.rom -o /tmp/rom2.rom
 #     O1_SOFTROM=/tmp/rom2.rom O1_HARD=/tmp/md10/hd.chd \
 #       tools/emulator-setup/mame-osborne1nx/boot-o1next.sh
 #
-#   and the machine reaches `A0>` with nothing in either drive: ESC is the
-#   monitor's `HCBOOT` entry, and the store that makes the hand-over work is in
-#   the ROM.  `rom2-check.sh` is this, headless and measured.
+#   and the machine reaches `A0>` with nothing in either drive: RETURN is the
+#   monitor's `HCBOOT` entry (`:` is floppy A and `"` is floppy B, #247 step 4),
+#   and the store that makes the hand-over work is in the ROM.  `rom2-check.sh` is
+#   this, headless and measured.
 #
 # THE SAME SCRIPT RUNS IN A *STAGED* TEST MACHINE
 #   `stage.sh` copies this script out of the repo with the patched binary and the

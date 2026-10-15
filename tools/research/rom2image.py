@@ -62,7 +62,10 @@ WHAT IT CHECKS, AND WHY IT EXITS NON-ZERO
     Every anchor the design rests on.  A build that silently produces a
     different image is worse than one that fails, so a moved anchor is a failure:
 
-      * the monitor's CRC32 is `c0596b14` (`docs/o1-rom-source.md`);
+      * the monitor's CRC32 is `c0596b14` (`docs/o1-rom-source.md`); for a ROM 2.0
+        monitor, instead: the stock 1.44 with **only** the two sign-on key bytes
+        (`0x0048`, `0x0050`) and the free tail above `0F67h` changed
+        (`docs/o1-rom-2.0.md` 4.6);
       * the system image's four anchors on `OS1SYSD.IMD` -- the CCP's `c3 5c ce`,
         the BDOS entry's `c3 11 d3`, the CBIOS jump table at offset 0x1600, and
         its 13 `CD 12 E3` (`docs/o1-rom-2.0.md` section 2.1);
@@ -180,11 +183,16 @@ def hoff(addr):
 ROM_CRC32 = 0xC0596B14
 # The only bytes ROM 2.0 may touch: the HCBOOT stub (`JP 0000h` at 0F67h, three
 # bytes) and everything after it, which the vendor's own guard leaves free
-# (`IF RLWA > 0FFBH`, rom144.asm).  The vendor's code ends at 0F69h, so
-# everything below 0F67h is the monitor as shipped and must stay byte-identical
-# -- the CBIOS calls ROM routines by absolute address (docs/o1-rom-2.0.md 4.2),
-# so a moved byte down there is a moved anchor, not a feature.
+# (`IF RLWA > 0FFBH`, rom144.asm), *plus* the sign-on dispatch's two key
+# immediates below it (#247 step 4, docs/o1-rom-2.0.md 4.6).  The vendor's code
+# ends at 0F69h, so everything else below 0F67h is the monitor as shipped and
+# must stay byte-identical -- the CBIOS calls ROM routines by absolute address
+# (docs/o1-rom-2.0.md 4.2), so a moved byte down there is a moved anchor, not a
+# feature.
 ROM2_ENTRY = 0x0F67
+# 0x0048 and 0x0050, and only those: `CMP ESC` -> `CMP CR` and `CMP CR` ->
+# `CMP ':'`, the two bytes that make RETURN the hard disk and ':' floppy A.
+ROM2_KEYS = {0x0048: (0x1B, 0x0D), 0x0050: (0x0D, 0x3A)}
 CCP_HEAD = bytes([0xC3, 0x5C, 0xCE])          # JP 0CE5Ch; 0xCE-3 = 0xCB = the CCP page
 BDOS_ENTRY_OFF = 0x0806
 BDOS_ENTRY = bytes([0xC3, 0x11, 0xD3])        # JP 0D311h
@@ -269,14 +277,25 @@ def check_monitor(rom, stock):
         return "monitor 4096 bytes, the stock 1.44 (CRC32 %08x)" % crc
 
     diff = [i for i in range(MONITOR_SIZE) if rom[i] != stock[i]]
-    lo, hi = diff[0], diff[-1]
-    if lo < ROM2_ENTRY:
+    for a, (was, now) in sorted(ROM2_KEYS.items()):
+        if stock[a] != was:
+            raise Fail("the stock reference holds 0x%02X at 0x%04X, not 0x%02X "
+                       "-- it is not the shipped 1.44" % (stock[a], a, was))
+        if rom[a] != now:
+            raise Fail("the sign-on dispatch at 0x%04X is 0x%02X, not 0x%02X -- "
+                       "ROM 2.0 boots the hard disk on RETURN and the floppies on "
+                       ": and \" (docs/o1-rom-2.0.md 4.6)" % (a, rom[a], now))
+    below = [i for i in diff if i < ROM2_ENTRY]
+    odd = [i for i in below if i not in ROM2_KEYS]
+    if odd:
         raise Fail("monitor differs from the stock 1.44 at 0x%04X, below the "
                    "HCBOOT entry at 0x%04X -- that is a moved anchor, not ROM 2.0"
-                   % (lo, ROM2_ENTRY))
+                   % (odd[0], ROM2_ENTRY))
+    above = [i for i in diff if i >= ROM2_ENTRY]
+    lo, hi = above[0], above[-1]
     return ("monitor 4096 bytes, ROM 2.0: the stock 1.44 with 0x%04X-0x%04X "
             "changed (%d bytes of code and fill, 0x%04X-0x%04X free to the "
-            "vendor's guard)"
+            "vendor's guard) and the sign-on key bytes at 0x0048/0x0050"
             % (lo, hi, hi - lo + 1, ROM2_ENTRY, hi + 1))
 
 

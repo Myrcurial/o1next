@@ -65,21 +65,15 @@ local function find(pat)
   return false
 end
 
--- ESC is not ASCII 27 on this machine: the code comes out of the natkeyboard's
--- own table, as rom2boot.lua and o1keys.lua do.
-local esc
-for line in kb:dump():gmatch("[^\n]+") do
-  local code, name = line:match("^([0-9A-F]+) %((.-)%)")
-  if name == "Escape" then esc = tonumber(code, 16) end
-end
-if not esc then logf("no ESC code in the natkeyboard table"); os.exit(1) end
-
+-- RETURN is the monitor's HCBOOT entry now (#247 step 4), and it is a plain
+-- carriage return.  This harness used to press ESC, which on this machine is a
+-- MAME *key* code and had to be read out of the natkeyboard's own table.
 local e = 0
 while e < 25 and not find("Insert disk") do emu.wait(0.5); e = e + 0.5 end
-logf("sign-on seen; posting ESC (the monitor's HCBOOT entry)")
-kb:post(utf8.char(esc))
+logf("sign-on seen; posting RETURN (the monitor's HCBOOT entry)")
+kb:post("\r")
 
--- HCBOOT reaches its bank switch about 85 ms after ESC; poke across that window.
+-- HCBOOT reaches its bank switch about 85 ms after RETURN; poke across that window.
 emu.wait(0.085)
 for _ = 1, 20 do
   P:write_u8(CCPADR, CCP % 256)         -- CCPADR = CB00h, little endian

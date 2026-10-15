@@ -7,6 +7,8 @@ interface half. The **bank map, boot path and jump table** (§4–§5) are the
 *design*: what we intend to build, with the reasoning that got us there. The
 **contents of the boot are measured, not estimated — 7695 bytes (§2.3)** — and the
 **feature set is decided against OZROM's, including what to refuse (§4.8)**. The
+**boot keys are built too, and they are two bytes of the monitor's dispatch
+(§4.6)**. The
 **hardware half of §4 is explicitly open** — there is no ROM 2.00 part (§4.1), and
 the window's address, paging and selector belong to #12's interface spec (§4.1a).
 What is not done is stated in §8.
@@ -277,10 +279,14 @@ exactly the two the diskless build wants to change (§4.5), and both are changed
 * The **warm-boot hook already exists**: the CBIOS's `WBOOT` calls ROM vector 1.
   A ROM-resident CP/M needs a different *source* for the system image, not a
   different *mechanism*.
-* The **boot keys already exist**: `RETURN` = floppy A, `"` = floppy B, `ESC` =
-  hard disk, with `HCBOOT` a documented empty stub (`JMP START`) that Osborne
-  left in the ROM for exactly this purpose (`rom144.asm` line 4634; it assembles
-  to `JP 0000h` at `0F67h`).
+* The **boot keys already exist**, and ROM 2.0 re-letters them (#247 step 4):
+  `RETURN` = **the hard disk**, `:` = floppy A, `"` = floppy B, and `ESC` is
+  released. 1.44 had `RETURN` = floppy A, `"` = floppy B, `ESC` = hard disk — so
+  the machine's own disk sat on a *shifted* key while a facerolled RETURN booted
+  a floppy nobody asked for. `HCBOOT` is a documented empty stub (`JMP START`)
+  that Osborne left in the ROM for exactly this purpose (`rom144.asm` line 4634;
+  it assembles to `JP 0000h` at `0F67h`), and the re-lettering is **two bytes** of
+  the dispatch, in place — §4.6.
 ## 4. The design
 
 ### 4.1 The softROM serves the window — there is no ROM 2.00 part
@@ -483,7 +489,8 @@ visible at once, and no RAM/ROM mode switching is needed mid-copy.
 5. The CCP prompts **`A>`** — and nothing has touched the FDC.
 
 Note what does *not* change: `HCBOOT` becomes `SYSLD` with a different bank
-selection, the boot keys stay as they are, and the CBIOS is byte-for-byte the
+selection, `RETURN` still boots the machine's own system — the one key that keeps
+its meaning across the two goals, §4.6 — and the CBIOS is byte-for-byte the
 vendor's. The copy destinations also land exactly where the source's own RAM
 equates put them: `0CB00h + 7680 = 0E900h`, which is `CCP+1E00h`, the first byte
 of the CBIOS's RAM area.
@@ -630,8 +637,8 @@ across a tick, and the tick's handler could not get back to RAM because `CCPADR`
 was zero. **The bank is not something a guest can hold**; it is re-derived on every
 instruction fetch and on interrupt acknowledge (`docs/o1-memory-io-map.md` §4), so
 what the hand-over has to do is make the machine's own exit work — and the third
-column is that working: the guest asks for RAM 44 times in the 8 s after ESC, and
-the IOBYTE answers `80h`, which is the stock machine's own answer.
+column is that working: the guest asks for RAM 44 times in the 8 s after RETURN,
+and the IOBYTE answers `80h`, which is the stock machine's own answer.
 
 **The fix is one store, and it is proved twice.** First by poking it in from
 outside: with `CCPADR = CB00h` — and the CBIOS's own IOBYTE, `80h`, at page zero+3
@@ -660,6 +667,35 @@ prompt arrives from the ROM alone. Two details are worth keeping:
   anything below that is the ROM, the window or I/O rather than RAM, and a write
   there is dropped.
 
+
+**The boot keys, and they cost two bytes (#247 step 4).** `HCBOOT` hangs off the
+sign-on dispatch, which is three comparisons, and ROM 2.0 re-letters it *in
+place* — no code added, no address moved:
+
+| Key | Boots | 1.44 |
+|---|---|---|
+| `RETURN` | the **hard disk** (`HCBOOT`) | floppy A |
+| `"` | floppy **B** (`DSKSWP = 1`) | floppy B — unchanged |
+| `:` | floppy **A** (`DSKSWP = 0`) | unused |
+| `ESC` | nothing — released | the hard disk |
+
+`CMP ESC` becomes `CMP CR` and `CMP CR` becomes `CMP ':'` (`rom144.asm`
+~295-309; the diff's first hunk, and the two bytes are `0048h` and `0050h` in
+the image). It fits in place, and it is correct rather than merely lucky:
+`START` clears `0EF00h`-`0EFEFh` on every pass — `DSKSWP` (`0EFC7h`) included —
+so `:` always finds it zero and means drive A, and `"` is the only path that
+increments it. Nothing else in the dispatch moves: the three `JZ`s and the `JR`
+are the ones 1.44 has.
+
+ESC gets no new job. It is a non-standard keystroke in MAME as well as a poor
+choice for a boot key, and it now falls through to the prompt's `JR START` like
+any unclaimed key. The CBIOS's own `ESCH` cell is a different thing and is
+untouched.
+
+Because those two bytes are the **only** thing below `0F67h` that moves,
+`rom2asm.sh` checks them *by value* rather than merely tolerating them: a build
+whose dispatch is not this map stops with the map in the message, and
+`rom2boot.lua` reads the same two bytes back out of the *running* monitor.
 
 ### 4.7 The ROM 2.0 jump table, and the 150-byte budget
 
@@ -864,10 +900,10 @@ banked-ROM device plus the `2300h` latch — the same shape as the ACB-4000 card
 
 **Run, and it boots.** The image exists — `tools/research/rom2image.py`, 7695 bytes
 (§6) — the softROM window serves it, and `HCBOOT` runs the chain *and* the boot:
-`rom2-check.sh` boots the emulated interposer **with no floppy**, presses ESC at the
-sign-on prompt, and reads the CBIOS, the MD-10 BIOS, the patch, the bank switch, the
-hand-over stub's 14 bytes in RAM at `0E0F0h`, `CCPADR = CB00h`, the system off the
-drive and the `A0>` prompt back (§4.6).
+`rom2-check.sh` boots the emulated interposer **with no floppy**, presses RETURN at
+the sign-on prompt — and reads the dispatch's two key bytes, the CBIOS, the MD-10
+BIOS, the patch, the bank switch, the hand-over stub's 14 bytes in RAM at `0E0F0h`,
+`CCPADR = CB00h`, the system off the drive and the `A0>` prompt back (§4.6).
 
 Which of the rows above that settles is worth being exact about, because the goal
 is a boot with **no disk at all**:
@@ -951,8 +987,9 @@ So the ROM's own half of deliverable 3 is done and measured; what is left is the
    `0E0F0h`, pushes *that* address instead of `0D800h`, and `SW2RAM`'s `RET` enters
    it; the stub writes `CCPADR`, the CBIOS's IOBYTE default, and jumps to `0D800h`.
    Measured with the same instrument that found the fault: the IOBYTE now answers
-   `80h` eleven times, the guest asks for RAM 44 times in the 8 s after ESC, and
-   `CCPADR` gives `E133h` — and `rom2-check.sh` with a drive mounted reaches `A0>`
+   `80h` eleven times, the guest asks for RAM 44 times in the 8 s after RETURN,
+   and `CCPADR` gives `E133h` — and `rom2-check.sh` with a drive mounted reaches
+   `A0>`
    **with no floppy in the machine** (§4.6, §7). What is left is the *no-disk*
    payload, which is §4.1a's selector, and §8 item 7's map at the moment the boot
    screen runs.
