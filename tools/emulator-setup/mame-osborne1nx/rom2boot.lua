@@ -157,16 +157,23 @@ logf("  0E100       " .. peek(CBIOS, 8))
 logf("  0D800       " .. peek(MD10, 8))
 logf("  0C200       " .. peek(CCP, 8))
 logf("  bank now    " .. bank())
+logf(string.format("  CCPADR      %04X   (must be CB00h -- see docs/o1-rom-2.0.md 8.10)",
+                   P:read_u8(0xEFD2) + P:read_u8(0xEFD3) * 256))
+logf(string.format("  ROMRAM      %02X", P:read_u8(0xEF08)))
 
 logf("")
 if find("A0>") then
   logf("BOOT: A0> -- ROM 2.0 booted the hard disk")
 else
-  logf("BOOT: no A0>.  The chain above is what the ROM does; the hand-over is")
-  logf("  not complete yet.  Measured: the machine ends up in the ROM's IEEE-488")
-  logf("  output routine, with the bank back in ROM -- the first console call the")
-  logf("  MD-10 BIOS makes is dispatched with the CBIOS's RAM cells uninitialised,")
-  logf("  because CBOOT is what initialises them and nothing has run it.")
+  logf("BOOT: no A0>.  The chain above is what the ROM does; the hand-over is one")
+  logf("  store short.  Measured: CCPADR (0EFD2h) is 0000h, so the 60 Hz handler's")
+  logf("  return-to-RAM exit (ROMJP1 = CCPADR+1633h) lands on 1633h -- the softROM's")
+  logf("  page 1, the payload's own copy of the CBIOS's console dispatch -- and that")
+  logf("  reads IOBYTE from a page zero that in ROM mode is the ROM (D3h, the IEEE")
+  logf("  device), so the machine waits in the ROM's IEEE routine for ever.")
+  logf("  The fix is proved before it is built: rom2handover.lua pokes")
+  logf("  CCPADR=CB00h into RAM after the hand-over and the machine reaches A0>.")
+  logf("  See docs/o1-rom-2.0.md 4.6 and 8 item 10.")
 end
 logf(string.format("ROM2BOOT: %s", (fail == 0) and "the chain is complete" or "CHAIN INCOMPLETE"))
 os.exit(fail == 0 and 0 or 1)
