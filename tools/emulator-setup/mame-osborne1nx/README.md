@@ -21,6 +21,8 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
+| `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1's selector** — the transaction the ROM's screen code will drive, and the measurement that settles the door's address (#247) |
+| `romservice-check.sh` | **the door's acceptance** — the real frame, no frame, a corrupt frame, an erased frame, and a wrong-sized frame refused (#247) |
 | `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
 | `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, RETURN, and what the monitor then does; `O1_BSH=6` re-runs the same nine checks on 8 KiB blocks (#247) |
 | `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
@@ -30,13 +32,13 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
 | `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
 
-The patch touches six files:
+The patch touches seven files:
 
-- `src/mame/osborne/osborne1.cpp` — the `osborne1nx` machine, its I/O map and its ROM window
+- `src/mame/osborne/osborne1.cpp` — the `osborne1nx` machine, its I/O map, its ROM window and the door's address
 - `src/mame/mame.lst` — registers the machine (MAME builds its driver list from this)
 - `scripts/src/machine.lua` — registers the new devices' sources
 - `src/devices/machine/acb4000_host_adapter.{h,cpp}` — the card, new
-- `src/devices/machine/softrom.{h,cpp}` — the ROM window, new
+- `src/devices/machine/softrom.{h,cpp}` — the ROM window, the frame slot, and the ROM service's door, new
 
 ## Applying it
 
@@ -67,6 +69,18 @@ softROM window" below, and `softrom-check.sh` for the acceptance.
 ```sh
 tools/research/rom2image.py -o /tmp/rom2.rom
 mame osborne1nx -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom
+```
+
+**`-frame` mounts the boot frame**, which is the ROM's screen, not the machine's
+ROM: two 4096-byte halves — characters then attributes — served into window page
+1 when the ROM asks for them through the **ROM service's door**
+(`docs/rom-pico-protocol.md` §5). With none mounted the door answers "no such
+content" and the ROM keeps its own text, which is the fallback path. The frame is
+a generated, committed asset: `firmware/rom-service/frame.bin`.
+
+```sh
+mame osborne1nx -rompath tools/emulator-setup/roms \
+    -softrom /tmp/rom2.rom -frame firmware/rom-service/frame.bin
 ```
 
 **That is the headless shape and `mame` on `PATH` has no such machine** — it is a
@@ -107,6 +121,10 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the **data phase** (`INQUIRY`, `MODE SENSE`, `READ CAPACITY`, `READ`) | **yes** — 22/22 checks, `o1next-dataphase.lua` |
 | the **data-out** phase (`MODE SELECT`, `SEND DIAGNOSTIC`) | **yes** — both complete |
 | the **softROM window** — all 8 KB of `0000-1FFF`, three ways | **yes** — `o1next-softrom.lua`, all 8192 bytes, in `softrom-check.sh` |
+| the **ROM service's door** — ECHO, INFO, NOP, an unknown opcode, the abandon rule | **yes** — `o1next-romservice.lua`, in `romservice-check.sh` |
+| **page 1's selector** — `PRESENT(0/1/2)`, each frame half with its own trailer in place | **yes** — the same harness: both halves byte-compared against the frame, both trailers checked at `0FF8h` |
+| **no frame, an erased frame, a corrupt frame** — served, unvalidated, and the trailer fails | **yes** — `romservice-check.sh`: the door answers `09h` with no frame and leaves page 1 alone, and serves a bad frame's bytes as they are, because the check is the ROM's |
+| **the door's address** — `0x2301` is the floppy's track register, so the door is at `2800h` | **yes** — measured in the harness: `0x2301` reads what `0x2101` reads, and a request written to `0x2300` never reaches the door |
 | **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
 | **`-softrom` (the 7695-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
 | **ROM 2.0's `HCBOOT`** — the CBIOS, the MD-10 BIOS, its patch, the bank, the read | **yes** — `rom2boot.lua`, five checks, in `rom2-check.sh` |
@@ -149,7 +167,37 @@ Measured on 2026-10-14, and again on 2026-10-15 with the hand-over in the image:
 CBIOS's first bytes) against `31 C1 EF …` at `0000h` (the monitor's), the hand-over
 stub at `1E01h`, and `FF` from `1E0Fh` to `1FFFh`.
 
-### ROM 2.0's monitor, and `HCBOOT`
+### The ROM service's door, and page 1's selector
+
+The window's page 1 is not always the payload. The ROM's screen asks the
+interposer for the boot frame — two 4096-byte halves, characters and attributes —
+and page 1 serves whichever half it asked for, through a bank-2 register pair
+(`docs/rom-pico-protocol.md` §4 and §5). The device implements the transaction:
+write the opcode then its operands to `2800h`, read the reply from `2801h` (`0` =
+not ready, else the length, then the bytes), with the mailbox protocol's result
+codes and its abandon-a-pending-reply recovery rule.
+
+```sh
+tools/emulator-setup/mame-osborne1nx/romservice-check.sh
+```
+
+**And the address is a measurement, not a preference.** The protocol proposed
+`2300h`/`2301h`; this machine says no, and `romservice-check.sh`'s first two
+checks are why: `0x2301` reads exactly what `0x2101` reads, because the onboard
+selects check two address bits each and the floppy's track register is selected
+there too — so a reply ANDed with a track register sitting at `00h` never becomes
+ready, and a request written to `0x2300` is a floppy command. It is the same
+aliasing `tools/o1_mame_probe.lua`'s C9 report and
+`docs/o1-mainboard-schematic.md` §7a already record; what is new is that it
+matters *here*, and `2800h` is the fix — the part of
+`docs/o1-memory-io-map.md` §7's recommended block that nothing selects.
+
+`romservice-check.sh` runs the harness five ways — the real frame, no frame, a
+corrupt frame, an erased one, and a 4096-byte frame that the slot refuses with
+the reason — so the fallback path is proved before the ROM code that depends on
+it exists.
+
+
 
 `tools/research/rom2asm.sh` assembles ROM 2.0's monitor — the vendor's 1.44 with
 the new code in the free tail of it — with the vendor's own ACT80, and

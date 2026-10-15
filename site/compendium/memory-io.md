@@ -475,9 +475,9 @@ devices. Conservatively **free** (no onboard device) within `2000–2FFF`:
 
 | Range | Status |
 |---|---|
-| `2000–20FF` | Free |
+| `2000–20FF` | Free — and **clean**: no device mask matches it (see below) |
 | `2104–21FF` | Free (above floppy) |
-| `2300–28FF` | Free (above keyboard, below IEEE) — **largest clean block** |
+| `2300–28FF` | Free (above keyboard, below IEEE) — **not all clean**: `2300–23FF`, `2500–27FF` alias the floppy and the keyboard, and `2400–24FF` is the SCREEN-PAC's presence decode |
 | `2904–29FF` | Free (above IEEE PIA) |
 | `2A02–2BFF` | Free (above serial, below video PIA) |
 
@@ -485,13 +485,45 @@ devices. Conservatively **free** (no onboard device) within `2000–2FFF`:
 > all address bits, so large regions alias real devices. Treat only
 > page-aligned blocks *between* the listed devices as safe, and validate on
 > hardware before committing.
+>
+> **Measured 2026-10-15 — the caution is not hypothetical, and it has a
+> 256-byte answer.** The five selects check A11 plus one of A8/A9/A10 each, so
+> of the region above only three page-aligned blocks are selected by *nothing*:
+> **`2000–20FF`, `2400–24FF` and `2800–28FF`** (offsets `000`, `400`, `800` —
+> A11 set with A8/A9/A10 clear, or all four clear). `0x2301` is the floppy's
+> track register *and* the keyboard's row 0 ([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md)
+> §7a), which is what moved the ROM↔Pico door from `2300h` to `2800h`
+> ([`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §2). `2400–24FF` is clean of the *stock* machine
+> but not of a SCREEN-PAC one — `2400h` is its presence bit — so the two that
+> are free on every machine are `2000–20FF` and `2800–28FF`.
+>
+> **And the one device that is free by *mutual exclusivity* claims no bank-2
+> memory at all.** Drive C — the standalone reproduction (#84) and the
+> interposer's own `drive-c-gpib` personality — cannot be fitted at the same time
+> as the interposer ([`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mailbox-protocol.md) §1), which invites the question of
+> whether its space is reusable. Checked against the characterisation
+> ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §1–§2, [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §2): **it is not a
+> GPIB device and has no window.** The Drive C connector (P3) is used as a
+> **parallel port**, and the host drives it by bit-banging the **mainboard's own**
+> MC6821 PIA at `2900–2903` — machine hardware, always fitted, not borrowable.
+> Nothing in the Drive C material names a `2xxx` address other than that PIA. What
+> its exclusivity does free is the **drive-`2` identity in the mailbox** (which the
+> interposer already owns) and the **P3 connector itself** — a bus, not an address.
+> So there was no Drive C window to put the ROM↔Pico door in; `2800h` is inside
+> this document's own recommended region instead, chosen from the blocks above.
 
 ### Recommendation
-- **Primary virtual-peripheral block: `2300–23FF`** (256 bytes). Clean gap
-  between keyboard (`2201–2280`) and IEEE-488 (`2900–2903`). Suggested
-  sub-allocation: CoPower-88 emulation, network/modem FIFO, RTC, status regs.
+- **Primary virtual-peripheral block: `2800–28FF`** (256 bytes). It is inside the
+  clean gap between keyboard (`2201–2280`) and IEEE-488 (`2900–2903`) *and* it is
+  one of the three blocks no select touches (above). The ROM↔Pico door takes
+  `2800h`/`2801h` ([`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §2); suggested sub-allocation for
+  the rest: CoPower-88 emulation, network/modem FIFO, RTC, status regs.
+- **`2000–20FF`** is equally clean and equally page-aligned if a second disjoint
+  window is needed; `2400–24FF` is clean only of a stock machine, because `2400h`
+  is the SCREEN-PAC presence bit.
 - **Secondary: `2B00–2BFF`** (between serial `2A01` and video PIA `2C00`) if a
-  second disjoint window is needed.
+  third window is needed — but note that `2B00–2BFF` *does* alias the serial
+  ACIA's select, so it is free of the device, not of the decode.
 - Avoid `0x00–0x03` (bank switch) entirely.
 - The interposer should decode **bank-2 I/O space** (memory-mapped) rather
   than Z80 `IN/OUT` port space, since onboard devices are memory-mapped and
