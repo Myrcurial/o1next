@@ -9,24 +9,25 @@
  
  #include "cpu/z80/z80.h"
  
-@@ -104,6 +106,7 @@
+@@ -104,6 +106,8 @@
  
  #include "machine/6821pia.h"
  #include "machine/6850acia.h"
 +#include "machine/acb4000_host_adapter.h"
++#include "machine/softrom.h"
  #include "machine/wd_fdc.h"
  
  #include "sound/spkrdev.h"
-@@ -162,6 +165,8 @@
+@@ -161,6 +165,8 @@
+ 	virtual void machine_start() override ATTR_COLD;
  	virtual void machine_reset() override ATTR_COLD;
  	virtual void video_start() override ATTR_COLD;
- 
-+	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 +
++	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
+ 
  	void osborne1_base(machine_config &config);
  
- 	void osborne1_mem(address_map &map) ATTR_COLD;
-@@ -201,8 +206,6 @@
+@@ -201,8 +207,6 @@
  
  	void serial_acia_irq_func(int state);
  
@@ -35,7 +36,7 @@
  	TIMER_CALLBACK_MEMBER(video_callback);
  	TIMER_CALLBACK_MEMBER(acia_rxc_txc_callback);
  
-@@ -304,6 +307,28 @@
+@@ -304,6 +308,31 @@
  
  	required_device<palette_device> m_palette;
  	required_region_ptr<u8>         m_p_nuevo;
@@ -51,20 +52,43 @@
 +public:
 +	osborne1nx_state(const machine_config &mconfig, device_type type, const char *tag) :
 +		osborne1_state(mconfig, type, tag),
-+		m_acb4000(*this, "acb4000")
++		m_acb4000(*this, "acb4000"),
++		m_softrom(*this, "softrom")
 +	{
 +	}
 +
 +	void osborne1nx(machine_config &config);
 +
 +private:
++	void osborne1nx_mem(address_map &map) ATTR_COLD;
 +	void osborne1nx_io(address_map &map) ATTR_COLD;
 +
 +	required_device<acb4000_host_adapter_device> m_acb4000;
++	required_device<softrom_device> m_softrom;
  };
  
  
-@@ -827,6 +852,21 @@
+@@ -801,6 +830,19 @@
+ 	osborne1_mem(map);
+ 
+ 	m_rom_view[0](0x2000, 0x2fff).mirror(0x1000).rw(FUNC(osborne1sp_state::bank2_peripherals_r), FUNC(osborne1sp_state::bank2_peripherals_w));
++}
++
++
++void osborne1nx_state::osborne1nx_mem(address_map &map)
++{
++	osborne1_mem(map);
++
++	// The interposer's softROM owns the whole ROM window: page 0 (0000-0fff) is
++	// the monitor and page 1 (1000-1fff) is the payload (docs/o1-rom-2.0.md
++	// 4.1b).  The mainboard never decoded A12, so the stock machine reads its
++	// 4 KB twice across this one entry; the softROM decodes it, and with no
++	// image mounted it falls back to the machine's own ROM region.
++	m_rom_view[0](0x0000, 0x1fff).r(m_softrom, FUNC(softrom_device::read)).unmapw();
+ }
+ 
+ 
+@@ -827,6 +869,21 @@
  	map(0x04, 0x04).rw("crtc", FUNC(mc6845_device::status_r), FUNC(mc6845_device::address_w));
  	map(0x05, 0x05).rw("crtc", FUNC(mc6845_device::register_r), FUNC(mc6845_device::register_w));
  	// seems to be something at 0x06 as well, but no idea what - BIOS writes 0x07 on boot
@@ -86,7 +110,7 @@
  }
  
  
-@@ -1065,6 +1105,27 @@
+@@ -1065,6 +1122,34 @@
  }
  
  
@@ -94,6 +118,7 @@
 +{
 +	osborne1_base(config);
 +
++	m_maincpu->set_addrmap(AS_PROGRAM, &osborne1nx_state::osborne1nx_mem);
 +	m_maincpu->set_addrmap(AS_IO, &osborne1nx_state::osborne1nx_io);
 +
 +	m_screen->set_screen_update(FUNC(osborne1nx_state::screen_update));
@@ -108,13 +133,19 @@
 +
 +	ACB4000_HOST_ADAPTER(config, m_acb4000);
 +	m_acb4000->set_scsi_port("scsi");
++
++	// the interposer's own ROM: the window is served from an image file, and
++	// with none mounted it is the machine's own 1.44 -- so the machine boots
++	// the stock ROM (docs/o1-rom-2.0.md 4.1b)
++	SOFTROM(config, m_softrom);
++	m_softrom->set_monitor_region("maincpu");
 +}
 +
 +
  ROM_START( osborne1 )
  	ROM_DEFAULT_BIOS("ver144")
  	ROM_SYSTEM_BIOS( 0, "vera",   "BIOS version A" )
-@@ -1096,6 +1157,16 @@
+@@ -1096,6 +1181,16 @@
  
  #define rom_osborne1sp rom_osborne1
  
@@ -131,7 +162,7 @@
  ROM_START( osborne1nv )
  	ROM_REGION(0x1000, "maincpu", 0)
  	ROM_LOAD( "monrom-rev1.51-12.ud11", 0x0000, 0x1000, CRC(298da402) SHA1(7fedd070936ccfe98f96d6e0ac71689666da79cb) )
-@@ -1114,3 +1185,4 @@
+@@ -1114,3 +1209,4 @@
  COMP( 1981, osborne1,   0,        0,      osborne1,   osborne1,   osborne1_state,   empty_init, "Osborne",       "Osborne-1",                 MACHINE_SUPPORTS_SAVE )
  COMP( 1983, osborne1sp, osborne1, 0,      osborne1sp, osborne1,   osborne1sp_state, empty_init, "Osborne",       "Osborne-1 with SCREEN-PAC", MACHINE_SUPPORTS_SAVE )
  COMP( 1984, osborne1nv, osborne1, 0,      osborne1nv, osborne1nv, osborne1nv_state, empty_init, "Osborne/Nuevo", "Osborne-1 (Nuevo Video)",   MACHINE_SUPPORTS_SAVE )
@@ -157,6 +188,15 @@
  	MAME_DIR .. "src/devices/machine/bcreader.cpp",
  	MAME_DIR .. "src/devices/machine/bcreader.h",
  	MAME_DIR .. "src/devices/machine/buffer.cpp",
+@@ -29,6 +31,8 @@
+ 	MAME_DIR .. "src/devices/machine/legscsi.h",
+ 	MAME_DIR .. "src/devices/machine/sdlc.cpp",
+ 	MAME_DIR .. "src/devices/machine/sdlc.h",
++	MAME_DIR .. "src/devices/machine/softrom.cpp",
++	MAME_DIR .. "src/devices/machine/softrom.h",
+ 	MAME_DIR .. "src/devices/machine/terminal.cpp",
+ 	MAME_DIR .. "src/devices/machine/terminal.h",
+ 	MAME_DIR .. "src/devices/machine/timer.cpp",
 --- /dev/null
 +++ b/src/devices/machine/acb4000_host_adapter.h
 @@ -0,0 +1,124 @@
@@ -701,4 +741,175 @@
 +		m_reg3 = data;
 +		break;
 +	}
++}
+--- /dev/null
++++ b/src/devices/machine/softrom.h
+@@ -0,0 +1,88 @@
++// license:BSD-3-Clause
++// copyright-holders:James Arlen
++/***************************************************************************
++
++    softROM -- the ROM window, served from an image file
++
++    The interposer sits on the Z80 bus and presents the ROM window itself, so
++    the machine's ROM is an image in flash rather than a part in the socket
++    (docs/o1-rom-2.0.md sections 4.1 and 4.1b).  This device is that window.
++
++    The window is 8 KB -- 0000-1FFF -- because the mainboard never decoded A12.
++    MAME's own map for the stock machine says so in one line:
++
++        m_rom_view[0](0x0000, 0x0fff).mirror(0x1000).rom()...
++
++    `mirror(0x1000)` *is* the undecoded A12: the 4 KB monitor appears twice
++    across the window.  Decoding it gives two contiguous 4 KB pages with no
++    latch, no selector and no paging:
++
++        0000-0FFF   page 0   the monitor -- the 4 KB that must never move
++        1000-1FFF   page 1   the payload -- CBIOS, MD-10 BIOS, the shim
++
++    An image of 4 KB or less *is* the stock part and mirrors; a larger one gives
++    both pages.  With no image mounted the window serves the machine's own ROM
++    region, so an image-less machine boots exactly as the stock one does --
++    which is the acceptance that proves the plumbing before any monitor code
++    exists.
++
++    Past the end of an image the window reads 0xFF, which is what erased flash
++    answers.  rom2image.py's image is 7681 bytes of the 8192, and the 511 bytes
++    it does not cover are the payload's spare.
++
++    The image is named on the machine's own command line, after this device's
++    tag:
++
++        mame osborne1nx -softrom rom2.rom
++
++***************************************************************************/
++
++#ifndef MAME_MACHINE_SOFTROM_H
++#define MAME_MACHINE_SOFTROM_H
++
++#pragma once
++
++#include <vector>
++
++
++class softrom_device : public device_t, public device_image_interface
++{
++public:
++	softrom_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++
++	// the ROM window, as the CPU sees it: 0000-1fff
++	u8 read(offs_t offset);
++
++	// The stock part, named by the machine that owns the region.  It is what
++	// the window serves with no image mounted, and what a 4 KB image mirrors.
++	void set_monitor_region(const char *tag) { m_monitor.set_tag(tag); }
++
++protected:
++	// device_t
++	virtual void device_start() override ATTR_COLD;
++
++	// device_image_interface
++	virtual std::pair<std::error_condition, std::string> call_load() override;
++	virtual void call_unload() override;
++	virtual bool is_readable() const noexcept override { return true; }
++	virtual bool is_writeable() const noexcept override { return false; }
++	virtual bool is_creatable() const noexcept override { return false; }
++	virtual bool is_reset_on_load() const noexcept override { return true; }
++	virtual const char *file_extensions() const noexcept override { return "rom,bin"; }
++	virtual const char *image_type_name() const noexcept override { return "softrom"; }
++	virtual const char *image_brief_type_name() const noexcept override { return "softrom"; }
++
++private:
++	static constexpr u32 WINDOW_SIZE = 0x2000;  // 8 KB: 0000-1fff, A12 decoded
++	static constexpr u32 STOCK_SIZE  = 0x1000;  // the monitor: 4 KB at 0000-0fff
++
++	required_region_ptr<u8> m_monitor;  // the stock part, from the machine
++	offs_t                  m_mask;     // how the stock part mirrors: A12 ignored
++	std::vector<u8>         m_image;    // the mounted image, empty if none
++	bool                    m_mirror;   // the image is the stock part, so it mirrors
++};
++
++// device type definition
++DECLARE_DEVICE_TYPE(SOFTROM, softrom_device)
++
++#endif // MAME_MACHINE_SOFTROM_H
+--- /dev/null
++++ b/src/devices/machine/softrom.cpp
+@@ -0,0 +1,77 @@
++// license:BSD-3-Clause
++// copyright-holders:James Arlen
++/***************************************************************************
++
++    softROM -- the ROM window, served from an image file
++
++    See softrom.h for the window and what an image has to be, and
++    docs/o1-rom-2.0.md sections 4.1 and 4.1b for where both come from.
++
++***************************************************************************/
++
++#include "emu.h"
++#include "softrom.h"
++
++// device type definition
++DEFINE_DEVICE_TYPE(SOFTROM, softrom_device, "softrom", "SoftROM (the ROM window, from an image file)")
++
++
++softrom_device::softrom_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
++	: device_t(mconfig, SOFTROM, tag, owner, clock)
++	, device_image_interface(mconfig, *this)
++	, m_monitor(*this, DEVICE_SELF)
++	, m_mask(0)
++	, m_mirror(false)
++{
++}
++
++void softrom_device::device_start()
++{
++	// The stock part is what the window serves with no image mounted, and it is
++	// what the mainboard reads twice across the window because A12 was never
++	// decoded -- so the mirror is a mask over the region, not a second copy of
++	// it.  A region that is not a power of two cannot be mirrored this way.
++	assert(m_monitor.length() && !(m_monitor.length() & (m_monitor.length() - 1)));
++	m_mask = m_monitor.length() - 1;
++}
++
++std::pair<std::error_condition, std::string> softrom_device::call_load()
++{
++	u32 const len = length();
++	if (len > WINDOW_SIZE)
++		return std::make_pair(image_error::INVALIDLENGTH,
++				util::string_format("image is %u bytes; the ROM window is %u", len, WINDOW_SIZE));
++
++	m_image.resize(len);
++	if (len && (fread(&m_image[0], len) != len))
++	{
++		m_image.clear();
++		return std::make_pair(std::errc::io_error, "could not read the image");
++	}
++
++	// 4 KB or less is the stock part, and the stock part mirrors; anything
++	// larger is the two pages of the window
++	m_mirror = (len <= STOCK_SIZE);
++	return std::make_pair(std::error_condition(), std::string());
++}
++
++void softrom_device::call_unload()
++{
++	m_image.clear();
++	m_mirror = false;
++}
++
++u8 softrom_device::read(offs_t offset)
++{
++	if (!m_image.empty())
++	{
++		offs_t const a = m_mirror ? (offset & m_mask) : offset;
++
++		// past the end of the image the flash is erased
++		return (a < m_image.size()) ? m_image[a] : 0xff;
++	}
++
++	// no image: the machine's own ROM, read across the window exactly as the
++	// stock machine reads it
++	return m_monitor[offset & m_mask];
 +}
