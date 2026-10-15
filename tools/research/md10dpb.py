@@ -379,6 +379,12 @@ def selftest():
               % ((128 << bsh) // 1024, bsh, dd["DSM"] + 1, alv, n, n * 8.0))
     print("    (CP/M has 16 letters; two go to the floppies, so 14 are available")
     print("     to the disk -- at BSH=6 the ALV binds first, at 11.)")
+    print("    A drive also needs its 24-byte descriptor, and the table in the BIOS")
+    print("    image is full at three (DD6E, with the DPB immediately after at")
+    print("    DDB6).  Out of the same 1451 bytes that is 9 drives at 8 MiB; out of")
+    print("    the unmeasured EB00-EBFF pocket (256 B) it is 10.  Where the")
+    print("    descriptors live is the first thing the drive-count work has to")
+    print("    settle -- the ALV budget is what comes after it.")
     return 0
 
 

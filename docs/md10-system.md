@@ -807,6 +807,23 @@ is not itself a capacity feature: it is what makes the drive *count* reachable,
 and the count is what the descriptor table has to be grown to. Until that is
 done, 8 KiB blocks would cost density and buy nothing.
 
+**But the ALV is not the whole per-drive cost, and the rest is the swing factor.**
+A drive also needs its **24-byte descriptor**, and the driver's table is full at
+three: it sits at `DD6E` inside the BIOS image with the DPB immediately after it
+at `DDB6`, and the image itself ends at `DDC5` — Pocket A. So the descriptors need
+a home of their own, and which home decides the count:
+
+| descriptors come from | drives at 8 MiB |
+|---|---|
+| the same 1451 bytes as the ALVs (24 + 128 = 152 B each) | **9** |
+| the unmeasured `EB00-EBFF` pocket (256 B, 10 x 24) | **10** |
+| somewhere free — none identified | 11 (the ALV's own ceiling) |
+
+**Where the descriptors live is the first thing the drive-count work has to
+settle**, and it is cheap to settle: `EB00-EBFF` is the one unclaimed region in
+the map above and has never been measured. `md10dpb.py --selftest` prints the ALV
+budget and says so.
+
 One trap worth recording, because it caught this session: a **stale ROM 2.0
 monitor image** in a scratch directory (built before #247 step 4, so still
 `CP 1Bh` at `0x0048`) makes `rom2image.py` refuse with "the sign-on dispatch is
