@@ -496,6 +496,21 @@ devices. Conservatively **free** (no onboard device) within `2000–2FFF`:
 > ([`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §2). `2400–24FF` is clean of the *stock* machine
 > but not of a SCREEN-PAC one — `2400h` is its presence bit — so the two that
 > are free on every machine are `2000–20FF` and `2800–28FF`.
+>
+> **And the one device that is free by *mutual exclusivity* claims no bank-2
+> memory at all.** Drive C — the standalone reproduction (#84) and the
+> interposer's own `drive-c-gpib` personality — cannot be fitted at the same time
+> as the interposer ([`docs/mailbox-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/mailbox-protocol.md) §1), which invites the question of
+> whether its space is reusable. Checked against the characterisation
+> ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §1–§2, [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §2): **it is not a
+> GPIB device and has no window.** The Drive C connector (P3) is used as a
+> **parallel port**, and the host drives it by bit-banging the **mainboard's own**
+> MC6821 PIA at `2900–2903` — machine hardware, always fitted, not borrowable.
+> Nothing in the Drive C material names a `2xxx` address other than that PIA. What
+> its exclusivity does free is the **drive-`2` identity in the mailbox** (which the
+> interposer already owns) and the **P3 connector itself** — a bus, not an address.
+> So there was no Drive C window to put the ROM↔Pico door in; `2800h` is inside
+> this document's own recommended region instead, chosen from the blocks above.
 
 ### Recommendation
 - **Primary virtual-peripheral block: `2800–28FF`** (256 bytes). It is inside the

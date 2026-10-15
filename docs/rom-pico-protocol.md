@@ -57,6 +57,16 @@ carry the same correction. (The other clean part of that region, `2400–27FF`, 
 the SCREEN-PAC's own decode — presence bit included — which the video
 personality needs.)
 
+**And the door is not in Drive C's space, because Drive C has none.** Its
+exclusivity with the interposer is real (`mailbox-protocol.md` §1) and was checked
+before the address was chosen: the Drive C connector (P3) is a **parallel port**,
+not GPIB, and the host drives it by bit-banging the **mainboard's own** PIA at
+`2900–2903` (`drive-c-protocol.md` §1–§2) — machine hardware, always fitted. No
+Drive C document names a bank-2 window, so there was nothing of its to reuse for a
+*memory* register; what its exclusivity frees is the drive-`2` identity in the
+mailbox. `2800h` is this document's own region, taken from the blocks that nothing
+selects.
+
 **Why the ROM cannot use the ports as its primary door.** The machine's
 **bank/video latch is written on the console path**: `OUT (02h)` and `OUT (03h)`
 toggle the 9th video bit, and the monitor's own reset code wrote the latch
