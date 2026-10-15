@@ -613,6 +613,119 @@ login that does happen — after the prompt, when `B:` is typed — reads LBA 83
 last block of drive A's own `E5h` directory. The fallback is never consulted on a
 drive that carries a label.
 
+### 9.2 The driver patch: what a bigger partition costs, and what the installer allows (#247)
+
+`md10dpb.py` is the patch. Three things had to be measured before it could be
+written, and none of them was in the archive.
+
+**1. Where the ALVs can go.** The ALV is one bit per CP/M block, so it grows with
+the partition, and three of them have to live in RAM nothing else claims. A memory
+dump at `A0>` on a booted machine (and the sources for the rest) gives the map:
+
+| Region | What | Free? |
+|---|---|---|
+| `D800-DDC4` | the MD-10 BIOS image, `5C5h` bytes | no |
+| `DDC5-E0EF` | **Pocket A**, 811 bytes | **yes** |
+| `E0F0-E0FD` | ROM 2.0's hand-over stub, 14 bytes | no |
+| `E100-E8FF` | the CBIOS | no |
+| `E900-EA7F` | the CBIOS's own ALV, CSV and scratch (`occram15.asm`, `ORG CCP+1E00h`, guarded by `YYY > MRAM`) | no |
+| `EA80-EAFF` | `MRAM`, the ROM's host buffer | no |
+| `EB00-EBFF` | unclaimed, unmeasured — this patch does not use it | ? |
+| `EC00-EE7F` | **Pocket B**, 640 bytes | **yes** |
+| `EE80-EEFF` | `DIRBUF`, shared by all three drives | no |
+| `EF00-EFFF` | the monitor's cells and stack (`ROMSTK` `EFC1`, `CCPADR` `EFD2`, …), live after the hand-over | no |
+
+So the budget is **811 + 640 = 1451 bytes**, and that is the number that decides
+everything below. The vendor's own three ALVs (`DDC5`/`DEB6`/`DFA7`, 241 bytes
+apart) sit inside Pocket A, which is why the hand-over stub at `E0F0` is *just*
+past them.
+
+**2. What three ALVs cost, and where the ceiling falls.** At the shipped `BSH = 5`
+(4 KiB blocks):
+
+| Partition | `DSM` | ALV | ×3 | Fits? |
+|---|---|---|---|---|
+| 15399 blocks (the shipped 7.5 MiB) | 1923 | 241 | 723 | yes |
+| 16384 blocks (PREP.COM's ceiling, 8 MiB) | 2047 | 256 | 768 | yes |
+| 32768 blocks (16 MiB) | 4095 | 512 | 1536 | **no** |
+| 65535 blocks (CP/M's ceiling, 32 MiB) | 8190 | 1024 | 3072 | **no** |
+
+**So the ALV budget and the vendor installer's ceiling coincide at about 8 MiB per
+partition** — and that is a property of the 4 KiB block rather than a coincidence
+of two unrelated limits: `ALV = disk / (8 x block)`, so 16 KiB blocks would put
+32 MiB partitions at 256 bytes each, inside the budget with room to spare.
+`--bsh` is in the tool for that day.
+
+One more field is worth recording rather than fixing. The shipped DPB has
+`EXM = 1` with `BSH = 5`, where the standard relation
+(`EXM = 2^(BSH-3) - 1`, i.e. 16 block pointers must cover `(EXM+1) x 16 KiB`)
+gives **3**. The shipped value is the one that boots and takes a write, so the
+tool keeps it at `BSH = 5` and uses the standard value elsewhere; `--exm`
+overrides. Whether `EXM = 1` mis-handles a file past one logical extent is *not*
+measured — nothing has ever written more than 1 KB to an MD-10 partition (§9.1).
+
+**3. What `PREP.COM` will actually make.** Its partition menu has five entries,
+not three:
+
+```
+(1) Two logical drives (MD-10)      (4) Non-standard equal drive partitioning
+(2) Three logical drives (MD-20)    (5) Non-standard unequal drive partitioning
+(3) Six logical drives (MD-44)
+```
+
+and options 4 and 5 ask for a count, or for each size in Kbytes — so
+**A=4 / B=20 / C=32 is producible by the vendor's own installer**. What it will
+not do is exceed **16384 blocks (8 MiB)** per partition, and that was measured:
+
+| Drive | Equal partitions | Each | Result |
+|---|---|---|---|
+| `RO204E` 640x8x18 = 92160 blocks | 2 | 46065 | `Partitions selected are too large!` |
+| " | 3 | 30710 | `Partitions selected are too large!` |
+| " | 6 | 15355 | **initialised** |
+| 650x8x18 = 93600 blocks | 6 | 15595 | **initialised** |
+| " | 5 | 18714 | `Partitions selected are too large!` |
+| 667x8x18 = 96048 blocks | 6 | 16003 | **initialised** |
+
+15595 and 16003 are accepted and 18714 is not, so the ceiling is 16384 — and it is
+*not* the DPB's 15399, because a 15595-block partition is accepted by `PREP.COM`
+and over-claimed by the shipped DPB. That is exactly the mismatch the patch is
+for. Past 8 MiB the partition table has to be written by something other than
+`PREP.COM`, and `md10dpb.py --allow-beyond-prep` exists so that case is explicit
+rather than silent.
+
+
+
+**And the patch, measured.** `md10dpb.py` re-derives the shipped DPB field for
+field from `15399` at `BSH = 5` — `9c f0 05 1f 01 83 07 ff 03 ff 00 …` — and
+patching for that size reproduces the vendor's `HARD.COM` **byte for byte**
+(CRC32 `288c7cc7`), because it independently arrives at the vendor's own ALV
+addresses `DDC5`/`DEB6`/`DFA7`. Then, on one drive built once and booted twice:
+
+```sh
+tools/research/md10prep.sh 341,8,18 eq3 /tmp/md10-341   # 3 x 16359 blocks
+tools/research/md10dpb.py HARD.COM HARD-16359.COM --parts 16359,16359,16359
+```
+
+| `HARD.COM` | DPB `DSM` | ALVs | `D:STAT A:` |
+|---|---|---|---|
+| shipped | 1923 | `DDC5`/`DEB6`/`DFA7` | `Bytes Remaining On A: 7664k` |
+| patched | 2043 | `DDC5`/`DEC5`/`DFC5` | `Bytes Remaining On A: 8144k` |
+
+Both numbers are the DPB's own arithmetic — `(1924 − 8) x 4 KiB = 7664k` and
+`(2044 − 8) x 4 KiB = 8144k`, the 8 being the directory's pre-allocated blocks —
+so the BDOS is reading the patched DPB, on the same drive, through the same
+installer's partition table. The measurement is `D:STAT A:` and not `STAT A:`
+because the hard disk takes `A:`/`B:`/`C:` and the boot floppy is `D:` (§7.1).
+
+**What is left.** Three *different* partition sizes need three DPBs, and the three
+descriptors share one. Three DPBs are 30 bytes of new data and `HARD.COM` has
+exactly one byte free after the BIOS image (file `9FF` of `A00`), so they cannot
+be patched in place: they have to come from ROM 2.0's `HCBOOT` payload (497 bytes
+spare, `rom2.diff`) or from a grown `HARD.COM`. `md10dpb.py` refuses an unequal
+layout with that reason rather than guessing. And a partition past 8 MiB needs a
+partition table written outside `PREP.COM`.
+
+
 ## 10. The test that was named, and its answer
 
 An earlier revision of this section named a test: watch the card's CDB while the
