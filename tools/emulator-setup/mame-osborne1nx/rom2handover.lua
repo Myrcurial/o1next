@@ -17,6 +17,13 @@
 --   into `HCBOOT`, from RAM, after the bank switch) has a known outcome rather
 --   than a hoped-for one.
 --
+--   **That step is done** -- the store is in `HCBOOT` (`docs/o1-rom-2.0.md` 4.6)
+--   -- so this poke now writes a cell the ROM has already written.  It is kept
+--   as the proof that came first, and it is *not* an acceptance any more: it
+--   makes the store for the ROM, so it cannot tell you whether the ROM makes it
+--   itself.  `rom2-check.sh` is that check -- it reads the stub's 14 bytes back
+--   out of RAM and asserts `CCPADR`, and the machine reaches `A0>` on its own.
+--
 --   The poke is repeated across a window, because the bank is re-derived on every
 --   instruction fetch and on interrupt acknowledge (docs/o1-memory-io-map.md 4):
 --   only a poke that lands while RAM is selected reaches page zero, and the last
