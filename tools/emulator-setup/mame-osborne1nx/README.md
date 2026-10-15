@@ -23,6 +23,9 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
 | `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
 | `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, ESC, and what the monitor then does (#247) |
+| `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
+| `rom2bank.lua` | the same question from the other side — **taps**: the IOBYTE read, and the bank selects, on this machine and on a stock boot (#247) |
+| `rom2handover.lua` | **the fix, proved before it is built** — poke `CCPADR` and the machine reaches `A0>` (#247) |
 | `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
 | `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
 
@@ -106,7 +109,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
 | **`-softrom` (the 7681-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
 | **ROM 2.0's `HCBOOT`** — the CBIOS, the MD-10 BIOS, its patch, the bank, the read | **yes** — `rom2boot.lua`, five checks, in `rom2-check.sh` |
-| ROM 2.0 booting the hard disk to `A0>` | **not yet** — the chain is complete and the hand-over is not; see below |
+| ROM 2.0 booting the hard disk to `A0>` | **not yet** — one store short, and the store is measured and the fix proved (`rom2trace.lua`, `rom2bank.lua`, `rom2handover.lua`); see below |
 | the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** — re-measured after the window change, unchanged |
 | `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
 
@@ -160,12 +163,44 @@ harness reads the chain back stage by stage:
 ```
 
 The chain is what the ROM is responsible for, and it is complete. The machine does
-**not** then reach `A0>`: `CBOOT` is what initialises the CBIOS's own RAM (the
-IOBYTE, `LLIMIT`, `IEADR`, the DMA cells), nothing has run it, and the MD-10
-BIOS's first console call is dispatched with those cells uninitialised — the guest
-ends up in the ROM's IEEE-488 routine with the bank back in ROM. That initialisation
-is the next step, and it has to run after the bank switch, i.e. from RAM:
-`docs/o1-rom-2.0.md` §4.6 and §8 item 10.
+**not** then reach `A0>`, and the reason is measured — it is one cell, `CCPADR`
+(`0EFD2h`), which the ROM's own `CBOOT` writes and `HCBOOT` was lifted without
+(`docs/o1-rom-2.0.md` §4.6, §8 item 10):
+
+- The ROM's 60 Hz interrupt handler ends by returning *through the CBIOS* —
+  `ROMJP1` = `CCPADR + 1633h`, the CBIOS's `RRI`, whose `OUT (C),A` restores the
+  bank.
+- With `CCPADR = 0` that exit jumps to `1633h`, which in bank 2 is the softROM's
+  page 1 — the payload's own copy of the CBIOS's console dispatch. It reads
+  `IOBYTE` at page zero+3, and in ROM mode page zero *is* the ROM: `D3h`, the
+  opcode of the `OUT (03h),A` at `0004h`, whose low two bits are **3, the IEEE
+  device**.
+- The dispatch trampolines into the ROM's IEEE input routine and waits for a
+  handshake no device answers, for ever.
+
+`rom2trace.lua` samples the PC and unwinds the stack to show where the machine
+went; `rom2bank.lua` taps the IOBYTE read and the bank selects to show why. The
+contrast is the finding:
+
+| | stock boot | ROM 2.0's hand-over |
+|---|---|---|
+| reads of `0003h` | 858, **all `80h`** (RAM → CRTOUT) | **1, returning `D3h`** (the ROM → IEEE) |
+| bank selects | 454 `OUT 0`, 492 `OUT 1` | 1 `OUT 1` (HCBOOT), 1 `OUT 0` (the trampoline) |
+
+**The fix is that one store, and it is proved before it is built.** Poke
+`CCPADR = CB00h` (and the CBIOS's own IOBYTE, `80h`, at page zero+3) into RAM just
+after the hand-over and the machine boots to `A0>` **with no floppy in the
+machine**. What is left is where that code lives — it must run after the bank
+switch, so from RAM.
+
+**A stale `/tmp/rom2.rom` looks exactly like `HCBOOT` not working.** The image is
+two steps (`rom2asm.sh`, then `rom2image.py`); reuse an older `/tmp/rom2.rom` and
+the window serves the *stock* monitor, whose `0F67h` is still `JMP START` — so ESC
+does nothing and the machine sits at the sign-on prompt for ever. `rom2-check.sh`
+builds the image itself, so it cannot hit this; a hand-run trace can. Check the
+image before believing a negative: `0F67h` must be `21 00 10` (`LD HL,1000h`), not
+`C3 00 00`.
+
 
 **ESC needs the key code, not the character.** The Osborne's ESC key is
 `PORT_CHAR(UCHAR_MAMEKEY(ESC))`, so `natkeyboard:post("\27")` matches no port and

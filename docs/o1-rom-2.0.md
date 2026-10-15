@@ -571,15 +571,63 @@ jump table is at `0D800H`; it is patched from the CBIOS's vectors, all 90 bytes
 into the five slots; the bank switches to RAM; and with a drive mounted the system
 is read off it into `0C200H` (`C3 C8 C4 …`).
 
-**What is not done is the hand-over.** The machine does not reach `A0>`, and the
-measurement says why: after the chain the guest is in the ROM's IEEE-488 output
-routine with the bank back in ROM. `CBOOT` is what initialises the CBIOS's RAM —
-the IOBYTE at page zero+3, `LLIMIT`, `IEADR`, the DMA cells — and nothing has run
-it, so the first console call the MD-10 BIOS makes is dispatched with those cells
-uninitialised. `HCBOOT` therefore needs **CBOOT's initialisation without CBOOT's
-final jump** (CBOOT ends by entering the CCP, which is not loaded yet on this
-path), and that code has to run *after* the bank switch — that is, from RAM, which
-is a decision about where it lives and the next step.
+**The hand-over: measured, and it is one cell.** The machine does not reach `A0>`,
+and the reason is *not* the CBIOS's uninitialised RAM in general. It is
+**`CCPADR` (`0EFD2h`)** — the cell the ROM's own `CBOOT` writes at `02A3h` and
+`HCBOOT` was lifted without.
+
+The ROM's 60 Hz interrupt handler ends by returning *through the CBIOS*:
+
+```asm
+;Exit interrupt code via exiting to RAM and then enable or disable ROM code
+;depending on the value contained in ROMRAM cell.
+	LD	A,ROMRAM	;IS ROM IN OR OUT?
+	OR	A
+	JNZ	ROMJP1		;if return to RAM
+```
+
+`ROMJP1` is `CCPADR + 1633h` — the CBIOS's `RRI` at `0E133h`, whose `OUT (C),A`
+(C = `ROMRAM`) **restores the bank**. With `CCPADR = 0` that exit jumps to
+`1633h`, which in bank 2 is the softROM's page 1: the payload's own copy of the
+CBIOS's console dispatch. That copy reads `IOBYTE` at page zero+3 — and in ROM
+mode page zero *is* the ROM, so it reads the ROM's own byte `D3h` (the opcode of
+the `OUT (03h),A` at `0004h`), whose low two bits are **3: the IEEE device**. The
+dispatch trampolines through `ROMJMP` into the ROM's IEEE input routine, which
+waits for a handshake no device answers, for ever.
+
+Measured with `rom2trace.lua` and `rom2bank.lua`:
+
+| | stock boot | ROM 2.0's hand-over |
+|---|---|---|
+| reads of `0003h` (the IOBYTE) | 858, **all `80h`** — RAM, CRTOUT | **1, returning `D3h`** — the ROM, IEEE |
+| bank selects | 454 `OUT 0`, 492 `OUT 1` | 1 `OUT 1` (HCBOOT), 1 `OUT 0` (the trampoline) |
+| `ROMRAM` (`0EF08h`) | 1 | 1 from HCBOOT's `SW2RAM` until the trampoline's `SW2ROM` clears it |
+| `CCPADR` (`0EFD2h`) | `CB00h` | **`0000h`** |
+
+The stock machine survives because its CBIOS brackets every ROM call with
+`SW2ROM`/`SW2RAM`, so it is in RAM mode whenever the dispatch runs — 492 asks for
+RAM in a single boot. The hand-over makes exactly one, then leaves the guest to
+run across a tick, and the tick's handler cannot get back to RAM because `CCPADR`
+is zero. **The bank is not something a guest can hold**; it is re-derived on every
+instruction fetch and on interrupt acknowledge (`docs/o1-memory-io-map.md` §4), so
+what the hand-over must do is make the machine's own exit work.
+
+**The fix is one store, and it is proved.** With `CCPADR = CB00h` — and the
+CBIOS's own IOBYTE, `80h`, at page zero+3 — poked into RAM just after the
+hand-over (`rom2handover.lua`), the machine boots to `A0>` **with no floppy in the
+machine**:
+
+```
+                   OSBORNE 1
+              Rev 1.44 (c) 1983 OCC
+    Insert disk in Drive A and press RETURN.
+A0>
+```
+
+So `HCBOOT` needs the ROM's own `CBOOT`'s store — `LD HL,CCP` / `LD (CCPADRH),HL`
+— and, for correctness rather than for the boot, the IOBYTE default. It has to run
+*after* the bank switch, that is from RAM, which is the decision §8 item 10 records.
+
 
 ### 4.7 The ROM 2.0 jump table, and the 150-byte budget
 
@@ -781,12 +829,18 @@ banked-ROM device plus the `2300h` latch — the same shape as the ACB-4000 card
 `tools/research/mame-boot-probe.sh`, which is what measured every row of
 `docs/mame-emulation.md` §4.
 
-**Not yet run.** The image now exists — `tools/research/rom2image.py`, 7681 bytes,
-CRC32 `aef92022` (§6, #225) — but it is a *content* image: the monitor is still
-the stock 1.44, so there is nothing yet that reaches for the window and the test
-cannot run. **#247** is the plan that carries it: the banked-ROM device first, so
-the machine works and the window is de-risked, then `rom2asm` with `HCBOOT`
-filled in from the hard-disk chain that is already measured.
+**Run, and it stops one step short.** The image exists — `tools/research/rom2image.py`,
+7681 bytes, CRC32 `aef92022` (§6, #225) — the softROM window serves it, and
+`HCBOOT` runs the chain: `rom2-check.sh` boots the emulated interposer **with no
+floppy**, presses ESC at the sign-on prompt, and reads the CBIOS, the MD-10 BIOS,
+the patch, the bank switch and the system off the drive back (§4.6). What it cannot
+yet see is the prompt, because the hand-over is missing `CCPADR` — and that is
+measured, not guessed (§4.6, §8 item 10): poking that one cell into RAM makes the
+machine reach `A0>` with no floppy. So the rows above are one store away from being
+testable; the no-disk variants (the FDC row, and the BDOS-without-a-disk row) still
+wait on the selector, because they need the system *in* the ROM rather than read
+off the drive.
+
 
 ## 8. What is still open
 
@@ -804,7 +858,9 @@ filled in from the hard-disk chain that is already measured.
    `-softrom` names the image (§4.1b), accepted by `softrom-check.sh`; and
    ROM 2.0's monitor now *assembles* with `HCBOOT` filled in and runs the chain
    into the MD-10 BIOS (§4.6), accepted by `rom2-check.sh`. What is left of the
-   chain is the hand-over — CBOOT's initialisation, from RAM (§4.6, item 10).
+   chain is the hand-over, and it is named: `CCPADR` (`0EFD2h`), the ROM's own
+   `CBOOT`'s store, without which the interrupt handler's exit cannot return to RAM
+   (§4.6, item 10).
 2. **Does ROM 2.0's monitor code fit in 150 bytes?** The estimate in §4.7 says yes
    with ~24 bytes to spare; the assembler's guard is the arbiter. Plan B is a
    banked loader.
@@ -839,18 +895,23 @@ filled in from the hard-disk chain that is already measured.
    for at boot. Nothing here defines that conversation, and the boot screen is the
    first thing that needs it — so it will otherwise accrete out of the first
    implementation, which is exactly what #155 exists to prevent.
-10. **The hand-over: CBOOT's initialisation, and where that code lives.** The
-   chain works and stops one step short (§4.6). `HCBOOT` gets the CBIOS and the
-   MD-10 BIOS into RAM and hands over, but `CBOOT` is what initialises the CBIOS's
-   own RAM — the IOBYTE, `LLIMIT`, `IEADR`, the DMA cells — and on this path
-   nothing has run it, so the MD-10 BIOS's first console call is dispatched with
-   those cells uninitialised and the guest ends up in the ROM's IEEE-488 routine.
-   `CBOOT` itself cannot be called: it finishes by entering the CCP, which is not
-   loaded yet. So the next step is that initialisation *without* its final jump,
-   and it has to run after the bank switch — from RAM. **Where it lives is the
-   decision** (a stub in the payload's spare, copied into RAM by `HCBOOT`, is the
-   obvious shape), and it is the same question §8 item 7 asks about the map at the
+10. **The hand-over: measured, and it is `CCPADR`.** The chain works and stops one
+   step short (§4.6), and the step is now named. The ROM's 60 Hz interrupt handler
+   exits through `ROMJP1` — `CCPADR (0EFD2h) + 1633h` — to the CBIOS's `RRI` at
+   `0E133h`, which is what restores the bank; the ROM's own `CBOOT` writes that
+   cell (`02A3h`), and `HCBOOT` does not, so the exit lands on `1633h` — the
+   softROM's page 1, the payload's copy of the CBIOS's console dispatch — which
+   reads `IOBYTE` from a page zero that in ROM mode is the ROM (`D3h` = the IEEE
+   device) and never returns. Measured: the stock boot reads the IOBYTE 858 times,
+   all `80h` from RAM; the hand-over reads it **once, and gets `D3h`**.
+   **The fix is the ROM's own store — `LD HL,CCP` / `LD (CCPADRH),HL` — plus the
+   IOBYTE default, and it is proved by poking `CCPADR = CB00h` into RAM after the
+   hand-over: the machine then boots to `A0>` with no floppy (§4.6).** What is
+   left is *where that code lives*: it has to run after the bank switch, so from
+   RAM, and a stub in the payload's spare copied into RAM by `HCBOOT` is the
+   obvious shape. That is the same question §8 item 7 asks about the map at the
    moment the boot screen runs.
+
 
 ## Sources
 
@@ -867,6 +928,17 @@ filled in from the hard-disk chain that is already measured.
 - `research/shipped-software/OS1SYSD.IMD` — the DD system disk whose reserved
   tracks carry the CCP/BDOS/CBIOS image (§2.1).
 - `tools/research/romvec.py` — decodes and cross-checks the jump table.
+- The hand-over's exit — read from the sources, then measured: the monitor's 60 Hz
+  handler and its `ROMJP1` return (`rom144.asm` ~2015–2035), `ROMJP1` itself
+  (`LDK DE,1633h` / `LD HL,CCPADR` / `JMP [HL]`, 414–421), `ROMRAM = 0EF08h`
+  (112) and `CCPADR = 0EFD2h` (141, "assigned in BIOS and filled in by loader in
+  ROM"); on the CBIOS side `RRI`/`ROMRI` (`occbio15.asm` 125, `occbio35.asm` 3–17)
+  and `SW2ROM`/`SW2RAM` (`occbio85.asm` 484–506).
+- `tools/emulator-setup/mame-osborne1nx/rom2trace.lua`, `rom2bank.lua` — the two
+  instruments that measured the hand-over (#247): the PC sampler that unwinds the
+  stack, and the taps that read the IOBYTE and count the bank selects;
+  `rom2handover.lua` is the third, which proves the fix by poking `CCPADR`.
+
 - `tools/research/rom144-reassemble.sh`, `tools/research/acthex.py` — the
   toolchain proof (#203).
 - `docs/o1-rom-source.md`, `docs/o1-rom-variants.md`, `docs/o1-memory-io-map.md`,
