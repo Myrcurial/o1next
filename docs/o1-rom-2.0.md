@@ -601,8 +601,11 @@ Measured with `rom2trace.lua` and `rom2bank.lua`:
 |---|---|---|
 | reads of `0003h` (the IOBYTE) | 858, **all `80h`** — RAM, CRTOUT | **1, returning `D3h`** — the ROM, IEEE |
 | bank selects | 454 `OUT 0`, 492 `OUT 1` | 1 `OUT 1` (HCBOOT), 1 `OUT 0` (the trampoline) |
-| `ROMRAM` (`0EF08h`) | 1 | 1 from HCBOOT's `SW2RAM` until the trampoline's `SW2ROM` clears it |
-| `CCPADR` (`0EFD2h`) | `CB00h` | **`0000h`** |
+| `CCPADR` (`0EFD2h`), and the exit it gives | **`CB00h` → `E133h`**, the CBIOS's `RRI` | **`0000h` → `1633h`**, the payload |
+
+`ROMRAM` (`0EF08h`) reads `00h` at the end of *both* runs, because `SW2ROM` clears
+it on every ROM call and the sample lands inside one; it is 1 at the tick, which is
+what makes the handler take the `ROMJP1` path at all.
 
 The stock machine survives because its CBIOS brackets every ROM call with
 `SW2ROM`/`SW2RAM`, so it is in RAM mode whenever the dispatch runs — 492 asks for

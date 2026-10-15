@@ -186,6 +186,7 @@ contrast is the finding:
 |---|---|---|
 | reads of `0003h` | 858, **all `80h`** (RAM → CRTOUT) | **1, returning `D3h`** (the ROM → IEEE) |
 | bank selects | 454 `OUT 0`, 492 `OUT 1` | 1 `OUT 1` (HCBOOT), 1 `OUT 0` (the trampoline) |
+| `CCPADR` → the handler's exit | **`CB00h` → `E133h`**, the CBIOS's `RRI` | **`0000h` → `1633h`**, the payload |
 
 **The fix is that one store, and it is proved before it is built.** Poke
 `CCPADR = CB00h` (and the CBIOS's own IOBYTE, `80h`, at page zero+3) into RAM just

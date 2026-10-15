@@ -102,3 +102,11 @@ logf("writes to page zero 0000h-0007h: " .. writes)
 logf(string.format("bank selects: ROM (OUT 0) x%d, RAM (OUT 1) x%d",
                    rom_sel, ram_sel))
 for _, l in ipairs(sel_lines) do logf(l) end
+
+-- Read the two cells the hand-over turns on *after* the tap window, because
+-- polling the program space from Lua is what stops these taps firing.
+local function word(a) return P:read_u8(a) + P:read_u8(a + 1) * 256 end
+logf("")
+logf(string.format("at the end: ROMRAM (0EF08h) = %02X, CCPADR (0EFD2h) = %04X"
+                   .. " (ROMJP1 would jump to %04X)",
+                   P:read_u8(0xEF08), word(0xEFD2), (word(0xEFD2) + 0x1633) % 0x10000))
