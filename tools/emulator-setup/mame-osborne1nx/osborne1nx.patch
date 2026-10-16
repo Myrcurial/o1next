@@ -18,15 +18,15 @@
  #include "machine/wd_fdc.h"
  
  #include "sound/spkrdev.h"
-@@ -161,6 +165,8 @@
- 	virtual void machine_start() override ATTR_COLD;
+@@ -162,6 +166,8 @@
  	virtual void machine_reset() override ATTR_COLD;
  	virtual void video_start() override ATTR_COLD;
-+
-+	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
  
++	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
++
  	void osborne1_base(machine_config &config);
  
+ 	void osborne1_mem(address_map &map) ATTR_COLD;
 @@ -201,8 +207,6 @@
  
  	void serial_acia_irq_func(int state);
@@ -36,10 +36,13 @@
  	TIMER_CALLBACK_MEMBER(video_callback);
  	TIMER_CALLBACK_MEMBER(acia_rxc_txc_callback);
  
-@@ -307,6 +311,36 @@
- };
+@@ -304,6 +308,42 @@
  
- 
+ 	required_device<palette_device> m_palette;
+ 	required_region_ptr<u8>         m_p_nuevo;
++};
++
++
 +// The emulated interposer: a stock Osborne-1 whose Z80 sits behind a card that
 +// decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
 +// answer on 30h-33h -- the ports its driver demands and the stock machine
@@ -51,7 +54,8 @@
 +		osborne1_state(mconfig, type, tag),
 +		m_acb4000(*this, "acb4000"),
 +		m_softrom(*this, "softrom"),
-+		m_frame(*this, "frame")
++		m_frame(*this, "frame"),
++		m_screencode(*this, "screencode")
 +	{
 +	}
 +
@@ -67,13 +71,15 @@
 +	required_device<acb4000_host_adapter_device> m_acb4000;
 +	required_device<softrom_device> m_softrom;
 +	required_device<o1frame_device> m_frame;
-+};
-+
-+
- u8 osborne1_state::bank2_peripherals_r(offs_t offset)
- {
- 	// Since each peripheral only checks two bits, many addresses will
-@@ -801,6 +835,80 @@
++	// NB: not `m_screen`, which osborne1_state already owns for the video screen --
++	// and the tag is `screencode` for the same reason, plus one more: an image
++	// device's command-line option is named after its image *type*, and `-screen`
++	// belongs to MAME.  So the slot, the type and the option are all `screencode`.
++	required_device<o1screen_device> m_screencode;
+ };
+ 
+ 
+@@ -801,6 +841,80 @@
  	osborne1_mem(map);
  
  	m_rom_view[0](0x2000, 0x2fff).mirror(0x1000).rw(FUNC(osborne1sp_state::bank2_peripherals_r), FUNC(osborne1sp_state::bank2_peripherals_w));
@@ -154,7 +160,7 @@
  }
  
  
-@@ -827,6 +935,21 @@
+@@ -827,6 +941,21 @@
  	map(0x04, 0x04).rw("crtc", FUNC(mc6845_device::status_r), FUNC(mc6845_device::address_w));
  	map(0x05, 0x05).rw("crtc", FUNC(mc6845_device::register_r), FUNC(mc6845_device::register_w));
  	// seems to be something at 0x06 as well, but no idea what - BIOS writes 0x07 on boot
@@ -176,10 +182,13 @@
  }
  
  
-@@ -1065,6 +1188,40 @@
- }
- 
- 
+@@ -1062,6 +1191,48 @@
+ 	crtc.set_char_width(8);
+ 	crtc.set_update_row_callback(FUNC(osborne1nv_state::crtc_update_row));
+ 	crtc.set_on_update_addr_change_callback(FUNC(osborne1nv_state::crtc_update_addr_changed));
++}
++
++
 +void osborne1nx_state::osborne1nx(machine_config &config)
 +{
 +	osborne1_base(config);
@@ -211,13 +220,18 @@
 +	// slot is always here; with no -frame mounted the door answers "no such
 +	// content" and the ROM keeps its own text, which is the fallback path.
 +	O1FRAME(config, m_frame);
-+}
 +
-+
- ROM_START( osborne1 )
- 	ROM_DEFAULT_BIOS("ver144")
- 	ROM_SYSTEM_BIOS( 0, "vera",   "BIOS version A" )
-@@ -1096,6 +1253,16 @@
++	// And the screen's own code, the same way: it does not fit the monitor's tail,
++	// so the monitor's stub asks for it with PRESENT(3), copies page 1 to RAM at
++	// 4000h and jumps (docs/o1-rom-2.0.md 4.7).  With no -screen mounted the door
++	// answers "no such content" and the stub prints the stock sign-on message
++	// instead, which is the 1.44's own behaviour -- so an interposer without the
++	// blob is a 1.44, not a broken machine.
++	O1SCREEN(config, m_screencode);
+ }
+ 
+ 
+@@ -1096,6 +1267,16 @@
  
  #define rom_osborne1sp rom_osborne1
  
@@ -234,7 +248,7 @@
  ROM_START( osborne1nv )
  	ROM_REGION(0x1000, "maincpu", 0)
  	ROM_LOAD( "monrom-rev1.51-12.ud11", 0x0000, 0x1000, CRC(298da402) SHA1(7fedd070936ccfe98f96d6e0ac71689666da79cb) )
-@@ -1114,3 +1281,4 @@
+@@ -1114,3 +1295,4 @@
  COMP( 1981, osborne1,   0,        0,      osborne1,   osborne1,   osborne1_state,   empty_init, "Osborne",       "Osborne-1",                 MACHINE_SUPPORTS_SAVE )
  COMP( 1983, osborne1sp, osborne1, 0,      osborne1sp, osborne1,   osborne1sp_state, empty_init, "Osborne",       "Osborne-1 with SCREEN-PAC", MACHINE_SUPPORTS_SAVE )
  COMP( 1984, osborne1nv, osborne1, 0,      osborne1nv, osborne1nv, osborne1nv_state, empty_init, "Osborne/Nuevo", "Osborne-1 (Nuevo Video)",   MACHINE_SUPPORTS_SAVE )
@@ -816,7 +830,7 @@
 +}
 --- /dev/null
 +++ b/src/devices/machine/softrom.h
-@@ -0,0 +1,192 @@
+@@ -0,0 +1,249 @@
 +// license:BSD-3-Clause
 +// copyright-holders:James Arlen
 +/***************************************************************************
@@ -851,10 +865,17 @@
 +    is nine bits -- eight of character, one of brightness -- and the ninth is not
 +    in the video RAM, so the frame is *two* 4096-byte halves, characters and
 +    attributes, and each is a window page in its turn.  `PRESENT(id)` selects:
-+    0 the payload, 1 the frame's character half, 2 its attribute half.  v1.0's
-+    attribute half is all 0xFF -- every cell bright -- because bit 7 set is
-+    bright and that is what the array reads back, its low seven bits not being
-+    physically present.
++    0 the payload, 1 the frame's character half, 2 its attribute half, 3 the
++    screen's own code.  v1.0's attribute half is all 0xFF -- every cell bright --
++    because bit 7 set is bright and that is what the array reads back, its low
++    seven bits not being physically present.
++
++    AND THE SCREEN'S CODE IS AN ASSET OF ITS OWN, not a third page of one.  It
++    does not fit the monitor's tail -- 183 bytes against the 72 that were free --
++    so the monitor keeps a ~30-byte stub that asks for it with `PRESENT(3)`,
++    copies page 1 to RAM at 4000h and jumps (docs/o1-rom-2.0.md 4.7).  It is an
++    asset rather than a page because it is code the ROM *runs*, and page 1 is
++    where the frame goes.
 +
 +    THE DOOR.  A bank-2 register pair the machine maps.  The machine owns the
 +    address -- osborne1.cpp's DOOR_BASE note says which and why, and it is a
@@ -868,10 +889,13 @@
 +    same behaviour, so a firmware that implements one implements both.  The one
 +    command the screen needs is `PRESENT`.
 +
-+    Both images are named on the machine's own command line, after each device's
-+    tag:
++    Each image is named on the machine's own command line, after its device's
++    image *type* -- and the screen's code is `-screencode`, because `-screen` is
++    already MAME's own (it selects which screen to display).  The slot's tag is
++    `screencode` for a second reason: the machine's video screen owns the tag
++    `screen`:
 +
-+        mame osborne1nx -softrom rom2.rom -frame frame.bin
++        mame osborne1nx -softrom rom2.rom -frame frame.bin -screencode screen.bin
 +
 +***************************************************************************/
 +
@@ -883,21 +907,31 @@
 +#include <vector>
 +
 +
-+// The frame slot: the boot frame, mounted from its own file (-frame).  It is the
-+// interposer's flash asset rather than a window, so it is a device of its own
-+// rather than a second image on the window device -- device_image_interface is
-+// one image per device, and the two are mounted and swapped separately, which is
-+// what lets the harness run with a frame, a corrupt frame and no frame at all
-+// (docs/rom-pico-protocol.md section 5).
-+class o1frame_device : public device_t, public device_image_interface
++// THE INTERPOSER'S FLASH ASSETS.  Each is mounted from its own file, and each is
++// a device of its own rather than a second image on the window device --
++// device_image_interface is one image per device, and they are mounted and
++// swapped separately, which is what lets the harness run with a frame, a corrupt
++// frame, and no frame at all (docs/rom-pico-protocol.md section 5).
++//
++// ONE CLASS, because loading an asset is the same act twice: refuse anything that
++// is not the size it has to be, read it, and answer 0xFF past its end.  What
++// differs is *how much* an asset is and what it is called, and that is the whole
++// of what the subclasses below add -- a third near-copy of the loader is the
++// thing this shape exists to avoid.
++class o1asset_device : public device_t, public device_image_interface
 +{
 +public:
-+	o1frame_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
-+
-+	static constexpr u32 FRAME_SIZE = 0x2000;   // two 4096-byte halves
++	o1asset_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock = 0);
 +
 +	bool mounted() const { return !m_data.empty(); }
 +	const std::vector<u8> &data() const { return m_data; }
++
++	// How many bytes this asset is, exactly, and what to say when a file is the
++	// wrong size.  Neither is negotiable and both are the subclass's, which is the
++	// only thing a subclass here has to say: the description is the whole of the
++	// sentence up to the sizes, so that the refusal names what was expected.
++	virtual u32 asset_size() const noexcept = 0;
++	virtual const char *asset_description() const noexcept = 0;
 +
 +protected:
 +	// device_t
@@ -911,11 +945,40 @@
 +	virtual bool is_creatable() const noexcept override { return false; }
 +	virtual bool is_reset_on_load() const noexcept override { return true; }
 +	virtual const char *file_extensions() const noexcept override { return "bin,rom"; }
-+	virtual const char *image_type_name() const noexcept override { return "frame"; }
-+	virtual const char *image_brief_type_name() const noexcept override { return "frame"; }
 +
 +private:
 +	std::vector<u8> m_data;
++};
++
++
++// the boot frame: the screen's 4096-byte character half, then its attribute half
++class o1frame_device : public o1asset_device
++{
++public:
++	o1frame_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++
++	static constexpr u32 FRAME_SIZE = 0x2000;
++
++	virtual u32 asset_size() const noexcept override { return FRAME_SIZE; }
++	virtual const char *asset_description() const noexcept override { return "a frame is two 4096-byte halves"; }
++	virtual const char *image_type_name() const noexcept override { return "frame"; }
++	virtual const char *image_brief_type_name() const noexcept override { return "frame"; }
++};
++
++
++// The boot screen's own code: one window page, which the monitor's stub asks for
++// with PRESENT(3), copies to RAM at 4000h and jumps into (docs/o1-rom-2.0.md 4.7).
++class o1screen_device : public o1asset_device
++{
++public:
++	o1screen_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++
++	static constexpr u32 SCREEN_SIZE = 0x1000;
++
++	virtual u32 asset_size() const noexcept override { return SCREEN_SIZE; }
++	virtual const char *asset_description() const noexcept override { return "the screen's code is one 4096-byte window page"; }
++	virtual const char *image_type_name() const noexcept override { return "screencode"; }
++	virtual const char *image_brief_type_name() const noexcept override { return "screencode"; }
 +};
 +
 +
@@ -965,7 +1028,8 @@
 +	{
 +		PAGE_PAYLOAD     = 0,   // CBIOS + MD-10 BIOS + the hand-over stub
 +		PAGE_FRAME_CHARS = 1,   // the frame's character half
-+		PAGE_FRAME_ATTRS = 2    // the frame's attribute half, the 9th bit
++		PAGE_FRAME_ATTRS = 2,   // the frame's attribute half, the 9th bit
++		PAGE_SCREEN      = 3    // the screen's own code, for the stub to run
 +	};
 +
 +	// the ROM service's command set and result codes (docs/mailbox-protocol.md
@@ -979,21 +1043,27 @@
 +	static constexpr u8 RC_NO_CONTENT     = 0x09;
 +	static constexpr u8 INFO_VERSION      = 0x01;
 +	static constexpr u8 INFO_FLAG_FRAME   = 0x01;   // a frame is mounted
++	static constexpr u8 INFO_FLAG_SCREEN  = 0x02;   // the screen's code is mounted
 +
 +	bool has_frame();
++	bool has_screen();
 +
 +	void request(u8 data);
 +	void execute();
 +	void answer(u8 code, u8 const *payload, unsigned len);
 +	void reset_transaction();
 +
-+	// The frame slot.  The tag is absolute because a finder resolves relative to
-+	// the device that owns it, and the slot is the machine's, not this one's.
-+	required_region_ptr<u8>         m_monitor;  // the stock part, from the machine
-+	optional_device<o1frame_device> m_frame;    // the frame slot, ":frame"
-+	offs_t                          m_mask;     // how the stock part mirrors: A12 ignored
-+	std::vector<u8>                 m_image;    // the mounted image, empty if none
-+	bool                            m_mirror;   // the image is the stock part, so it mirrors
++	// The asset slots.  The tags are absolute because a finder resolves relative
++	// to the device that owns it, and the slots are the machine's, not this one's.
++	// The screen's slot is `screencode`, not `screen`: the image *type* names the
++	// command-line option and `-screen` is MAME's own, and the machine's video
++	// screen owns the tag `screen` besides.  Both follow the type name.
++	required_region_ptr<u8>          m_monitor;     // the stock part, from the machine
++	optional_device<o1frame_device>  m_frame;       // the frame slot, ":frame"
++	optional_device<o1screen_device> m_screencode;  // the screen slot, ":screencode"
++	offs_t                           m_mask;        // how the stock part mirrors: A12 ignored
++	std::vector<u8>                  m_image;       // the mounted image, empty if none
++	bool                             m_mirror;      // the image is the stock part, so it mirrors
 +
 +	u8  m_page1;            // what page 1 serves
 +	u8  m_request;          // the opcode being assembled, 0 if none
@@ -1007,16 +1077,17 @@
 +// device type definitions
 +DECLARE_DEVICE_TYPE(SOFTROM, softrom_device)
 +DECLARE_DEVICE_TYPE(O1FRAME, o1frame_device)
++DECLARE_DEVICE_TYPE(O1SCREEN, o1screen_device)
 +
 +#endif // MAME_MACHINE_SOFTROM_H
 --- /dev/null
 +++ b/src/devices/machine/softrom.cpp
-@@ -0,0 +1,304 @@
+@@ -0,0 +1,364 @@
 +// license:BSD-3-Clause
 +// copyright-holders:James Arlen
 +/***************************************************************************
 +
-+    softROM -- the ROM window, the frame slot, and the ROM service's door
++    softROM -- the ROM window, the two flash assets, and the ROM service's door
 +
 +    See softrom.h for the window, the selector and the transaction, and
 +    docs/rom-pico-protocol.md sections 2-5 for where all three come from.
@@ -1029,47 +1100,68 @@
 +// device type definitions
 +DEFINE_DEVICE_TYPE(SOFTROM, softrom_device, "softrom", "SoftROM (the ROM window, from an image file)")
 +DEFINE_DEVICE_TYPE(O1FRAME, o1frame_device, "o1frame", "O1 boot frame (two 4096-byte halves, from a file)")
++DEFINE_DEVICE_TYPE(O1SCREEN, o1screen_device, "o1screen", "O1 boot screen code (one window page, from a file)")
 +
 +
 +//-------------------------------------------------
-+//  o1frame_device -- the frame slot
++//  o1asset_device -- one of the interposer's flash assets
 +//-------------------------------------------------
 +
-+o1frame_device::o1frame_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
-+	: device_t(mconfig, O1FRAME, tag, owner, clock)
++o1asset_device::o1asset_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock)
++	: device_t(mconfig, type, tag, owner, clock)
 +	, device_image_interface(mconfig, *this)
 +{
 +}
 +
-+void o1frame_device::device_start()
++void o1asset_device::device_start()
 +{
 +}
 +
-+std::pair<std::error_condition, std::string> o1frame_device::call_load()
++std::pair<std::error_condition, std::string> o1asset_device::call_load()
 +{
-+	// A frame is two halves and nothing else: the ROM serves each one into page
-+	// 1 whole, so a short frame would leave the rest of a half reading 0xFF.
-+	// The *trailer* is deliberately not checked here -- the frame is someone
-+	// else's file, the check is the ROM's, and a missing frame, an erased frame
-+	// and a corrupt one are one case (docs/rom-pico-protocol.md section 6).
++	// An asset is exactly its own size and nothing else: the ROM serves a whole
++	// page -- or a whole half of one -- out of the window, so a short asset
++	// would leave the rest of that page reading 0xFF.
++	//
++	// The *trailer* is deliberately not checked here.  A frame is someone else's
++	// file, the check is the ROM's, and a missing frame, an erased frame and a
++	// corrupt one are one case (docs/rom-pico-protocol.md section 6).  The
++	// screen's code is not the ROM's file either: it is the interposer's, and
++	// tools/research/rom2blob.py --check is where its provenance is kept.
++	u32 const want = asset_size();
 +	u32 const len = length();
-+	if (len != FRAME_SIZE)
++	if (len != want)
 +		return std::make_pair(image_error::INVALIDLENGTH,
-+				util::string_format("a frame is two 4096-byte halves: %u bytes, not %u",
-+					len, FRAME_SIZE));
++				util::string_format("%s: %u bytes, not %u",
++					asset_description(), len, want));
 +
 +	m_data.resize(len);
 +	if (fread(&m_data[0], len) != len)
 +	{
 +		m_data.clear();
-+		return std::make_pair(std::errc::io_error, "could not read the frame");
++		return std::make_pair(std::errc::io_error, "could not read the asset");
 +	}
 +	return std::make_pair(std::error_condition(), std::string());
 +}
 +
-+void o1frame_device::call_unload()
++void o1asset_device::call_unload()
 +{
 +	m_data.clear();
++}
++
++
++//-------------------------------------------------
++//  the two assets -- what each one is, and nothing else
++//-------------------------------------------------
++
++o1frame_device::o1frame_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
++	: o1asset_device(mconfig, O1FRAME, tag, owner, clock)
++{
++}
++
++o1screen_device::o1screen_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
++	: o1asset_device(mconfig, O1SCREEN, tag, owner, clock)
++{
 +}
 +
 +
@@ -1082,6 +1174,7 @@
 +	, device_image_interface(mconfig, *this)
 +	, m_monitor(*this, DEVICE_SELF)
 +	, m_frame(*this, ":frame")
++	, m_screencode(*this, ":screencode")
 +	, m_mask(0)
 +	, m_mirror(false)
 +	, m_page1(PAGE_PAYLOAD)
@@ -1135,16 +1228,40 @@
 +
 +u8 softrom_device::read(offs_t offset)
 +{
-+	// Page 1 is the selector's: the payload, or one half of the frame.  The
-+	// frame is the interposer's own flash asset rather than part of the window
-+	// image, so it is served whatever that image is -- and past its end the
-+	// flash is erased, exactly as it is past the end of a window image.
-+	if ((offset >= STOCK_SIZE) && (m_page1 != PAGE_PAYLOAD) && has_frame())
++	// Page 1 is the selector's: the payload, or one of the interposer's own flash
++	// assets.  Those are flash rather than part of the window image, so they are
++	// served whatever that image is -- and past an asset's end the flash reads
++	// erased, exactly as it does past the end of a window image.  An asset that
++	// is asked for and not mounted is not a case *here*: the door refused the
++	// request, so page 1 never moved (execute()).
++	if (offset >= STOCK_SIZE)
 +	{
-+		offs_t const a = (offset - STOCK_SIZE)
-+				+ ((m_page1 == PAGE_FRAME_ATTRS) ? (o1frame_device::FRAME_SIZE / 2) : 0);
-+		std::vector<u8> const &frame = m_frame->data();
-+		return (a < frame.size()) ? frame[a] : 0xff;
++		std::vector<u8> const *asset = nullptr;
++		offs_t a = offset - STOCK_SIZE;
++
++		switch (m_page1)
++		{
++		case PAGE_FRAME_CHARS:
++		case PAGE_FRAME_ATTRS:
++			if (has_frame())
++			{
++				asset = &m_frame->data();
++				if (m_page1 == PAGE_FRAME_ATTRS)
++					a += o1frame_device::FRAME_SIZE / 2;
++			}
++			break;
++
++		case PAGE_SCREEN:
++			if (has_screen())
++				asset = &m_screencode->data();
++			break;
++
++		default:
++			break;
++		}
++
++		if (asset)
++			return (a < asset->size()) ? (*asset)[a] : 0xff;
 +	}
 +
 +	if (!m_image.empty())
@@ -1168,6 +1285,11 @@
 +bool softrom_device::has_frame()
 +{
 +	return bool(m_frame) && m_frame->mounted();
++}
++
++bool softrom_device::has_screen()
++{
++	return bool(m_screencode) && m_screencode->mounted();
 +}
 +
 +void softrom_device::reset_transaction()
@@ -1202,23 +1324,32 @@
 +		{
 +			// for the web UI and for a human, not for the ROM: the ROM never
 +			// asks whether a frame exists, because the trailer *is* the query
-+			// (docs/rom-pico-protocol.md 4).  The flag is how something that is
-+			// not the ROM tells a firmware with a frame from one without.
-+			u8 const payload[2] = { INFO_VERSION, u8(has_frame() ? INFO_FLAG_FRAME : 0) };
++			// (docs/rom-pico-protocol.md 4).  The flags are how something that
++			// is not the ROM tells a firmware with a frame -- or the screen's
++			// own code -- from one without.
++			u8 const flags = (has_frame() ? INFO_FLAG_FRAME : 0)
++					| (has_screen() ? INFO_FLAG_SCREEN : 0);
++			u8 const payload[2] = { INFO_VERSION, flags };
 +			answer(RC_OK, payload, 2);
 +		}
 +		break;
 +
 +	case OP_PRESENT:
-+		// Page 1 is the payload, or one of the frame's halves.  An id the
-+		// firmware does not serve answers 09h and leaves page 1 alone, so the
-+		// ROM keeps whatever it had (docs/rom-pico-protocol.md section 4.2).
++		// Page 1 is the payload, one of the frame's halves, or the screen's own
++		// code.  An id the firmware does not serve -- or one whose asset is not
++		// mounted -- answers 09h and leaves page 1 alone, so the ROM keeps
++		// whatever it had (docs/rom-pico-protocol.md section 4.2).
 +		if (operand == PAGE_PAYLOAD)
 +		{
 +			m_page1 = PAGE_PAYLOAD;
 +			answer(RC_OK, nullptr, 0);
 +		}
 +		else if (((operand == PAGE_FRAME_CHARS) || (operand == PAGE_FRAME_ATTRS)) && has_frame())
++		{
++			m_page1 = operand;
++			answer(RC_OK, nullptr, 0);
++		}
++		else if ((operand == PAGE_SCREEN) && has_screen())
 +		{
 +			m_page1 = operand;
 +			answer(RC_OK, nullptr, 0);
