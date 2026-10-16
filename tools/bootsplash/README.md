@@ -55,8 +55,25 @@ position**. It is the driver's own note:
 > periods in the horizontal blank period minus one … there are 12 character
 > clock periods in the horizontal blank period, so subtracting 1 gives 0x0B.
 
-Eleven character clocks of horizontal blanking, then — and the ROM cancels them
-exactly. `rom144.asm` names the constant and writes it at boot:
+**The manual says the same thing independently, in its timing diagram.** *Osborne
+1 Technical Manual* §5.8, Figure 5.8A, p. 30: the horizontal period is **64 µs**,
+VIDEO begins **12 µs** into it, and the minimum dot duration is **0.125 µs**. So a
+line period is `64 / 0.125 = 512` dots = **64 character cells**, of which the 12 µs
+before VIDEO is `12 / 0.125 / 8` = **12 cells of horizontal blanking** and the
+52 µs of VIDEO is exactly **52 cells** — the 52 columns. (Figure 5.8B does the same
+vertically: 260 scan lines in the period, 240 of them VIDEO non-interlaced, which
+is the 24 displayed rows of 10 scan lines, leaving 2 rows of blanking.) MAME's
+"12 character clock periods" *is* that 12 µs.
+
+The manual gives the **geometry** — §5.1 and §5.2, p. 23: 32 rows of 128
+characters in `0F000`–`0FFFF`, "only 24 rows of 52 characters … actually
+displayed", a 6821 PIA controlling the display, a 2716 as character generator, a
+4116 for the dim bit — but it never says *which* 52 columns. **The origin is not
+in the manual.** It is in the ROM, and that is the piece this file got wrong the
+first time.
+
+Eleven character clocks, then — and the ROM cancels them exactly. `rom144.asm`
+names the constant and writes it at boot:
 
 ```
 VFLO:	=	-22		;First line video offset
