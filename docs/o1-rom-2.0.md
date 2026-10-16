@@ -785,6 +785,25 @@ where the hand-over stub already lives), or this section's **Plan B** (a banked
 loader). Any of the three fits in the tail's 72 bytes, because the monitor's share
 becomes the stub.
 
+**Measured, 2026-10-15 (turn 3's second pass): it is built.** Option 1 is what
+landed — `PRESENT(3)` and a 4096-byte blob — and the blob is **183 bytes** at
+`4000h`–`40B6h`, with `Program LWA = 40B7h`. The monitor's own new code is now
+**130 bytes**, `0F67h`–`0FE8h`, **19 free to the guard**: the cold boot, the
+sign-on hook, and the ~30-byte stub that fetches the blob. One assembly produces
+both artifacts, so `rom2asm.sh` checks two extents and
+`tools/research/rom2blob.py` turns the `4000h` records into
+`firmware/rom-service/screen.bin`.
+
+**And the 85 errors that stood in the way were not syntax errors.** They were two
+defects, both read off the ACT80's own listing (which `L=B:` writes to a file
+rather than scrolling past on the console): five comment lines that had lost their
+leading `;`, so four assembled as illegal mnemonics — three bytes of junk code each
+at `0FB4h` and `0FD9h` — and one as an unterminated string; and the blob sitting
+*inside* the vendor's `ECHO 0FFFH-RLWA ! DB 0FFH … ENDM` block. `ECHO` **repeats**
+its body, so the blob was assembled and listed 11 times: ten extra passes over its
+eight labels, and 80 duplicate-label errors. 85 = 80 + 5. With both fixed the build
+is `no ERRORs, 487 Labels, Program LWA = 40B7h`.
+
 ### 4.8 The feature set: what to take from OZROM, and what to refuse
 
 OZROM 1E is the pattern for *how* to be a replacement ROM (`docs/ozrom-1e.md`
