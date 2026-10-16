@@ -20,7 +20,7 @@ node tools/bootsplash/selftest.js     # needs nothing but node and python3
 node tools/bootsplash/ui-test.js      # needs jsdom: npm install jsdom
 ```
 
-`selftest.js` runs 40 checks and `ui-test.js` 46. Neither is wired into CI: the
+`selftest.js` runs 89 checks and `ui-test.js` 140. Neither is wired into CI: the
 first needs no dependency and could be, but the second wants jsdom, and this
 repo's toolchain has no browser. See "What is checked" for what that buys.
 
@@ -230,7 +230,7 @@ The header is always written:
 ```
  0   'O1SPLASH'      8   magic
  8   version u8      1   = 1
- 9   flags   u8      1   bit 0 = loop
+ 9   flags   u8      1   bit 0 = loop, bit 1 = ping-pong
 10   width   u16     2   = 128
 12   height  u16     2   = 32
 14   fps     u16     2
@@ -244,7 +244,85 @@ The header is always written:
 **This header is a proposal.** The firmware side of #247 is not written, so there
 is nothing yet to conform to, and it is one constant to change. What is *not* a
 proposal is the 8192 bytes behind it — `tail -c +33 out.bin` is a valid frame
-today, and for a one-frame animation it is `frame.bin` exactly.
+today, and for a one-frame animation it is `frame.bin` exactly. The flags byte, and
+what each mode plays, is `docs/rom-pico-protocol.md` §5.1.
+
+## The playback mode: the four things two bits can say
+
+All four are offered, and they are the header's two flag bits rather than one:
+
+| mode | flags | what it plays |
+|---|---|---|
+| **once** | 0 | `1 2 3` — forward, and stop on the last frame |
+| **loop** | 1 | `1 2 3 1 2 3 …` — forward, then back to the first frame |
+| **ping-pong, once** | 2 | `1 2 3 2 1` — the bounce, back to the first frame, and stop |
+| **ping-pong, repeat** | 3 | `1 2 3 2 1 2 3 2 …` — the bounce, forever |
+
+The two bits are independent because they answer two different questions, and a
+reader can test either one alone: **bit 0, does it repeat at all** and **bit 1, does
+it reverse at the ends instead of jumping**. So flags 2 is not a mistake to be
+normalised away — it is "bounce once and stop", and it is a mode like any other.
+`buildAnimation` still takes a boolean, which is what this container had before
+ping-pong existed: `true` is `loop`.
+
+**A bounce does not play the ends twice.** Three frames bounce as `1 2 3 2 1 …`: the
+last frame is *turned on* once and reversed from, so a repeating bounce is `2n − 2`
+frames a cycle. A bounce also **ends where it started**, and that is the one thing
+the two ping-pongs do differently — the one-shot plays the return to frame 1 and
+stops there (`2n − 1` frames), while the repeating one leaves that return to the wrap
+into the next cycle. Which is why the preview timer, the GIF's loop flag and the diff
+all ask one question, `modeRepeats`, rather than "is the mode `once`": **a one-shot
+bounce stops too**.
+
+The preview, the GIF and the diff read the order from one place in `core.js`
+(`playbackOrder`), so the tool cannot disagree with itself about what a mode plays.
+The GIF writes the bounce out in full rather than handing a forward pass to the
+viewer's own looping, because the GIF is a preview of what the machine plays — and a
+one-shot bounce's GIF does not repeat, so it stops where the machine stops.
+
+And the mode changes the **diff readout**, which is the number that matters: a bounce
+has to blit the way back as well, which is the forward transitions again in reverse
+and so exactly twice the forward cost, and a loop has one transition a once-through
+does not — last → first. Both ping-pongs cost the same, because the one-shot's last
+blit is the return to frame 1 and the repeating one's is the wrap into the next
+cycle: the same transition, taken once either way. Reading "3 cells over 2
+transitions" while the machine plays a six-step bounce was reading the wrong number.
+
+## Re-ordering the frames
+
+The frame list *is* the animation, so re-ordering is an edit and not a view:
+
+| | |
+|---|---|
+| **move ◀ / ▶**, `Alt`+`←`/`→` | move the frame you are on one position earlier or later. The cursor follows the frame it moved, because that is the frame you were working on. |
+| **drag a thumbnail** | drop it where it belongs. The strip is the play order. |
+| **copy to position** | a copy that lands *at* a position rather than immediately after its source: with twelve frames, frame 11 copied to 13 makes the copy frame 13, and whatever was there moves along. |
+
+All three call one function, because three ways of moving a frame that disagree
+would be three ways to lose work. The drag is deliberately written to work without
+a `DataTransfer` — jsdom has none, and a drag that only works when the browser
+supplies one is a drag that cannot be tested.
+
+## Importing: the whole animation, or the frame you are on
+
+A file is read for what it is — art text, a bare 8192-byte frame, or a container of
+one or more frames — and then **placed**, which is the choice:
+
+| Into | What it does |
+|---|---|
+| **the whole animation** | what you import replaces everything, its fps and its playback mode included. This is what import has always done. |
+| **this frame** | the file's frames are written in *starting at the frame you are on*. What is there is replaced, the animation grows if the file is longer, and nothing before that frame is touched. The file's own fps and playback mode are ignored, because you are importing into an animation rather than replacing it. |
+
+**Into this frame** is how a half-built animation gets added to, and it is the
+reason the tool can be closed and reopened mid-job: export the twelve frames you
+have, keep the `.bin`, draw frame thirteen somewhere else, and drop it in — no
+re-drawing, and nothing to re-order afterwards.
+
+**A one-frame `.bin` is either shape and both are accepted**: 8192 bytes on their
+own, or those same bytes behind the 32-byte header, because both are what this tool
+writes for a one-frame animation. A container of several frames imported into a
+frame grows the animation by however many do not fit, and the status line says how
+many were replaced and how many were added rather than leaving you to count.
 
 ## Building an animation: copy forward, with an offset
 
@@ -296,6 +374,16 @@ actually be asked to move.
   `chars_half`/`attrs_half`/`seal`;
 - the committed frame survives `planes → buildFrame` unchanged;
 - a bent byte, a bent magic and a truncated container are each caught;
+- the **playback mode** is checked as a bitfield and as a behaviour: all four flags
+  bytes parse, each is its own mode, the two bits are reported separately, a boolean
+  still means what it meant before ping-pong existed, an unknown mode word is refused
+  rather than written as something else, and `playbackOrder` gives what each mode
+  plays — `123`, `12321` and `1232` for three frames, the two-frame bounce, and the
+  one-frame case. `modeRepeats` is checked as bit 0, which is the question the timer
+  and the GIF's loop flag have to ask, because a one-shot bounce stops too. The
+  **diff** is checked per mode: a loop adds the wrap as a transition, a bounce is the
+  forward pass twice over, both ping-pongs cost the same, and an older caller that
+  passes no mode counts what it counted before;
 - the **pen** is checked as a claim about the machine rather than a convention:
   every printable key reaches a glyph in *both* modes, standard characters give the
   key's own code (`A` → `0x41`), graphical characters give the loader's arithmetic
@@ -329,8 +417,14 @@ actually be asked to move.
 
 `ui-test.js` loads `bootsplash.html` into a real DOM (jsdom, with the canvas
 stubbed to record rather than rasterise) and then drives it the way a person
-does: click a cell and type, click a palette swatch, add, copy and delete frames,
-and press each of the four download buttons — then decode what came out of them.
+does: click a cell and type, click a palette swatch, add, copy, re-order and
+delete frames, drag a thumbnail, import a file into the animation *and* into a
+frame, press each of the four download buttons, and press play — then decode what
+came out of them. The playback is watched, not assumed: with five frames in
+ping-pong the test collects the frame numbers the preview actually walks and
+requires that it reaches 5 and then goes *down*; in ping-pong-once it requires the
+walk to be exactly `1 2 3 4 5 4 3 2 1` and the timer to stop on frame 1; and in
+`once` it requires the timer to stop itself on the last frame.
 
 Two things neither covers: the page in a real browser (no headless browser is
 installed on this machine), and MAME. A frame that validates and whose bytes
