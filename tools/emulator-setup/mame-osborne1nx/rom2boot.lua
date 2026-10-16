@@ -146,17 +146,21 @@ logf("  the window: CBIOS " .. peek(WINDOW, 4) ..
      ", MD-10 " .. peek(WINDOW + 0x800, 4) ..
      ", stub " .. peek(STUB_SRC, STUB_LEN))
 
--- The key map itself, read out of the running monitor (#247 step 4).  Below
--- 0F67h these two immediates are the *only* bytes ROM 2.0 moves, and they are the
--- whole difference between "a facerolled RETURN boots a disk nobody asked for"
--- and the machine's own hard disk: 0047h/0048h is the `CMP` after `CALL CI`, and
--- 004Fh/0050h the one after `LD HL,DSKSWP`.  Read now, while the bank is the
--- monitor's.
+-- The key map itself, read out of the running monitor (#247 step 4).  The sign-on
+-- prompt is the one window below 0F67h ROM 2.0 moves -- 0x003D-0x0058 -- and these
+-- two immediates are the whole difference between "a facerolled RETURN boots a
+-- disk nobody asked for" and the machine's own hard disk.  They sit three bytes
+-- *lower* than the stock 1.44's, because the sign-on hook (`CALL SCRN`) is three
+-- bytes shorter than `LDK DE,IMSG` + `CALL OSTR`; `ORG NMIA` gives the bytes back
+-- below them, so this is the only place an address moves (rom2asm.sh measures the
+-- window, rom2image.py the image).  So: `CMP CR` at 0044h/0045h is the one after
+-- `CALL CI`, and `CMP ':'` at 004Ch/004Dh the one after `LD HL,DSKSWP`.  Read now,
+-- while the bank is the monitor's.
 local KEY_CR, KEY_COLON = 0x0D, 0x3A
 verdict("the sign-on dispatch is ROM 2.0's key map (RETURN = the hard disk, " ..
         "':' = floppy A, '\"' = floppy B)",
-        P:read_u8(0x0047) == 0xFE and P:read_u8(0x0048) == KEY_CR and
-        P:read_u8(0x004F) == 0xFE and P:read_u8(0x0050) == KEY_COLON)
+        P:read_u8(0x0044) == 0xFE and P:read_u8(0x0045) == KEY_CR and
+        P:read_u8(0x004C) == 0xFE and P:read_u8(0x004D) == KEY_COLON)
 
 local ram_seen = false
 kb:post("\r")
