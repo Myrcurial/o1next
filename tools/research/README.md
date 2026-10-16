@@ -80,6 +80,11 @@ scratch programs, "figuring it out" notebooks/scripts.
   runs. Without it the patched flow leaves the select byte `00h`, every
   transaction is delivered to no target, and the guest reports no error at all.
   Note `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
+  **`O1_MAME_EXTRA` replaces MAME's own arguments**, and its default is the
+  `-nothrottle` every caller has always got; set it *empty* to run at the
+  machine's real speed. That is what reading an assembler listing needs — the
+  ACT80's is ~4700 lines and its error markers are inline in it, so unthrottled
+  it scrolls past in under a second of wall time (#247 step 8, turn 3).
 - **`acb4000.lua`** — a MAME-side *trace* of the MD-10's ACB-4000 host-adapter
   ports (`30h`–`33h`), written for #178 to watch the driver build its DPB. It
   produced the finding instead: MAME's `osborne1` decodes only two I/O address

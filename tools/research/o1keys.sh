@@ -13,6 +13,11 @@
 #               MAME is run from a neutral directory.
 #   O1_BIOS     optional MAME BIOS slot (e.g. ver144)
 #   O1_RUNDIR   working directory MAME runs in (default /tmp)
+#   O1_MAME_EXTRA  MAME's own arguments, *replacing* the default `-nothrottle`.
+#               Set it to "" to run at the machine's real speed: a guest that
+#               prints a 4700-line listing scrolls the answer past in under a
+#               second of wall time, so a diagnostic run wants throttling and a
+#               slow `dump` cadence (#247 step 8, turn 3).
 #
 # Written for #178 -- see docs/harddisk-decision.md 7.2.
 set -eu
@@ -57,9 +62,15 @@ cp "$HERE/acb4000.lua" "$RUN_ACB"
 
 cd "${O1_RUNDIR:-/tmp}"
 
+# MAME's own arguments.  The default is the `-nothrottle` every existing caller
+# has always got; `-` rather than `:-` is deliberate, so an *empty* O1_MAME_EXTRA
+# means "no extra arguments" -- i.e. run at the machine's real speed -- instead
+# of quietly falling back to the fast one a diagnostic cannot read (#247).
+MAME_EXTRA="${O1_MAME_EXTRA--nothrottle}"
+
 # shellcheck disable=SC2086
 O1_MACHINE="$MACHINE" O1_FLOP1="$FLOP1" O1_FLOP2="$FLOP2" O1_ACB_LUA="$RUN_ACB" \
 SDL_VIDEODRIVER=dummy \
 mame "$MACHINE" ${BIOS:+-bios "$BIOS"} -flop1 "$FLOP1" ${FLOP2:+-flop2 "$FLOP2"} \
-    -video none -sound none -nothrottle -autoboot_script "$RUN_LUA" \
+    -video none -sound none ${MAME_EXTRA} -autoboot_script "$RUN_LUA" \
     -seconds_to_run "$BUDGET" -rompath "$ROMPATH"
