@@ -137,6 +137,7 @@ becomes. The content ids:
 | `0` | **the payload** — CBIOS + MD-10 BIOS image + the hand-over stub, 3599 bytes | the hand-over (§4.1 step 7), and `BANKSEL` generally |
 | `1` | **the frame's character half** — 4096 bytes | the screen (§5) |
 | `2` | **the frame's attribute half** — 4096 bytes, the 9th bit | the screen (§5) |
+| `3` | **the screen's own code** — 4096 bytes, one window page, which the monitor's stub copies to RAM at `4000h` and jumps into | the monitor's stub (§4.1). **Chosen 2026-10-15**, from §4.1's three candidate homes: the code is firmware like the frame and no payload change is needed. Built and measured — 183 bytes of code in the page, `0F67h`–`40B7h` for the monitor and the blob together, 19 bytes free to the guard |
 
 `INFO` is for the web UI and for a human, not for the ROM: **the ROM never asks
 whether a frame exists** — the trailer *is* the query (§6). It is here so that a
@@ -184,7 +185,10 @@ monitor that copies page 1 to RAM and jumps into it — the recommended one, bec
 the screen code is firmware like the frame and no payload change is needed), the
 **payload's spare** (497 bytes at `1E0Fh`, where the hand-over stub already lives),
 or §4.7's **Plan B** (a banked loader). All three fit; the choice is the
-maintainer's, and the code is home-agnostic.
+maintainer's, and the code is home-agnostic. **Chosen 2026-10-15: the first one** —
+built and measured, with the stub at `0F67h`–`0FE8h` taking 30 of the tail's 72
+bytes and 19 left over (`docs/o1-rom-2.0.md` §4.7), and the asset served by
+`PRESENT(3)` — content id 3 in §4's table.
 
 ### 4.2 Result codes
 
