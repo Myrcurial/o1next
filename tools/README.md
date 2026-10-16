@@ -225,8 +225,10 @@ in a real DOM and decodes what its four download buttons produce.
 
 Neither is in CI: the first needs nothing and could be, the second wants jsdom
 and this repo's toolchain has no browser. `tools/bootsplash/README.md` has the
-whole story, including the two boundaries worth knowing — a capital cannot be
-typed as a letter (`sui 65` again), and `rom2strokes.py`'s art loader has no
+whole story — including why **all 128 glyphs are available in every cell** (the
+`sui 65` arithmetic belongs to the *art-text format*, not to a frame, so this tool
+does not inherit it) and the two boundaries worth knowing: art text cannot carry a
+cell holding glyph `0x41`–`0x61`, and `rom2strokes.py`'s art loader has no
 `U+00C0` case, so the `0x7F` hatch travels in a `.bin` but not in art text.
 
 ## Reading scanned schematics (`schematic_render.sh`, `schematic_atlas.sh`)

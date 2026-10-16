@@ -112,23 +112,37 @@ Two footnotes:
   different machine with its own BIOS and character generator, so the 80-column
   setting here is the SCREEN-PAC *dot width*, not a window.
 
-## The pen, and why a capital cannot be typed
+## The pen: the whole ROM, always
 
-Every cell holds a **glyph code, 0–127**, plus one attribute bit. The ROM's own
-loader reads art with `sui 65` — subtract 65 from every byte — so:
+Every cell holds a **glyph code, 0–127**, plus one attribute bit. That is all a
+cell is: the character generator is indexed with `chr & 0x7f` — MAME's driver is
+`m_p_chargen[(ra << 7) | (chr & 0x7f)]` — so **all 128 glyphs can go in any cell**.
+There is no hardware subset, and nothing about a frame restricts you to the
+letters.
 
-| Key | Glyph | |
-|---|---|---|
-| `A`…`Z`, `[`, `\`, `]`, `^`, `_`, `` ` ``, `a` | `0x00`…`0x20` | the graphics set: 33 keys |
-| `U+00C0` | `0x7F` | the hatch — no key, so it is clicked from the palette |
-| anything else printable | itself | the ordinary letters, digits and punctuation |
+The `sui 65` arithmetic that `research/boot-screen/` is built on is a property of
+the **art-text authoring format**, not of the frame: the ROM's *loader* subtracts
+65 from every byte of a text file, so that ASCII letters index the block glyphs.
+This tool writes frames directly and there is no assembler anywhere in the path, so
+it does not inherit that restriction. It took a correction to get there — the
+first version of this tool did inherit it, and made capitals unreachable and made
+the graphics pen refuse most keys. The pen is now:
 
-That is the ROM's arithmetic, not a convention this tool invented, and it has a
-consequence the tool states out loud rather than hiding: **a capital is a glyph
-index, not a letter.** Typing `A` with the character pen is refused, with a
-message saying which glyph it would have drawn; switch the pen to the graphics
-font and it draws that glyph. It is why ROM 2.0's own captions are lowercase
-(`research/boot-screen/README.md`).
+| Setting | What a key means |
+|---|---|
+| **Direct keys** (the default) | the key's own code *is* the glyph. `A` draws a capital A, `p` draws a p, space draws the blank — every printable character, `0x20`–`0x7E`. |
+| **`sui 65` keys** | the ROM's loader arithmetic, for one purpose: a screen authored this way is one whose `.txt` export `rom2strokes.py` can read back. `0x41`–`0x61` become glyphs `0x00`–`0x20`, so in *this* mode a capital cannot be typed as a letter. |
+
+**Neither mode refuses a key.** The **34 glyphs that no printable key reaches** —
+the 32 block glyphs `0x00`–`0x1F` and the `0x7F` hatch — come from the palette, and
+the palette shows **all 128**, in code order, labelled with the glyph code. Clicking
+a swatch makes it the pen for cell clicks; clicking it again clears it.
+
+The cost of direct keys falls entirely on the `.txt` export: art text cannot carry
+a cell holding glyph `0x41`–`0x61`, because those characters *are* the graphics
+keys. The exporter counts them and says so rather than writing something that will
+read back wrong, and **the `.bin` is unaffected** — a frame is glyph codes and has
+no such limit.
 
 The **dim/bright** pair is the ninth bit — a separate 4K×1 array that
 `OUT (02h)` pages over `F000h`. Bright is `FFh` and dim is `7Fh`, which is what
@@ -224,6 +238,11 @@ actually be asked to move.
   `chars_half`/`attrs_half`/`seal`;
 - the committed frame survives `planes → buildFrame` unchanged;
 - a bent byte, a bent magic and a truncated container are each caught;
+- the **pen** is checked as a claim about the machine rather than a convention:
+  every printable key reaches a glyph in *both* key modes, direct keys give the
+  key's own code (`A` → `0x41`), `sui 65` keys give the loader's arithmetic
+  (`A` → `0x00`), and **all 128 glyphs are reachable** — by a key, or by the
+  palette for the 34 that no key reaches;
 - the **copy-forward shift** is checked as a contract: a shift of (0,0) is the
   identity, a move writes the whole rectangle it can and leaves a blank where the
   content was, a shift far enough to clip still clears what it vacates, a viewport
@@ -270,9 +289,10 @@ the tool asserts the ROM's CRC32 at load and prints it in the page.
   but *not* through that tool's `--art`. `selftest.js` asserts the difference
   rather than papering over it. One line in that tool would close it.
 - **Art text cannot express a cell holding glyph `0x41`–`0x61`**, because those
-  characters *are* the graphics keys. Only a foreign `.bin` can put one there —
-  no pen in this tool can — and the exporter reports how many cells would be lost
-  rather than exporting them silently.
+  characters *are* the graphics keys. With direct keys that is one keystroke away —
+  type a capital — so the exporter reports how many cells would be lost rather than
+  writing characters that read back as different glyphs. The `.bin` carries them
+  fine; this is a limit of the art-text format, not of the frame.
 - **`rom2strokes.py --art` cannot be pointed at a 128-column screen at all**: its
   CLI runs a stripe proof first that indexes the 153-column boot-screen art's
   letter boxes. The self-test imports the module and calls the functions it

@@ -97,7 +97,7 @@ canvas#screen { display: block; width: 100%; height: auto; image-rendering: pixe
 .reserved { background: rgba(255,80,80,0.28); }
 .cursor { outline: 1px solid #ffd23f; background: rgba(255,210,63,0.18); }
 .sel { outline: 1px dashed rgba(255,255,255,0.6); background: rgba(255,255,255,0.10); }
-.palette { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; }
+.palette { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
 .swatch { background: #000; border: 1px solid #46506a; padding: 1px; text-align: center; cursor: pointer; }
 .swatch.on { border-color: #ffd23f; background: #2a2410; }
 .swatch canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
@@ -180,8 +180,9 @@ details > summary { cursor: pointer; color: var(--cream); }
         </div>
       </div>
       <div class="row" style="margin:6px 0 0">
-        <span class="hint">Click a cell, then type. Arrows move, Enter is the next row, Space is the blank,
-          drag to select a block. <b>A</b>&ndash;<b>a</b> are graphics keys &mdash; pick one from the palette.</span>
+        <span class="hint">Click a cell, then type &mdash; every printable character is its own glyph, capitals
+          included. Arrows move, Enter is the next row, Space is the blank, drag to select a block. The 32 block
+          glyphs and the hatch come from the palette.</span>
       </div>
     </div>
 
@@ -238,8 +239,8 @@ details > summary { cursor: pointer; color: var(--cream); }
     <div class="box">
       <h2>Pen</h2>
       <div class="row">
-        <label><input type="radio" name="face" value="char" checked> Character font</label>
-        <label><input type="radio" name="face" value="graphics"> Graphics font</label>
+        <label><input type="radio" name="keys" value="direct" checked> Direct keys</label>
+        <label><input type="radio" name="keys" value="sui65"> <code>sui 65</code> keys</label>
       </div>
       <div class="row">
         <label><input type="radio" name="bright" value="bright" checked> Bright</label>
@@ -249,11 +250,12 @@ details > summary { cursor: pointer; color: var(--cream); }
     </div>
 
     <div class="box">
-      <h2>Graphics font &mdash; glyph = key &minus; 65</h2>
+      <h2>All 128 glyphs</h2>
       <div class="palette" id="palette"></div>
-      <div class="note">The 33 keys <b>A</b>&ndash;<b>a</b> plus the hatch at <b>U+00C0</b> &mdash; the ROM's own
-        <code>sui 65</code>. A capital is therefore a glyph index and cannot be typed as a letter, which is why
-        ROM 2.0's captions are lowercase. Click a swatch to paint with it; the hatch has no key at all.</div>
+      <div class="note">The whole character generator ROM, in code order &mdash; because a video cell <i>is</i> a
+        glyph code, and the chargen is indexed with <code>chr &amp; 0x7f</code>, so <b>all 128 are available in any
+        cell</b>. <b>0x20&ndash;0x7E</b> you can just type. <b>0x00&ndash;0x1F</b> and the <b>0x7F</b> hatch have no
+        printable key, so pick them here: click a swatch, then click cells to paint it.</div>
     </div>
 
     <div class="box">
@@ -286,6 +288,10 @@ details > summary { cursor: pointer; color: var(--cream); }
       <div class="note">The <code>.bin</code> is a 32-byte header and then the frames, each byte-identical to
         <code>firmware/rom-service/frame.bin</code> &mdash; <code>tail -c +33</code> of a one-frame file is that
         asset exactly. The header is this tool's proposal; the firmware side of #247 is not written yet.</div>
+      <div class="note"><b>.txt</b> is the repo's art text, which the ROM's own loader reads with
+        <code>sui 65</code> &mdash; so it cannot carry a cell holding glyph <b>0x41&ndash;0x61</b>, and with direct
+        keys a capital is exactly one of those. The export counts them and says so; the <code>.bin</code> is
+        unaffected, because a frame is glyph codes and has no such limit.</div>
     </div>
 
     <div class="box">
@@ -300,7 +306,7 @@ details > summary { cursor: pointer; color: var(--cream); }
 
     <div class="box">
       <details id="artPanel">
-        <summary>Art text of this frame, in the graphics font</summary>
+        <summary>Art text of this frame (the repo's authoring face)</summary>
         <div class="note">One character per cell &mdash; exactly what "download .txt" writes.</div>
         <pre class="arttext" id="artText"></pre>
       </details>
@@ -323,7 +329,7 @@ var state = {
   zoom: 2,
   col0: 0, row0: 0,     // the viewport's origin on the screen
   area: 'viewport',     // what the preview and the images show
-  face: 'char',         // 'char' | 'graphics'
+  keys: 'direct',       // 'direct' | 'sui65' -- what a keystroke means
   bright: true,
   penGlyph: null,       // set by the palette; used when a cell is clicked
   fps: 10,
@@ -421,32 +427,48 @@ function drawGlyph(cv, code, scale) {
       if (S.glyphDot(code, r, c)) ctx.fillRect(c * scale, r * scale, scale, scale);
 }
 
+// All 128 glyphs, in code order.  A cell *is* a glyph code -- the chargen is
+// indexed with `chr & 0x7f` -- so nothing restricts a cell to a subset, and a
+// palette showing only the 34 non-typeable ones would hide the rest of the ROM
+// behind a keystroke nobody can discover.  The label is the code, which is always
+// true; the tooltip adds the key that reaches it, when a key does.
 function buildPalette() {
   var host = $('palette');
   host.innerHTML = '';
   paletteEls = [];
-  S.GRAPHICS_KEYS.forEach(function (k) {
-    var name = k.key === '\u00C0' ? 'U+00C0' : '"' + k.key + '"';
+  for (var g = 0; g < 128; g++) {
     var d = document.createElement('div');
     d.className = 'swatch';
-    d.title = 'key ' + name + ' draws glyph 0x' + S.hex(k.glyph, 2);
+    var direct = S.keyForGlyph(g, 'direct');
+    var sui = S.keyForGlyph(g, 'sui65');
+    var tips = [];
+    if (direct) tips.push('type "' + direct + '"');
+    if (sui && sui !== direct) tips.push('sui 65: "' + sui + '"');
+    if (!direct && !sui) tips.push('no key at all');
+    d.title = 'glyph 0x' + S.hex(g, 2) + ' (' + g + ') \u2014 ' + tips.join('; ');
     var cv = document.createElement('canvas');
     var lab = document.createElement('div');
     lab.className = 'k';
-    lab.textContent = k.key;
+    lab.textContent = S.hex(g, 2);
     d.appendChild(cv);
     d.appendChild(lab);
-    d.addEventListener('click', function () {
-      state.face = 'graphics';
-      state.penGlyph = k.glyph;
-      syncControls();
-      renderAll();
-      say('pen is glyph 0x' + S.hex(k.glyph, 2) + ' (key ' + name +
-          '). Click cells to paint it, or type a key to use the keyboard.');
-    });
+    d.addEventListener('click', (function (glyph) {
+      return function () {
+        // Clicking the swatch that is already the pen turns it *off*: otherwise
+        // there is no way back to "clicking a cell just aims", and every later
+        // click would keep painting.
+        state.penGlyph = (state.penGlyph === glyph) ? null : glyph;
+        syncDerived();
+        renderAll();
+        say(state.penGlyph === null
+          ? 'pen cleared \u2014 clicking a cell aims now, and typing uses the keyboard.'
+          : 'pen is glyph 0x' + S.hex(glyph, 2) + '. Click cells to paint it; the ' +
+            'keyboard setting is only about what typing does.');
+      };
+    }(g)));
     host.appendChild(d);
-    paletteEls.push({ el: d, cv: cv, glyph: k.glyph });
-  });
+    paletteEls.push({ el: d, cv: cv, glyph: g });
+  }
   redrawPalette();
 }
 
@@ -467,8 +489,8 @@ function syncControls() {
   $('area').value = state.area;
   $('fps').value = String(state.fps);
   $('loop').checked = state.loop;
-  each(document.querySelectorAll('input[name=face]'), function (r) {
-    r.checked = (r.value === state.face);
+  each(document.querySelectorAll('input[name=keys]'), function (r) {
+    r.checked = (r.value === state.keys);
   });
   each(document.querySelectorAll('input[name=bright]'), function (r) {
     r.checked = (r.value === (state.bright ? 'bright' : 'dim'));
@@ -485,11 +507,11 @@ function syncDerived() {
   // the field has focus, or a half-typed number would be overwritten.
   if (document.activeElement !== $('vpcol')) $('vpcol').value = String(state.col0);
   if (document.activeElement !== $('vprow')) $('vprow').value = String(state.row0);
-  $('penHint').textContent = 'pen: ' +
-    (state.face === 'graphics' ? 'graphics font' : 'character font') + ', ' +
-    (state.bright ? 'bright' : 'dim') +
-    (state.penGlyph === null ? '' : ', glyph 0x' + S.hex(state.penGlyph, 2)) +
-    ' \u2014 type a key, or click a cell to paint the palette glyph.';
+  $('penHint').textContent = 'pen: ' + (state.bright ? 'bright' : 'dim') +
+    (state.penGlyph === null ? '' : ', painting glyph 0x' + S.hex(state.penGlyph, 2)) +
+    ' \u2014 ' + (state.keys === 'sui65'
+      ? 'keys are the ROM\u2019s art loader, so A-a type the block glyphs 0x00-0x20.'
+      : 'keys are their own glyph codes, so type any printable character.');
   var ms = 1000 / state.fps;
   $('rateHint').textContent = state.fps + ' fps = ' + ms.toFixed(1) + ' ms a frame' +
     (ms < 20 ? ' \u2014 browsers clamp GIF playback below 20 ms' : '');
@@ -545,18 +567,9 @@ function move(dr, dc) {
 // A keystroke, through the pen's font.  `sui 65` is why the character font has to
 // refuse the graphics range, and saying so is the point of the message.
 function typeKey(code) {
-  var g = S.glyphForKey(code, state.face);
+  var g = S.glyphForKey(code, state.keys);
   if (g === null) {
-    var ch = String.fromCharCode(code);
-    if (state.face === 'char' && code >= S.GRAPHICS_FIRST && code <= S.GRAPHICS_LAST) {
-      say('"' + ch + '" is a graphics key \u2014 it draws glyph 0x' +
-          S.hex(code - S.ART_OFFSET, 2) + '. Switch the pen to the graphics font, or ' +
-          'click that swatch; a capital cannot be typed as a letter.', 'warn');
-    } else if (state.face === 'char' && code === S.HATCH_CHAR) {
-      say('U+00C0 draws the hatch; click its swatch.', 'warn');
-    } else {
-      say('"' + ch + '" reaches no glyph in the ' + state.face + ' font.', 'warn');
-    }
+    say('"' + String.fromCharCode(code) + '" reaches no glyph.', 'warn');
     return;
   }
   var at = place(g);
@@ -1093,15 +1106,16 @@ $('area').addEventListener('change', function () {
 // --- go -------------------------------------------------------------------
 // The pen's two radio pairs.  They are the flow the tool is built around --
 // choose a font and a brightness, then click a cell and type.
-each(document.querySelectorAll('input[name=face]'), function (r) {
+each(document.querySelectorAll('input[name=keys]'), function (r) {
   r.addEventListener('change', function () {
-    state.face = this.value;
-    state.penGlyph = null;                 // the keyboard is the pen again
+    state.keys = this.value;
     syncDerived();
-    say('pen: ' + (state.face === 'graphics' ? 'graphics font' : 'character font') +
-        (state.face === 'graphics'
-          ? ' \u2014 A-a are the keys; a capital now draws its glyph.'
-          : ' \u2014 A-a are graphics keys and are refused here.'));
+    say(state.keys === 'sui65'
+      ? 'sui 65 keys: A-a type the block glyphs 0x00-0x20, the way the ROM\u2019s art ' +
+        'loader reads them \u2014 so a capital can no longer be typed as a letter. This ' +
+        'is the mode to author art text in.'
+      : 'direct keys: a key is its own glyph code, so a capital is a capital. Art ' +
+        'text cannot carry glyphs 0x41-0x61, so the .txt export will say so.');
   });
 });
 

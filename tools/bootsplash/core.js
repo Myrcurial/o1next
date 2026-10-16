@@ -160,26 +160,48 @@
     return String.fromCharCode(g);
   }
 
-  // What a keystroke places, for the pen the user has selected.  Returns a glyph
-  // code, or null when the key cannot reach one -- in the character face that is
-  // the graphics range, and in the graphics face it is anything else.
-  function glyphForKey(code, face) {
-    if (face === 'graphics') {
+  // Which glyph a keystroke places.  Two modes, and the difference between them is
+  // only 0x41-0x61:
+  //
+  //   'direct'  the key's own code *is* the glyph: 'A' draws a capital A, 'p' draws
+  //             a p, space draws the blank.  This is what the machine's hardware
+  //             does -- a cell is a glyph code and the chargen is indexed with
+  //             `chr & 0x7f` -- and it is the default, because this tool writes
+  //             frames directly.  There is no assembler in the path.
+  //
+  //   'sui65'   the ROM's *art loader* arithmetic: 0x41-0x61 becomes glyphs
+  //             0x00-0x20, everything else printable is itself.  It exists for one
+  //             reason -- art text (research/boot-screen/README.md) is read by
+  //             `sui 65`, so a screen authored in this mode is one whose .txt
+  //             export `rom2strokes.py` can read back.  The cost is that a capital
+  //             cannot be typed as a letter in this mode, which is precisely the
+  //             limitation the *frame* never had.
+  //
+  // Both modes are total over the printable range, so neither one refuses a key.
+  // The 32 block glyphs (0x00-0x1F) and the 0x7F hatch have no printable key in
+  // either mode and are picked from the palette, which is why that palette shows
+  // the whole ROM rather than a sample of it.
+  function glyphForKey(code, mode) {
+    if (mode === 'sui65') {
       if (code >= GRAPHICS_FIRST && code <= GRAPHICS_LAST) return code - ART_OFFSET;
       if (code === HATCH_CHAR) return HATCH_CODE;
-      return null;
     }
-    if (code >= GRAPHICS_FIRST && code <= GRAPHICS_LAST) return null;   // graphics
-    if (code === HATCH_CHAR) return null;                              // the hatch
     if (code >= 0x20 && code <= 0x7E) return code;
     return null;
   }
 
-  // The key that reaches a glyph, for labelling the palette.
-  function keyForGlyph(g) {
+  // The key that *reaches* a glyph, for labelling the palette -- or null when no
+  // key does.  Note the asymmetry with `artCharForGlyph`: that one says what art
+  // text *writes* for a glyph, and for 0x41-0x61 it writes a character that reads
+  // back as a *different* glyph.  This one says what actually gets you there, and
+  // in `sui 65` mode the answer for 0x41-0x61 is nothing at all.
+  function keyForGlyph(g, mode) {
     g &= 0x7F;
-    if (g <= BLANK) return String.fromCharCode(g + ART_OFFSET);
-    if (g === HATCH_CODE) return '\u00C0';
+    if (mode === 'sui65') {
+      if (g <= BLANK) return String.fromCharCode(g + ART_OFFSET);
+      if (g === HATCH_CODE) return '\u00C0';
+      if (g >= GRAPHICS_FIRST && g <= GRAPHICS_LAST) return null;
+    }
     if (g >= 0x20 && g <= 0x7E) return String.fromCharCode(g);
     return null;
   }

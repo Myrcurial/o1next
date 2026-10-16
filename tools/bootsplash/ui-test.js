@@ -170,13 +170,17 @@ check('the provenance line names the ROM and its CRC32',
       $('provenance').textContent.indexOf(S.hex(S.CHAR_ROM_CRC32, 8)) >= 0,
       $('provenance').textContent);
 check('the status line is the ready message', /ready/.test(status()), status());
-check('the palette is 34 swatches, each with a canvas',
-      doc.querySelectorAll('#palette .swatch').length === 34 &&
-      doc.querySelectorAll('#palette .swatch canvas').length === 34);
-check('the swatches are labelled A..a then the hatch',
-      doc.querySelectorAll('#palette .swatch .k')[0].textContent === 'A' &&
-      doc.querySelectorAll('#palette .swatch .k')[32].textContent === 'a' &&
-      doc.querySelectorAll('#palette .swatch .k')[33].textContent === '\u00C0');
+check('the palette is all 128 glyphs, each with a canvas',
+      doc.querySelectorAll('#palette .swatch').length === 128 &&
+      doc.querySelectorAll('#palette .swatch canvas').length === 128);
+check('the swatches are labelled with their glyph code, in code order',
+      doc.querySelectorAll('#palette .swatch .k')[0].textContent === '00' &&
+      doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === '41' &&
+      doc.querySelectorAll('#palette .swatch .k')[127].textContent === '7F');
+check('and a swatch says how to reach its glyph',
+      /type "A"/.test(doc.querySelectorAll('#palette .swatch')[0x41].title) &&
+      /sui 65: "A"/.test(doc.querySelectorAll('#palette .swatch')[0].title),
+      doc.querySelectorAll('#palette .swatch')[0].title);
 check('the monitor list is populated', $('monitor').options.length === 4);
 // 80 columns at 2x: 128 cells x 8 dots x 0.65 x 2 = 1331 wide, 32 x 10 x 2 tall.
 check('the screen canvas is 1331 x 640 (80 columns, 2x)',
@@ -210,7 +214,7 @@ clickCell(0, 0);
 type('p');
 let st = status();
 let f = currentFrames();
-check('typing "p" in the character font writes glyph 0x70 at the cell',
+check('typing "p" writes glyph 0x70 at the cell',
       f[0].cells[0] === 0x70, 'got 0x' + S.hex(f[0].cells[0], 2));
 check('and the cell is bright', f[0].attrs[0] === 1);
 check('and the status named the glyph', /glyph 0x70/.test(st), st);
@@ -218,26 +222,33 @@ check('and the status named the glyph', /glyph 0x70/.test(st), st);
 type('A');
 st = status();
 f = currentFrames();
-check('the character pen refuses a capital, which is a graphics key',
-      f[0].cells[1] === 0x20 && /graphics key/.test(st), st);
+check('typing "A" writes a capital A \u2014 glyph 0x41, the thing the ROM could not author',
+      f[0].cells[1] === 0x41, 'got 0x' + S.hex(f[0].cells[1], 2));
+check('and the status calls it a character glyph', /0x41 \(character\)/.test(st), st);
 
-pickRadio('face', 'graphics');
-type('A');
+type(' ');
 f = currentFrames();
-check('the graphics pen turns "A" into glyph 0x00', f[0].cells[1] === 0x00,
-      'got 0x' + S.hex(f[0].cells[1], 2));
+check('space writes the blank', f[0].cells[2] === 0x20,
+      'got 0x' + S.hex(f[0].cells[2], 2));
 
-pickRadio('face', 'char');
+pickRadio('keys', 'sui65');
+type('A');
+st = status();
+f = currentFrames();
+check('with sui 65 keys the same key types the block glyph 0x00',
+      f[0].cells[3] === 0x00, 'got 0x' + S.hex(f[0].cells[3], 2));
+
+pickRadio('keys', 'direct');
 pickRadio('bright', 'dim');
 type('p');
 f = currentFrames();
 check('the dim pen writes the glyph but clears the ninth bit',
-      f[0].cells[2] === 0x70 && f[0].attrs[2] === 0,
-      'cell 0x' + S.hex(f[0].cells[2], 2) + ', attr ' + f[0].attrs[2]);
+      f[0].cells[4] === 0x70 && f[0].attrs[4] === 0,
+      'cell 0x' + S.hex(f[0].cells[4], 2) + ', attr ' + f[0].attrs[4]);
 
 // --- 3. the palette, and the cells that are not the designer's -------------
-section('the graphics palette, and the trailer');
-doc.querySelectorAll('#palette .swatch')[33].click();
+section('the palette, and the trailer');
+doc.querySelectorAll('#palette .swatch')[127].click();
 check('clicking the hatch swatch selects glyph 0x7F', /glyph 0x7F/.test(status()), status());
 clickCell(5, 10);
 f = currentFrames();
@@ -268,8 +279,8 @@ f = currentFrames();
 check('three frames, and the .bin carries all of them', f.length === 3);
 check('frame 2 is a copy of frame 1', sameCells(f[1], f[2]));
 check('frame 0 still holds what was typed into it',
-      f[0].cells[0] === 0x70 && f[0].cells[5 * S.COLS + 10] === 0x7F &&
-      f[0].attrs[2] === 0);
+      f[0].cells[0] === 0x70 && f[0].cells[1] === 0x41 &&
+      f[0].cells[5 * S.COLS + 10] === 0x7F && f[0].attrs[4] === 0);
 
 // --- 5. the .bin ----------------------------------------------------------
 section('the .bin download');
@@ -296,14 +307,27 @@ section('the .txt download');
 clickOn('first');
 blobs.length = 0;
 clickOn('dlTxt');
+const txtStatus = status();
 const txt = lastBytes();
 check('the art text is 32 lines of 128 characters and a trailing newline',
       txt.length === 32 * 129, txt.length + ' bytes');
 const art = S.parseArtText(String.fromCharCode.apply(null, txt));
 check('nothing in it is unreadable', art.unknown.length === 0, art.unknown.join(' '));
 f = currentFrames();
-check('and it reads back to the glyphs that were on screen',
-      sameGlyphs(art.cells, f[0].cells));
+// Art text is read with `sui 65`, so it cannot carry a cell holding glyph
+// 0x41-0x61 -- and this frame has a capital in it, typed with direct keys.
+const lossy = S.artTextLossy(f[0].cells);
+let artDiff = 0, artOutside = 0;
+for (let i = 0; i < S.FRAME; i++) {
+  if (S.isReserved(i) || art.cells[i] === f[0].cells[i]) continue;
+  artDiff++;
+  if (lossy.indexOf(i) < 0) artOutside++;
+}
+check('the .txt reads back to the glyphs on screen, except the lossy ones',
+      artOutside === 0 && artDiff === lossy.length && lossy.length > 0,
+      artDiff + ' differ, ' + lossy.length + ' reported as lossy');
+check('and the export warned rather than exporting them silently',
+      /0x41-0x61/.test(txtStatus), txtStatus);
 
 function sameGlyphs(a, b) {
   if (a.length !== b.length) return false;
@@ -372,9 +396,12 @@ check('the GIF palette is the monitor palette',
   // --- 9. copy forward, with an offset ------------------------------------
   section('copy forward, with an offset');
   // The import left exactly one frame.  Put a glyph in it, then move the screen.
-  // The character pen first: the palette swatch clicked earlier is still the pen,
-  // and it would paint the hatch on the click instead.
-  pickRadio('face', 'char');
+  // The palette swatch clicked in section 3 is still the pen, and a cell click would
+  // paint the hatch rather than place a glyph.  Clicking the selected swatch again
+  // clears it -- which is also the only way back to "clicking a cell just aims".
+  doc.querySelectorAll('#palette .swatch')[127].click();
+  check('clicking the selected swatch again clears the pen',
+        /pen cleared/.test(status()), status());
   clickCell(0, 0);
   type('p');
   setValue('copyFrom', 'screen');

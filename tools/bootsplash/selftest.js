@@ -105,10 +105,9 @@ function sampleScreen() {
   };
   const text = (r, c, s) => {
     // Through the app's own pen, so the sample is a screen the app could really
-    // have produced -- refusals and all.  `a` and the capitals are the graphics
-    // keys and are therefore skipped, which is the documented cost of `sui 65`.
+    // have produced.  Direct keys: a key is its own glyph code, capitals included.
     for (let i = 0; i < s.length; i++) {
-      const g = S.glyphForKey(s.charCodeAt(i), 'char');
+      const g = S.glyphForKey(s.charCodeAt(i), 'direct');
       if (g !== null) put(r, c + i, g);
     }
   };
@@ -134,14 +133,17 @@ section('the frame builder, against tools/research/rom2strokes.py');
   check('a built frame is 8192 bytes and validates',
         mine.length === 8192 && S.checkFrame(mine).ok);
 
-  // rom2strokes.py's art loader implements the graphics half of `sui 65` and the
-  // printable half, but has no U+00C0 case -- so the 0x7F hatch is expressible in
-  // a .bin and in this app's own text round-trip, and NOT in that tool's --art.
-  // Swap the hatch out for the blank so the two frames can be compared at all,
-  // and check the divergence itself further down.
+  // rom2strokes.py's art loader reads `sui 65` art text, so the two things art
+  // text cannot carry are the two things it cannot carry here either: the 0x7F
+  // hatch (that tool has no U+00C0 case) and any cell holding glyph 0x41-0x61
+  // (those characters *are* the graphics keys, so they read back as other glyphs).
+  // Neutralise both so the two frames can be compared at all, and check each
+  // divergence separately below.
   const toolCells = Uint8Array.from(cells);
-  for (let i = 0; i < toolCells.length; i++)
+  for (let i = 0; i < toolCells.length; i++) {
     if (toolCells[i] === S.HATCH_CODE) toolCells[i] = S.BLANK;
+    if (toolCells[i] >= 0x41 && toolCells[i] <= 0x61) toolCells[i] = S.BLANK;
+  }
 
   // rom2strokes.py's CLI cannot be pointed at a 128-column screen: its `main()`
   // runs the stripe proof first, and that proof indexes the letter boxes of the
@@ -248,17 +250,24 @@ section('the animation container');
 section('the art text form');
 {
   const { cells } = sampleScreen();
+  // Art text is read by `sui 65`, so it cannot carry a cell holding glyph
+  // 0x41-0x61 -- and with direct keys a capital is exactly one of those.  The
+  // round trip is lossless *except* there, and the tool says how many.
+  const lossy = S.artTextLossy(cells);
   const parsed = S.parseArtText(S.artText(cells));
-  let diff = 0;
-  for (let i = 0; i < S.FRAME; i++)
-    if (!S.isReserved(i) && parsed.cells[i] !== cells[i]) diff++;
-  check('cells -> art text -> cells is lossless', diff === 0, diff + ' cells differ');
-  check('a screen the app can produce has no lossy cells',
-        S.artTextLossy(cells).length === 0, S.artTextLossy(cells).length + ' cells');
-  const foreign = S.blankCells();
-  foreign[0] = 0x61;                    // glyph 0x61: no pen can reach it
-  check('a foreign glyph in 0x41-0x61 is reported, not silently mangled',
-        S.artTextLossy(foreign).length === 1);
+  let diff = 0, diffOutside = 0;
+  for (let i = 0; i < S.FRAME; i++) {
+    if (S.isReserved(i) || parsed.cells[i] === cells[i]) continue;
+    diff++;
+    if (lossy.indexOf(i) < 0) diffOutside++;
+  }
+  check('cells -> art text -> cells is lossless outside 0x41-0x61',
+        diffOutside === 0, diffOutside + ' cells differ that are not the lossy ones');
+  check('and every cell that does differ is one art text cannot carry',
+        diff === lossy.length, diff + ' differ, ' + lossy.length + ' reported');
+  check('the lossy cells are real: a capital typed with direct keys',
+        lossy.length > 0 && cells[lossy[0]] >= 0x41 && cells[lossy[0]] <= 0x61,
+        lossy.length + ' cells, first is glyph 0x' + S.hex(cells[lossy[0]], 2));
 
   // The hatch is the one glyph whose art character is not printable ASCII.
   const hatched = S.blankCells();
@@ -270,15 +279,39 @@ section('the art text form');
   check('U+00C0 is the hatch in the mapping, as tools/romfont.py builds it',
         S.glyphForArtChar(0xC0) === 0x7F && S.artCharForGlyph(0x7F) === '\u00C0');
 
-  // The documented cost of `sui 65`, asserted rather than described.
-  check('a capital is a glyph index, not a letter',
-        S.glyphForArtChar('A'.charCodeAt(0)) === 0x00 &&
-        S.glyphForArtChar('a'.charCodeAt(0)) === 0x20);
-  check('so the character pen refuses the graphics range',
-        S.glyphForKey('A'.charCodeAt(0), 'char') === null &&
-        S.glyphForKey('p'.charCodeAt(0), 'char') === 0x70 &&
-        S.glyphForKey('A'.charCodeAt(0), 'graphics') === 0x00 &&
-        S.glyphForKey('p'.charCodeAt(0), 'graphics') === null);
+  // The two keyboard modes, and the fact that they are *only* about 0x41-0x61.
+  const A = 'A'.charCodeAt(0), a = 'a'.charCodeAt(0), p = 'p'.charCodeAt(0);
+  check('direct keys: a key is its own glyph code',
+        S.glyphForKey(A, 'direct') === 0x41 && S.glyphForKey(a, 'direct') === 0x61 &&
+        S.glyphForKey(p, 'direct') === 0x70 &&
+        S.glyphForKey(' '.charCodeAt(0), 'direct') === 0x20);
+  check('sui 65 keys: 0x41-0x61 is the graphics range, as the loader reads it',
+        S.glyphForKey(A, 'sui65') === 0x00 && S.glyphForKey(a, 'sui65') === 0x20 &&
+        S.glyphForKey(p, 'sui65') === 0x70);
+  check('neither mode refuses a printable key',
+        (function () {
+          for (let c = 0x20; c <= 0x7E; c++)
+            if (S.glyphForKey(c, 'direct') === null || S.glyphForKey(c, 'sui65') === null)
+              return false;
+          return true;
+        }()));
+  check('and the whole ROM is reachable: every glyph has a key or a swatch',
+        (function () {
+          for (let g = 0; g < 128; g++) {
+            const byKey = S.keyForGlyph(g, 'direct') !== null ||
+                          S.keyForGlyph(g, 'sui65') !== null;
+            // 0x00-0x1F and 0x7F have no printable key in either mode; the palette
+            // is what reaches those, and it shows all 128 anyway.
+            const paletteOnly = g <= 0x1F || g === 0x7F;
+            if (!byKey && !paletteOnly) return false;
+          }
+          return true;
+        }()));
+  check('art text writes a character for glyph 0x41, and it reads back as 0x00',
+        S.artCharForGlyph(0x41) === 'A' && S.glyphForArtChar('A'.charCodeAt(0)) === 0x00);
+  check('keyForGlyph says no key reaches 0x41 in sui 65 mode',
+        S.keyForGlyph(0x41, 'sui65') === null &&
+        S.keyForGlyph(0x41, 'direct') === 'A');
 }
 
 // --- decoders -------------------------------------------------------------
