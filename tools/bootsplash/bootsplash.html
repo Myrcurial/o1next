@@ -110,8 +110,11 @@ canvas#screen { display: block; image-rendering: pixelated; }
 .swatch canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
 .swatch .k { font-size: 11px; color: #b9c4d8; }
 .filmstrip { display: flex; gap: 4px; overflow-x: auto; padding: 3px 0; }
-.thumb { border: 1px solid #46506a; background: #000; cursor: pointer; flex: 0 0 auto; padding: 0; }
+.thumb { border: 1px solid #46506a; background: #000; cursor: grab; flex: 0 0 auto; padding: 0; }
 .thumb.on { border-color: #ffd23f; }
+/* Where a dragged thumbnail would land.  The strip is the play order, so this is
+   the only place in the tool where a drop has to say *between which two*. */
+.thumb.drop { border-color: #9fe8a0; box-shadow: -3px 0 0 0 #9fe8a0; }
 .thumb canvas { display: block; image-rendering: pixelated; }
 .thumb .n { font-size: 10px; color: #93a0b8; text-align: center; }
 #preview { display: block; background: #000; border: 1px solid var(--panel); image-rendering: pixelated; width: 100%; height: auto; }
@@ -208,7 +211,19 @@ details > summary { cursor: pointer; color: var(--cream); }
         <button id="dupFrame" title="copy this frame after itself">copy</button>
         <button id="delFrame" class="danger" title="delete this frame">delete</button>
       </div>
+      <div class="row">
+        <label>Move this frame</label>
+        <button id="movePrev" title="one frame earlier &mdash; Alt+Left">&#8592;</button>
+        <button id="moveNext" title="one frame later &mdash; Alt+Right">&#8594;</button>
+        <label for="copyToPos">Copy to position</label>
+        <input type="number" id="copyToPos" value="2" min="1" style="width:60px"
+               title="the frame number the copy should end up as, counting from 1">
+        <button id="copyTo" class="primary" title="insert a copy of this frame so that it becomes that frame number; what is there moves along">copy there</button>
+      </div>
       <div class="filmstrip" id="filmstrip"></div>
+      <div class="hint">Drag a thumbnail to re-order the animation &mdash; the strip <i>is</i> the play order.
+        <b>Copy to position</b> plants a copy anywhere: with twelve frames, frame 11 copied to 13 makes the
+        copy frame 13, and anything that was there moves along.</div>
       <div class="row">
         <label for="copyFrom">Copy forward</label>
         <select id="copyFrom">
@@ -228,7 +243,12 @@ details > summary { cursor: pointer; color: var(--cream); }
       <div class="row">
         <label for="fps">Frames per second</label>
         <input type="number" id="fps" value="10" min="1" max="60" style="width:64px">
-        <label><input type="checkbox" id="loop" checked> loop</label>
+        <label for="mode">Playback</label>
+        <select id="mode" title="once: play it through and stop. loop: jump back to frame 1 after the last. ping-pong: reverse at each end, so the last frame leads back into the second-last and the animation bounces.">
+          <option value="once">once</option>
+          <option value="loop" selected>loop</option>
+          <option value="pingpong">ping-pong</option>
+        </select>
         <span class="hint" id="rateHint"></span>
       </div>
     </div>
@@ -313,7 +333,8 @@ details > summary { cursor: pointer; color: var(--cream); }
       </div>
       <div class="note">The <code>.bin</code> is a 32-byte header and then the frames, each byte-identical to
         <code>firmware/rom-service/frame.bin</code> &mdash; <code>tail -c +33</code> of a one-frame file is that
-        asset exactly. The header is this tool's proposal; the firmware side of #247 is not written yet.</div>
+        asset exactly. The header's flags byte carries the playback mode (bit 0 loop, bit 1 ping-pong). The
+        header is this tool's proposal; the firmware side of #247 is not written yet.</div>
       <div class="note"><b>.txt</b> is the repo's art text, which the ROM's own loader reads with
         <code>sui 65</code> &mdash; so it cannot carry a cell holding glyph <b>0x41&ndash;0x61</b>, and with direct
         keys a capital is exactly one of those. The export counts them and says so; the <code>.bin</code> is
@@ -322,10 +343,18 @@ details > summary { cursor: pointer; color: var(--cream); }
 
     <div class="box">
       <h2>Import</h2>
-      <div class="row"><input type="file" id="file" accept=".bin,.txt,application/octet-stream,text/plain"></div>
+      <div class="row">
+        <label for="importAs">Into</label>
+        <select id="importAs" title="the whole animation: what you import replaces what you have, fps and playback mode included. this frame: the file's frames are written in starting at the frame you are on, and the animation grows if the file is longer.">
+          <option value="all" selected>the whole animation</option>
+          <option value="here">this frame</option>
+        </select>
+        <input type="file" id="file" accept=".bin,.txt,application/octet-stream,text/plain">
+      </div>
       <div class="note">A <code>.bin</code> in this tool's container (or a bare 8192-byte frame), or art text in
         the repo's own convention. Art text cannot express a cell holding glyph 0x41&ndash;0x61; if one arrives it
         is reported rather than silently changed.</div>
+      <div class="hint" id="importHint"></div>
     </div>
 
     <div class="box"><div class="status" id="status">ready</div></div>
@@ -360,13 +389,23 @@ var state = {
   penGlyph: null,       // set by the palette, for fill-with-pen
   paint: false,         // ...and, only if asked for, for painting on a cell click
   fps: 10,
-  loop: true,
+  mode: 'loop',         // 'once' | 'loop' | 'pingpong' -- the container's flags byte
   frame: 0,
   frames: [{ cells: S.blankCells(), attrs: S.brightAttrs() }],
   cursor: 0,
   sel: null, anchor: 0, dragging: false,
-  playing: false, timer: null
+  playing: false, timer: null,
+  // The order a cycle plays, cached, with what it was built from.  Rebuilt whenever
+  // the frame count or the mode moves, so the preview cannot play a stale order.
+  order: null, orderN: 0, orderMode: null, orderAt: 0
 };
+
+// What a mode is called in a sentence.  The words in the header are 'once',
+// 'loop' and 'pingpong'; these are what a person reads.
+function modeWord(mode) {
+  return mode === 'pingpong' ? 'ping-pong'
+       : mode === 'loop' ? 'looping' : 'once through';
+}
 
 function cur() { return state.frames[state.frame]; }
 function palette() { return S.paletteFor(state.monitor); }
@@ -567,8 +606,6 @@ function syncControls() {
   $('vpcol').value = String(state.col0);
   $('vprow').value = String(state.row0);
   $('area').value = state.area;
-  $('fps').value = String(state.fps);
-  $('loop').checked = state.loop;
   each(document.querySelectorAll('input[name=keys]'), function (r) {
     r.checked = (r.value === state.keys);
   });
@@ -582,11 +619,21 @@ function each(list, fn) { Array.prototype.forEach.call(list, fn); }
 
 function syncDerived() {
   ensurePalette();
+  // The two fields a *file* can change behind your back -- an import carries its own
+  // fps and playback mode -- so they are synced here, with everything else that
+  // follows the state, rather than only in syncControls().
+  $('fps').value = String(state.fps);
+  $('mode').value = state.mode;
   // The origin fields follow the state, so a programmatic move -- the home button
   // -- cannot leave the field showing a position the overlay is not at.  Not while
   // the field has focus, or a half-typed number would be overwritten.
   if (document.activeElement !== $('vpcol')) $('vpcol').value = String(state.col0);
   if (document.activeElement !== $('vprow')) $('vprow').value = String(state.row0);
+  // "Copy to position" defaults to just after the frame you are on -- the same place
+  // plain "copy" puts it -- and follows you as you move through the animation.  Not
+  // while it has focus, or a half-typed number would be overwritten.
+  if (document.activeElement !== $('copyToPos'))
+    $('copyToPos').value = String(Math.min(state.frames.length + 1, state.frame + 2));
   $('penHint').textContent = 'pen: ' + (state.bright ? 'bright' : 'dim') +
     (state.penGlyph === null ? '' : ', glyph 0x' + S.hex(state.penGlyph, 2)) +
     ' \u2014 ' + (state.keys === 'sui65'
@@ -597,6 +644,18 @@ function syncDerived() {
   var ms = 1000 / state.fps;
   $('rateHint').textContent = state.fps + ' fps = ' + ms.toFixed(1) + ' ms a frame' +
     (ms < 20 ? ' \u2014 browsers clamp GIF playback below 20 ms' : '');
+  updateImportHint();
+}
+
+// What the import is about to do, in words, because "into this frame" is only
+// obvious once it says which frame that is and what happens to the rest.
+function updateImportHint() {
+  $('importHint').textContent = ($('importAs').value === 'here')
+    ? 'The file\u2019s frames are written in starting at frame ' + (state.frame + 1) +
+      ' of ' + state.frames.length + ' \u2014 what is there is replaced, and the animation ' +
+      'grows if the file is longer. Nothing before frame ' + (state.frame + 1) +
+      ' is touched, and the file\u2019s own fps and playback mode are ignored.'
+    : 'What you import replaces the animation: its frames, its fps and its playback mode.';
 }
 
 function renderAll() {
@@ -674,6 +733,14 @@ window.addEventListener('keydown', function (e) {
     if (lower === 'c') { doCopy(); e.preventDefault(); return; }
     if (lower === 'x') { doCut(); e.preventDefault(); return; }
     if (lower === 'v') { doPaste(); e.preventDefault(); return; }
+    return;
+  }
+  // Alt+arrow moves the *frame*, not the cursor.  The frame order is the animation
+  // and it is the one thing here that cannot be retyped -- so it gets the keys, and
+  // Ctrl+arrow (the viewport slide) is left exactly as it was.
+  if (e.altKey && !e.metaKey && !e.ctrlKey) {
+    if (k === 'ArrowLeft') { moveFrameBy(-1); e.preventDefault(); }
+    else if (k === 'ArrowRight') { moveFrameBy(1); e.preventDefault(); }
     return;
   }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -889,16 +956,63 @@ function copyFrame(f) {
   return { cells: Uint8Array.from(f.cells), attrs: Uint8Array.from(f.attrs) };
 }
 
+// --- re-ordering the frames ------------------------------------------------
+//
+// The frame list *is* the animation, so moving a frame is a first-class edit and
+// not a view operation: it changes what the machine plays.  One function does it
+// and the buttons, the keys and the drag all call it, because three ways of moving
+// a frame that disagree would be three ways to lose work.
+//
+// The cursor follows the frame it moved rather than staying on a position: you
+// were working on *that* frame, and after a move you still are.
+function moveFrame(from, to) {
+  if (from === to) return false;
+  if (from < 0 || from >= state.frames.length) return false;
+  if (to < 0 || to >= state.frames.length) return false;
+  var f = state.frames.splice(from, 1)[0];
+  state.frames.splice(to, 0, f);
+  state.frame = to;
+  state.order = null;                    // the play order changed with the list
+  return true;
+}
+
+function moveFrameBy(d) {
+  var from = state.frame, to = from + d;
+  if (to < 0 || to >= state.frames.length) {
+    say('frame ' + (from + 1) + ' is already ' + (d < 0 ? 'the first' : 'the last') +
+        ' of ' + state.frames.length + '.', 'warn');
+    return;
+  }
+  moveFrame(from, to);
+  rebuildAll();
+  say('moved frame ' + (from + 1) + ' to position ' + (to + 1) + ' of ' +
+      state.frames.length + ' \u2014 the strip is the play order, so the animation ' +
+      'plays it in the new one.');
+}
+
 // Thumbnails are the whole screen at 104 columns and 1x -- the narrowest render
 // there is -- then scaled down by CSS.  Rebuilding them is the expensive part, so
 // it happens when the frame *list* changes and not when the frame does.
+//
+// Each thumbnail is also a drag handle, because re-ordering twelve frames with a
+// pair of move buttons is eleven clicks and a drag is one gesture.  The index is
+// kept here rather than in a dataTransfer: jsdom has no DataTransfer, and a drag
+// that only works when the browser supplies one is a drag that cannot be tested.
+var dragFrom = null;
+
+function thumbClass(i) {
+  return 'thumb' + (i === state.frame ? ' on' : '') + (dragFrom === i ? ' from' : '');
+}
+
 function renderFilmstrip() {
   var host = $('filmstrip');
   host.innerHTML = '';
   state.frames.forEach(function (f, i) {
     var b = document.createElement('button');
-    b.className = 'thumb' + (i === state.frame ? ' on' : '');
-    b.title = 'frame ' + (i + 1) + ' of ' + state.frames.length;
+    b.className = thumbClass(i);
+    b.title = 'frame ' + (i + 1) + ' of ' + state.frames.length +
+              ' \u2014 drag it to re-order';
+    b.draggable = true;
     var img = S.renderIndexed(f.cells, f.attrs, { columns: 104, scale: 1 });
     var cv = document.createElement('canvas');
     cv.width = img.w;
@@ -912,14 +1026,42 @@ function renderFilmstrip() {
     n.textContent = String(i + 1);
     b.appendChild(n);
     b.addEventListener('click', function () { goTo(i); });
+    b.addEventListener('dragstart', function (e) {
+      dragFrom = i;
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) {}
+      }
+    });
+    b.addEventListener('dragover', function (e) {
+      if (dragFrom === null) return;
+      e.preventDefault();                    // without this the drop never fires
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      b.className = thumbClass(i) + ' drop';
+    });
+    b.addEventListener('dragleave', function () { b.className = thumbClass(i); });
+    b.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var from = dragFrom;
+      dragFrom = null;
+      if (from === null) return;
+      if (from === i) { rebuildAll(); return; }
+      moveFrame(from, i);
+      rebuildAll();
+      say('moved frame ' + (from + 1) + ' to position ' + (i + 1) + ' of ' +
+          state.frames.length + '.');
+    });
+    b.addEventListener('dragend', function () {
+      dragFrom = null;
+      rebuildAll();
+    });
     host.appendChild(b);
   });
 }
 
 function highlightFilmstrip() {
   var kids = $('filmstrip').children;
-  for (var i = 0; i < kids.length; i++)
-    kids[i].className = 'thumb' + (i === state.frame ? ' on' : '');
+  for (var i = 0; i < kids.length; i++) kids[i].className = thumbClass(i);
 }
 
 function rebuildAll() { renderFilmstrip(); renderAll(); }
@@ -954,6 +1096,25 @@ $('delFrame').addEventListener('click', function () {
   if (state.frame >= state.frames.length) state.frame = state.frames.length - 1;
   rebuildAll();
   say('deleted; ' + state.frames.length + ' frames left.');
+});
+
+$('movePrev').addEventListener('click', function () { moveFrameBy(-1); });
+$('moveNext').addEventListener('click', function () { moveFrameBy(1); });
+
+// "Copy to position" is the one-step version of the thing the buttons cannot do:
+// a copy that lands somewhere other than immediately after its source.  Frame 11
+// copied to 13 leaves what was 13 as 14 -- the copy ends up *at* the position you
+// named, and everything from there moves along by one.
+$('copyTo').addEventListener('click', function () {
+  var from = state.frame;
+  var n = clampInt($('copyToPos').value, 1, state.frames.length + 1, from + 2);
+  state.frames.splice(n - 1, 0, copyFrame(state.frames[from]));
+  state.frame = n - 1;
+  rebuildAll();
+  say('copied frame ' + (from + 1) + ' to position ' + n + '; ' +
+      state.frames.length + ' frames now, and ' +
+      (n - 1 === from ? 'the original moved along to ' + (from + 2) + '.'
+                      : 'what was there moved along by one.'));
 });
 
 // --- copy forward, with an offset -----------------------------------------
@@ -1017,13 +1178,21 @@ function updateDiff() {
   var i = Math.min(state.frame, state.frames.length - 2);
   var a = state.frames[i], b = state.frames[i + 1];
   var d = S.frameDiff(a.cells, a.attrs, b.cells, b.attrs);
-  var all = S.animationDiff(state.frames);
+  var all = S.animationDiff(state.frames, state.mode);
+  // The mode changes what "the whole animation" costs, and this is the sentence
+  // that says why the number moved when nothing on the screen did.
+  var closes = state.mode === 'once'
+    ? ' The mode is once, so there is no transition back.'
+    : state.mode === 'loop'
+      ? ' The mode is loop, so the wrap back to frame 1 is one of them.'
+      : ' The mode is ping-pong: the way back is the same transitions in reverse, ' +
+        'so the cost is counted twice.';
   $('diffHint').textContent = 'frame ' + (i + 1) + ' \u2192 ' + (i + 2) + ': ' +
     d.cells + ' of ' + d.of + ' cells differ (' +
     (100 * d.cells / d.of).toFixed(1) + '%), in ' + d.rows + ' of ' + S.ROWS +
     ' rows. The firmware blits that diff, not the frame; the whole animation is ' +
     all.cells + ' cells over ' + all.transitions + ' transition' +
-    (all.transitions === 1 ? '' : 's') + ' (worst ' + all.worst + ').';
+    (all.transitions === 1 ? '' : 's') + ' (worst ' + all.worst + ').' + closes;
 }
 
 // --- the preview ----------------------------------------------------------
@@ -1032,13 +1201,27 @@ function renderPreview() {
     S.renderIndexed(cur().cells, cur().attrs, displayOpts(state.area === 'viewport')));
 }
 
-function tick() {
-  var next = state.frame + 1;
-  if (next >= state.frames.length) {
-    if (!state.loop) { stop(); return; }
-    next = 0;
+// What one cycle plays, and in what order.  The rule lives in core.js so the
+// preview, the GIF and the diff cannot disagree about what ping-pong means; this
+// only caches it, and only for as long as the frame count and the mode hold still.
+function orderForPlayback() {
+  if (!state.order || state.orderN !== state.frames.length ||
+      state.orderMode !== state.mode) {
+    state.order = S.playbackOrder(state.frames.length, state.mode);
+    state.orderN = state.frames.length;
+    state.orderMode = state.mode;
   }
-  state.frame = next;
+  return state.order;
+}
+
+function tick() {
+  var order = orderForPlayback();
+  state.orderAt++;
+  if (state.orderAt >= order.length) {
+    if (state.mode === 'once') { stop(); return; }
+    state.orderAt = 0;
+  }
+  state.frame = order[state.orderAt];
   renderPreview();
   $('frameCount').textContent = (state.frame + 1) + ' / ' + state.frames.length;
 }
@@ -1049,9 +1232,15 @@ function play() {
     return;
   }
   state.playing = true;
+  state.order = null;
+  var order = orderForPlayback();
+  // Start where the cursor is, not at frame 1: pressing play is "show me this one
+  // moving", and for ping-pong that also decides which way it leaves.
+  state.orderAt = Math.max(0, order.indexOf(state.frame));
   $('play').textContent = 'stop';
   $('playState').textContent = 'playing ' + state.frames.length + ' frames at ' +
-    state.fps + ' fps';
+    state.fps + ' fps, ' + modeWord(state.mode) +
+    (state.mode === 'pingpong' ? ' (' + order.length + ' steps a cycle)' : '');
   state.timer = window.setInterval(tick, Math.max(16, Math.round(1000 / state.fps)));
 }
 
@@ -1072,9 +1261,21 @@ $('fps').addEventListener('change', function () {
   say('playback is ' + state.fps + ' fps.');
 });
 
-$('loop').addEventListener('change', function () {
-  state.loop = this.checked;
+$('mode').addEventListener('change', function () {
+  state.mode = this.value;
+  state.order = null;
   syncDerived();
+  if (state.playing) { stop(); play(); }
+  say(state.mode === 'pingpong'
+    ? 'ping-pong: the last frame leads back into the second-last and the animation ' +
+      'bounces \u2014 the frames it turns on are the ones it plays, so neither end ' +
+      'is shown twice. The header carries it as flags bit 1, and the diff readout ' +
+      'now counts the way back.'
+    : state.mode === 'loop'
+      ? 'loop: after the last frame it jumps back to frame 1, which is one more ' +
+        'transition for the firmware to blit and is counted as one.'
+      : 'once: it plays through and stops on the last frame. The header says so, and ' +
+        'the diff readout stops counting at the last transition.');
 });
 
 // --- export ---------------------------------------------------------------
@@ -1101,11 +1302,12 @@ function builtFrames() {
 
 $('dlBin').addEventListener('click', function () {
   var frames = builtFrames();
-  var bytes = S.buildAnimation(frames, state.fps, state.loop);
+  var bytes = S.buildAnimation(frames, state.fps, state.mode);
   download(bytes, baseName() + '.bin');
   say('wrote ' + baseName() + '.bin: a ' + S.ANIM_HEADER + '-byte ' + S.ANIM_MAGIC +
       ' header then ' + frames.length + ' frame' + (frames.length === 1 ? '' : 's') +
-      ' at ' + state.fps + ' fps, ' + bytes.length + ' bytes. Every frame is an 8192-byte ' +
+      ' at ' + state.fps + ' fps, ' + modeWord(state.mode) + ' (flags ' + bytes[9] +
+      '), ' + bytes.length + ' bytes. Every frame is an 8192-byte ' +
       'frame the machine\u2019s own trailer test accepts.');
 });
 
@@ -1134,75 +1336,135 @@ $('dlPng').addEventListener('click', function () {
 
 $('dlGif').addEventListener('click', function () {
   var opts = renderOpts(state.area === 'viewport');
-  var frames = state.frames.map(function (f) {
-    return S.renderIndexed(f.cells, f.attrs, opts);
+  // The GIF is a preview of what the machine plays, so it plays what the machine
+  // plays: a ping-pong is written out in full, bounce included, rather than handed
+  // to the viewer's own looping as a forward pass.
+  var order = S.playbackOrder(state.frames.length, state.mode);
+  var frames = order.map(function (i) {
+    return S.renderIndexed(state.frames[i].cells, state.frames[i].attrs, opts);
   });
   var delay = Math.max(2, Math.round(100 / state.fps));
-  var bytes = S.encodeGIF(frames, palette(), delay, state.loop);
+  var bytes = S.encodeGIF(frames, palette(), delay, state.mode !== 'once');
   download(bytes, baseName() + '.gif', 'image/gif');
   say('wrote ' + baseName() + '.gif: ' + frames.length + ' frames at ' + state.fps +
       ' fps (' + delay + ' hundredths each), ' + bytes.length + ' bytes, ' +
-      frames[0].w + '\u00d7' + frames[0].h + '. GIF cannot go below 2 hundredths, and a ' +
-      'browser often clamps playback under 20 ms.');
+      frames[0].w + '\u00d7' + frames[0].h +
+      (state.mode === 'pingpong'
+        ? ' \u2014 the bounce is written out in full: ' + state.frames.length +
+          ' frames and ' + (order.length - state.frames.length) + ' on the way back.'
+        : state.mode === 'once'
+          ? ' \u2014 it plays once, so the GIF does not repeat.'
+          : '') +
+      ' GIF cannot go below 2 hundredths, and a browser often clamps playback ' +
+      'under 20 ms.');
 });
 
 // --- import ---------------------------------------------------------------
-function importArt(bytes) {
-  var text = '', i;
-  for (i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
-  var parsed = S.parseArtText(text);
-  state.frames = [{ cells: parsed.cells, attrs: S.brightAttrs() }];
-  state.frame = 0;
-  state.cursor = 0;
-  state.sel = null;
-  rebuildAll();
-  var msg = 'imported art: ' + parsed.rows + ' row' + (parsed.rows === 1 ? '' : 's') +
-            ' of ' + S.COLS + ' cells, every cell bright (art text has no attribute plane).';
-  if (parsed.unknown.length)
-    msg += ' ' + parsed.unknown.length + ' character(s) reached no glyph: ' +
-           parsed.unknown.join(' ') + '.';
-  if (parsed.truncated)
-    msg += ' Anything past 128 columns or 32 rows was dropped.';
-  say(msg, parsed.unknown.length ? 'warn' : '');
-}
-
-function importBin(bytes) {
-  var anim = S.parseAnimation(bytes), frames = [], msg, i;
+//
+// A file is read for *what it is* -- art text, a bare 8192-byte frame, or a
+// container of one or more frames -- and then it is *placed*, which is the part
+// that used to be missing.  "Into the whole animation" replaces everything, as it
+// always did; "into this frame" writes the file's frames in starting at the frame
+// you are on, replacing what is there and growing the animation if the file is
+// longer.  That second one is how a half-built animation gets added to: export it,
+// keep it, draw one frame somewhere else, and drop that frame into the position it
+// belongs in.
+//
+// A single-frame .bin is either shape -- 8192 bytes on their own, or those same
+// bytes behind the 32-byte header -- and both are accepted, because both are what
+// this tool writes for a one-frame animation.
+function readFrames(bytes, isText) {
+  var i;
+  if (isText) {
+    var text = '';
+    for (i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+    var parsed = S.parseArtText(text);
+    var note = 'art text: ' + parsed.rows + ' row' + (parsed.rows === 1 ? '' : 's') +
+               ' of ' + S.COLS + ' cells, every cell bright (art text has no ' +
+               'attribute plane).';
+    if (parsed.unknown.length)
+      note += ' ' + parsed.unknown.length + ' character(s) reached no glyph: ' +
+              parsed.unknown.join(' ') + '.';
+    if (parsed.truncated)
+      note += ' Anything past 128 columns or 32 rows was dropped.';
+    return { ok: true, frames: [{ cells: parsed.cells, attrs: S.brightAttrs() }],
+             what: note, warn: parsed.unknown.length > 0 };
+  }
+  var anim = S.parseAnimation(bytes);
   if (anim.ok) {
+    var frames = [];
     for (i = 0; i < anim.frames.length; i++) {
       var p = S.parseFrame(anim.frames[i]);
-      if (!p.ok) {
-        say('frame ' + (i + 1) + ' of ' + anim.frames.length +
-            ' failed its own trailer: ' + p.why + '. Nothing imported.', 'bad');
-        return;
-      }
+      if (!p.ok)
+        return { ok: false, why: 'frame ' + (i + 1) + ' of ' + anim.frames.length +
+                                 ' failed its own trailer: ' + p.why + '.' };
       frames.push({ cells: p.cells, attrs: p.attrs });
     }
-    state.fps = anim.fps || state.fps;
-    state.loop = anim.loop;
-    msg = 'imported ' + frames.length + ' frame' + (frames.length === 1 ? '' : 's') +
-          ' at ' + state.fps + ' fps' + (anim.loop ? ', looping' : '') +
-          '; every trailer held.';
-  } else if (bytes.length === S.FRAME * 2) {
+    var what = 'an ' + S.ANIM_MAGIC + ' container of ' + frames.length + ' frame' +
+               (frames.length === 1 ? '' : 's') + ' at ' + anim.fps + ' fps, ' +
+               modeWord(anim.mode) + ' (flags ' + anim.flags + '); every trailer held.';
+    // Bit 1 with bit 0 clear is a single bounce, and this tool writes a ping-pong
+    // as both bits.  Say so rather than silently normalising it.
+    if (anim.pingpong && !anim.loop)
+      what += ' Its flags are ' + anim.flags + ', which is bit 1 without bit 0 \u2014 ' +
+              'one bounce and stop; exporting writes ' + (S.ANIM_LOOP | S.ANIM_PINGPONG) +
+              '.';
+    return { ok: true, frames: frames, fps: anim.fps, mode: anim.mode,
+             flags: anim.flags, what: what };
+  }
+  if (bytes.length === S.FRAME * 2) {
     var one = S.parseFrame(bytes);
-    if (!one.ok) {
-      say('that is an 8192-byte frame, but its trailer does not hold: ' + one.why +
-          '. Nothing imported.', 'bad');
-      return;
-    }
-    frames = [{ cells: one.cells, attrs: one.attrs }];
-    msg = 'imported a bare 8192-byte frame; its ' + S.MAGIC + ' trailer held.';
-  } else {
-    say('not this tool\u2019s container (' + anim.why + '), and not 8192 bytes either. ' +
-        'Nothing imported.', 'bad');
+    if (!one.ok)
+      return { ok: false, why: 'that is an 8192-byte frame, but its trailer does ' +
+                               'not hold: ' + one.why + '.' };
+    return { ok: true, frames: [{ cells: one.cells, attrs: one.attrs }],
+             what: 'a bare 8192-byte frame; its ' + S.MAGIC + ' trailer held.' };
+  }
+  return { ok: false, why: 'not this tool\u2019s container (' + anim.why +
+                           '), and not 8192 bytes either.' };
+}
+
+function importBytes(bytes, isText) {
+  var got = readFrames(bytes, isText);
+  if (!got.ok) {
+    say(got.why + ' Nothing imported.', 'bad');
     return;
   }
-  state.frames = frames;
+  var n = got.frames.length, i, idx;
+
+  if ($('importAs').value === 'here') {
+    var at = state.frame, replaced = 0, added = 0;
+    for (i = 0; i < n; i++) {
+      idx = at + i;
+      if (idx < state.frames.length) { state.frames[idx] = got.frames[i]; replaced++; }
+      else { state.frames.push(got.frames[i]); added++; }
+    }
+    state.frame = at;
+    state.sel = null;
+    state.order = null;
+    rebuildAll();
+    say('imported ' + got.what + ' Wrote ' + n + ' frame' + (n === 1 ? '' : 's') +
+        ' in at frame ' + (at + 1) + ': ' + replaced + ' replaced' +
+        (added ? ', ' + added + ' added at the end' : '') + ', ' +
+        state.frames.length + ' frames now. The file\u2019s own fps and playback mode ' +
+        'were left alone \u2014 you are importing into an animation, not replacing it.',
+        got.warn ? 'warn' : '');
+    return;
+  }
+
+  state.frames = got.frames;
+  // A bare frame and art text carry no fps and no mode, so they leave both as they
+  // are -- which is what this did before the container existed.
+  if (got.fps) state.fps = got.fps;
+  if (got.mode) state.mode = got.mode;
   state.frame = 0;
   state.cursor = 0;
   state.sel = null;
+  state.order = null;
   rebuildAll();
-  say(msg);
+  say('imported ' + got.what +
+      (got.mode ? ' Playback is ' + modeWord(got.mode) + '.' : ''),
+      got.warn ? 'warn' : '');
 }
 
 $('file').addEventListener('change', function () {
@@ -1211,11 +1473,18 @@ $('file').addEventListener('change', function () {
   var reader = new FileReader();
   reader.onload = function () {
     var bytes = new Uint8Array(reader.result);
-    if (/\.txt$/i.test(f.name)) importArt(bytes);
-    else importBin(bytes);
+    importBytes(bytes, /\.txt$/i.test(f.name));
   };
   reader.readAsArrayBuffer(f);
   this.value = '';
+});
+
+$('importAs').addEventListener('change', function () {
+  syncDerived();
+  say(this.value === 'here'
+    ? 'imports now land in the frame you are on, and the rest of the animation is ' +
+      'left alone.'
+    : 'imports now replace the whole animation, fps and playback mode included.');
 });
 
 // --- the toolbar ----------------------------------------------------------
