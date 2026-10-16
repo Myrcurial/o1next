@@ -40,8 +40,9 @@
  *     `firmware/rom-service/frame.bin`, so `tail -c +33` of a one-frame animation
  *     is that file.  The header is this tool's proposal -- the firmware side of
  *     #247 is not written yet -- and it is one constant to change.  Its flags
- *     byte carries the playback mode: bit 0 loops, bit 1 ping-pongs, and
- *     `playbackOrder` is the one place that says what either one plays.
+ *     byte carries the playback mode: bit 0 repeats, bit 1 bounces, so all four
+ *     combinations are a mode, and `playbackOrder` is the one place that says
+ *     what each one plays.
  */
 (function (root) {
   'use strict';
@@ -79,12 +80,17 @@
   //     bit 0  LOOP      does it repeat at all?
   //     bit 1  PINGPONG  does it reverse at the ends instead of jumping?
   //
-  // so the three modes a designer picks between are 0 (once), 1 (loop) and 3
-  // (ping-pong: it repeats, and it reverses).  Bit 1 with bit 0 clear -- 2 -- is
-  // defined and readable: one bounce, forward then back, then stop.  This tool
-  // does not offer it (there is no such thing as "stop" on the machine's screen),
-  // but it parses and it is reported, because a bitfield with an unreachable
-  // state is a bitfield nobody can trust.
+  // so all four combinations are a mode, and all four are offered:
+  //
+  //     flags 0   once            1 2 3        stop
+  //     flags 1   loop            1 2 3 1 2 3  ... repeating
+  //     flags 2   pingpong-once   1 2 3 2 1    stop
+  //     flags 3   pingpong        1 2 3 2 1 2 3 2 ... repeating
+  //
+  // The two ping-pongs differ in exactly one frame, and it is the one that matters:
+  // a bounce *ends* where it started, so the one-shot plays the return to frame 1
+  // and stops there, while the repeating one leaves that return to the wrap into the
+  // next cycle and stops nowhere.
   var ANIM_LOOP = 0x01;
   var ANIM_PINGPONG = 0x02;
 
@@ -369,11 +375,11 @@
 
   // --- the playback mode -----------------------------------------------------
   //
-  // A mode is one of three words -- 'once', 'loop', 'pingpong' -- and this is the
-  // only place the words and the two bits are tied together.  A boolean is still
-  // accepted, because that is what this container had before ping-pong existed and
-  // it costs one line to keep every older caller working: `true` is 'loop'.
-  var MODES = ['once', 'loop', 'pingpong'];
+  // A mode is one of four words, and this is the only place the words and the two
+  // bits are tied together.  A boolean is still accepted, because that is what this
+  // container had before ping-pong existed and it costs one line to keep every older
+  // caller working: `true` is 'loop'.
+  var MODES = ['once', 'loop', 'pingpong-once', 'pingpong'];
 
   function playbackMode(mode) {
     if (mode === true) return 'loop';
@@ -381,32 +387,49 @@
     return MODES.indexOf(mode) >= 0 ? mode : 'once';
   }
 
+  // Does it go round again?  This is bit 0, and it is the one question the preview
+  // timer, the GIF's loop flag and the diff all have to ask -- and the answer is not
+  // "is the mode 'once'", because a one-shot bounce also stops.
+  function modeRepeats(mode) {
+    mode = playbackMode(mode);
+    return mode === 'loop' || mode === 'pingpong';
+  }
+
   function modeFlags(mode) {
     mode = playbackMode(mode);
     if (mode === 'loop') return ANIM_LOOP;
     if (mode === 'pingpong') return ANIM_LOOP | ANIM_PINGPONG;
+    if (mode === 'pingpong-once') return ANIM_PINGPONG;
     return 0;
   }
 
   function modeFromFlags(flags) {
-    if (flags & ANIM_PINGPONG) return 'pingpong';
+    if (flags & ANIM_PINGPONG)
+      return (flags & ANIM_LOOP) ? 'pingpong' : 'pingpong-once';
     return (flags & ANIM_LOOP) ? 'loop' : 'once';
   }
 
-  // The frames one *cycle* plays, in order, as indices into the animation.  For
-  // 'once' and 'loop' that is the animation itself; for ping-pong it is the
-  // animation and then the way back, and the two ends appear once each rather
-  // than twice -- the frames a bounce *turns on* are the ones it plays, not the
-  // ones it reverses from.  Two frames are 0,1,0,1... and one frame is 0.
+  // The frames a mode plays, in order, as indices into the animation -- everything it
+  // shows, whether it repeats or not.  'once' and 'loop' are the animation itself;
+  // a bounce is the animation and then the way back, and the ends appear once each
+  // rather than twice, because the frames a bounce *turns on* are the ones it plays,
+  // not the ones it reverses from.
+  //
+  // The two ping-pongs differ in one entry, and it is the difference between
+  // "1 2 3 2 1, stop" and "1 2 3 2, round again": the one-shot comes back to the
+  // first frame and stops there, and the repeating one hands that return to the wrap
+  // into the next cycle.  Two frames are 0,1,0 and 0,1; one frame is 0 either way.
   //
   // The preview, the GIF and the diff all read the order from here, so the tool
-  // cannot disagree with itself about what ping-pong means.
+  // cannot disagree with itself about what a mode plays.
   function playbackOrder(count, mode) {
     mode = playbackMode(mode);
     var out = [], i;
     if (count <= 0) return out;
     for (i = 0; i < count; i++) out.push(i);
-    if (mode === 'pingpong')
+    if (mode === 'pingpong-once')
+      for (i = count - 2; i >= 0; i--) out.push(i);
+    else if (mode === 'pingpong')
       for (i = count - 2; i >= 1; i--) out.push(i);
     return out;
   }
@@ -609,29 +632,33 @@
 
   // The whole animation's cost, if every transition is blitted.
   //
-  // The mode matters, and this is the number that made it matter: a loop has to
-  // blit the transition it wraps with (last -> first), and a ping-pong has to blit
-  // the way back as well, which is the same transitions in reverse and therefore
-  // exactly twice the forward cost.  A designer reading "3 cells over 2
-  // transitions" while the machine plays a ping-pong of six is reading the wrong
-  // number, so the readout takes the mode and counts what is really played.
+  // The mode matters, and this is the number that made it matter: a loop has to blit
+  // the transition it wraps with (last -> first), and a bounce has to blit the way
+  // back as well, which is the same transitions in reverse and therefore exactly
+  // twice the forward cost.  A designer reading "3 cells over 2 transitions" while
+  // the machine plays a six-step bounce is reading the wrong number, so the readout
+  // takes the mode and counts what is really played.
+  //
+  // Both ping-pongs cost the same, and that is worth knowing: the one-shot's last
+  // blit is the return to frame 1, and the repeating one's is the wrap into the next
+  // cycle -- the same transition, taken once either way.
   function animationDiff(frames, mode) {
     mode = playbackMode(mode);
-    var n = frames.length;
+    var n = frames.length, i;
     if (n < 2) return { cells: 0, worst: 0, transitions: 0, of: FRAME - 8 };
-    var order = playbackOrder(n, mode);
-    var cells = 0, worst = 0, transitions = 0;
-    function step(a, b) {
-      var d = frameDiff(frames[a].cells, frames[a].attrs,
-                        frames[b].cells, frames[b].attrs);
+    var steps = [];
+    for (i = 0; i + 1 < n; i++) steps.push([i, i + 1]);          // forward
+    if (mode === 'loop') steps.push([n - 1, 0]);                 // the wrap
+    else if (mode === 'pingpong' || mode === 'pingpong-once')
+      for (i = n - 1; i > 0; i--) steps.push([i, i - 1]);        // the way back, to 0
+    var cells = 0, worst = 0;
+    for (i = 0; i < steps.length; i++) {
+      var d = frameDiff(frames[steps[i][0]].cells, frames[steps[i][0]].attrs,
+                        frames[steps[i][1]].cells, frames[steps[i][1]].attrs);
       cells += d.cells;
       if (d.cells > worst) worst = d.cells;
-      transitions++;
     }
-    for (var i = 0; i + 1 < order.length; i++) step(order[i], order[i + 1]);
-    // ...and the transition that closes the cycle, which 'once' does not have.
-    if (mode !== 'once') step(order[order.length - 1], order[0]);
-    return { cells: cells, worst: worst, transitions: transitions, of: FRAME - 8 };
+    return { cells: cells, worst: worst, transitions: steps.length, of: FRAME - 8 };
   }
 
   // --- the clipboard, and flipping the ninth bit ----------------------------
@@ -1026,7 +1053,7 @@
     buildFrame: buildFrame, parseFrame: parseFrame, framePlanes: framePlanes,
     buildAnimation: buildAnimation, parseAnimation: parseAnimation,
     playbackMode: playbackMode, modeFlags: modeFlags, modeFromFlags: modeFromFlags,
-    playbackOrder: playbackOrder,
+    modeRepeats: modeRepeats, playbackOrder: playbackOrder,
     artText: artText, artTextBytes: artTextBytes, artTextLossy: artTextLossy,
     parseArtText: parseArtText,
     paletteFor: paletteFor, renderIndexed: renderIndexed,
