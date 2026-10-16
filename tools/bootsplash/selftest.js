@@ -312,6 +312,27 @@ section('the art text form');
   check('keyForGlyph says no key reaches 0x41 in sui 65 mode',
         S.keyForGlyph(0x41, 'sui65') === null &&
         S.keyForGlyph(0x41, 'direct') === 'A');
+
+  // The palette sets: each mode shows only what it can place, and between them they
+  // cover the whole ROM.
+  const stdSet = S.paletteSet('direct'), gfxSet = S.paletteSet('sui65');
+  check('standard characters offer 0x20-0x7E and no block glyphs at all',
+        stdSet.length === 95 && stdSet[0] === 0x20 && stdSet[94] === 0x7E &&
+        stdSet.indexOf(0x00) < 0 && stdSet.indexOf(S.HATCH_CODE) < 0,
+        stdSet.length + ' glyphs');
+  check('graphical characters offer the 32 blocks, the blank, and the hatch',
+        gfxSet.length === 34 && gfxSet[0] === 0x00 && gfxSet[31] === 0x1F &&
+        gfxSet[32] === S.BLANK && gfxSet[33] === S.HATCH_CODE,
+        gfxSet.length + ' glyphs');
+  check('and between them they cover all 128 glyphs of the ROM',
+        (function () {
+          const seen = {};
+          stdSet.concat(gfxSet).forEach(function (g) { seen[g] = 1; });
+          return Object.keys(seen).length === 128;
+        }()));
+  check('every swatch in a set has a key in that mode, so the palette is the key map',
+        stdSet.every(function (g) { return S.keyForGlyph(g, 'direct') !== null; }) &&
+        gfxSet.every(function (g) { return S.keyForGlyph(g, 'sui65') !== null; }));
 }
 
 // --- decoders -------------------------------------------------------------

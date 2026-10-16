@@ -107,6 +107,12 @@ function dragSelect(r0, c0, r1, c1) {
   $('screen').dispatchEvent(new window.MouseEvent('mousemove', at(r1, c1)));
   window.dispatchEvent(new window.MouseEvent('mouseup', at(r1, c1)));
 }
+// The palette's contents change with the pen mode, so find a swatch by its glyph
+// rather than by its position.
+function swatchFor(glyph) {
+  return doc.querySelector('#palette .swatch[data-glyph="' + glyph + '"]');
+}
+function paletteCount() { return doc.querySelectorAll('#palette .swatch').length; }
 function clickOn(id) { $(id).click(); }
 function setValue(id, value) {
   const el = $(id);
@@ -185,30 +191,33 @@ check('the provenance line names the ROM and its CRC32',
       $('provenance').textContent.indexOf(S.hex(S.CHAR_ROM_CRC32, 8)) >= 0,
       $('provenance').textContent);
 check('the status line is the ready message', /ready/.test(status()), status());
-check('the palette is all 128 glyphs, each with a canvas',
-      doc.querySelectorAll('#palette .swatch').length === 128 &&
-      doc.querySelectorAll('#palette .swatch canvas').length === 128);
-check('the swatches are labelled with the key for the pen mode, not the code',
-      doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === 'A' &&
-      doc.querySelectorAll('#palette .swatch .k')[0].textContent === '' &&
-      doc.querySelectorAll('#palette .swatch .k')[0x20].textContent === 'sp',
-      '0x41="' + doc.querySelectorAll('#palette .swatch .k')[0x41].textContent +
-      '" 0x00="' + doc.querySelectorAll('#palette .swatch .k')[0].textContent + '"');
-check('the tooltip names the key in this mode and in the other',
-      /standard: type "A"/.test(doc.querySelectorAll('#palette .swatch')[0x41].title) &&
-      /graphical: "A"/.test(doc.querySelectorAll('#palette .swatch')[0].title),
-      doc.querySelectorAll('#palette .swatch')[0].title);
-// Switching modes relabels the whole palette -- that is the ask.
+check('standard characters show the 95 standard glyphs and no blocks',
+      paletteCount() === 95 && swatchFor(0x41) !== null &&
+      swatchFor(0x00) === null && swatchFor(0x7F) === null,
+      paletteCount() + ' swatches');
+check('and each is labelled with the character you type',
+      swatchFor(0x41).querySelector('.k').textContent === 'A' &&
+      swatchFor(0x20).querySelector('.k').textContent === 'sp' &&
+      swatchFor(0x70).querySelector('.k').textContent === 'p');
+check('the hint names the set and its size',
+      /95 standard characters/.test($('paletteHint').textContent), $('paletteHint').textContent);
 pickRadio('keys', 'sui65');
-check('graphical characters relabel the palette: 0x00 is "A" and 0x41 has no key',
-      doc.querySelectorAll('#palette .swatch .k')[0].textContent === 'A' &&
-      doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === '',
-      '0x00="' + doc.querySelectorAll('#palette .swatch .k')[0].textContent +
-      '" 0x41="' + doc.querySelectorAll('#palette .swatch .k')[0x41].textContent + '"');
+check('graphical characters show the 34 blocks and the hatch, and no letters',
+      paletteCount() === 34 && swatchFor(0x00) !== null &&
+      swatchFor(0x7F) !== null && swatchFor(0x41) === null,
+      paletteCount() + ' swatches');
+check('and each is labelled with the sui 65 key that reaches it',
+      swatchFor(0x00).querySelector('.k').textContent === 'A' &&
+      swatchFor(0x20).querySelector('.k').textContent === 'a' &&
+      swatchFor(0x7F).querySelector('.k').textContent === '\u00C0',
+      swatchFor(0x00).querySelector('.k').textContent + ' / ' +
+      swatchFor(0x7F).querySelector('.k').textContent);
+check('and the tooltip names this mode\'s key, and says when the other has none',
+      /graphical: type "A"/.test(swatchFor(0x00).title) &&
+      /standard: no key/.test(swatchFor(0x00).title), swatchFor(0x00).title);
 pickRadio('keys', 'direct');
-check('and standard characters relabel it back',
-      doc.querySelectorAll('#palette .swatch .k')[0].textContent === '' &&
-      doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === 'A');
+check('and switching back restores the standard set',
+      paletteCount() === 95 && swatchFor(0x00) === null, paletteCount() + ' swatches');
 check('the monitor list is populated', $('monitor').options.length === 4);
 // 80 columns at 1x: 128 cells x 8 dots x 0.65 = 666 wide, 32 x 10 = 320 tall.
 check('the screen canvas is 666 x 320 (80 columns, 1x)',
@@ -312,8 +321,12 @@ check('the dim pen writes the glyph but clears the ninth bit',
 
 // --- 3. the palette, and the cells that are not the designer's -------------
 section('the palette, and the trailer');
-doc.querySelectorAll('#palette .swatch')[127].click();
+// The hatch is a graphical block, so it lives in the graphical palette; the pen
+// survives the switch back, which is what "fill with pen" needs.
+pickRadio('keys', 'sui65');
+swatchFor(0x7F).click();
 check('clicking the hatch swatch selects glyph 0x7F', /glyph 0x7F/.test(status()), status());
+pickRadio('keys', 'direct');
 // A cell click aims by default.  It must NOT paint, or click-then-type lands a
 // cell to the right of where you clicked -- which is the whole complaint.
 clickCell(5, 10);
@@ -478,10 +491,11 @@ check('the GIF palette is the monitor palette',
   // --- 9. copy forward, with an offset ------------------------------------
   section('copy forward, with an offset');
   // The import left exactly one frame.  Put a glyph in it, then move the screen.
-  // The palette swatch from section 3 is still the pen, but a cell click no longer
-  // paints it -- that is opt-in now.  Clicking the selected swatch again still clears
-  // it, which is what "fill with pen" needs to stop using.
-  doc.querySelectorAll('#palette .swatch')[127].click();
+  // The pen toggle, self-contained: a standard character, picked and then cleared.
+  const penSwatch = swatchFor(0x41);
+  penSwatch.click();
+  check('clicking a swatch makes it the pen', /pen is glyph 0x41/.test(status()), status());
+  penSwatch.click();
   check('clicking the selected swatch again clears the pen',
         /pen cleared/.test(status()), status());
   clickCell(0, 0);

@@ -159,13 +159,19 @@ the graphics pen refuse most keys. The pen is now:
 | **Standard characters** (the default) | the key's own code *is* the glyph. `A` draws a capital A, `p` draws a p, space draws the blank — every printable character, `0x20`–`0x7E`. |
 | **Graphical characters** | the ROM's `sui 65` loader arithmetic, kept for one purpose: a screen authored this way is one whose `.txt` export `rom2strokes.py` can read back. `0x41`–`0x61` become glyphs `0x00`–`0x20`, so in *this* mode a capital cannot be typed as a letter. |
 
-**Neither mode refuses a key.** The palette shows **all 128** glyphs in code order,
-and **its labels follow the pen mode**, because the label should be the key you can
-act on: in standard characters glyph `0x41` is labelled `A` and the 32 block glyphs
-are blank; switch to graphical characters and glyph `0x00` is labelled `A` while
-`0x41` goes blank. A blank label means no key reaches that glyph *in the mode you
-are in*; the tooltip always names both modes. Clicking a swatch makes it the pen,
-and clicking it again clears it.
+**Neither mode refuses a key, and the palette shows only what the mode can place.**
+
+| Pen mode | The palette shows | Labelled with |
+|---|---|---|
+| **Standard characters** | the **95** printable glyphs, `0x20`–`0x7E` | the character you type |
+| **Graphical characters** | the **34** graphical cells: the 32 blocks `0x00`–`0x1F`, the blank, and the `0x7F` hatch | the `sui 65` key that reaches it — `A`…`` ` ``, `a`, and `U+00C0` for the hatch |
+
+Between them the two sets cover **all 128 glyphs** of the character ROM — `0x20` is in
+both, because the space bar types the blank in either mode — so everything is still
+reachable, one mode switch away. **Every swatch in a set has a key in that mode**, so
+the palette doubles as the key map, and the tooltip says what the *other* mode would
+need (including "no key", which is the question worth answering). Clicking a swatch
+makes it the pen; clicking it again clears it.
 
 **A cell click only aims the cursor.** It places nothing unless you tick **paint
 cells on click** under the palette — because a click that also painted *and advanced*
@@ -294,10 +300,12 @@ actually be asked to move.
   every printable key reaches a glyph in *both* modes, standard characters give the
   key's own code (`A` → `0x41`), graphical characters give the loader's arithmetic
   (`A` → `0x00`), and **all 128 glyphs are reachable** — by a key, or from the palette;
-- the **palette labels** are checked to follow the mode (glyph `0x41` is `A` in
-  standard and blank in graphical; `0x00` the other way round), and a **cell click
-  is checked not to paint** unless paint-on-click is ticked — since a click that
-  painted *and* advanced is what made click-then-type land a cell to the right;
+- the **palette sets** are checked as a partition: standard offers the 95 printable
+  glyphs and no blocks, graphical offers the 34 blocks and the hatch, the two together
+  cover all 128, and every swatch in a set has a key in that mode — so the palette is
+  also the key map. And a **cell click is checked not to paint** unless paint-on-click
+  is ticked, since a click that painted *and* advanced is what made click-then-type
+  land a cell to the right;
 - the **zoom** is checked to change the displayed size and not only the backing
   store — which is the bug it had: a canvas stretched to its column renders every
   zoom step as the same picture;

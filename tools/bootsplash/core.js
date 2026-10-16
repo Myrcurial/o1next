@@ -160,6 +160,27 @@
     return String.fromCharCode(g);
   }
 
+  // The glyphs a pen mode works in.  The palette shows *this*, so it shows what the
+  // mode can actually place and nothing else:
+  //
+  //   standard characters  -- everything a key can type, 0x20-0x7E (95 glyphs)
+  //   graphical characters -- the 32 block glyphs, the blank, and the 0x7F hatch
+  //                           (34 glyphs: exactly the cells tools/romfont.py's art
+  //                           sheet draws, and exactly the `sui 65` range)
+  //
+  // Between them they cover all 128 of the character ROM.  0x20 is in both, because
+  // the space bar types the blank in either mode.
+  function paletteSet(mode) {
+    var out = [], g;
+    if (mode === 'sui65') {
+      for (g = 0; g <= BLANK; g++) out.push(g);
+      out.push(HATCH_CODE);
+      return out;
+    }
+    for (g = 0x20; g <= 0x7E; g++) out.push(g);
+    return out;
+  }
+
   // Which glyph a keystroke places.  Two modes, and the difference between them is
   // only 0x41-0x61:
   //
@@ -918,7 +939,7 @@
     crc32: crc32, hex: hex, romCrc32: romCrc32, romOk: romOk,
     glyphDot: glyphDot, glyphBits: glyphBits,
     glyphForArtChar: glyphForArtChar, artCharForGlyph: artCharForGlyph,
-    glyphForKey: glyphForKey, keyForGlyph: keyForGlyph,
+    glyphForKey: glyphForKey, keyForGlyph: keyForGlyph, paletteSet: paletteSet,
     isGraphicsGlyph: isGraphicsGlyph, isReserved: isReserved,
     blankCells: blankCells, brightAttrs: brightAttrs,
     seal: seal, checkHalf: checkHalf, checkFrame: checkFrame,

@@ -280,16 +280,18 @@ details > summary { cursor: pointer; color: var(--cream); }
     </div>
 
     <div class="box">
-      <h2>All 128 glyphs</h2>
+      <h2>Glyph palette</h2>
+      <div class="hint" id="paletteHint"></div>
       <div class="palette" id="palette"></div>
       <div class="row">
         <label title="off by default: a click only aims the cursor, which is what makes click-then-type predictable"><input type="checkbox" id="paintOnClick"> paint cells on click</label>
       </div>
-      <div class="note">The whole character generator ROM, in code order &mdash; because a video cell <i>is</i> a
-        glyph code, and the chargen is indexed with <code>chr &amp; 0x7f</code>, so <b>all 128 are available in
-        any cell</b>. <b>Each swatch is labelled with the key that reaches its glyph in the pen mode you are in</b>,
-        so a blank label means no key reaches it &mdash; pick it here and use <b>fill with pen</b>, or switch the
-        pen mode. Clicking a swatch makes it the pen; clicking it again clears it.</div>
+      <div class="note">The palette shows <b>only what the pen mode can place</b>: the 95 standard characters
+        (<code>0x20</code>&ndash;<code>0x7E</code>) or the 34 graphical blocks (<code>0x00</code>&ndash;<code>0x1F</code>,
+        the blank, and the <code>0x7F</code> hatch). All 128 glyphs are available in any cell &mdash; the chargen is
+        indexed with <code>chr &amp; 0x7f</code> &mdash; one mode switch away. Every swatch is labelled with the key
+        that reaches it, so the palette is also the key map. Clicking a swatch makes it the pen; clicking it again
+        clears it.</div>
     </div>
 
     <div class="box">
@@ -476,23 +478,29 @@ function drawGlyph(cv, code, scale) {
       if (S.glyphDot(code, r, c)) ctx.fillRect(c * scale, r * scale, scale, scale);
 }
 
-// All 128 glyphs, in code order.  A cell *is* a glyph code -- the chargen is
-// indexed with `chr & 0x7f` -- so nothing restricts a cell to a subset, and a
-// palette showing only the 34 non-typeable ones would hide the rest of the ROM.
+// The palette shows the set the pen mode works in, and only that: the 95 standard
+// characters, or the 34 graphical blocks.  A cell is a glyph code and the chargen is
+// indexed with `chr & 0x7f`, so all 128 remain available -- one mode switch away.
 //
-// The *label* is the key that reaches the glyph **in the pen mode you are in**,
-// because that is the thing you can act on: in standard characters glyph 0x41 is
-// "A"; in graphical characters glyph 0x00 is "A" and 0x41 has no key at all.  A
-// blank label means no key reaches it in this mode.  The tooltip always names both.
+// The label is the key that reaches the glyph in the mode you are in, because that is
+// the thing you can act on.  The tooltip names the key in both modes.
 function modeLabel(mode) { return mode === 'sui65' ? 'graphical' : 'standard'; }
+
+// Columns chosen so each set fills its grid exactly: 95 = 5 x 19, 34 = 2 x 17.
+function paletteColumns(mode) { return mode === 'sui65' ? 17 : 19; }
+
+var paletteMode = null;
 
 function buildPalette() {
   var host = $('palette');
+  paletteMode = state.keys;
   host.innerHTML = '';
+  host.style.gridTemplateColumns = 'repeat(' + paletteColumns(state.keys) + ', 1fr)';
   paletteEls = [];
-  for (var g = 0; g < 128; g++) {
+  S.paletteSet(state.keys).forEach(function (g) {
     var d = document.createElement('div');
     d.className = 'swatch';
+    d.setAttribute('data-glyph', String(g));
     var cv = document.createElement('canvas');
     var lab = document.createElement('div');
     lab.className = 'k';
@@ -514,12 +522,22 @@ function buildPalette() {
     }(g)));
     host.appendChild(d);
     paletteEls.push({ el: d, cv: cv, lab: lab, glyph: g });
-  }
+  });
   redrawPalette();
+}
+
+// The set changes with the mode, so the swatches have to be rebuilt, not relabelled.
+function ensurePalette() {
+  if (paletteMode !== state.keys) buildPalette();
+  else redrawPalette();
 }
 
 function redrawPalette() {
   var other = (state.keys === 'sui65') ? 'direct' : 'sui65';
+  var set = S.paletteSet(state.keys);
+  $('paletteHint').textContent = 'showing the ' + set.length + ' ' +
+    (state.keys === 'sui65' ? 'graphical blocks' : 'standard characters') +
+    ' this pen mode can place.';
   paletteEls.forEach(function (p) {
     drawGlyph(p.cv, p.glyph, 2);
     var here = S.keyForGlyph(p.glyph, state.keys);
@@ -530,7 +548,12 @@ function redrawPalette() {
     bits.push(here === null
       ? 'no ' + modeLabel(state.keys) + ' key \u2014 pick it here'
       : modeLabel(state.keys) + ': type "' + here + '"');
-    if (there !== null && there !== here) bits.push(modeLabel(other) + ': "' + there + '"');
+    // Name the other mode too, including when it has no key for this glyph -- that
+    // is exactly the question "could I type this if I switched?".
+    if (there !== here) {
+      bits.push(modeLabel(other) + ': ' +
+        (there === null ? 'no key' : 'type "' + there + '"'));
+    }
     p.el.title = bits.join(' \u2014 ');
     p.el.className = 'swatch' + (state.penGlyph === p.glyph ? ' on' : '');
   });
@@ -558,7 +581,7 @@ function syncControls() {
 function each(list, fn) { Array.prototype.forEach.call(list, fn); }
 
 function syncDerived() {
-  redrawPalette();
+  ensurePalette();
   // The origin fields follow the state, so a programmatic move -- the home button
   // -- cannot leave the field showing a position the overlay is not at.  Not while
   // the field has focus, or a half-typed number would be overwritten.
