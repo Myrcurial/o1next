@@ -12,20 +12,31 @@
 ;  * the two pieces are independent of the *assembly*: the blob is extracted
 ;    from the same hex the monitor comes from
 ;
-;WHAT IS NOT
-;  * 85 syntax errors remain in the new lines.  The fixes found so far took it
-;    from 95: `LD B,A` must be `MOV B,A` (the ACT80 has no register-to-register
-;    LD -- DOCOP80.asm is the mnemonic reference), and the door's registers are
-;    best named (`DOORQ`/`DOORR`) because the vendor writes `STO A,PIABD`, not
-;    `STO A,2800H`.
-;  * reading the remaining messages is the blocker, and it is a *tooling* one:
-;    the ACT80 marks errors inline in the listing (an `E` in the left column) and
-;    prints no text, the listing is ~4700 lines, and tools/research/o1keys.sh
-;    hardcodes `-nothrottle` -- so it scrolls past in under a second of wall time.
-;    Recipes that work: (a) copy o1keys.sh and drop -nothrottle, then dump every
-;    2 seconds for several MINUTES (pass 1 alone is longer than 28 guest seconds,
-;    measured); or (b) add a `MAME_EXTRA`-style knob to o1keys.sh so a caller can
-;    throttle for diagnostics -- a small, useful change.
+;WHAT WAS WRONG, AND HOW IT WAS FOUND (2026-10-15, session 4)
+;  The new code reported 85 errors, and NOT ONE of them was the assembler's
+;  dialect -- the blob assembles clean on its own, and every form in it is a form
+;  DOCOP80.asm lists.  There were two defects, both read off the ACT80's own
+;  listing:
+;  * FIVE comment lines had lost their leading `;` (three of the four-line
+;    comment before SCRN, and two of the four-line one before DOOR), so four were
+;    assembled as illegal mnemonics -- an `I` marker each, three bytes of junk
+;    code each, injected at 0FB4h and 0FD9h -- and the fifth, `prompt's own CALL
+;    CI.`, as an unterminated string.  Five errors, and a moved SCRN and DOOR.
+;  * the blob sat INSIDE the vendor's `ECHO 0FFFH-RLWA ! DB 0FFH ... ENDM` block.
+;    `ECHO` repeats its body, so the blob was assembled and listed `0FFFH-RLWA`
+;    = 11 times: ten extra passes over its eight labels, and therefore **80
+;    duplicate-label errors**, which are the `D` markers.  The blob goes AFTER
+;    the vendor's `ENDM`; that is what the `ENDM` below marks.
+;  85 = 80 + 5.  With both fixed the same build reports `no ERRORs, 487 Labels,
+;  Program LWA = 40B7h`, and the guard is still silent.
+;
+;HOW THE LISTING IS READ (and why throttling was not the answer)
+;  `o1keys.sh` now takes `O1_MAME_EXTRA` (default `-nothrottle`), so a run can be
+;  throttled -- but the listing never needs watching.  The ACT80's `L=` option
+;  sends it to a *file*: `ACT80 B:ROM2 H=B: L=B:` leaves ROM2.PRN on drive B,
+;  complete and readable, at full speed.  Its markers are one character in the
+;  left column: `E` error, `I` illegal mnemonic, `U` undefined symbol, `D`
+;  duplicate label, `L` no code, `-` conditional false, `$` a Z80-relative fixup.
 ;
 ;THE LIST WINDOWS BELOW ARE PART OF THE DIAGNOSIS: `LIST -L,-R` turns the
 ;vendor's listing off and `LIST *` turns it back on for this code, so a run lists
@@ -36,9 +47,9 @@
 ;72 (docs/o1-rom-2.0.md 4.7), so the code lives in the interposer's flash and this
 ;is the stub that fetches it: PRESENT(3) puts it in window page 1, the LDIR copies
 ;it to RAM at 4000H, and the jump enters it.  The RAM code prints the fallback
-text, fills the attribute array bright, draws the frame if there is one, puts the
-payload back, and RETs -- which returns to this CALL's caller, the sign-on
-prompt's own CALL CI.
+;text, fills the attribute array bright, draws the frame if there is one, puts the
+;payload back, and RETs -- which returns to this CALL's caller, the sign-on
+;prompt's own CALL CI.
 ;
 ;With no screen code in the flash the door answers 09H and the stock sign-on
 ;message is printed instead, so an interposer without the blob is a 1.44
@@ -66,8 +77,8 @@ SCRN44:	LDK	DE,IMSG
 	RET
 ;THE DOOR, and both callers share it -- the stub above and the RAM code below.
 ;B is the opcode, C its operand, and the result code comes back in A.  The
-transaction is the mailbox protocol's: the reply register reads 0 while the
-firmware is not ready, then the length, then the bytes (docs/mailbox-protocol.md
+;transaction is the mailbox protocol's: the reply register reads 0 while the
+;firmware is not ready, then the length, then the bytes (docs/mailbox-protocol.md
 ;3).  The address is 2800H/2801H, not 2300H/2301H, because the onboard selects
 ;check two address bits and 2301H is the floppy's track register as well as the
 ;keyboard's row 0 (docs/rom-pico-protocol.md 2, docs/o1-mainboard-schematic.md 7a).
@@ -91,6 +102,11 @@ RLWA	=	*		;LWA OF ROM RESIDENT CODE
 	ENDIF
 
 	ECHO	0FFFH-RLWA  !	DB   0FFH
+	ENDM			;THE VENDOR'S OWN, AND THE BLOB MUST FOLLOW IT.  `ECHO`
+				;repeats its body, so code placed *inside* this block
+				;is assembled and listed `0FFFH-RLWA` times -- 11 here,
+				;which is 10 extra passes over the blob's 8 labels and
+				;80 duplicate-label errors.  Measured 2026-10-15 (#247).
 	ORG	4000H		;THE SCREEN'S CODE, where the stub puts it (#247)
 SCRN40:
 	PROC
