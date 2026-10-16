@@ -204,6 +204,13 @@ What it writes:
 - **PNG** and **animated GIF** of the frame or the viewport, in one of four
   monitor palettes, with dim cells drawn dim.
 
+An animation is built with **copy forward**: take the screen or the viewport, move
+it by an offset in columns and rows, and write it into the next frame — adding one
+if there is no next one. The offset is unrestricted and either direction, because
+the tool is not the device; and under the control is a readout of **what the
+firmware would have to blit** for each transition, since the Pico diffs consecutive
+frames rather than copying them (#247).
+
 ```sh
 node tools/bootsplash/selftest.js     # 40 checks, no dependencies
 node tools/bootsplash/ui-test.js      # 46 checks, needs jsdom

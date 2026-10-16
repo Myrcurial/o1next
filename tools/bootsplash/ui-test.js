@@ -369,6 +369,40 @@ check('the GIF palette is the monitor palette',
   check('and the frame that came back is the frame that went in',
         sameCells(back[0], { cells: f[1].cells, attrs: f[1].attrs }));
 
+  // --- 9. copy forward, with an offset ------------------------------------
+  section('copy forward, with an offset');
+  // The import left exactly one frame.  Put a glyph in it, then move the screen.
+  // The character pen first: the palette swatch clicked earlier is still the pen,
+  // and it would paint the hatch on the click instead.
+  pickRadio('face', 'char');
+  clickCell(0, 0);
+  type('p');
+  setValue('copyFrom', 'screen');
+  setValue('copyDx', 4);
+  setValue('copyDy', 2);
+  clickOn('copyNext');
+  check('copy adds a frame when there is no next one',
+        $('frameCount').textContent === '2 / 2', $('frameCount').textContent);
+  const copyStatus = status();
+  const fr = currentFrames();
+  check('the new frame is the old one, moved four right and two down',
+        fr.length === 2 && fr[1].cells[2 * S.COLS + 4] === 0x70 &&
+        fr[1].cells[0] === S.BLANK,
+        '0x' + S.hex(fr[1].cells[2 * S.COLS + 4], 2) + ' where it landed, 0x' +
+        S.hex(fr[1].cells[0], 2) + ' where it was');
+  check('and the status says what it did',
+        /moved the screen by \(\+4, \+2\)/.test(copyStatus), copyStatus);
+  const dd = S.frameDiff(fr[0].cells, fr[0].attrs, fr[1].cells, fr[1].attrs);
+  check('the diff is 2 cells, not 4096 -- which is the whole point',
+        dd.cells === 2, dd.cells + ' cells');
+  check('and the readout says so', /2 of 4088 cells differ/.test($('diffHint').textContent),
+        $('diffHint').textContent);
+  // With a next frame already there, it copies into it rather than adding one.
+  clickOn('prev');
+  clickOn('copyNext');
+  check('with a next frame present it copies into that one instead',
+        $('frameCount').textContent === '2 / 2', $('frameCount').textContent);
+
   finish();
 }()).catch(function (e) {
   console.log('  FAIL  the tail threw: ' + ((e && e.stack) || e));

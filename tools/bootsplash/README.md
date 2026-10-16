@@ -174,6 +174,43 @@ is nothing yet to conform to, and it is one constant to change. What is *not* a
 proposal is the 8192 bytes behind it — `tail -c +33 out.bin` is a valid frame
 today, and for a one-frame animation it is `frame.bin` exactly.
 
+## Building an animation: copy forward, with an offset
+
+An animation is built by copying a frame forward and moving it. The control takes
+a source — **screen** (128×32) or **viewport** (N×24) — and an offset in columns
+and rows, and writes it into the next frame, **adding a frame if there is no next
+one** (as a copy of the current one, so the animation carries on from where it
+was).
+
+The tool is not the device, so there is no reason to move a picture a few cells at
+a time, and the offset is not restricted to small or hardware-plausible moves: any
+offset, either direction. Three things define the result, and they are the whole
+contract:
+
+- **the offset moves the content.** Columns `+4` is four cells right; rows `−2` is
+  two rows up.
+- **the destination is the same rectangle as the source, and it is cleared first**,
+  so content that moves away leaves a blank cell rather than a smear of what used
+  to be there.
+- **what moves out of the rectangle is clipped, not wrapped.** The video RAM *is* a
+  ring buffer, but wrapping a picture is a different operation from moving one, and
+  moving one is what this is for.
+
+Underneath it there is a readout, and it is the interesting number:
+
+```
+frame 1 → 2: 6 of 4088 cells differ (0.1%), in 2 of 32 rows.
+The firmware blits that diff, not the frame; the whole animation is 3 cells
+over 2 transitions (worst 2).
+```
+
+Because the point of being able to blast whole frames in is that **the firmware
+does not have to blit whole frames**. A four-column, two-row move of the screen
+*writes* 3716 cells and *differs* by six. The tool writes the rectangle and counts
+the diff; **the diffing itself is #247's job, on the Pico.** Nothing in the `.bin`
+depends on the readout — it is there so a designer can see what the firmware will
+actually be asked to move.
+
 ## What is checked
 
 `selftest.js` does not take this tool's word for anything:
@@ -187,6 +224,12 @@ today, and for a one-frame animation it is `frame.bin` exactly.
   `chars_half`/`attrs_half`/`seal`;
 - the committed frame survives `planes → buildFrame` unchanged;
 - a bent byte, a bent magic and a truncated container are each caught;
+- the **copy-forward shift** is checked as a contract: a shift of (0,0) is the
+  identity, a move writes the whole rectangle it can and leaves a blank where the
+  content was, a shift far enough to clip still clears what it vacates, a viewport
+  blit touches nothing outside the viewport, and the trailer's cells are never read
+  or written — while the *diff* for the same move is a handful of cells, which is
+  the number that matters;
 - the PNG decodes back to the pixels that went in under **both** deflate paths
   (stored blocks and zlib), and `sips` agrees it is that size;
 - the GIF decodes back to the frames that went in under **two independent

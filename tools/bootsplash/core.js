@@ -413,6 +413,105 @@
                       lines.some(function (l) { return l.length > COLS; }) };
   }
 
+  // --- moving a rectangle of cells, and what a diff costs -------------------
+  //
+  // The tool is not the device: it has no blitter budget and no reason to move a
+  // picture a little at a time.  So `blitShifted` moves a whole rectangle by any
+  // offset at all, and `frameDiff` only *counts* what a frame-to-frame diff would
+  // have to touch -- the diffing itself is the firmware's job (#247), and this is
+  // how the designer can see the size of it.
+  //
+  // The semantics of the shift, stated once because they are the whole contract:
+  //
+  //   * `dx`, `dy` are applied to the **content's position**.  `dx = +4` moves the
+  //     picture four cells right; `dy = -2` moves it two rows up.
+  //   * the destination rectangle is the *same rectangle* as the source, and it is
+  //     **cleared first**, so content that moves away leaves a blank cell rather
+  //     than a smear of what used to be there.
+  //   * content shifted outside the rectangle is **clipped**, not wrapped.  (The
+  //     hardware's video RAM *is* a ring buffer, but wrapping a picture is a
+  //     different operation from moving one, and moving one is what this is for.)
+  //   * the trailer's eight cells are never read and never written.
+
+  function blitShifted(srcCells, srcAttrs, dstCells, dstAttrs, box, dx, dy) {
+    // Snapshot the source rectangle first, so the caller may pass the same frame
+    // for both if it ever wants to -- the clear below would otherwise eat it.
+    var sc = new Uint8Array(box.cols * box.rows);
+    var sa = new Uint8Array(box.cols * box.rows);
+    var r, c, i;
+    for (r = 0; r < box.rows; r++) {
+      var sr = box.row0 + r;
+      for (c = 0; c < box.cols; c++) {
+        var scc = box.col0 + c;
+        i = r * box.cols + c;
+        if (sr < 0 || sr >= ROWS || scc < 0 || scc >= COLS) continue;
+        var si = sr * COLS + scc;
+        if (isReserved(si)) continue;
+        sc[i] = srcCells[si];
+        sa[i] = srcAttrs[si] ? 1 : 0;
+      }
+    }
+    // Clear the destination rectangle.
+    for (r = 0; r < box.rows; r++) {
+      var dr = box.row0 + r;
+      if (dr < 0 || dr >= ROWS) continue;
+      for (c = 0; c < box.cols; c++) {
+        var dcc = box.col0 + c;
+        if (dcc < 0 || dcc >= COLS) continue;
+        var di = dr * COLS + dcc;
+        if (isReserved(di)) continue;
+        dstCells[di] = BLANK;
+        dstAttrs[di] = 1;
+      }
+    }
+    // Blit it back, shifted and clipped.
+    var moved = 0;
+    for (r = 0; r < box.rows; r++) {
+      var syr = box.row0 + r, dyr = syr + dy;
+      if (dyr < 0 || dyr >= ROWS) continue;
+      for (c = 0; c < box.cols; c++) {
+        var sxc = box.col0 + c, dxc = sxc + dx;
+        if (dxc < 0 || dxc >= COLS) continue;
+        var sii = syr * COLS + sxc, dii = dyr * COLS + dxc;
+        if (isReserved(sii) || isReserved(dii)) continue;
+        var k = r * box.cols + c;
+        dstCells[dii] = sc[k];
+        dstAttrs[dii] = sa[k];
+        moved++;
+      }
+    }
+    return moved;
+  }
+
+  // What a frame-to-frame diff would have to touch.  `rows` is there because a
+  // row-granular blit is the obvious cheap implementation: a change in one cell
+  // costs a whole 128-byte row if that is how you move it.
+  function frameDiff(aCells, aAttrs, bCells, bAttrs) {
+    var cells = 0, rows = 0, touched = new Uint8Array(ROWS);
+    for (var i = 0; i < FRAME; i++) {
+      if (isReserved(i)) continue;
+      if (aCells[i] !== bCells[i] ||
+          (aAttrs[i] ? 1 : 0) !== (bAttrs[i] ? 1 : 0)) {
+        cells++;
+        touched[Math.floor(i / COLS)] = 1;
+      }
+    }
+    for (var r = 0; r < ROWS; r++) rows += touched[r];
+    return { cells: cells, rows: rows, of: FRAME - 8 };
+  }
+
+  // The whole animation's cost, if every transition is blitted.
+  function animationDiff(frames) {
+    var cells = 0, worst = 0;
+    for (var i = 0; i + 1 < frames.length; i++) {
+      var d = frameDiff(frames[i].cells, frames[i].attrs,
+                        frames[i + 1].cells, frames[i + 1].attrs);
+      cells += d.cells;
+      if (d.cells > worst) worst = d.cells;
+    }
+    return { cells: cells, worst: worst, transitions: Math.max(0, frames.length - 1) };
+  }
+
   // --- the monitor, and the renderer ---------------------------------------
   //
   // Rendering is *indexed*: 0 paper, 1 ink, 2 dim ink, 3 spare.  One geometry,
@@ -737,6 +836,7 @@
     parseArtText: parseArtText,
     paletteFor: paletteFor, renderIndexed: renderIndexed,
     indicesToRGBA: indicesToRGBA,
+    blitShifted: blitShifted, frameDiff: frameDiff, animationDiff: animationDiff,
     deflateStored: deflateStored, deflateAuto: deflateAuto, encodePNG: encodePNG,
     lzwEncode: lzwEncode, encodeGIF: encodeGIF
   };

@@ -199,6 +199,22 @@ details > summary { cursor: pointer; color: var(--cream); }
       </div>
       <div class="filmstrip" id="filmstrip"></div>
       <div class="row">
+        <label for="copyFrom">Copy forward</label>
+        <select id="copyFrom">
+          <option value="screen" selected>screen (128&times;32)</option>
+          <option value="viewport">viewport</option>
+        </select>
+        <label for="copyDx">by columns</label>
+        <input type="number" id="copyDx" value="0" min="-127" max="127" style="width:62px"
+               title="+ moves the picture right, - moves it left">
+        <label for="copyDy">rows</label>
+        <input type="number" id="copyDy" value="0" min="-31" max="31" style="width:58px"
+               title="+ moves the picture down, - moves it up">
+        <button id="copyNext" class="primary" title="copy this frame's screen or viewport into the next frame, moved by the offset; adds a frame if there is no next one">copy &rarr; next</button>
+      </div>
+      <div class="hint" id="copyHint">The offset moves the picture: <b>columns +4</b> is four cells right, <b>rows &minus;2</b> is two up. The rectangle is cleared first, and what moves out of it is clipped, not wrapped.</div>
+      <div class="hint" id="diffHint"></div>
+      <div class="row">
         <label for="fps">Frames per second</label>
         <input type="number" id="fps" value="10" min="1" max="60" style="width:64px">
         <label><input type="checkbox" id="loop" checked> loop</label>
@@ -485,6 +501,7 @@ function renderAll() {
   highlightFilmstrip();
   $('frameCount').textContent = (state.frame + 1) + ' / ' + state.frames.length;
   $('artText').textContent = S.artText(cur().cells);
+  updateDiff();
   syncDerived();
 }
 
@@ -761,6 +778,76 @@ $('delFrame').addEventListener('click', function () {
   rebuildAll();
   say('deleted; ' + state.frames.length + ' frames left.');
 });
+
+// --- copy forward, with an offset -----------------------------------------
+//
+// The tool has no blitter budget, so there is no reason to move a picture a few
+// cells at a time: it moves the whole rectangle by any offset at all and lets the
+// *firmware* diff consecutive frames and write only what changed.  diffHint below
+// is how big that diff is -- the tool counts it, it does not do it.
+//
+// The offset moves the *content*: columns +4 is four cells right, rows -2 is two
+// up.  The destination is the same rectangle as the source, it is cleared first,
+// and anything moved out of it is clipped rather than wrapped.
+
+function clampInt(value, lo, hi, fallback) {
+  var n = parseInt(value, 10);
+  if (isNaN(n)) n = fallback;
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function copyBox() {
+  if ($('copyFrom').value === 'viewport') {
+    return { col0: state.col0, row0: state.row0,
+             cols: state.columns, rows: S.VIEWPORT_ROWS };
+  }
+  return { col0: 0, row0: 0, cols: S.COLS, rows: S.ROWS };
+}
+
+function fmtOffset(dx, dy) {
+  function s(n) { return (n > 0 ? '+' : '') + n; }
+  return '(' + s(dx) + ', ' + s(dy) + ')';
+}
+
+$('copyNext').addEventListener('click', function () {
+  var dx = clampInt($('copyDx').value, -S.COLS, S.COLS, 0);
+  var dy = clampInt($('copyDy').value, -S.ROWS, S.ROWS, 0);
+  var box = copyBox();
+  var from = state.frame;
+  var added = false;
+  if (from + 1 >= state.frames.length) {
+    state.frames.push(copyFrame(state.frames[from]));
+    added = true;
+  }
+  var to = from + 1;
+  var moved = S.blitShifted(state.frames[from].cells, state.frames[from].attrs,
+                            state.frames[to].cells, state.frames[to].attrs,
+                            box, dx, dy);
+  state.frame = to;
+  rebuildAll();
+  var what = ($('copyFrom').value === 'viewport') ? 'viewport' : 'screen';
+  say((added ? 'added frame ' + (to + 1) + ' as a copy of ' + (from + 1) + ', then ' : '') +
+      'moved the ' + what + ' by ' + fmtOffset(dx, dy) + ' into frame ' + (to + 1) +
+      ' \u2014 ' + moved + ' cells written. What the firmware has to blit is the ' +
+      'diff, not the frame.');
+});
+
+function updateDiff() {
+  if (state.frames.length < 2) {
+    $('diffHint').textContent = 'one frame: nothing to diff yet.';
+    return;
+  }
+  var i = Math.min(state.frame, state.frames.length - 2);
+  var a = state.frames[i], b = state.frames[i + 1];
+  var d = S.frameDiff(a.cells, a.attrs, b.cells, b.attrs);
+  var all = S.animationDiff(state.frames);
+  $('diffHint').textContent = 'frame ' + (i + 1) + ' \u2192 ' + (i + 2) + ': ' +
+    d.cells + ' of ' + d.of + ' cells differ (' +
+    (100 * d.cells / d.of).toFixed(1) + '%), in ' + d.rows + ' of ' + S.ROWS +
+    ' rows. The firmware blits that diff, not the frame; the whole animation is ' +
+    all.cells + ' cells over ' + all.transitions + ' transition' +
+    (all.transitions === 1 ? '' : 's') + ' (worst ' + all.worst + ').';
+}
 
 // --- the preview ----------------------------------------------------------
 function renderPreview() {

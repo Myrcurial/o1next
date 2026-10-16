@@ -287,7 +287,85 @@ section('the art text form');
 const D = require('./decoders.js');
 const decodePNG = D.decodePNG, decodeGIF = D.decodeGIF, decodeBMP = D.decodeBMP;
 
-// --- 6. the PNG ------------------------------------------------------------
+// --- 6. moving a rectangle, and the diff it leaves -------------------------
+//
+// The point of this section: the *blit* is the whole rectangle, and the *diff* is
+// whatever actually changed.  Those two numbers are very different, and the whole
+// design of the copy-forward control rests on that difference.
+section('the copy-forward shift, and the diff it leaves');
+{
+  const src = S.blankCells(), sattrs = S.brightAttrs();
+  src[5 * S.COLS + 0] = 0x43;
+  src[5 * S.COLS + 10] = 0x41;
+  src[5 * S.COLS + 11] = 0x42;
+  const screen = { col0: 0, row0: 0, cols: S.COLS, rows: S.ROWS };
+
+  // Identity: the rectangle is cleared and then written back from itself.
+  const same = S.blankCells(), sameA = S.brightAttrs();
+  S.blitShifted(src, sattrs, same, sameA, screen, 0, 0);
+  let diff = 0;
+  for (let i = 0; i < S.FRAME; i++)
+    if (same[i] !== src[i] || sameA[i] !== sattrs[i]) diff++;
+  check('a shift of (0,0) over the screen is the identity', diff === 0,
+        diff + ' cells differ');
+
+  // A real move: right 4, up 2.
+  const dst = S.blankCells(), dattrs = S.brightAttrs();
+  const moved = S.blitShifted(src, sattrs, dst, dattrs, screen, 4, -2);
+  check('the glyphs moved right 4 and up 2',
+        dst[3 * S.COLS + 14] === 0x41 && dst[3 * S.COLS + 15] === 0x42 &&
+        dst[3 * S.COLS + 4] === 0x43,
+        'row 3: 0x' + S.hex(dst[3 * S.COLS + 4], 2) + ' 0x' +
+        S.hex(dst[3 * S.COLS + 14], 2) + ' 0x' + S.hex(dst[3 * S.COLS + 15], 2));
+  check('and they are not where they were', dst[5 * S.COLS + 10] === S.BLANK &&
+        dst[5 * S.COLS + 11] === S.BLANK);
+  // 124 columns x 30 rows land inside; the rest clips.  Four of those source
+  // cells are in row 31's trailer, which is never read as source material.
+  check('the blit wrote 124 x 30, less the trailer\'s four cells',
+        moved === 124 * 30 - 4, moved + ' cells');
+  const d = S.frameDiff(src, sattrs, dst, dattrs);
+  check('but the diff is 6 cells in 2 rows, not the whole frame',
+        d.cells === 6 && d.rows === 2, d.cells + ' cells in ' + d.rows + ' rows');
+  check('the diff denominator is the 4088 cells the designer owns', d.of === 4088);
+
+  // Clipping: far enough that almost everything falls off, and the vacated cells
+  // are still cleared -- which is what makes a move look like a move.
+  const clip = S.blankCells(), clipA = S.brightAttrs();
+  const movedClip = S.blitShifted(src, sattrs, clip, clipA, screen, 127, 0);
+  check('a shift that clips still clears what it vacates',
+        clip[5 * S.COLS + 10] === S.BLANK && clip[5 * S.COLS + 11] === S.BLANK);
+  check('and reports only the column that landed, less the trailer cell',
+        movedClip === S.ROWS - 1, movedClip + ' cells');
+  check('the content that landed is the source column 0', clip[5 * S.COLS + 127] === 0x43,
+        '0x' + S.hex(clip[5 * S.COLS + 127], 2));
+
+  // A viewport blit clips to the viewport, and touches nothing outside it.
+  const vp = S.blankCells(), vpA = S.brightAttrs();
+  const movedVp = S.blitShifted(src, sattrs, vp, vpA,
+                                { col0: 10, row0: 0, cols: 52, rows: 24 }, 0, 0);
+  check('a viewport blit writes exactly the viewport: 52 x 24', movedVp === 52 * 24,
+        movedVp + ' cells');
+  check('inside it is the source, outside it is untouched',
+        vp[5 * S.COLS + 10] === 0x41 && vp[5 * S.COLS + 62] === S.BLANK &&
+        vp[25 * S.COLS + 10] === S.BLANK);
+
+  // The animation's total cost, and the worst single transition.
+  const f1 = { cells: S.blankCells(), attrs: S.brightAttrs() };
+  const f2 = { cells: S.blankCells(), attrs: S.brightAttrs() };
+  f2.cells[0] = 0x41;
+  const f3 = { cells: S.blankCells(), attrs: S.brightAttrs() };
+  f3.cells[1] = 0x41;
+  const all = S.animationDiff([f1, f2, f3]);
+  check('animationDiff sums the transitions and reports the worst',
+        all.cells === 3 && all.transitions === 2 && all.worst === 2,
+        JSON.stringify(all));
+  check('a row is counted as touched once, however many cells changed in it',
+        S.frameDiff(f1.cells, f1.attrs, f3.cells, f3.attrs).rows === 1);
+  check('identical frames diff to nothing',
+        S.frameDiff(f1.cells, f1.attrs, f1.cells, f1.attrs).cells === 0);
+}
+
+// --- 7. the PNG ------------------------------------------------------------
 section('the PNG');
 {
   const { cells, attrs } = sampleScreen();
@@ -353,7 +431,7 @@ section('the PNG');
   });
 }
 
-// --- 7. the GIF ------------------------------------------------------------
+// --- 8. the GIF ------------------------------------------------------------
 //
 // Two decoders on purpose.  Ours proves the bit packing and the code-width rule
 // against a reader written from the spec; macOS's ImageIO proves it against an
