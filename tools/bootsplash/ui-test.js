@@ -96,6 +96,27 @@ function typeMod(key) {
   window.dispatchEvent(new window.KeyboardEvent('keydown',
     { key: key, ctrlKey: true, bubbles: true, cancelable: true }));
 }
+function typeAlt(key) {
+  window.dispatchEvent(new window.KeyboardEvent('keydown',
+    { key: key, altKey: true, bubbles: true, cancelable: true }));
+}
+// A drag, as the page receives one.  Deliberately without a DataTransfer: jsdom has
+// none, and the filmstrip's handlers are written not to need one -- which is exactly
+// what makes the drag testable here at all.
+function dragThumb(from, to) {
+  const t = doc.querySelectorAll('#filmstrip .thumb');
+  const ev = (type) => new window.Event(type, { bubbles: true, cancelable: true });
+  t[from].dispatchEvent(ev('dragstart'));
+  t[to].dispatchEvent(ev('dragover'));
+  t[to].dispatchEvent(ev('drop'));
+}
+// Hand the file input a file, the way the browser does.
+function importFile(bytes, name) {
+  const file = new window.File([bytes], name, { type: 'application/octet-stream' });
+  const input = $('file');
+  Object.defineProperty(input, 'files', { value: [file], configurable: true });
+  input.dispatchEvent(new window.Event('change', { bubbles: true }));
+}
 function dragSelect(r0, c0, r1, c1) {
   const rect = $('screen').getBoundingClientRect();
   const at = (row, col) => ({
@@ -377,14 +398,15 @@ check('frame 0 still holds what was typed into it',
 // --- 5. the .bin ----------------------------------------------------------
 section('the .bin download');
 setValue('fps', 15);
-$('loop').checked = false;
-$('loop').dispatchEvent(new window.Event('change', { bubbles: true }));
+setValue('mode', 'once');
 blobs.length = 0;
 clickOn('dlBin');
 const raw = lastBytes();
 const anim = S.parseAnimation(raw);
-check('the header carries the fps and the loop flag',
-      anim.ok && anim.fps === 15 && anim.loop === false, anim.why || ('fps ' + anim.fps));
+check('the header carries the fps and the playback mode',
+      anim.ok && anim.fps === 15 && anim.mode === 'once' && anim.loop === false &&
+      raw[9] === 0,
+      anim.why || ('fps ' + anim.fps + ', flags ' + raw[9] + ', mode ' + anim.mode));
 check('the header says 128 x 32',
       (raw[10] | raw[11] << 8) === S.COLS && (raw[12] | raw[13] << 8) === S.ROWS);
 check('the file is the header plus three frames',
@@ -393,6 +415,37 @@ check('tail -c +33 of the container is frame 0, unchanged',
       Buffer.from(raw.subarray(S.ANIM_HEADER, S.ANIM_HEADER + S.FRAME * 2))
         .equals(Buffer.from(anim.frames[0])));
 check('the status reports what it wrote', /wrote bootsplash\.bin/.test(status()), status());
+
+// Ping-pong is the second flag bit, and it is a *mode*: the byte, the parser and
+// the status line all have to agree, because a bit nobody writes is a mode nobody
+// gets.
+setValue('mode', 'pingpong');
+blobs.length = 0;
+clickOn('dlBin');
+const pp = lastBytes();
+check('ping-pong is written as flags 3: bit 0 loop and bit 1 ping-pong',
+      pp[9] === (S.ANIM_LOOP | S.ANIM_PINGPONG), 'flags ' + pp[9]);
+check('and the parser reads a mode back, not just a bit',
+      S.parseAnimation(pp).mode === 'pingpong' && S.parseAnimation(pp).pingpong === true &&
+      S.parseAnimation(pp).loop === true, S.parseAnimation(pp).mode);
+check('and the status names the mode and the flags it wrote',
+      /ping-pong \(flags 3\)/.test(status()), status());
+
+// And the one-shot bounce is its own mode, not a normalised ping-pong: flags 2,
+// which is bit 1 without bit 0, and it has to survive the round trip as itself.
+setValue('mode', 'pingpong-once');
+blobs.length = 0;
+clickOn('dlBin');
+const ppOnce = lastBytes();
+check('ping-pong once is written as flags 2: bit 1 without bit 0',
+      ppOnce[9] === S.ANIM_PINGPONG, 'flags ' + ppOnce[9]);
+check('and it comes back as its own mode, not as a ping-pong',
+      S.parseAnimation(ppOnce).mode === 'pingpong-once' &&
+      S.parseAnimation(ppOnce).pingpong === true &&
+      S.parseAnimation(ppOnce).loop === false, S.parseAnimation(ppOnce).mode);
+check('and the status calls it what it is',
+      /ping-pong once \(flags 2\)/.test(status()), status());
+setValue('mode', 'loop');
 
 // --- 6. the .txt ----------------------------------------------------------
 section('the .txt download');
@@ -432,8 +485,7 @@ function sameGlyphs(a, b) {
 // what this section expects -- the page's own default is 1x.
 setValue('zoom', 2);
 section('the .gif download');
-$('loop').checked = true;                      // the .bin test turned it off
-$('loop').dispatchEvent(new window.Event('change', { bubbles: true }));
+setValue('mode', 'loop');                      // the .bin test left it somewhere else
 blobs.length = 0;
 downloads.length = 0;
 clickOn('dlGif');
@@ -455,6 +507,39 @@ check('and its pixels are the ones the renderer produced',
 check('the GIF palette is the monitor palette',
       JSON.stringify(gif.frames[0].palette) === JSON.stringify(S.paletteFor('white')));
 
+// A ping-pong GIF carries the bounce *in its frames*, because the GIF is a preview
+// of what the machine plays and the machine plays the way back.  Three frames are
+// 1 2 3 2 and then round again -- the ends appear once each.
+setValue('mode', 'pingpong');
+blobs.length = 0;
+clickOn('dlGif');
+const bounce = D.decodeGIF(Buffer.from(lastBytes()));
+check('a ping-pong GIF writes the bounce out, not just the forward pass',
+      bounce.frames.length === 4, bounce.frames.length + ' frames');
+check('and the fourth frame is the second frame again',
+      sameIdx(bounce.frames[3].idx, S.renderIndexed(f[1].cells, f[1].attrs, vpOpts).idx));
+check('and it still repeats, because a ping-pong does', bounce.loopCount === 0,
+      'loop count ' + bounce.loopCount);
+check('and the status says the bounce is in the file',
+      /the bounce is written out in full: 3 frames and 1 on the way back/.test(status()),
+      status());
+setValue('mode', 'pingpong-once');
+
+// The one-shot bounce is the same frames plus the return to frame 1, and the GIF
+// must not repeat it -- the file has to stop where the machine stops.
+blobs.length = 0;
+clickOn('dlGif');
+const onceGif = D.decodeGIF(Buffer.from(lastBytes()));
+check('a one-shot bounce writes 1 2 3 2 1 out, the return included',
+      onceGif.frames.length === 5, onceGif.frames.length + ' frames');
+check('and its last frame is the first frame again',
+      sameIdx(onceGif.frames[4].idx, S.renderIndexed(f[0].cells, f[0].attrs, vpOpts).idx));
+check('and the GIF does not repeat, because the machine does not',
+      onceGif.loopCount === null, 'loop count ' + onceGif.loopCount);
+check('and the status says the GIF stops on the last one',
+      /and the GIF stops on the last one/.test(status()), status());
+setValue('mode', 'loop');
+
 // --- 8. the .png, and a round trip through the import ---------------------
 (async function tail() {
   section('the .png download');
@@ -475,18 +560,20 @@ check('the GIF palette is the monitor palette',
 
   section('import');
   const one = S.buildAnimation([S.buildFrame(f[1].cells, f[1].attrs)], 7, true);
-  const file = new window.File([one], 'roundtrip.bin', { type: 'application/octet-stream' });
-  const input = $('file');
-  Object.defineProperty(input, 'files', { value: [file], configurable: true });
-  input.dispatchEvent(new window.Event('change', { bubbles: true }));
-  await waitFor(function () { return /imported/.test(status()); }, 3000);
+  importFile(one, 'roundtrip.bin');
+  await waitFor(function () { return /container of 1 frame/.test(status()); }, 3000);
   check('a .bin imports back: one frame, 7 fps, looping',
-        /imported 1 frame at 7 fps, looping/.test(status()), status());
+        /container of 1 frame at 7 fps, looping \(flags 1\)/.test(status()), status());
+  check('and the playback mode came back with it', $('mode').value === 'loop',
+        $('mode').value);
   check('and the frame count follows', $('frameCount').textContent === '1 / 1',
         $('frameCount').textContent);
   const back = currentFrames();
   check('and the frame that came back is the frame that went in',
         sameCells(back[0], { cells: f[1].cells, attrs: f[1].attrs }));
+  check('and a boolean still means what it meant before ping-pong existed',
+        S.buildAnimation([S.buildFrame(f[0].cells, f[0].attrs)], 10, false)[9] === 0 &&
+        S.buildAnimation([S.buildFrame(f[0].cells, f[0].attrs)], 10, true)[9] === S.ANIM_LOOP);
 
   // --- 9. copy forward, with an offset ------------------------------------
   section('copy forward, with an offset');
@@ -585,6 +672,203 @@ check('the GIF palette is the monitor palette',
         '0x' + S.hex(cf[0].cells[8 * S.COLS + 8], 2));
   check('and the cut cell is still blank where it was',
         cf[0].cells[5 * S.COLS + 5] === S.BLANK);
+
+  // --- 11. re-ordering the frames -----------------------------------------
+  section('re-ordering the frames');
+  // Four frames labelled A B C D in one cell each, so a move is checked by *which
+  // frame went where* and not by a count that any move would satisfy.
+  clickOn('last');
+  clickOn('addFrame');
+  clickOn('last');
+  clickOn('addFrame');
+  const letters = ['A', 'B', 'C', 'D'];
+  for (let i = 0; i < letters.length; i++) {
+    clickOn('first');
+    for (let k = 0; k < i; k++) clickOn('next');
+    clickCell(0, 0);
+    type(letters[i]);
+  }
+  const seq = () => currentFrames()
+    .map(function (p) { return String.fromCharCode(p.cells[0]); }).join('');
+  check('four frames, labelled in the order they sit', seq() === 'ABCD', seq());
+
+  clickOn('last');                                  // on D
+  clickOn('movePrev');
+  const movedSaid = status();
+  check('move-left takes the current frame one position earlier', seq() === 'ABDC', seq());
+  check('and the cursor followed the frame it moved, not the position',
+        $('frameCount').textContent === '3 / 4', $('frameCount').textContent);
+  check('and the status names where it came from and went to',
+        /moved frame 4 to position 3/.test(movedSaid), movedSaid);
+  clickOn('moveNext');
+  check('move-right puts it back', seq() === 'ABCD', seq());
+
+  clickOn('first');                                 // on A
+  typeAlt('ArrowRight');
+  check('Alt+Right moves the frame too', seq() === 'BACD', seq());
+  typeAlt('ArrowLeft');
+  check('and Alt+Left moves it back', seq() === 'ABCD', seq());
+  typeAlt('ArrowLeft');
+  const edgeSaid = status();
+  check('moving the first frame earlier says so instead of wrapping it round',
+        seq() === 'ABCD' && /already the first/.test(edgeSaid), edgeSaid);
+
+  // The ask that started this: frame 11 copied to 13.  Here D (frame 4) copied to
+  // position 2 leaves A D B C D -- the copy is *at* the position, and what was
+  // there moves along.
+  clickOn('last');                                  // on D
+  setValue('copyToPos', 2);
+  clickOn('copyTo');
+  const copySaid = status();
+  check('copy to position plants the copy at that position', seq() === 'ADBCD', seq());
+  check('and the animation grew by one frame', $('frameCount').textContent === '2 / 5',
+        $('frameCount').textContent);
+  const five = currentFrames();
+  check('and the copy is byte-identical to the frame it came from',
+        sameCells(five[1], five[4]), 'index 1 against the original at 4');
+  check('and the status says which frame went where',
+        /copied frame 4 to position 2/.test(copySaid), copySaid);
+
+  // The drag is the same move through a different door -- and it is driven here
+  // with no DataTransfer at all, which is what the handlers are written for.
+  const thumbs = () => doc.querySelectorAll('#filmstrip .thumb');
+  check('every thumbnail is a drag handle',
+        thumbs().length === 5 && thumbs()[0].draggable === true,
+        thumbs().length + ' thumbs, draggable=' + thumbs()[0].draggable);
+  dragThumb(4, 0);
+  check('dragging the last thumbnail to the front moves that frame',
+        seq() === 'DADBC', seq());
+  dragThumb(0, 0);
+  check('and dropping a thumbnail on itself changes nothing', seq() === 'DADBC', seq());
+
+  // --- 12. importing into a frame -----------------------------------------
+  section('importing into a frame');
+  // The workflow this exists for: a half-built animation is exported, and a frame
+  // drawn later is dropped into the position it belongs in.  "This frame" writes
+  // the file in where you are; "the whole animation" replaces everything.
+  const before = currentFrames();
+  const fpsBefore = $('fps').value, modeBefore = $('mode').value;
+  const soloCells = S.blankCells(), soloAttrs = S.brightAttrs();
+  soloCells[0] = 0x5A;                              // a 'Z' and nothing else
+  const bare = S.buildFrame(soloCells, soloAttrs);
+  setValue('importAs', 'here');
+  clickOn('last');
+  check('the hint says which frame the import will land in',
+        /starting at frame 5 of 5/.test($('importHint').textContent),
+        $('importHint').textContent);
+  importFile(bare, 'solo-frame.bin');               // 8192 bytes, no header
+  await waitFor(function () { return /Wrote 1 frame in at frame 5/.test(status()); }, 3000);
+  const bareSaid = status();
+  let after = currentFrames();
+  check('a bare 8192-byte frame lands in the frame you were on, and only there',
+        after.length === before.length && after[4].cells[0] === 0x5A &&
+        sameCells(after[0], before[0]) && sameCells(after[3], before[3]),
+        after.length + ' frames, frame 5 cell 0 = 0x' + S.hex(after[4].cells[0], 2));
+  check('and the status says what it replaced',
+        /Wrote 1 frame in at frame 5: 1 replaced, 5 frames now/.test(bareSaid), bareSaid);
+  check('and it says the file\u2019s fps and mode were left alone',
+        /fps and playback mode were left alone/.test(bareSaid), bareSaid);
+
+  // The same frame with the header on the front is the other shape a one-frame
+  // .bin comes in, and it has to behave identically.
+  importFile(S.buildAnimation([bare], 30, 'pingpong'), 'solo-headered.bin');
+  await waitFor(function () { return /an O1SPLASH container of 1 frame/.test(status()); }, 3000);
+  const headeredSaid = status();
+  after = currentFrames();
+  check('a one-frame container lands in the same place, header and all',
+        after.length === before.length && after[4].cells[0] === 0x5A &&
+        after[4].cells[1] === S.BLANK, after.length + ' frames');
+  check('and its fps and mode were ignored, because it is not the animation',
+        $('fps').value === fpsBefore && $('mode').value === modeBefore,
+        $('fps').value + ' fps, ' + $('mode').value + ' -- was ' + fpsBefore +
+        ' fps, ' + modeBefore);
+  check('and the status reports the flags it read without obeying them',
+        /at 30 fps, ping-pong \(flags 3\)/.test(headeredSaid), headeredSaid);
+
+  // A container of several frames grows the animation rather than refusing.
+  importFile(S.buildAnimation([bare, bare, bare], 9, 'loop'), 'trio.bin');
+  await waitFor(function () { return /Wrote 3 frames in at frame 5/.test(status()); }, 3000);
+  const trioSaid = status();
+  check('a multi-frame file imported into the last frame grows the animation',
+        currentFrames().length === 7, currentFrames().length + ' frames');
+  check('and the status says what it replaced and what it added',
+        /1 replaced, 2 added at the end/.test(trioSaid), trioSaid);
+
+  // And the other target still replaces the animation, fps and mode included.
+  setValue('importAs', 'all');
+  importFile(S.buildAnimation([bare], 7, 'once'), 'whole.bin');
+  await waitFor(function () {
+    return /an O1SPLASH container of 1 frame at 7 fps/.test(status());
+  }, 3000);
+  check('the other target replaces the animation outright',
+        currentFrames().length === 1 && $('frameCount').textContent === '1 / 1',
+        $('frameCount').textContent);
+  check('and takes its fps and playback mode with it, fields included',
+        $('fps').value === '7' && $('mode').value === 'once',
+        $('fps').value + ' fps, ' + $('mode').value);
+
+  // --- 13. ping-pong playback ---------------------------------------------
+  section('ping-pong playback');
+  // Five frames built here, so the bounce is unmistakable: 1 2 3 4 5 4 3 2 1 2 ...
+  const fiveFrames = [];
+  for (let i = 0; i < 5; i++) {
+    const c = S.blankCells(), a = S.brightAttrs();
+    c[0] = 0x41 + i;                                // A..E
+    fiveFrames.push(S.buildFrame(c, a));
+  }
+  importFile(S.buildAnimation(fiveFrames, 60, 'pingpong'), 'five.bin');
+  await waitFor(function () { return /container of 5 frames/.test(status()); }, 3000);
+  check('the mode came back from the file', $('mode').value === 'pingpong', $('mode').value);
+  check('and so did the fps', $('fps').value === '60', $('fps').value);
+  check('and the diff readout counts the way back, not just the forward pass',
+        /cost is counted twice/.test($('diffHint').textContent), $('diffHint').textContent);
+
+  clickOn('first');
+  clickOn('play');
+  check('the play state names the mode and counts the steps in one cycle',
+        /ping-pong \(8 steps, a cycle\)/.test($('playState').textContent),
+        $('playState').textContent);
+  const seen = [];
+  const until = Date.now() + 400;
+  while (Date.now() < until) {
+    const n = parseInt($('frameCount').textContent, 10);
+    if (seen[seen.length - 1] !== n) seen.push(n);
+    await new Promise(function (r) { window.setTimeout(r, 5); });
+  }
+  clickOn('play');                                  // stop
+  check('the preview walks to the last frame and back down, not round to the first',
+        seen.indexOf(5) >= 0 && seen[seen.indexOf(5) + 1] === 4, seen.join(' '));
+  check('and stopping puts the button back', $('play').textContent === 'play',
+        $('play').textContent);
+
+  // The one-shot bounce: same walk, but it comes back to frame 1 and stops there,
+  // which is the whole difference between flags 2 and flags 3.
+  setValue('mode', 'pingpong-once');
+  clickOn('first');
+  clickOn('play');
+  check('the play state counts the return and says it stops',
+        /ping-pong once \(9 steps, then it stops\)/.test($('playState').textContent),
+        $('playState').textContent);
+  const walked = [];
+  const stopBy = Date.now() + 400;
+  while (Date.now() < stopBy) {
+    const n = parseInt($('frameCount').textContent, 10);
+    if (walked[walked.length - 1] !== n) walked.push(n);
+    await new Promise(function (r) { window.setTimeout(r, 5); });
+  }
+  check('it goes up to the last frame, back down, and stops on frame 1',
+        $('play').textContent === 'play' && $('frameCount').textContent === '1 / 5',
+        $('play').textContent + ' on ' + $('frameCount').textContent);
+  check('and the walk is 1 2 3 4 5 4 3 2 1, the return included',
+        walked.join('') === '123454321', walked.join(' '));
+
+  setValue('mode', 'once');
+  clickOn('first');
+  clickOn('play');
+  await new Promise(function (r) { window.setTimeout(r, 400); });
+  check('once plays through and stops itself on the last frame',
+        $('play').textContent === 'play' && $('frameCount').textContent === '5 / 5',
+        $('play').textContent + ' on ' + $('frameCount').textContent);
 
   finish();
 }()).catch(function (e) {
