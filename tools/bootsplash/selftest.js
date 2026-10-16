@@ -396,6 +396,46 @@ section('the copy-forward shift, and the diff it leaves');
         S.frameDiff(f1.cells, f1.attrs, f3.cells, f3.attrs).rows === 1);
   check('identical frames diff to nothing',
         S.frameDiff(f1.cells, f1.attrs, f1.cells, f1.attrs).cells === 0);
+
+  // --- the clipboard, and the ninth bit -------------------------------------
+  // A selection is cells *and* their attribute bit, so a copy has to carry both --
+  // including the two things art text cannot: glyph 0x41-0x61, and the ninth bit.
+  const csrc = S.blankCells(), cattrs = S.brightAttrs();
+  csrc[10 * S.COLS + 20] = 0x41;                 // a capital, which art text cannot carry
+  cattrs[10 * S.COLS + 20] = 0;                  // and dim, which art text cannot carry either
+  csrc[10 * S.COLS + 21] = S.HATCH_CODE;
+  const cclip = S.copyRegion(csrc, cattrs, { col0: 20, row0: 10, cols: 2, rows: 1 });
+  check('copyRegion takes both planes, losslessly',
+        cclip.cols === 2 && cclip.rows === 1 && cclip.cells[0] === 0x41 &&
+        cclip.attrs[0] === 0 && cclip.cells[1] === S.HATCH_CODE && cclip.attrs[1] === 1,
+        '0x' + S.hex(cclip.cells[0], 2) + '/' + cclip.attrs[0] + ' and 0x' +
+        S.hex(cclip.cells[1], 2) + '/' + cclip.attrs[1]);
+
+  const cdst = S.blankCells(), cdattrs = S.brightAttrs();
+  const wrote = S.pasteRegion(cclip, cdst, cdattrs, 30, 12);
+  check('pasteRegion puts it down at the cursor, both planes',
+        wrote === 2 && cdst[12 * S.COLS + 30] === 0x41 && cdattrs[12 * S.COLS + 30] === 0 &&
+        cdst[12 * S.COLS + 31] === S.HATCH_CODE && cdattrs[12 * S.COLS + 31] === 1,
+        wrote + ' cells');
+
+  const cedge = S.blankCells(), ceattrs = S.brightAttrs();
+  check('paste clips at the right edge',
+        S.pasteRegion(cclip, cedge, ceattrs, S.COLS - 1, 20) === 1);
+  check('and never writes the trailer',
+        S.pasteRegion(cclip, S.blankCells(), S.brightAttrs(), S.COLS - 8, S.ROWS - 1) === 0);
+
+  // The ninth bit, on its own.  This is the operation that should never have needed
+  // the character entered again.
+  const flip = S.blankCells(), fattrs = S.brightAttrs();
+  flip[4 * S.COLS + 5] = 0x70;
+  const box1 = { col0: 5, row0: 4, cols: 1, rows: 1 };
+  check('invertAttrs flips the bit and leaves the glyph alone',
+        S.invertAttrs(fattrs, box1) === 1 && fattrs[4 * S.COLS + 5] === 0 &&
+        flip[4 * S.COLS + 5] === 0x70);
+  check('and flipping twice is the identity',
+        S.invertAttrs(fattrs, box1) === 1 && fattrs[4 * S.COLS + 5] === 1);
+  check('it flips a whole rectangle',
+        S.invertAttrs(fattrs, { col0: 0, row0: 0, cols: 3, rows: 2 }) === 6);
 }
 
 // --- 7. the PNG ------------------------------------------------------------

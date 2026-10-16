@@ -92,6 +92,21 @@ try {
 function type(key) {
   window.dispatchEvent(new window.KeyboardEvent('keydown', { key: key, bubbles: true, cancelable: true }));
 }
+function typeMod(key) {
+  window.dispatchEvent(new window.KeyboardEvent('keydown',
+    { key: key, ctrlKey: true, bubbles: true, cancelable: true }));
+}
+function dragSelect(r0, c0, r1, c1) {
+  const rect = $('screen').getBoundingClientRect();
+  const at = (row, col) => ({
+    clientX: rect.left + rect.width * (col + 0.5) / S.COLS,
+    clientY: rect.top + rect.height * (row + 0.5) / S.ROWS,
+    bubbles: true, cancelable: true
+  });
+  $('screen').dispatchEvent(new window.MouseEvent('mousedown', at(r0, c0)));
+  $('screen').dispatchEvent(new window.MouseEvent('mousemove', at(r1, c1)));
+  window.dispatchEvent(new window.MouseEvent('mouseup', at(r1, c1)));
+}
 function clickOn(id) { $(id).click(); }
 function setValue(id, value) {
   const el = $(id);
@@ -429,6 +444,66 @@ check('the GIF palette is the monitor palette',
   clickOn('copyNext');
   check('with a next frame present it copies into that one instead',
         $('frameCount').textContent === '2 / 2', $('frameCount').textContent);
+
+  // --- 10. the clipboard, and the ninth bit -------------------------------
+  section('the clipboard, and the ninth bit');
+  clickOn('first');
+  clickOn('pasteSel');
+  check('paste with an empty clipboard says so',
+        /clipboard is empty/.test(status()), status());
+
+  dragSelect(0, 0, 0, 1);
+  check('dragging makes a selection and the hint says how big',
+        /selection: 2\u00d71/.test($('selHint').textContent), $('selHint').textContent);
+  clickOn('copySel');
+  const copyMsg = status();
+  check('copy reports the rectangle', /copied 2\u00d71/.test(copyMsg), copyMsg);
+  check('and the hint knows the clipboard is not empty',
+        /clipboard: 2\u00d71/.test($('selHint').textContent), $('selHint').textContent);
+
+  clickCell(5, 5);
+  clickOn('pasteSel');
+  check('paste lands at the cursor', /pasted 2\u00d71 at row 5, column 5/.test(status()), status());
+  let cf = currentFrames();
+  check('the glyph came back, and so did the blank',
+        cf[0].cells[5 * S.COLS + 5] === 0x70 && cf[0].cells[5 * S.COLS + 6] === S.BLANK,
+        '0x' + S.hex(cf[0].cells[5 * S.COLS + 5], 2) + ' / 0x' +
+        S.hex(cf[0].cells[5 * S.COLS + 6], 2));
+
+  // Tab flips the ninth bit without the glyph being touched.  Assert against what
+  // the cell actually was, since the pen's brightness has been changed by earlier
+  // sections and this is about the *flip*, not about a particular state.
+  clickCell(5, 5);
+  cf = currentFrames();
+  const wasDim = cf[0].attrs[5 * S.COLS + 5] === 0;
+  type('Tab');
+  check('Tab names the state it flipped to',
+        new RegExp('now ' + (wasDim ? 'bright' : 'dim')).test(status()), status());
+  cf = currentFrames();
+  check('the ninth bit is the opposite of what it was, and the glyph is untouched',
+        cf[0].attrs[5 * S.COLS + 5] === (wasDim ? 1 : 0) &&
+        cf[0].cells[5 * S.COLS + 5] === 0x70,
+        'was ' + (wasDim ? 'dim' : 'bright') + ', now attr ' + cf[0].attrs[5 * S.COLS + 5] +
+        ', cell 0x' + S.hex(cf[0].cells[5 * S.COLS + 5], 2));
+  type('Tab');
+  cf = currentFrames();
+  check('and Tab again flips it back', cf[0].attrs[5 * S.COLS + 5] === (wasDim ? 0 : 1),
+        'attr ' + cf[0].attrs[5 * S.COLS + 5]);
+
+  // The usual keys, on a selection.
+  dragSelect(5, 5, 5, 6);
+  typeMod('x');
+  check('Ctrl-X cuts', /cut 2\u00d71/.test(status()), status());
+  cf = currentFrames();
+  check('and blanks what it took', cf[0].cells[5 * S.COLS + 5] === S.BLANK);
+  clickCell(8, 8);
+  typeMod('v');
+  cf = currentFrames();
+  check('Ctrl-V pastes it somewhere else',
+        cf[0].cells[8 * S.COLS + 8] === 0x70,
+        '0x' + S.hex(cf[0].cells[8 * S.COLS + 8], 2));
+  check('and the cut cell is still blank where it was',
+        cf[0].cells[5 * S.COLS + 5] === S.BLANK);
 
   finish();
 }()).catch(function (e) {

@@ -181,8 +181,9 @@ details > summary { cursor: pointer; color: var(--cream); }
       </div>
       <div class="row" style="margin:6px 0 0">
         <span class="hint">Click a cell, then type &mdash; every printable character is its own glyph, capitals
-          included. Arrows move, Enter is the next row, Space is the blank, drag to select a block. The 32 block
-          glyphs and the hatch come from the palette.</span>
+          included. Arrows move, Enter is the next row, Space is the blank, drag to select a block,
+          <b>Tab</b> flips bright/dim, and <b>Ctrl/Cmd-C, X, V</b> are copy, cut and paste. The 32 block glyphs
+          and the hatch come from the palette.</span>
       </div>
     </div>
 
@@ -259,13 +260,23 @@ details > summary { cursor: pointer; color: var(--cream); }
     </div>
 
     <div class="box">
-      <h2>Selection</h2>
+      <h2>Selection &amp; clipboard</h2>
+      <div class="hint" id="selHint"></div>
+      <div class="row">
+        <button id="copySel" title="Ctrl/Cmd-C">copy</button>
+        <button id="cutSel" title="Ctrl/Cmd-X">cut</button>
+        <button id="pasteSel" title="Ctrl/Cmd-V &mdash; pastes at the cursor">paste</button>
+        <button id="clearSel" class="danger">blank</button>
+      </div>
       <div class="row">
         <button id="fillSel">fill with pen</button>
         <button id="dimSel">dim</button>
         <button id="brightSel">bright</button>
-        <button id="clearSel" class="danger">blank</button>
+        <button id="toggleSel" class="primary" title="Tab &mdash; flips the ninth bit; the glyph stays put">toggle dim/bright</button>
       </div>
+      <div class="note">Drag on the grid to make a rectangle; with nothing selected these act on
+        the single cell under the cursor. The clipboard keeps both planes &mdash; the glyph <i>and</i>
+        the ninth bit &mdash; so it does not go through art text.</div>
     </div>
 
     <div class="box">
@@ -404,9 +415,9 @@ function layoutOverlays() {
     sb.style.left = pct(c0, C); sb.style.top = pct(r0, R);
     sb.style.width = pct(c1 - c0 + 1, C); sb.style.height = pct(r1 - r0 + 1, R);
   } else { sb.hidden = true; }
-  var n = s ? (Math.abs(s.c1 - s.c0) + 1) + '\u00d7' + (Math.abs(s.r1 - s.r0) + 1) : 'none';
   $('vphint').textContent = 'viewport ' + state.columns + '\u00d7' + S.VIEWPORT_ROWS +
-    ' at (' + state.col0 + ',' + state.row0 + '), selection ' + n;
+    ' at (' + state.col0 + ',' + state.row0 + ')';
+  updateSelHint();
 }
 
 // --- the graphics palette --------------------------------------------------
@@ -583,8 +594,23 @@ function typeKey(code) {
 window.addEventListener('keydown', function (e) {
   var t = e.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
-  if (e.metaKey || e.ctrlKey || e.altKey) return;
   var k = e.key, rowStart = Math.floor(state.cursor / S.COLS) * S.COLS;
+
+  // The clipboard, on the keys people already know, before the plain-key glyph
+  // handling below.
+  if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+    var lower = (k || '').toLowerCase();
+    if (lower === 'c') { doCopy(); e.preventDefault(); return; }
+    if (lower === 'x') { doCut(); e.preventDefault(); return; }
+    if (lower === 'v') { doPaste(); e.preventDefault(); return; }
+    return;
+  }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+  // Tab flips the ninth bit.  The glyph is already in the cell, so changing how
+  // bright it is must not mean entering it again.
+  if (k === 'Tab') { doToggle(); e.preventDefault(); return; }
+
   if (k === 'ArrowLeft') { move(0, -1); e.preventDefault(); return; }
   if (k === 'ArrowRight') { move(0, 1); e.preventDefault(); return; }
   if (k === 'ArrowUp') { move(-1, 0); e.preventDefault(); return; }
@@ -710,6 +736,73 @@ $('clearSel').addEventListener('click', function () {
   renderAll();
   say(selSize() + ' blanked.');
 });
+
+// --- the clipboard --------------------------------------------------------
+//
+// A selection is cells *and* their ninth bit, so a copy takes both planes and a
+// paste puts both back.  It deliberately does not go through art text: that is the
+// file format, and it cannot carry glyphs 0x41-0x61 or the attribute plane at all.
+
+var clipboard = null;
+
+// The core's rectangle operations take an origin and a size (that is what a render
+// or an export region is); a selection is stored as two corners, because that is
+// what dragging produces.  Convert in one place.
+function selBox() {
+  var b = selectionBounds();
+  return { col0: b.c0, row0: b.r0, cols: b.c1 - b.c0 + 1, rows: b.r1 - b.r0 + 1 };
+}
+
+function doCopy() {
+  clipboard = S.copyRegion(cur().cells, cur().attrs, selBox());
+  updateSelHint();
+  say('copied ' + clipboard.cols + '\u00d7' + clipboard.rows + ' cells, ninth bit and all. ' +
+      'Paste puts them down at the cursor.');
+}
+
+function doCut() {
+  clipboard = S.copyRegion(cur().cells, cur().attrs, selBox());
+  var n = 0;
+  forSelection(function (i) { cur().cells[i] = S.BLANK; cur().attrs[i] = 1; n++; });
+  renderAll();
+  say('cut ' + clipboard.cols + '\u00d7' + clipboard.rows + ' cells to the clipboard and ' +
+      'blanked ' + n + '.');
+}
+
+function doPaste() {
+  if (clipboard === null) {
+    say('the clipboard is empty \u2014 copy or cut something first.', 'warn');
+    return;
+  }
+  var r = Math.floor(state.cursor / S.COLS), c = state.cursor % S.COLS;
+  var n = S.pasteRegion(clipboard, cur().cells, cur().attrs, c, r);
+  renderAll();
+  say('pasted ' + clipboard.cols + '\u00d7' + clipboard.rows + ' at row ' + r +
+      ', column ' + c + ' \u2014 ' + n + ' cells written.');
+}
+
+// Flip the ninth bit under the cursor, or over the whole selection.  The glyph is
+// already there; this is the operation that never needed it entered again.
+function doToggle() {
+  var n = S.invertAttrs(cur().attrs, selBox());
+  renderAll();
+  if (n === 1) say('the cell is now ' + (cur().attrs[state.cursor] ? 'bright' : 'dim') + '.');
+  else say('flipped the ninth bit on ' + n + ' cells.');
+}
+
+function updateSelHint() {
+  var b = selectionBounds();
+  $('selHint').textContent =
+    (state.sel ? 'selection: ' + (b.c1 - b.c0 + 1) + '\u00d7' + (b.r1 - b.r0 + 1) + ' cells'
+               : 'no selection \u2014 the cell under the cursor') +
+    '; clipboard: ' + (clipboard === null ? 'empty'
+                                          : clipboard.cols + '\u00d7' + clipboard.rows) + '.';
+}
+
+$('copySel').addEventListener('click', doCopy);
+$('cutSel').addEventListener('click', doCut);
+$('pasteSel').addEventListener('click', doPaste);
+$('toggleSel').addEventListener('click', doToggle);
 
 // --- frames ---------------------------------------------------------------
 function goTo(n) {

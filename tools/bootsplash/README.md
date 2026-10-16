@@ -150,6 +150,23 @@ that array *reads back*: its low seven bits are not physically present and read
 high. The tool draws dim at 45% of the ink, so the attribute plane is visible
 rather than a number.
 
+## The selection, the clipboard, and the ninth bit
+
+Drag on the grid to make a rectangle. With nothing selected, every one of these
+actions applies to the single cell under the cursor — which is why they are all
+usable without a selection, and why the hint above them says which it is.
+
+| | |
+|---|---|
+| **copy**, **cut**, **paste** | `Ctrl`/`Cmd`-`C`, `-X`, `-V`, or the buttons. Paste puts the block down with its top-left corner at the cursor, clipped to the screen. |
+| **toggle dim/bright** | `Tab`, or the button. **Flips the ninth bit and leaves the glyph exactly where it is** — changing how bright a cell is never needs the character entered again. |
+| **fill with pen**, **blank**, **dim**, **bright** | the rest of the block operations. |
+
+The clipboard holds **both planes** — the glyph *and* the ninth bit — so it is
+deliberately not art text: art text is the *file* format and cannot carry glyphs
+`0x41`–`0x61` or the attribute bit at all. `.txt` export/import is how a selection
+travels *between* tools; this is how one travels within the tool, exactly.
+
 ## The frame, and the animation container
 
 A frame is **8192 bytes: two 4096-byte halves**, characters then attributes, each
@@ -243,6 +260,10 @@ actually be asked to move.
   key's own code (`A` → `0x41`), `sui 65` keys give the loader's arithmetic
   (`A` → `0x00`), and **all 128 glyphs are reachable** — by a key, or by the
   palette for the 34 that no key reaches;
+- the **clipboard** is checked for the thing it must not lose: a copy of a cell
+  holding glyph `0x41` *and* dim keeps both, paste puts both down and clips at the
+  screen edge and the trailer, and `invertAttrs` flips the ninth bit twice to the
+  identity with the glyph untouched;
 - the **copy-forward shift** is checked as a contract: a shift of (0,0) is the
   identity, a move writes the whole rectangle it can and leaves a blank where the
   content was, a shift far enough to clip still clears what it vacates, a viewport

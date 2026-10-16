@@ -534,6 +534,76 @@
     return { cells: cells, worst: worst, transitions: Math.max(0, frames.length - 1) };
   }
 
+  // --- the clipboard, and flipping the ninth bit ----------------------------
+  //
+  // A selection is a rectangle of cells *and* their attribute bits, so a copy takes
+  // both planes and a paste puts both back.  Deliberately not art text: art text is
+  // the *file* format and cannot carry glyphs 0x41-0x61 or the ninth bit at all,
+  // which is exactly what a clipboard must not lose.  (`.txt` export/import is the
+  // way to move a selection between tools; this is the way to move one within the
+  // tool, exactly.)
+
+  function copyRegion(cells, attrs, box) {
+    var out = { cols: box.cols, rows: box.rows,
+                cells: new Uint8Array(box.cols * box.rows),
+                attrs: new Uint8Array(box.cols * box.rows) };
+    for (var r = 0; r < box.rows; r++) {
+      for (var c = 0; c < box.cols; c++) {
+        var i = r * box.cols + c;
+        out.cells[i] = BLANK;
+        out.attrs[i] = 1;
+        var sr = box.row0 + r, sc = box.col0 + c;
+        if (sr < 0 || sr >= ROWS || sc < 0 || sc >= COLS) continue;
+        var si = sr * COLS + sc;
+        if (isReserved(si)) continue;
+        out.cells[i] = cells[si];
+        out.attrs[i] = attrs[si] ? 1 : 0;
+      }
+    }
+    return out;
+  }
+
+  // Puts a clipboard down with its top-left corner at (col0, row0), clipped to the
+  // screen.  Returns how many cells it wrote.
+  function pasteRegion(clip, cells, attrs, col0, row0) {
+    var wrote = 0;
+    for (var r = 0; r < clip.rows; r++) {
+      var dr = row0 + r;
+      if (dr < 0 || dr >= ROWS) continue;
+      for (var c = 0; c < clip.cols; c++) {
+        var dc = col0 + c;
+        if (dc < 0 || dc >= COLS) continue;
+        var di = dr * COLS + dc;
+        if (isReserved(di)) continue;
+        var i = r * clip.cols + c;
+        cells[di] = clip.cells[i];
+        attrs[di] = clip.attrs[i];
+        wrote++;
+      }
+    }
+    return wrote;
+  }
+
+  // Flip the ninth bit over a rectangle.  This is the operation that should never
+  // have needed the character re-entered: the glyph is already there, and the
+  // attribute plane is a separate bit.  Returns how many cells it flipped.
+  function invertAttrs(attrs, box) {
+    var n = 0;
+    for (var r = 0; r < box.rows; r++) {
+      var rr = box.row0 + r;
+      if (rr < 0 || rr >= ROWS) continue;
+      for (var c = 0; c < box.cols; c++) {
+        var cc = box.col0 + c;
+        if (cc < 0 || cc >= COLS) continue;
+        var i = rr * COLS + cc;
+        if (isReserved(i)) continue;
+        attrs[i] = attrs[i] ? 0 : 1;
+        n++;
+      }
+    }
+    return n;
+  }
+
   // --- the monitor, and the renderer ---------------------------------------
   //
   // Rendering is *indexed*: 0 paper, 1 ink, 2 dim ink, 3 spare.  One geometry,
@@ -859,6 +929,7 @@
     paletteFor: paletteFor, renderIndexed: renderIndexed,
     indicesToRGBA: indicesToRGBA,
     blitShifted: blitShifted, frameDiff: frameDiff, animationDiff: animationDiff,
+    copyRegion: copyRegion, pasteRegion: pasteRegion, invertAttrs: invertAttrs,
     deflateStored: deflateStored, deflateAuto: deflateAuto, encodePNG: encodePNG,
     lzwEncode: lzwEncode, encodeGIF: encodeGIF
   };
