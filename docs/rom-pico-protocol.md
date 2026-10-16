@@ -269,19 +269,30 @@ questions and a reader can test either one alone:
 | 0 | `LOOP` | after the last frame, go back to the first |
 | 1 | `PINGPONG` | at the ends, reverse direction instead of jumping |
 
-So the three modes a designer picks between are **0** (play once), **1** (loop) and
-**3** (ping-pong: it repeats, and it reverses at each end). **`2` — bit 1 without bit
-0 — is defined and readable**: one bounce, forward then back, then stop. The tool
-does not offer it, because there is no "stop" on a screen that is already holding
-the boot's last frame, but it parses and is reported rather than being silently
-normalised to something else.
+So **all four combinations are a mode**, and all four are what the designer picks
+between:
 
-**A bounce does not play the ends twice.** For frames `1 2 3`, ping-pong plays
-`1 2 3 2 1 2 3 2 …` — frame 3 is *turned on* once and reversed from — so one cycle
-is `2n − 2` steps, not `2n`. That is not only a look: it is the firmware's work.
-A ping-pong has to blit the way back as well, which is the forward transitions again
-in reverse and therefore **twice** the forward cost, and a loop has one transition a
-once-through does not: last → first. `tools/bootsplash/` counts all three, so the
+| flags | mode | for frames `1 2 3` |
+|---|---|---|
+| 0 | once | `1 2 3`, stop on the last frame |
+| 1 | loop | `1 2 3 1 2 3 …` |
+| 2 | ping-pong once | `1 2 3 2 1`, stop on frame 1 |
+| 3 | ping-pong repeat | `1 2 3 2 1 2 3 2 …` |
+
+**A bounce does not play the ends twice.** Frame 3 is *turned on* once and reversed
+from, so a repeating bounce is `2n − 2` frames a cycle, not `2n`. A bounce also
+**ends where it started**, which is the whole difference between flags 2 and 3: the
+one-shot plays the return to frame 1 and stops there (`2n − 1` frames), and the
+repeating one leaves that return to the wrap into the next cycle. **Bit 0 is
+therefore the only thing that answers "does it keep going"** — a reader must not ask
+"is it `once`", because a one-shot bounce stops too.
+
+That is not only a look: it is the firmware's work. A bounce has to blit the way back
+as well, which is the forward transitions again in reverse and therefore **twice**
+the forward cost, and a loop has one transition a once-through does not: last →
+first. Both ping-pongs cost the same, because the one-shot's last blit is the return
+to frame 1 and the repeating one's is the wrap into the next cycle — the same
+transition, taken once either way. `tools/bootsplash/` counts all four modes, so the
 number a designer reads is the number the Pico is asked for.
 
 **What is still not decided is how the ROM asks for frame *n*.** `PRESENT(1)` and

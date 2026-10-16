@@ -197,9 +197,10 @@ What it writes:
   count, a sum) and then the frames. Each frame is **8192 bytes = two
   sealed 4096-byte halves**, byte-identical to `firmware/rom-service/frame.bin`;
   `tail -c +33` of a one-frame file *is* that asset. The flags byte carries the
-  playback mode — **bit 0 loop, bit 1 ping-pong**, so the three modes are 0, 1 and
-  3, and 2 (bounce once, then stop) parses too. The header is this tool's
-  proposal — the firmware side of #247 is not written — and the frames are not.
+  playback mode — **bit 0 repeat, bit 1 bounce** — so all four combinations are
+  offered: once (`1 2 3`), loop, ping-pong once (`1 2 3 2 1`, then stop) and
+  ping-pong repeat (`1 2 3 2 1 2 3 2 …`). The header is this tool's proposal — the
+  firmware side of #247 is not written — and the frames are not.
 - **`.txt`** — the frame as art text, in the repo's own convention
   (`research/boot-screen/README.md`), latin-1, one character per cell, so it
   round-trips through `tools/research/rom2strokes.py`.
@@ -212,8 +213,9 @@ if there is no next one. The offset is unrestricted and either direction, becaus
 the tool is not the device; and under the control is a readout of **what the
 firmware would have to blit** for each transition, since the Pico diffs consecutive
 frames rather than copying them (#247). The readout counts the mode's own
-transitions: a loop has the wrap back to frame 1, and a ping-pong has the way back
-as well, which is twice the forward cost.
+transitions: a loop has the wrap back to frame 1, and a bounce has the way back as
+well, which is twice the forward cost — the same for both ping-pongs, since the
+return is taken once either way.
 
 Frames are re-ordered by moving them (buttons, `Alt`+arrows, or dragging a
 thumbnail — the filmstrip *is* the play order) or by **copy to position**, which
@@ -224,8 +226,8 @@ animation can be exported, added to one frame at a time, and imported back witho
 redrawing anything.
 
 ```sh
-node tools/bootsplash/selftest.js     # 84 checks, no dependencies
-node tools/bootsplash/ui-test.js      # 130 checks, needs jsdom
+node tools/bootsplash/selftest.js     # 89 checks, no dependencies
+node tools/bootsplash/ui-test.js      # 140 checks, needs jsdom
 ```
 
 `selftest.js` checks the format against things that are not this tool: it
