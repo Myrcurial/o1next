@@ -88,8 +88,13 @@ button:hover { background: #2f3a4f; }
 button.primary { background: #2c4a2c; border-color: #4f8f4f; color: #d8ffd8; }
 button.danger { background: #4a2c2c; border-color: #8f4f4f; color: #ffd8d8; }
 button:disabled { opacity: 0.45; cursor: default; }
-.screenwrap { position: relative; background: #000; border: 2px solid var(--panel); }
-canvas#screen { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+/* The grid is shown at its own size -- one CSS pixel per dot, times the zoom step
+   -- and the wrapper scrolls when that is wider than the column.  The overlay
+   layer lives inside .screenbox, which is exactly the canvas box, so the viewport
+   and cursor marks stay aligned at every zoom. */
+.screenwrap { background: #000; border: 2px solid var(--panel); overflow: auto; max-width: 100%; }
+.screenbox { position: relative; }
+canvas#screen { display: block; image-rendering: pixelated; }
 .overlays { position: absolute; inset: 0; pointer-events: none; }
 .overlays > div { position: absolute; }
 .offrows { left: 0; right: 0; top: 75%; bottom: 0; background: rgba(120,140,200,0.16); border-top: 1px dashed rgba(180,200,255,0.5); }
@@ -153,9 +158,9 @@ details > summary { cursor: pointer; color: var(--cream); }
         <label for="monitor">Monitor</label>
         <select id="monitor"></select>
         <label for="zoom">Zoom</label>
-        <select id="zoom">
-          <option value="1">1&times;</option>
-          <option value="2" selected>2&times;</option>
+        <select id="zoom" title="the grid is shown at its own size: one CSS pixel per dot, times this">
+          <option value="1" selected>1&times;</option>
+          <option value="2">2&times;</option>
           <option value="3">3&times;</option>
         </select>
         <span class="hint" id="geom"></span>
@@ -170,13 +175,15 @@ details > summary { cursor: pointer; color: var(--cream); }
         <span class="hint" id="vphint"></span>
       </div>
       <div class="screenwrap">
-        <canvas id="screen"></canvas>
-        <div class="overlays">
-          <div class="offrows" id="offRows"></div>
-          <div class="viewport" id="viewportBox"></div>
-          <div class="reserved" id="reservedBox"></div>
-          <div class="sel" id="selBox" hidden></div>
-          <div class="cursor" id="cursorBox"></div>
+        <div class="screenbox" id="screenBox">
+          <canvas id="screen"></canvas>
+          <div class="overlays">
+            <div class="offrows" id="offRows"></div>
+            <div class="viewport" id="viewportBox"></div>
+            <div class="reserved" id="reservedBox"></div>
+            <div class="sel" id="selBox" hidden></div>
+            <div class="cursor" id="cursorBox"></div>
+          </div>
         </div>
       </div>
       <div class="row" style="margin:6px 0 0">
@@ -341,7 +348,7 @@ function $(id) { return document.getElementById(id); }
 var state = {
   columns: 80,          // SCREEN-PAC width: 52, 80 or 104
   monitor: 'white',
-  zoom: 2,
+  zoom: 1,              // CSS pixels per dot; the grid is shown at its own size
   col0: 0, row0: 0,     // the viewport's origin on the screen
   area: 'viewport',     // what the preview and the images show
   keys: 'direct',       // 'direct' | 'sui65' -- what a keystroke means
@@ -380,6 +387,22 @@ function renderOpts(crop) {
   return o;
 }
 
+// The grid is displayed at its own size: one CSS pixel per dot, times the zoom
+// step.  So a zoom step is a real change in *size*, not only in resolution -- which
+// is what it was doing before, because the canvas was stretched to 100% of its
+// column and the backing store was the only thing that moved.
+//
+// The backing store is drawn at device-pixel resolution so it stays crisp on a
+// retina display, and the CSS size is the zoom's size.  Exports use `renderOpts`
+// and so stay at the zoom's dot scale rather than the display's.
+var DPR = Math.max(1, window.devicePixelRatio || 1);
+
+function displayOpts(crop) {
+  var o = renderOpts(crop);
+  o.scale = state.zoom * DPR;
+  return o;
+}
+
 function paintCanvas(cv, img) {
   cv.width = img.w;
   cv.height = img.h;
@@ -391,10 +414,18 @@ function pct(n, d) { return (100 * n / d) + '%'; }
 
 function renderScreen() {
   var cv = $('screen');
-  paintCanvas(cv, S.renderIndexed(cur().cells, cur().attrs, renderOpts(false)));
+  var img = S.renderIndexed(cur().cells, cur().attrs, displayOpts(false));
+  paintCanvas(cv, img);
+  // The canvas is shown at its own size, so the zoom step is visible; the overlay
+  // box is set to the same width, which is what keeps the viewport and cursor marks
+  // aligned when the wrapper is scrolled.
+  var cssW = Math.round(img.w / DPR), cssH = Math.round(img.h / DPR);
+  cv.style.width = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  $('screenBox').style.width = cssW + 'px';
   layoutOverlays();
-  $('geom').textContent = 'screen ' + S.COLS + '\u00d7' + S.ROWS + ' cells = ' +
-    cv.width + '\u00d7' + cv.height + ' px at ' + state.zoom + '\u00d7';
+  $('geom').textContent = 'screen ' + S.COLS + '\u00d7' + S.ROWS + ' cells, shown ' +
+    cssW + '\u00d7' + cssH + ' px at ' + state.zoom + '\u00d7';
 }
 
 function layoutOverlays() {
@@ -973,7 +1004,7 @@ function updateDiff() {
 // --- the preview ----------------------------------------------------------
 function renderPreview() {
   paintCanvas($('preview'),
-    S.renderIndexed(cur().cells, cur().attrs, renderOpts(state.area === 'viewport')));
+    S.renderIndexed(cur().cells, cur().attrs, displayOpts(state.area === 'viewport')));
 }
 
 function tick() {
@@ -1181,6 +1212,9 @@ $('monitor').addEventListener('change', function () {
 $('zoom').addEventListener('change', function () {
   state.zoom = parseInt(this.value, 10);
   renderAll();
+  say('zoom ' + state.zoom + '\u00d7 \u2014 the grid is shown at its own size, so this is ' +
+      'the size you see, and the panel scrolls when it is wider than the column. ' +
+      'Exports use the same dot scale.');
 });
 
 $('vpcol').addEventListener('change', function () {

@@ -210,13 +210,31 @@ check('and standard characters relabel it back',
       doc.querySelectorAll('#palette .swatch .k')[0].textContent === '' &&
       doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === 'A');
 check('the monitor list is populated', $('monitor').options.length === 4);
-// 80 columns at 2x: 128 cells x 8 dots x 0.65 x 2 = 1331 wide, 32 x 10 x 2 tall.
-check('the screen canvas is 1331 x 640 (80 columns, 2x)',
-      $('screen').width === 1331 && $('screen').height === 640,
+// 80 columns at 1x: 128 cells x 8 dots x 0.65 = 666 wide, 32 x 10 = 320 tall.
+check('the screen canvas is 666 x 320 (80 columns, 1x)',
+      $('screen').width === 666 && $('screen').height === 320,
       $('screen').width + ' x ' + $('screen').height);
 check('the screen canvas was drawn',
       !!$('screen').__pixels &&
-      $('screen').__pixels.data.length === 1331 * 640 * 4);
+      $('screen').__pixels.data.length === 666 * 320 * 4);
+
+// The zoom has to change what you *see*, not only the backing store.  It once did
+// not: the canvas was stretched to 100% of its column, so every zoom step produced
+// the same picture at a different resolution and nothing moved on screen.
+check('the grid is shown at its own size, not stretched to its column',
+      $('screen').style.width === '666px' && $('screen').style.height === '320px' &&
+      $('screenBox').style.width === '666px',
+      $('screen').style.width + ' / box ' + $('screenBox').style.width);
+setValue('zoom', 2);
+check('2x doubles what is on screen',
+      $('screen').style.width === '1331px' && $('screen').width === 1331,
+      $('screen').style.width + ' css, ' + $('screen').width + ' backing');
+setValue('zoom', 3);
+check('and 3x is bigger again',
+      $('screen').style.width === '1997px' && $('screenBox').style.width === '1997px',
+      $('screen').style.width);
+setValue('zoom', 1);
+check('and back to 1x', $('screen').style.width === '666px', $('screen').style.width);
 
 // The window's home is buffer column 0, row 0 -- which is where the ROM puts it
 // (VFLO = -22 cancels osborne1.cpp's 0x0b of horizontal blanking), and NOT column
@@ -379,6 +397,9 @@ function sameGlyphs(a, b) {
 }
 
 // --- 7. the .gif ----------------------------------------------------------
+// The images are exported at the zoom's dot scale, so pin the zoom to 2x to match
+// what this section expects -- the page's own default is 1x.
+setValue('zoom', 2);
 section('the .gif download');
 $('loop').checked = true;                      // the .bin test turned it off
 $('loop').dispatchEvent(new window.Event('change', { bubbles: true }));

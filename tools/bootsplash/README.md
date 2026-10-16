@@ -112,6 +112,25 @@ Two footnotes:
   different machine with its own BIOS and character generator, so the 80-column
   setting here is the SCREEN-PAC *dot width*, not a window.
 
+### Zoom, and why the grid is shown at its own size
+
+**Zoom is a real change in size, not only in resolution.** The grid is displayed at
+one CSS pixel per dot times the zoom step — 666 px wide at 80 columns and 1×, 1331
+at 2× — and the panel scrolls when that is wider than the column. The canvas's
+backing store is drawn at device-pixel resolution so it stays crisp on a retina
+display, and exports use the zoom's dot scale rather than the display's.
+
+This was wrong for a while and it is worth knowing why, because the symptom was
+odd: the canvas had `width: 100%` in CSS, so it was stretched to its column at
+*every* zoom and the only thing a zoom step changed was the number of pixels behind
+the stretch. Nothing moved on screen. The fix was to stop stretching it, and to put
+the overlay layer in a box the size of the canvas (`.screenbox`) so the viewport and
+cursor marks still line up — including when the panel is scrolled.
+
+**1× is the default**, because at 80 columns that is the whole screen in a normal
+window. The preview is the exception: it is scaled to fit its box, since it is for
+watching the animation rather than for inspecting pixels.
+
 ## The pen: the whole ROM, always
 
 Every cell holds a **glyph code, 0–127**, plus one attribute bit. That is all a
@@ -272,6 +291,9 @@ actually be asked to move.
   standard and blank in graphical; `0x00` the other way round), and a **cell click
   is checked not to paint** unless paint-on-click is ticked — since a click that
   painted *and* advanced is what made click-then-type land a cell to the right;
+- the **zoom** is checked to change the displayed size and not only the backing
+  store — which is the bug it had: a canvas stretched to its column renders every
+  zoom step as the same picture;
 - the **clipboard** is checked for the thing it must not lose: a copy of a cell
   holding glyph `0x41` *and* dim keeps both, paste puts both down and clips at the
   screen edge and the trailer, and `invertAttrs` flips the ninth bit twice to the
