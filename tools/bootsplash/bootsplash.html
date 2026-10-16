@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bootsplash — Osborne 1 animation designer</title>
+<!--
+  bootsplash.html -- draw a boot splash for ROM 2.0, and export it for the
+  RP2354B to play (tools/bootsplash/README.md).
+
+  Runs entirely in the browser, from file://, with no server and no network: the
+  glyphs, the fonts and the logic are all embedded or beside this file.  The
+  output format is the machine's own -- see core.js, and note that the frames are
+  byte-identical to firmware/rom-service/frame.bin.
+
+  The two faces below are copies of site/assets/fonts/osborne1-80.woff2 and
+  osborne1-art-80.woff2, which tools/romfont.py builds from the character
+  generator ROM and verifies against it.  They are used for the chrome and for
+  the art-text panel; the screen itself is drawn from the ROM's own bits, so what
+  you see is what the machine would draw.
+-->
+<style>
+@font-face {
+  font-family: 'Osborne1 80';
+  src: url(data:font/woff2;base64,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) format('woff2');
+  font-display: block;
+}
+@font-face {
+  font-family: 'Osborne1 Art 80';
+  src: url(data:font/woff2;base64,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) format('woff2');
+  font-display: block;
+}
+:root {
+  --panel: #687898;          /* sampled from the O1 front panel (site/assets/main.css) */
+  --pale: #d0d8d8;
+  --cream: #d8d0c0;
+  --ink: #10141c;
+  --line: #2b3244;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--ink);
+  color: var(--pale);
+  font-family: 'Osborne1 80', ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+a { color: var(--cream); }
+.app { max-width: 1680px; margin: 0 auto; padding: 10px 14px 40px; }
+header.app-head {
+  border-bottom: 2px solid var(--panel);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+header.app-head h1 { font-size: 22px; margin: 0 0 4px; color: var(--cream); letter-spacing: 1px; }
+header.app-head .sub { color: #93a0b8; }
+.cols { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.left { flex: 1 1 900px; min-width: 660px; }
+.right { flex: 0 1 420px; min-width: 340px; }
+.box {
+  border: 1px solid var(--panel);
+  background: #161b25;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+.box > h2 {
+  font-size: 13px;
+  margin: 0 0 6px;
+  color: var(--cream);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #2b3244;
+  padding-bottom: 3px;
+}
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+label { color: #b9c4d8; }
+select, input[type=number], input[type=text], button {
+  font-family: inherit;
+  font-size: 12px;
+  background: #232a38;
+  color: var(--pale);
+  border: 1px solid #46506a;
+  padding: 3px 6px;
+}
+button { cursor: pointer; }
+button:hover { background: #2f3a4f; }
+button.primary { background: #2c4a2c; border-color: #4f8f4f; color: #d8ffd8; }
+button.danger { background: #4a2c2c; border-color: #8f4f4f; color: #ffd8d8; }
+button:disabled { opacity: 0.45; cursor: default; }
+/* The screen sits inset in the machine's front panel, so whatever is beside a
+   canvas narrower than its panel is the *panel* -- not a black void.  At 1x in a
+   wide window there is a lot of it, and it has to look deliberate: black next to
+   the black the canvas draws reads as a hole, and the page's own background
+   (--ink, #10141c) is *darker* than the box it would sit in, so that would read as
+   a hole too.  --panel is the blue-grey the border already was. */
+.screenwrap { background: var(--panel); padding: 6px; overflow: auto; max-width: 100%; }
+.screenbox { position: relative; }
+canvas#screen { display: block; image-rendering: pixelated; }
+.overlays { position: absolute; inset: 0; pointer-events: none; }
+.overlays > div { position: absolute; }
+.offrows { left: 0; right: 0; top: 75%; bottom: 0; background: rgba(120,140,200,0.16); border-top: 1px dashed rgba(180,200,255,0.5); }
+.viewport { outline: 1px solid rgba(120,255,160,0.85); box-shadow: 0 0 0 1px rgba(0,0,0,0.6) inset; }
+.reserved { background: rgba(255,80,80,0.28); }
+.cursor { outline: 1px solid #ffd23f; background: rgba(255,210,63,0.18); }
+.sel { outline: 1px dashed rgba(255,255,255,0.6); background: rgba(255,255,255,0.10); }
+.palette { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+.swatch { background: #000; border: 1px solid #46506a; padding: 1px; text-align: center; cursor: pointer; }
+.swatch.on { border-color: #ffd23f; background: #2a2410; }
+.swatch canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.swatch .k { font-size: 11px; color: #b9c4d8; }
+.filmstrip { display: flex; gap: 4px; overflow-x: auto; padding: 3px 0; }
+.thumb { border: 1px solid #46506a; background: #000; cursor: pointer; flex: 0 0 auto; padding: 0; }
+.thumb.on { border-color: #ffd23f; }
+.thumb canvas { display: block; image-rendering: pixelated; }
+.thumb .n { font-size: 10px; color: #93a0b8; text-align: center; }
+#preview { display: block; background: #000; border: 1px solid var(--panel); image-rendering: pixelated; width: 100%; height: auto; }
+.status { font-size: 12px; color: #9fe8a0; min-height: 1.4em; }
+.status.warn { color: #ffcf6b; }
+.status.bad { color: #ff9d9d; }
+.hint { font-size: 12px; color: #8b97ad; }
+.note { font-size: 11px; color: #7f8ba1; margin-top: 4px; }
+.arttext {
+  font-family: 'Osborne1 Art 80', ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.0;
+  letter-spacing: 0;
+  white-space: pre;
+  overflow-x: auto;
+  background: #000;
+  color: #d8d0c0;
+  padding: 4px;
+  margin: 0;
+}
+details > summary { cursor: pointer; color: var(--cream); }
+</style>
+</head>
+<body>
+<div class="app">
+<header class="app-head">
+  <h1>bootsplash</h1>
+  <div class="sub">
+    Draw a boot splash for the Osborne 1, and export it as the animation the RP2354B plays.
+    The <b>screen</b> is 128&times;32 cells; the <b>viewport</b> is 52, 80 or 104 columns &times; 24 rows.
+    <span id="provenance"></span>
+  </div>
+</header>
+
+<div class="cols">
+  <section class="left">
+
+    <div class="box">
+      <div class="row">
+        <label for="columns">SCREEN-PAC</label>
+        <select id="columns">
+          <option value="52">52 columns</option>
+          <option value="80" selected>80 columns</option>
+          <option value="104">104 columns</option>
+        </select>
+        <label for="monitor">Monitor</label>
+        <select id="monitor"></select>
+        <label for="zoom">Zoom</label>
+        <select id="zoom" title="the grid is shown at its own size: one CSS pixel per dot, times this">
+          <option value="1" selected>1&times;</option>
+          <option value="2">2&times;</option>
+          <option value="3">3&times;</option>
+        </select>
+        <span class="hint" id="geom"></span>
+      </div>
+      <div class="row">
+        <label>Viewport</label>
+        <label for="vpcol">from column</label>
+        <input type="number" id="vpcol" value="0" min="0" max="127" style="width:66px">
+        <label for="vprow">row</label>
+        <input type="number" id="vprow" value="0" min="0" max="8" style="width:56px">
+        <button id="vpstock" title="home: where the machine actually puts the window. The BIOS writes VFLO (-22 = 0xEA, rom144.asm's &quot;first line video offset&quot;) to the video PIA's port A at boot, which cancels the 11 character clocks of horizontal blanking that osborne1.cpp adds as 0x0b — so the display starts at buffer column 0. DOHOME returns to it; Ctrl+arrow slides away from it.">home (0,0)</button>
+        <span class="hint" id="vphint"></span>
+      </div>
+      <div class="screenwrap">
+        <div class="screenbox" id="screenBox">
+          <canvas id="screen"></canvas>
+          <div class="overlays">
+            <div class="offrows" id="offRows"></div>
+            <div class="viewport" id="viewportBox"></div>
+            <div class="reserved" id="reservedBox"></div>
+            <div class="sel" id="selBox" hidden></div>
+            <div class="cursor" id="cursorBox"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin:6px 0 0">
+        <span class="hint">Click a cell, then type &mdash; every printable character is its own glyph, capitals
+          included. Arrows move, Enter is the next row, Space is the blank, drag to select a block,
+          <b>Tab</b> flips bright/dim, and <b>Ctrl/Cmd-C, X, V</b> are copy, cut and paste. The 32 block glyphs
+          and the hatch come from the palette.</span>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>Frames</h2>
+      <div class="row">
+        <button id="first" title="first frame">&#8676;</button>
+        <button id="prev" title="previous frame">&#9664;</button>
+        <span id="frameCount">1 / 1</span>
+        <button id="next" title="next frame">&#9654;</button>
+        <button id="last" title="last frame">&#8677;</button>
+        <button id="addFrame" class="primary" title="add a frame: a copy of this one">+1 frame</button>
+        <button id="dupFrame" title="copy this frame after itself">copy</button>
+        <button id="delFrame" class="danger" title="delete this frame">delete</button>
+      </div>
+      <div class="filmstrip" id="filmstrip"></div>
+      <div class="row">
+        <label for="copyFrom">Copy forward</label>
+        <select id="copyFrom">
+          <option value="screen" selected>screen (128&times;32)</option>
+          <option value="viewport">viewport</option>
+        </select>
+        <label for="copyDx">by columns</label>
+        <input type="number" id="copyDx" value="0" min="-127" max="127" style="width:62px"
+               title="+ moves the picture right, - moves it left">
+        <label for="copyDy">rows</label>
+        <input type="number" id="copyDy" value="0" min="-31" max="31" style="width:58px"
+               title="+ moves the picture down, - moves it up">
+        <button id="copyNext" class="primary" title="copy this frame's screen or viewport into the next frame, moved by the offset; adds a frame if there is no next one">copy &rarr; next</button>
+      </div>
+      <div class="hint" id="copyHint">The offset moves the picture: <b>columns +4</b> is four cells right, <b>rows &minus;2</b> is two up. The rectangle is cleared first, and what moves out of it is clipped, not wrapped.</div>
+      <div class="hint" id="diffHint"></div>
+      <div class="row">
+        <label for="fps">Frames per second</label>
+        <input type="number" id="fps" value="10" min="1" max="60" style="width:64px">
+        <label><input type="checkbox" id="loop" checked> loop</label>
+        <span class="hint" id="rateHint"></span>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>Preview</h2>
+      <div class="row">
+        <button id="play" class="primary">play</button>
+        <span class="hint" id="playState">stopped</span>
+      </div>
+      <canvas id="preview"></canvas>
+    </div>
+
+  </section>
+
+  <aside class="right">
+
+    <div class="box">
+      <h2>Selection &amp; clipboard</h2>
+      <div class="hint" id="selHint"></div>
+      <div class="row">
+        <button id="copySel" title="Ctrl/Cmd-C">copy</button>
+        <button id="cutSel" title="Ctrl/Cmd-X">cut</button>
+        <button id="pasteSel" title="Ctrl/Cmd-V &mdash; pastes at the cursor">paste</button>
+        <button id="clearSel" class="danger">blank</button>
+      </div>
+      <div class="row">
+        <button id="fillSel">fill with pen</button>
+        <button id="dimSel">dim</button>
+        <button id="brightSel">bright</button>
+        <button id="toggleSel" class="primary" title="Tab &mdash; flips the ninth bit; the glyph stays put">toggle dim/bright</button>
+      </div>
+      <div class="note">Drag on the grid to make a rectangle; with nothing selected these act on
+        the single cell under the cursor. The clipboard keeps both planes &mdash; the glyph <i>and</i>
+        the ninth bit &mdash; so it does not go through art text.</div>
+    </div>
+
+    <div class="box">
+      <h2>Pen</h2>
+      <div class="row">
+        <label title="a key is its own glyph code: A draws a capital A"><input type="radio" name="keys" value="direct" checked> Standard characters</label>
+        <label title="the ROM's sui 65 arithmetic: A draws the block glyph 0x00, the way the art loader reads it"><input type="radio" name="keys" value="sui65"> Graphical characters</label>
+      </div>
+      <div class="row">
+        <label><input type="radio" name="bright" value="bright" checked> Bright</label>
+        <label><input type="radio" name="bright" value="dim"> Dim</label>
+      </div>
+      <div class="hint" id="penHint"></div>
+    </div>
+
+    <div class="box">
+      <h2>Glyph palette</h2>
+      <div class="hint" id="paletteHint"></div>
+      <div class="palette" id="palette"></div>
+      <div class="row">
+        <label title="off by default: a click only aims the cursor, which is what makes click-then-type predictable"><input type="checkbox" id="paintOnClick"> paint cells on click</label>
+      </div>
+      <div class="note">The palette shows <b>only what the pen mode can place</b>: the 95 standard characters
+        (<code>0x20</code>&ndash;<code>0x7E</code>) or the 34 graphical blocks (<code>0x00</code>&ndash;<code>0x1F</code>,
+        the blank, and the <code>0x7F</code> hatch). All 128 glyphs are available in any cell &mdash; the chargen is
+        indexed with <code>chr &amp; 0x7f</code> &mdash; one mode switch away. Every swatch is labelled with the key
+        that reaches it, so the palette is also the key map. Clicking a swatch makes it the pen; clicking it again
+        clears it.</div>
+    </div>
+
+    <div class="box">
+      <h2>Export</h2>
+      <div class="row">
+        <label for="area">Area</label>
+        <select id="area">
+          <option value="viewport" selected>viewport</option>
+          <option value="screen">screen (128&times;32)</option>
+        </select>
+        <label for="name">name</label>
+        <input type="text" id="name" value="bootsplash" style="width:112px">
+      </div>
+      <div class="row">
+        <button id="dlBin" class="primary">download .bin</button>
+        <button id="dlPng">download PNG</button>
+        <button id="dlGif">download GIF</button>
+        <button id="dlTxt">download .txt</button>
+      </div>
+      <div class="note">The <code>.bin</code> is a 32-byte header and then the frames, each byte-identical to
+        <code>firmware/rom-service/frame.bin</code> &mdash; <code>tail -c +33</code> of a one-frame file is that
+        asset exactly. The header is this tool's proposal; the firmware side of #247 is not written yet.</div>
+      <div class="note"><b>.txt</b> is the repo's art text, which the ROM's own loader reads with
+        <code>sui 65</code> &mdash; so it cannot carry a cell holding glyph <b>0x41&ndash;0x61</b>, and with direct
+        keys a capital is exactly one of those. The export counts them and says so; the <code>.bin</code> is
+        unaffected, because a frame is glyph codes and has no such limit.</div>
+    </div>
+
+    <div class="box">
+      <h2>Import</h2>
+      <div class="row"><input type="file" id="file" accept=".bin,.txt,application/octet-stream,text/plain"></div>
+      <div class="note">A <code>.bin</code> in this tool's container (or a bare 8192-byte frame), or art text in
+        the repo's own convention. Art text cannot express a cell holding glyph 0x41&ndash;0x61; if one arrives it
+        is reported rather than silently changed.</div>
+    </div>
+
+    <div class="box"><div class="status" id="status">ready</div></div>
+
+    <div class="box">
+      <details id="artPanel">
+        <summary>Art text of this frame (the repo's authoring face)</summary>
+        <div class="note">One character per cell &mdash; exactly what "download .txt" writes.</div>
+        <pre class="arttext" id="artText"></pre>
+      </details>
+    </div>
+
+  </aside>
+</div>
+</div>
+<script src="core.js"></script>
+<script>
+(function () {
+'use strict';
+var S = window.O1Splash;
+function $(id) { return document.getElementById(id); }
+
+// --- state -----------------------------------------------------------------
+var state = {
+  columns: 80,          // SCREEN-PAC width: 52, 80 or 104
+  monitor: 'white',
+  zoom: 1,              // CSS pixels per dot; the grid is shown at its own size
+  col0: 0, row0: 0,     // the viewport's origin on the screen
+  area: 'viewport',     // what the preview and the images show
+  keys: 'direct',       // 'direct' | 'sui65' -- what a keystroke means
+  bright: true,
+  penGlyph: null,       // set by the palette, for fill-with-pen
+  paint: false,         // ...and, only if asked for, for painting on a cell click
+  fps: 10,
+  loop: true,
+  frame: 0,
+  frames: [{ cells: S.blankCells(), attrs: S.brightAttrs() }],
+  cursor: 0,
+  sel: null, anchor: 0, dragging: false,
+  playing: false, timer: null
+};
+
+function cur() { return state.frames[state.frame]; }
+function palette() { return S.paletteFor(state.monitor); }
+
+function say(msg, cls) {
+  var el = $('status');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+// What the renderer is asked for.  `crop` is the viewport -- N columns of 24
+// rows, which is what the machine actually puts on the glass; without it, the
+// whole 128x32 screen.
+function renderOpts(crop) {
+  var o = { columns: state.columns, scale: state.zoom };
+  if (crop) {
+    o.col0 = state.col0;
+    o.row0 = state.row0;
+    o.cols = state.columns;
+    o.rows = S.VIEWPORT_ROWS;
+  }
+  return o;
+}
+
+// The grid is displayed at its own size: one CSS pixel per dot, times the zoom
+// step.  So a zoom step is a real change in *size*, not only in resolution -- which
+// is what it was doing before, because the canvas was stretched to 100% of its
+// column and the backing store was the only thing that moved.
+//
+// The backing store is drawn at device-pixel resolution so it stays crisp on a
+// retina display, and the CSS size is the zoom's size.  Exports use `renderOpts`
+// and so stay at the zoom's dot scale rather than the display's.
+var DPR = Math.max(1, window.devicePixelRatio || 1);
+
+function displayOpts(crop) {
+  var o = renderOpts(crop);
+  o.scale = state.zoom * DPR;
+  return o;
+}
+
+function paintCanvas(cv, img) {
+  cv.width = img.w;
+  cv.height = img.h;
+  cv.getContext('2d').putImageData(
+    new ImageData(S.indicesToRGBA(img, palette()), img.w, img.h), 0, 0);
+}
+
+function pct(n, d) { return (100 * n / d) + '%'; }
+
+function renderScreen() {
+  var cv = $('screen');
+  var img = S.renderIndexed(cur().cells, cur().attrs, displayOpts(false));
+  paintCanvas(cv, img);
+  // The canvas is shown at its own size, so the zoom step is visible; the overlay
+  // box is set to the same width, which is what keeps the viewport and cursor marks
+  // aligned when the wrapper is scrolled.
+  var cssW = Math.round(img.w / DPR), cssH = Math.round(img.h / DPR);
+  cv.style.width = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  $('screenBox').style.width = cssW + 'px';
+  layoutOverlays();
+  $('geom').textContent = 'screen ' + S.COLS + '\u00d7' + S.ROWS + ' cells, shown ' +
+    cssW + '\u00d7' + cssH + ' px at ' + state.zoom + '\u00d7';
+}
+
+function layoutOverlays() {
+  var C = S.COLS, R = S.ROWS;
+  var vp = $('viewportBox');
+  vp.style.left = pct(state.col0, C);
+  vp.style.top = pct(state.row0, R);
+  vp.style.width = pct(state.columns, C);
+  vp.style.height = pct(S.VIEWPORT_ROWS, R);
+  $('offRows').style.top = pct(S.VISIBLE_ROWS, R);
+  var res = $('reservedBox');
+  res.style.left = pct(C - 8, C); res.style.top = pct(R - 1, R);
+  res.style.width = pct(8, C); res.style.height = pct(1, R);
+  var r = Math.floor(state.cursor / C), c = state.cursor % C;
+  var cu = $('cursorBox');
+  cu.style.left = pct(c, C); cu.style.top = pct(r, R);
+  cu.style.width = pct(1, C); cu.style.height = pct(1, R);
+  var s = state.sel, sb = $('selBox');
+  if (s) {
+    var c0 = Math.min(s.c0, s.c1), c1 = Math.max(s.c0, s.c1);
+    var r0 = Math.min(s.r0, s.r1), r1 = Math.max(s.r0, s.r1);
+    sb.hidden = false;
+    sb.style.left = pct(c0, C); sb.style.top = pct(r0, R);
+    sb.style.width = pct(c1 - c0 + 1, C); sb.style.height = pct(r1 - r0 + 1, R);
+  } else { sb.hidden = true; }
+  $('vphint').textContent = 'viewport ' + state.columns + '\u00d7' + S.VIEWPORT_ROWS +
+    ' at (' + state.col0 + ',' + state.row0 + ')';
+  updateSelHint();
+}
+
+// --- the graphics palette --------------------------------------------------
+// 34 cells drawn from the ROM's own bits: the 33 keys A-a, and the hatch, which
+// has no key at all and can therefore only be clicked.
+var paletteEls = [];
+
+function drawGlyph(cv, code, scale) {
+  var pal = palette();
+  cv.width = S.CELL_W * scale;
+  cv.height = S.CELL_H * scale;
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = 'rgb(' + pal[0].join(',') + ')';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = 'rgb(' + pal[1].join(',') + ')';
+  for (var r = 0; r < S.CELL_H; r++)
+    for (var c = 0; c < S.CELL_W; c++)
+      if (S.glyphDot(code, r, c)) ctx.fillRect(c * scale, r * scale, scale, scale);
+}
+
+// The palette shows the set the pen mode works in, and only that: the 95 standard
+// characters, or the 34 graphical blocks.  A cell is a glyph code and the chargen is
+// indexed with `chr & 0x7f`, so all 128 remain available -- one mode switch away.
+//
+// The label is the key that reaches the glyph in the mode you are in, because that is
+// the thing you can act on.  The tooltip names the key in both modes.
+function modeLabel(mode) { return mode === 'sui65' ? 'graphical' : 'standard'; }
+
+// Columns chosen so each set fills its grid exactly: 95 = 5 x 19, 34 = 2 x 17.
+function paletteColumns(mode) { return mode === 'sui65' ? 17 : 19; }
+
+var paletteMode = null;
+
+function buildPalette() {
+  var host = $('palette');
+  paletteMode = state.keys;
+  host.innerHTML = '';
+  host.style.gridTemplateColumns = 'repeat(' + paletteColumns(state.keys) + ', 1fr)';
+  paletteEls = [];
+  S.paletteSet(state.keys).forEach(function (g) {
+    var d = document.createElement('div');
+    d.className = 'swatch';
+    d.setAttribute('data-glyph', String(g));
+    var cv = document.createElement('canvas');
+    var lab = document.createElement('div');
+    lab.className = 'k';
+    d.appendChild(cv);
+    d.appendChild(lab);
+    d.addEventListener('click', (function (glyph) {
+      return function () {
+        // Clicking the swatch that is already the pen turns it *off*: otherwise
+        // there is no way back to "a click just aims".
+        state.penGlyph = (state.penGlyph === glyph) ? null : glyph;
+        syncDerived();
+        renderAll();
+        say(state.penGlyph === null
+          ? 'pen cleared \u2014 a cell click aims now, and typing places glyphs.'
+          : 'pen is glyph 0x' + S.hex(glyph, 2) + ' \u2014 ' +
+            (state.paint ? 'click cells to paint it, or ' : '') +
+            'use "fill with pen" on a selection.');
+      };
+    }(g)));
+    host.appendChild(d);
+    paletteEls.push({ el: d, cv: cv, lab: lab, glyph: g });
+  });
+  redrawPalette();
+}
+
+// The set changes with the mode, so the swatches have to be rebuilt, not relabelled.
+function ensurePalette() {
+  if (paletteMode !== state.keys) buildPalette();
+  else redrawPalette();
+}
+
+function redrawPalette() {
+  var other = (state.keys === 'sui65') ? 'direct' : 'sui65';
+  var set = S.paletteSet(state.keys);
+  $('paletteHint').textContent = 'showing the ' + set.length + ' ' +
+    (state.keys === 'sui65' ? 'graphical blocks' : 'standard characters') +
+    ' this pen mode can place.';
+  paletteEls.forEach(function (p) {
+    drawGlyph(p.cv, p.glyph, 2);
+    var here = S.keyForGlyph(p.glyph, state.keys);
+    var there = S.keyForGlyph(p.glyph, other);
+    // The key for the mode you are in -- not the code, which you cannot type.
+    p.lab.textContent = (here === null) ? '' : (here === ' ' ? 'sp' : here);
+    var bits = ['glyph 0x' + S.hex(p.glyph, 2) + ' (' + p.glyph + ')'];
+    bits.push(here === null
+      ? 'no ' + modeLabel(state.keys) + ' key \u2014 pick it here'
+      : modeLabel(state.keys) + ': type "' + here + '"');
+    // Name the other mode too, including when it has no key for this glyph -- that
+    // is exactly the question "could I type this if I switched?".
+    if (there !== here) {
+      bits.push(modeLabel(other) + ': ' +
+        (there === null ? 'no key' : 'type "' + there + '"'));
+    }
+    p.el.title = bits.join(' \u2014 ');
+    p.el.className = 'swatch' + (state.penGlyph === p.glyph ? ' on' : '');
+  });
+}
+
+// --- controls, both ways ---------------------------------------------------
+function syncControls() {
+  $('columns').value = String(state.columns);
+  $('monitor').value = state.monitor;
+  $('zoom').value = String(state.zoom);
+  $('vpcol').value = String(state.col0);
+  $('vprow').value = String(state.row0);
+  $('area').value = state.area;
+  $('fps').value = String(state.fps);
+  $('loop').checked = state.loop;
+  each(document.querySelectorAll('input[name=keys]'), function (r) {
+    r.checked = (r.value === state.keys);
+  });
+  each(document.querySelectorAll('input[name=bright]'), function (r) {
+    r.checked = (r.value === (state.bright ? 'bright' : 'dim'));
+  });
+  syncDerived();
+}
+
+function each(list, fn) { Array.prototype.forEach.call(list, fn); }
+
+function syncDerived() {
+  ensurePalette();
+  // The origin fields follow the state, so a programmatic move -- the home button
+  // -- cannot leave the field showing a position the overlay is not at.  Not while
+  // the field has focus, or a half-typed number would be overwritten.
+  if (document.activeElement !== $('vpcol')) $('vpcol').value = String(state.col0);
+  if (document.activeElement !== $('vprow')) $('vprow').value = String(state.row0);
+  $('penHint').textContent = 'pen: ' + (state.bright ? 'bright' : 'dim') +
+    (state.penGlyph === null ? '' : ', glyph 0x' + S.hex(state.penGlyph, 2)) +
+    ' \u2014 ' + (state.keys === 'sui65'
+      ? 'graphical characters: A-a type the block glyphs 0x00-0x20, as the ROM\u2019s ' +
+        'sui 65 art loader reads them, and the palette is labelled with those keys.'
+      : 'standard characters: a key is its own glyph code, capitals included, and the ' +
+        'palette is labelled with the characters.');
+  var ms = 1000 / state.fps;
+  $('rateHint').textContent = state.fps + ' fps = ' + ms.toFixed(1) + ' ms a frame' +
+    (ms < 20 ? ' \u2014 browsers clamp GIF playback below 20 ms' : '');
+}
+
+function renderAll() {
+  renderScreen();
+  renderPreview();
+  highlightFilmstrip();
+  $('frameCount').textContent = (state.frame + 1) + ' / ' + state.frames.length;
+  $('artText').textContent = S.artText(cur().cells);
+  updateDiff();
+  syncDerived();
+}
+
+// --- the cursor, and the keys ---------------------------------------------
+function advance() {
+  var n = state.cursor + 1;
+  if (n >= S.FRAME || S.isReserved(n)) n = 0;
+  state.cursor = n;
+}
+
+// Places the pen at the cursor and moves on, like a typewriter.  Returns where it
+// landed, or null when the cell is the trailer's.
+function place(glyph) {
+  var i = state.cursor;
+  if (S.isReserved(i)) {
+    say('row 31, columns 120-127 hold the frame\u2019s O1NEXT trailer \u2014 they cannot be painted.', 'warn');
+    advance();
+    layoutOverlays();
+    return null;
+  }
+  var r = Math.floor(i / S.COLS), c = i % S.COLS;
+  cur().cells[i] = glyph & 0x7F;
+  cur().attrs[i] = state.bright ? 1 : 0;
+  advance();
+  renderScreen();
+  $('artText').textContent = S.artText(cur().cells);
+  return { r: r, c: c };
+}
+
+function move(dr, dc) {
+  var r = Math.floor(state.cursor / S.COLS) + dr;
+  var c = (state.cursor % S.COLS) + dc;
+  if (r < 0) r = S.ROWS - 1;
+  if (r >= S.ROWS) r = 0;
+  if (c < 0) c = S.COLS - 1;
+  if (c >= S.COLS) c = 0;
+  state.cursor = r * S.COLS + c;
+  layoutOverlays();
+}
+
+// A keystroke, through the pen's font.  `sui 65` is why the character font has to
+// refuse the graphics range, and saying so is the point of the message.
+function typeKey(code) {
+  var g = S.glyphForKey(code, state.keys);
+  if (g === null) {
+    say('"' + String.fromCharCode(code) + '" reaches no glyph.', 'warn');
+    return;
+  }
+  var at = place(g);
+  if (at) {
+    say('glyph 0x' + S.hex(g, 2) + ' (' + (S.isGraphicsGlyph(g) ? 'graphics' : 'character') +
+        '), ' + (state.bright ? 'bright' : 'dim') +
+        ', at row ' + at.r + ', column ' + at.c + '.');
+  }
+}
+
+window.addEventListener('keydown', function (e) {
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
+  var k = e.key, rowStart = Math.floor(state.cursor / S.COLS) * S.COLS;
+
+  // The clipboard, on the keys people already know, before the plain-key glyph
+  // handling below.
+  if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+    var lower = (k || '').toLowerCase();
+    if (lower === 'c') { doCopy(); e.preventDefault(); return; }
+    if (lower === 'x') { doCut(); e.preventDefault(); return; }
+    if (lower === 'v') { doPaste(); e.preventDefault(); return; }
+    return;
+  }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+  // Tab flips the ninth bit.  The glyph is already in the cell, so changing how
+  // bright it is must not mean entering it again.
+  if (k === 'Tab') { doToggle(); e.preventDefault(); return; }
+
+  if (k === 'ArrowLeft') { move(0, -1); e.preventDefault(); return; }
+  if (k === 'ArrowRight') { move(0, 1); e.preventDefault(); return; }
+  if (k === 'ArrowUp') { move(-1, 0); e.preventDefault(); return; }
+  if (k === 'ArrowDown') { move(1, 0); e.preventDefault(); return; }
+  if (k === 'Home') { state.cursor = rowStart; layoutOverlays(); e.preventDefault(); return; }
+  if (k === 'End') { state.cursor = rowStart + S.COLS - 1; layoutOverlays(); e.preventDefault(); return; }
+  if (k === 'Enter') {
+    state.cursor = Math.min(S.FRAME - 1, rowStart + S.COLS);
+    layoutOverlays(); e.preventDefault(); return;
+  }
+  if (k === 'Backspace' || k === 'Delete') {
+    var at = place(S.BLANK);
+    if (at) say('blanked row ' + at.r + ', column ' + at.c + '.');
+    e.preventDefault(); return;
+  }
+  if (k.length !== 1) return;
+  var code = k.charCodeAt(0);
+  if (code < 0x20 || code > 0x7E) return;
+  typeKey(code);
+  e.preventDefault();
+});
+
+// --- the mouse: click to aim, drag to select ------------------------------
+var screenCanvas = $('screen');
+
+function cellFromEvent(e) {
+  var rect = screenCanvas.getBoundingClientRect();
+  var c = Math.floor((e.clientX - rect.left) / rect.width * S.COLS);
+  var r = Math.floor((e.clientY - rect.top) / rect.height * S.ROWS);
+  c = Math.max(0, Math.min(S.COLS - 1, c));
+  r = Math.max(0, Math.min(S.ROWS - 1, r));
+  return r * S.COLS + c;
+}
+
+screenCanvas.addEventListener('mousedown', function (e) {
+  e.preventDefault();
+  state.anchor = cellFromEvent(e);
+  state.cursor = state.anchor;
+  state.dragging = true;
+  state.sel = null;
+  layoutOverlays();
+});
+
+screenCanvas.addEventListener('mousemove', function (e) {
+  if (!state.dragging) return;
+  state.cursor = cellFromEvent(e);
+  state.sel = { r0: Math.floor(state.anchor / S.COLS), c0: state.anchor % S.COLS,
+                r1: Math.floor(state.cursor / S.COLS), c1: state.cursor % S.COLS };
+  layoutOverlays();
+});
+
+window.addEventListener('mouseup', function () {
+  if (!state.dragging) return;
+  state.dragging = false;
+  var s = state.sel;
+  if (s && s.r0 === s.r1 && s.c0 === s.c1) state.sel = null;
+  if (state.sel) {
+    say('selected ' + (Math.abs(s.c1 - s.c0) + 1) + '\u00d7' +
+        (Math.abs(s.r1 - s.r0) + 1) + ' cells.');
+  } else if (state.paint && state.penGlyph !== null) {
+    var at = place(state.penGlyph);
+    if (at) say('painted glyph 0x' + S.hex(state.penGlyph, 2) + ' at row ' + at.r +
+                ', column ' + at.c + '.');
+  } else {
+    say('cursor at row ' + Math.floor(state.cursor / S.COLS) + ', column ' +
+        (state.cursor % S.COLS) + ' \u2014 type a key to place a glyph there.');
+  }
+  layoutOverlays();
+});
+
+// --- selection operations -------------------------------------------------
+function selectionBounds() {
+  var s = state.sel;
+  if (!s) {
+    var r = Math.floor(state.cursor / S.COLS), c = state.cursor % S.COLS;
+    return { r0: r, r1: r, c0: c, c1: c };
+  }
+  return { r0: Math.min(s.r0, s.r1), r1: Math.max(s.r0, s.r1),
+           c0: Math.min(s.c0, s.c1), c1: Math.max(s.c0, s.c1) };
+}
+
+function forSelection(fn) {
+  var b = selectionBounds();
+  for (var r = b.r0; r <= b.r1; r++)
+    for (var c = b.c0; c <= b.c1; c++) {
+      var i = r * S.COLS + c;
+      if (!S.isReserved(i)) fn(i);
+    }
+}
+
+function selSize() {
+  var b = selectionBounds();
+  return (b.c1 - b.c0 + 1) + '\u00d7' + (b.r1 - b.r0 + 1);
+}
+
+$('fillSel').addEventListener('click', function () {
+  if (state.penGlyph === null) {
+    say('pick a glyph from the graphics palette first \u2014 that is what "fill with pen" uses.', 'warn');
+    return;
+  }
+  forSelection(function (i) {
+    cur().cells[i] = state.penGlyph;
+    cur().attrs[i] = state.bright ? 1 : 0;
+  });
+  renderAll();
+  say('filled ' + selSize() + ' with glyph 0x' + S.hex(state.penGlyph, 2) + '.');
+});
+
+$('dimSel').addEventListener('click', function () {
+  forSelection(function (i) { cur().attrs[i] = 0; });
+  renderAll();
+  say(selSize() + ' set dim.');
+});
+
+$('brightSel').addEventListener('click', function () {
+  forSelection(function (i) { cur().attrs[i] = 1; });
+  renderAll();
+  say(selSize() + ' set bright.');
+});
+
+$('clearSel').addEventListener('click', function () {
+  forSelection(function (i) { cur().cells[i] = S.BLANK; cur().attrs[i] = 1; });
+  renderAll();
+  say(selSize() + ' blanked.');
+});
+
+// --- the clipboard --------------------------------------------------------
+//
+// A selection is cells *and* their ninth bit, so a copy takes both planes and a
+// paste puts both back.  It deliberately does not go through art text: that is the
+// file format, and it cannot carry glyphs 0x41-0x61 or the attribute plane at all.
+
+var clipboard = null;
+
+// The core's rectangle operations take an origin and a size (that is what a render
+// or an export region is); a selection is stored as two corners, because that is
+// what dragging produces.  Convert in one place.
+function selBox() {
+  var b = selectionBounds();
+  return { col0: b.c0, row0: b.r0, cols: b.c1 - b.c0 + 1, rows: b.r1 - b.r0 + 1 };
+}
+
+function doCopy() {
+  clipboard = S.copyRegion(cur().cells, cur().attrs, selBox());
+  updateSelHint();
+  say('copied ' + clipboard.cols + '\u00d7' + clipboard.rows + ' cells, ninth bit and all. ' +
+      'Paste puts them down at the cursor.');
+}
+
+function doCut() {
+  clipboard = S.copyRegion(cur().cells, cur().attrs, selBox());
+  var n = 0;
+  forSelection(function (i) { cur().cells[i] = S.BLANK; cur().attrs[i] = 1; n++; });
+  renderAll();
+  say('cut ' + clipboard.cols + '\u00d7' + clipboard.rows + ' cells to the clipboard and ' +
+      'blanked ' + n + '.');
+}
+
+function doPaste() {
+  if (clipboard === null) {
+    say('the clipboard is empty \u2014 copy or cut something first.', 'warn');
+    return;
+  }
+  var r = Math.floor(state.cursor / S.COLS), c = state.cursor % S.COLS;
+  var n = S.pasteRegion(clipboard, cur().cells, cur().attrs, c, r);
+  renderAll();
+  say('pasted ' + clipboard.cols + '\u00d7' + clipboard.rows + ' at row ' + r +
+      ', column ' + c + ' \u2014 ' + n + ' cells written.');
+}
+
+// Flip the ninth bit under the cursor, or over the whole selection.  The glyph is
+// already there; this is the operation that never needed it entered again.
+function doToggle() {
+  var n = S.invertAttrs(cur().attrs, selBox());
+  renderAll();
+  if (n === 1) say('the cell is now ' + (cur().attrs[state.cursor] ? 'bright' : 'dim') + '.');
+  else say('flipped the ninth bit on ' + n + ' cells.');
+}
+
+function updateSelHint() {
+  var b = selectionBounds();
+  $('selHint').textContent =
+    (state.sel ? 'selection: ' + (b.c1 - b.c0 + 1) + '\u00d7' + (b.r1 - b.r0 + 1) + ' cells'
+               : 'no selection \u2014 the cell under the cursor') +
+    '; clipboard: ' + (clipboard === null ? 'empty'
+                                          : clipboard.cols + '\u00d7' + clipboard.rows) + '.';
+}
+
+$('copySel').addEventListener('click', doCopy);
+$('cutSel').addEventListener('click', doCut);
+$('pasteSel').addEventListener('click', doPaste);
+$('toggleSel').addEventListener('click', doToggle);
+
+// --- frames ---------------------------------------------------------------
+function goTo(n) {
+  state.frame = Math.max(0, Math.min(state.frames.length - 1, n));
+  renderAll();
+}
+
+function blankFrame() {
+  return { cells: S.blankCells(), attrs: S.brightAttrs() };
+}
+
+function copyFrame(f) {
+  return { cells: Uint8Array.from(f.cells), attrs: Uint8Array.from(f.attrs) };
+}
+
+// Thumbnails are the whole screen at 104 columns and 1x -- the narrowest render
+// there is -- then scaled down by CSS.  Rebuilding them is the expensive part, so
+// it happens when the frame *list* changes and not when the frame does.
+function renderFilmstrip() {
+  var host = $('filmstrip');
+  host.innerHTML = '';
+  state.frames.forEach(function (f, i) {
+    var b = document.createElement('button');
+    b.className = 'thumb' + (i === state.frame ? ' on' : '');
+    b.title = 'frame ' + (i + 1) + ' of ' + state.frames.length;
+    var img = S.renderIndexed(f.cells, f.attrs, { columns: 104, scale: 1 });
+    var cv = document.createElement('canvas');
+    cv.width = img.w;
+    cv.height = img.h;
+    cv.getContext('2d').putImageData(
+      new ImageData(S.indicesToRGBA(img, palette()), img.w, img.h), 0, 0);
+    cv.style.width = '72px';
+    b.appendChild(cv);
+    var n = document.createElement('div');
+    n.className = 'n';
+    n.textContent = String(i + 1);
+    b.appendChild(n);
+    b.addEventListener('click', function () { goTo(i); });
+    host.appendChild(b);
+  });
+}
+
+function highlightFilmstrip() {
+  var kids = $('filmstrip').children;
+  for (var i = 0; i < kids.length; i++)
+    kids[i].className = 'thumb' + (i === state.frame ? ' on' : '');
+}
+
+function rebuildAll() { renderFilmstrip(); renderAll(); }
+
+$('first').addEventListener('click', function () { goTo(0); });
+$('prev').addEventListener('click', function () { goTo(state.frame - 1); });
+$('next').addEventListener('click', function () { goTo(state.frame + 1); });
+$('last').addEventListener('click', function () { goTo(state.frames.length - 1); });
+
+$('addFrame').addEventListener('click', function () {
+  state.frames.push(blankFrame());
+  state.frame = state.frames.length - 1;
+  rebuildAll();
+  say('added a blank frame at the end: ' + state.frames.length + ' frames now. ' +
+      '"copy" inserts a copy of the current one instead.');
+});
+
+$('dupFrame').addEventListener('click', function () {
+  state.frames.splice(state.frame + 1, 0, copyFrame(state.frames[state.frame]));
+  state.frame++;
+  rebuildAll();
+  say('copied frame ' + state.frame + ' to frame ' + (state.frame + 1) + ' of ' +
+      state.frames.length + '.');
+});
+
+$('delFrame').addEventListener('click', function () {
+  if (state.frames.length === 1) {
+    say('an animation needs at least one frame; blank this one instead.', 'warn');
+    return;
+  }
+  state.frames.splice(state.frame, 1);
+  if (state.frame >= state.frames.length) state.frame = state.frames.length - 1;
+  rebuildAll();
+  say('deleted; ' + state.frames.length + ' frames left.');
+});
+
+// --- copy forward, with an offset -----------------------------------------
+//
+// The tool has no blitter budget, so there is no reason to move a picture a few
+// cells at a time: it moves the whole rectangle by any offset at all and lets the
+// *firmware* diff consecutive frames and write only what changed.  diffHint below
+// is how big that diff is -- the tool counts it, it does not do it.
+//
+// The offset moves the *content*: columns +4 is four cells right, rows -2 is two
+// up.  The destination is the same rectangle as the source, it is cleared first,
+// and anything moved out of it is clipped rather than wrapped.
+
+function clampInt(value, lo, hi, fallback) {
+  var n = parseInt(value, 10);
+  if (isNaN(n)) n = fallback;
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function copyBox() {
+  if ($('copyFrom').value === 'viewport') {
+    return { col0: state.col0, row0: state.row0,
+             cols: state.columns, rows: S.VIEWPORT_ROWS };
+  }
+  return { col0: 0, row0: 0, cols: S.COLS, rows: S.ROWS };
+}
+
+function fmtOffset(dx, dy) {
+  function s(n) { return (n > 0 ? '+' : '') + n; }
+  return '(' + s(dx) + ', ' + s(dy) + ')';
+}
+
+$('copyNext').addEventListener('click', function () {
+  var dx = clampInt($('copyDx').value, -S.COLS, S.COLS, 0);
+  var dy = clampInt($('copyDy').value, -S.ROWS, S.ROWS, 0);
+  var box = copyBox();
+  var from = state.frame;
+  var added = false;
+  if (from + 1 >= state.frames.length) {
+    state.frames.push(copyFrame(state.frames[from]));
+    added = true;
+  }
+  var to = from + 1;
+  var moved = S.blitShifted(state.frames[from].cells, state.frames[from].attrs,
+                            state.frames[to].cells, state.frames[to].attrs,
+                            box, dx, dy);
+  state.frame = to;
+  rebuildAll();
+  var what = ($('copyFrom').value === 'viewport') ? 'viewport' : 'screen';
+  say((added ? 'added frame ' + (to + 1) + ' as a copy of ' + (from + 1) + ', then ' : '') +
+      'moved the ' + what + ' by ' + fmtOffset(dx, dy) + ' into frame ' + (to + 1) +
+      ' \u2014 ' + moved + ' cells written. What the firmware has to blit is the ' +
+      'diff, not the frame.');
+});
+
+function updateDiff() {
+  if (state.frames.length < 2) {
+    $('diffHint').textContent = 'one frame: nothing to diff yet.';
+    return;
+  }
+  var i = Math.min(state.frame, state.frames.length - 2);
+  var a = state.frames[i], b = state.frames[i + 1];
+  var d = S.frameDiff(a.cells, a.attrs, b.cells, b.attrs);
+  var all = S.animationDiff(state.frames);
+  $('diffHint').textContent = 'frame ' + (i + 1) + ' \u2192 ' + (i + 2) + ': ' +
+    d.cells + ' of ' + d.of + ' cells differ (' +
+    (100 * d.cells / d.of).toFixed(1) + '%), in ' + d.rows + ' of ' + S.ROWS +
+    ' rows. The firmware blits that diff, not the frame; the whole animation is ' +
+    all.cells + ' cells over ' + all.transitions + ' transition' +
+    (all.transitions === 1 ? '' : 's') + ' (worst ' + all.worst + ').';
+}
+
+// --- the preview ----------------------------------------------------------
+function renderPreview() {
+  paintCanvas($('preview'),
+    S.renderIndexed(cur().cells, cur().attrs, displayOpts(state.area === 'viewport')));
+}
+
+function tick() {
+  var next = state.frame + 1;
+  if (next >= state.frames.length) {
+    if (!state.loop) { stop(); return; }
+    next = 0;
+  }
+  state.frame = next;
+  renderPreview();
+  $('frameCount').textContent = (state.frame + 1) + ' / ' + state.frames.length;
+}
+
+function play() {
+  if (state.playing || state.frames.length < 2) {
+    if (state.frames.length < 2) say('one frame is a still; add another to have an animation.', 'warn');
+    return;
+  }
+  state.playing = true;
+  $('play').textContent = 'stop';
+  $('playState').textContent = 'playing ' + state.frames.length + ' frames at ' +
+    state.fps + ' fps';
+  state.timer = window.setInterval(tick, Math.max(16, Math.round(1000 / state.fps)));
+}
+
+function stop() {
+  if (state.timer) { window.clearInterval(state.timer); state.timer = null; }
+  state.playing = false;
+  $('play').textContent = 'play';
+  $('playState').textContent = 'stopped on frame ' + (state.frame + 1);
+  renderAll();
+}
+
+$('play').addEventListener('click', function () { state.playing ? stop() : play(); });
+
+$('fps').addEventListener('change', function () {
+  state.fps = Math.max(1, Math.min(60, parseInt(this.value, 10) || 10));
+  syncControls();
+  if (state.playing) { stop(); play(); }
+  say('playback is ' + state.fps + ' fps.');
+});
+
+$('loop').addEventListener('change', function () {
+  state.loop = this.checked;
+  syncDerived();
+});
+
+// --- export ---------------------------------------------------------------
+function download(bytes, filename, mime) {
+  var blob = new Blob([bytes], { type: mime || 'application/octet-stream' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+}
+
+function baseName() {
+  var n = $('name').value.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+  return n || 'bootsplash';
+}
+
+function builtFrames() {
+  return state.frames.map(function (f) { return S.buildFrame(f.cells, f.attrs); });
+}
+
+$('dlBin').addEventListener('click', function () {
+  var frames = builtFrames();
+  var bytes = S.buildAnimation(frames, state.fps, state.loop);
+  download(bytes, baseName() + '.bin');
+  say('wrote ' + baseName() + '.bin: a ' + S.ANIM_HEADER + '-byte ' + S.ANIM_MAGIC +
+      ' header then ' + frames.length + ' frame' + (frames.length === 1 ? '' : 's') +
+      ' at ' + state.fps + ' fps, ' + bytes.length + ' bytes. Every frame is an 8192-byte ' +
+      'frame the machine\u2019s own trailer test accepts.');
+});
+
+$('dlTxt').addEventListener('click', function () {
+  var lossy = S.artTextLossy(cur().cells);
+  download(S.artTextBytes(cur().cells), baseName() + '.txt', 'text/plain');
+  if (lossy.length) {
+    say('wrote ' + baseName() + '.txt, but ' + lossy.length + ' cell(s) hold a glyph in ' +
+        '0x41-0x61, which art text cannot express \u2014 those read back as the blank.', 'warn');
+  } else {
+    say('wrote ' + baseName() + '.txt: 32 lines of 128 characters, latin-1, one cell each.');
+  }
+});
+
+$('dlPng').addEventListener('click', function () {
+  var img = S.renderIndexed(cur().cells, cur().attrs, renderOpts(state.area === 'viewport'));
+  var file = baseName() + '-f' + (state.frame + 1) + '.png';
+  S.encodePNG(img, palette(), S.deflateAuto).then(function (bytes) {
+    download(bytes, file, 'image/png');
+    say('wrote ' + file + ': ' + img.w + '\u00d7' + img.h + ' at ' + state.zoom +
+        '\u00d7, ' + bytes.length + ' bytes.');
+  }).catch(function (e) {
+    say('the PNG failed: ' + (e && e.message ? e.message : e), 'bad');
+  });
+});
+
+$('dlGif').addEventListener('click', function () {
+  var opts = renderOpts(state.area === 'viewport');
+  var frames = state.frames.map(function (f) {
+    return S.renderIndexed(f.cells, f.attrs, opts);
+  });
+  var delay = Math.max(2, Math.round(100 / state.fps));
+  var bytes = S.encodeGIF(frames, palette(), delay, state.loop);
+  download(bytes, baseName() + '.gif', 'image/gif');
+  say('wrote ' + baseName() + '.gif: ' + frames.length + ' frames at ' + state.fps +
+      ' fps (' + delay + ' hundredths each), ' + bytes.length + ' bytes, ' +
+      frames[0].w + '\u00d7' + frames[0].h + '. GIF cannot go below 2 hundredths, and a ' +
+      'browser often clamps playback under 20 ms.');
+});
+
+// --- import ---------------------------------------------------------------
+function importArt(bytes) {
+  var text = '', i;
+  for (i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+  var parsed = S.parseArtText(text);
+  state.frames = [{ cells: parsed.cells, attrs: S.brightAttrs() }];
+  state.frame = 0;
+  state.cursor = 0;
+  state.sel = null;
+  rebuildAll();
+  var msg = 'imported art: ' + parsed.rows + ' row' + (parsed.rows === 1 ? '' : 's') +
+            ' of ' + S.COLS + ' cells, every cell bright (art text has no attribute plane).';
+  if (parsed.unknown.length)
+    msg += ' ' + parsed.unknown.length + ' character(s) reached no glyph: ' +
+           parsed.unknown.join(' ') + '.';
+  if (parsed.truncated)
+    msg += ' Anything past 128 columns or 32 rows was dropped.';
+  say(msg, parsed.unknown.length ? 'warn' : '');
+}
+
+function importBin(bytes) {
+  var anim = S.parseAnimation(bytes), frames = [], msg, i;
+  if (anim.ok) {
+    for (i = 0; i < anim.frames.length; i++) {
+      var p = S.parseFrame(anim.frames[i]);
+      if (!p.ok) {
+        say('frame ' + (i + 1) + ' of ' + anim.frames.length +
+            ' failed its own trailer: ' + p.why + '. Nothing imported.', 'bad');
+        return;
+      }
+      frames.push({ cells: p.cells, attrs: p.attrs });
+    }
+    state.fps = anim.fps || state.fps;
+    state.loop = anim.loop;
+    msg = 'imported ' + frames.length + ' frame' + (frames.length === 1 ? '' : 's') +
+          ' at ' + state.fps + ' fps' + (anim.loop ? ', looping' : '') +
+          '; every trailer held.';
+  } else if (bytes.length === S.FRAME * 2) {
+    var one = S.parseFrame(bytes);
+    if (!one.ok) {
+      say('that is an 8192-byte frame, but its trailer does not hold: ' + one.why +
+          '. Nothing imported.', 'bad');
+      return;
+    }
+    frames = [{ cells: one.cells, attrs: one.attrs }];
+    msg = 'imported a bare 8192-byte frame; its ' + S.MAGIC + ' trailer held.';
+  } else {
+    say('not this tool\u2019s container (' + anim.why + '), and not 8192 bytes either. ' +
+        'Nothing imported.', 'bad');
+    return;
+  }
+  state.frames = frames;
+  state.frame = 0;
+  state.cursor = 0;
+  state.sel = null;
+  rebuildAll();
+  say(msg);
+}
+
+$('file').addEventListener('change', function () {
+  var f = this.files && this.files[0];
+  if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    var bytes = new Uint8Array(reader.result);
+    if (/\.txt$/i.test(f.name)) importArt(bytes);
+    else importBin(bytes);
+  };
+  reader.readAsArrayBuffer(f);
+  this.value = '';
+});
+
+// --- the toolbar ----------------------------------------------------------
+$('columns').addEventListener('change', function () {
+  state.columns = parseInt(this.value, 10);
+  if (state.col0 > S.COLS - state.columns) state.col0 = Math.max(0, S.COLS - state.columns);
+  renderAll();
+  say('SCREEN-PAC ' + state.columns + ' columns: the physical screen does not change width, ' +
+      'the type narrows \u2014 so a viewport is the same number of pixels across in every mode.');
+});
+
+$('monitor').addEventListener('change', function () {
+  state.monitor = this.value;
+  renderAll();
+  say('monitor: ' + S.MONITORS[state.monitor].label +
+      ' \u2014 dim cells are drawn at 45% of the ink, which is how the ninth bit shows.');
+});
+
+$('zoom').addEventListener('change', function () {
+  state.zoom = parseInt(this.value, 10);
+  renderAll();
+  say('zoom ' + state.zoom + '\u00d7 \u2014 the grid is shown at its own size, so this is ' +
+      'the size you see, and the panel scrolls when it is wider than the column. ' +
+      'Exports use the same dot scale.');
+});
+
+$('vpcol').addEventListener('change', function () {
+  state.col0 = Math.max(0, Math.min(S.COLS - 1, parseInt(this.value, 10) || 0));
+  renderAll();
+});
+
+$('vprow').addEventListener('change', function () {
+  state.row0 = Math.max(0, Math.min(S.ROWS - S.VIEWPORT_ROWS, parseInt(this.value, 10) || 0));
+  renderAll();
+});
+
+$('vpstock').addEventListener('click', function () {
+  state.col0 = 0;
+  state.row0 = 0;
+  renderAll();
+  say('viewport at home: buffer column 0, row 0 \u2014 where the machine actually puts it. ' +
+      'The BIOS writes VFLO (-22 = 0xEA) to the video PIA\u2019s port A at boot, which cancels ' +
+      'the 11 character clocks of horizontal blanking osborne1.cpp adds as 0x0b; DOHOME ' +
+      'returns to it, and Ctrl+arrow slides a character at a time.');
+});
+
+$('area').addEventListener('change', function () {
+  state.area = this.value;
+  renderPreview();
+  say('the preview and both images show the ' + (state.area === 'viewport'
+      ? 'viewport (' + state.columns + '\u00d7' + S.VIEWPORT_ROWS + ')'
+      : 'whole screen (' + S.COLS + '\u00d7' + S.ROWS + ')') + '.');
+});
+
+// --- go -------------------------------------------------------------------
+// The pen's two radio pairs.  They are the flow the tool is built around --
+// choose how the keyboard reads, and how bright, then click a cell and type.
+each(document.querySelectorAll('input[name=keys]'), function (r) {
+  r.addEventListener('change', function () {
+    state.keys = this.value;
+    syncDerived();
+    say(state.keys === 'sui65'
+      ? 'graphical characters: A-a type the block glyphs 0x00-0x20, the way the ROM\u2019s ' +
+        'sui 65 art loader reads them \u2014 so a capital can no longer be typed as a ' +
+        'letter, and the palette is relabelled with those keys. This is the mode to ' +
+        'author art text in.'
+      : 'standard characters: a key is its own glyph code, so a capital is a capital, ' +
+        'and the palette is relabelled with the characters. Art text cannot carry ' +
+        'glyphs 0x41-0x61, so the .txt export will say so.');
+  });
+});
+
+each(document.querySelectorAll('input[name=bright]'), function (r) {
+  r.addEventListener('change', function () {
+    state.bright = (this.value === 'bright');
+    syncDerived();
+    say('pen is ' + (state.bright ? 'bright' : 'dim') +
+        ' \u2014 the ninth bit of every cell you place.');
+  });
+});
+
+$('paintOnClick').addEventListener('change', function () {
+  state.paint = this.checked;
+  say(state.paint
+    ? 'a cell click now paints the palette glyph \u2014 turn it off to make clicks only aim.'
+    : 'a cell click only aims the cursor now; typing is what places a glyph.');
+});
+
+Object.keys(S.MONITORS).forEach(function (k) {
+  var o = document.createElement('option');
+  o.value = k;
+  o.textContent = S.MONITORS[k].label;
+  $('monitor').appendChild(o);
+});
+
+buildPalette();
+syncControls();
+renderFilmstrip();
+renderAll();
+
+// The provenance line is the ROM's own CRC, checked here -- not a claim.
+if (S.romOk()) {
+  $('provenance').textContent = 'Glyphs are the character generator ROM, char.ua15, CRC32 ' +
+    S.hex(S.romCrc32(), 8) + '.';
+  say('ready \u2014 click a cell and type. The pen is the character font, bright.');
+} else {
+  $('provenance').textContent = 'THE EMBEDDED ROM IS NOT char.ua15 \u2014 CRC32 ' +
+    S.hex(S.romCrc32(), 8) + '.';
+  say('the embedded character ROM failed its CRC32 check; the glyphs cannot be trusted.', 'bad');
+}
+
+// And one check that the machine's own trailer test accepts what this app builds.
+var probe = S.checkFrame(S.buildFrame(S.blankCells(), S.brightAttrs()));
+if (!probe.ok) say('self-check failed on an empty frame: ' + probe.why, 'bad');
+
+}());
+</script>
+</body>
+</html>
