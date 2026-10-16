@@ -193,10 +193,12 @@ screen is not on it, so the viewport is drawn over the grid.
 
 What it writes:
 
-- **`.bin`** — a 32-byte `O1SPLASH` header (version, loop flag, 128×32, fps,
-  frame count, a sum) and then the frames. Each frame is **8192 bytes = two
+- **`.bin`** — a 32-byte `O1SPLASH` header (version, flags, 128×32, fps, frame
+  count, a sum) and then the frames. Each frame is **8192 bytes = two
   sealed 4096-byte halves**, byte-identical to `firmware/rom-service/frame.bin`;
-  `tail -c +33` of a one-frame file *is* that asset. The header is this tool's
+  `tail -c +33` of a one-frame file *is* that asset. The flags byte carries the
+  playback mode — **bit 0 loop, bit 1 ping-pong**, so the three modes are 0, 1 and
+  3, and 2 (bounce once, then stop) parses too. The header is this tool's
   proposal — the firmware side of #247 is not written — and the frames are not.
 - **`.txt`** — the frame as art text, in the repo's own convention
   (`research/boot-screen/README.md`), latin-1, one character per cell, so it
@@ -209,11 +211,21 @@ it by an offset in columns and rows, and write it into the next frame — adding
 if there is no next one. The offset is unrestricted and either direction, because
 the tool is not the device; and under the control is a readout of **what the
 firmware would have to blit** for each transition, since the Pico diffs consecutive
-frames rather than copying them (#247).
+frames rather than copying them (#247). The readout counts the mode's own
+transitions: a loop has the wrap back to frame 1, and a ping-pong has the way back
+as well, which is twice the forward cost.
+
+Frames are re-ordered by moving them (buttons, `Alt`+arrows, or dragging a
+thumbnail — the filmstrip *is* the play order) or by **copy to position**, which
+puts a copy at a chosen frame number rather than immediately after its source.
+Import has two targets: **the whole animation** (replace, fps and mode included) and
+**this frame**, which writes the file's frames in where you are — so a half-built
+animation can be exported, added to one frame at a time, and imported back without
+redrawing anything.
 
 ```sh
-node tools/bootsplash/selftest.js     # 40 checks, no dependencies
-node tools/bootsplash/ui-test.js      # 46 checks, needs jsdom
+node tools/bootsplash/selftest.js     # 84 checks, no dependencies
+node tools/bootsplash/ui-test.js      # 130 checks, needs jsdom
 ```
 
 `selftest.js` checks the format against things that are not this tool: it

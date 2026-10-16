@@ -239,6 +239,57 @@ disk with nothing but the file, and the frame is a build artifact of that art. I
 is committed at `firmware/rom-service/frame.bin`, and `--check` re-builds it and
 compares bytes, so the art, the asset and the firmware's copy cannot drift.
 
+### 5.1 The animation: a container, and the two bits that pace it
+
+The screen above is **one** frame, and the frame format is settled. #247's last note
+hands the **pacing** to the RP2354B, so the asset becomes a *sequence*, and a
+sequence needs a container to say how long each frame lasts. The container is
+`tools/bootsplash/README.md`'s proposal — the firmware side of it is not written —
+and it is a 32-byte header and then the frames back to back, each already sealed, so
+frame *n* of a one-frame file **is** the 8192-byte asset above:
+
+| offset | bytes | what |
+|---|---|---|
+| 0 | 8 | `O1SPLASH` |
+| 8 | 1 | version, 1 |
+| 9 | 1 | **flags** |
+| 10 | 2 | width, `u16` LE, 128 |
+| 12 | 2 | height, `u16` LE, 32 |
+| 14 | 2 | fps, `u16` LE |
+| 16 | 4 | frames, `u32` LE |
+| 20 | 4 | body, `u32` LE = frames × 8192 |
+| 24 | 2 | header sum, `u16` LE over bytes 0–23 |
+| 26 | 6 | reserved, zero |
+
+**The flags byte is two independent bits**, because they answer two different
+questions and a reader can test either one alone:
+
+| bit | | means |
+|---|---|---|
+| 0 | `LOOP` | after the last frame, go back to the first |
+| 1 | `PINGPONG` | at the ends, reverse direction instead of jumping |
+
+So the three modes a designer picks between are **0** (play once), **1** (loop) and
+**3** (ping-pong: it repeats, and it reverses at each end). **`2` — bit 1 without bit
+0 — is defined and readable**: one bounce, forward then back, then stop. The tool
+does not offer it, because there is no "stop" on a screen that is already holding
+the boot's last frame, but it parses and is reported rather than being silently
+normalised to something else.
+
+**A bounce does not play the ends twice.** For frames `1 2 3`, ping-pong plays
+`1 2 3 2 1 2 3 2 …` — frame 3 is *turned on* once and reversed from — so one cycle
+is `2n − 2` steps, not `2n`. That is not only a look: it is the firmware's work.
+A ping-pong has to blit the way back as well, which is the forward transitions again
+in reverse and therefore **twice** the forward cost, and a loop has one transition a
+once-through does not: last → first. `tools/bootsplash/` counts all three, so the
+number a designer reads is the number the Pico is asked for.
+
+**What is still not decided is how the ROM asks for frame *n*.** `PRESENT(1)` and
+`PRESENT(2)` name the two halves of *the* frame (§4.1 step 4), and a sequence needs
+the door to name which one — whether `PRESENT` grows a frame index, or the firmware
+advances its own sequence and the ROM keeps asking for "the frame" as it does today.
+That is #247's, and it is not settled here.
+
 
 ## 6. The memory map at the moment the screen runs, and what happens when it fails
 
