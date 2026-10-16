@@ -246,6 +246,82 @@ section('the animation container');
         !S.parseAnimation(Buffer.alloc(64)).ok);
 }
 
+// --- 4b. the playback mode, which is two bits ------------------------------
+//
+// The flags byte answers two independent questions -- does it repeat (bit 0), and
+// does it reverse at the ends (bit 1) -- and the tool offers three of the four
+// combinations.  All four are checked here, including the one the tool does not
+// offer, because a bitfield with an unreachable state is a bitfield a reader cannot
+// trust.
+section('the playback mode');
+{
+  const one = Buffer.from(fs.readFileSync(FRAME_PATH));
+  const flagOf = (mode) => S.buildAnimation([one], 10, mode)[9];
+  check('once is flags 0, loop is flags 1, ping-pong is flags 3',
+        flagOf('once') === 0 && flagOf('loop') === S.ANIM_LOOP &&
+        flagOf('pingpong') === (S.ANIM_LOOP | S.ANIM_PINGPONG),
+        flagOf('once') + ' ' + flagOf('loop') + ' ' + flagOf('pingpong'));
+  check('a boolean still means what it meant before ping-pong existed',
+        flagOf(true) === S.ANIM_LOOP && flagOf(false) === 0);
+  check('and an unknown word is refused rather than written as something else',
+        flagOf('sideways') === 0);
+
+  const modeOf = (flags) => {
+    const b = Buffer.from(S.buildAnimation([one], 10, 'once'));
+    b[9] = flags;
+    b[24] = 0; b[25] = 0;                       // re-sum the header over the new byte
+    let s = 0;
+    for (let i = 0; i < 24; i++) s = (s + b[i]) & 0xFFFF;
+    b[24] = s & 0xFF; b[25] = (s >>> 8) & 0xFF;
+    return S.parseAnimation(b);
+  };
+  check('every flags byte parses, and the two bits are reported separately',
+        modeOf(0).mode === 'once' && modeOf(1).mode === 'loop' &&
+        modeOf(2).mode === 'pingpong' && modeOf(3).mode === 'pingpong',
+        modeOf(0).mode + ' ' + modeOf(1).mode + ' ' + modeOf(2).mode + ' ' + modeOf(3).mode);
+  check('and the bits say what they mean: 2 is a bounce with no repeat',
+        modeOf(2).pingpong === true && modeOf(2).loop === false &&
+        modeOf(3).pingpong === true && modeOf(3).loop === true);
+  check('a round trip through the container keeps the mode',
+        S.parseAnimation(S.buildAnimation([one, one], 10, 'pingpong')).mode === 'pingpong');
+
+  // The order one cycle plays.  The ends appear once each: a bounce turns *on* the
+  // frames at the ends, it does not play them twice.
+  check('once and loop play the animation forward, in order',
+        S.playbackOrder(4, 'once').join('') === '0123' &&
+        S.playbackOrder(4, 'loop').join('') === '0123' &&
+        S.playbackOrder(4, 'pingpong').join('') === '012321');
+  check('two frames are 0 1 0 1 ..., which is the shortest bounce',
+        S.playbackOrder(2, 'pingpong').join('') === '01');
+  check('one frame is one step, whatever the mode',
+        S.playbackOrder(1, 'pingpong').join('') === '0' &&
+        S.playbackOrder(1, 'once').join('') === '0');
+  check('and no frames is no steps', S.playbackOrder(0, 'loop').length === 0);
+
+  // What the whole animation costs, which is what the firmware has to blit.  The
+  // mode changes it, and that is the point of taking it as an argument.
+  const mk = (glyph) => {
+    const cells = S.blankCells(), attrs = S.brightAttrs();
+    cells[0] = glyph;
+    return { cells: cells, attrs: attrs };
+  };
+  const three = [mk(0x41), mk(0x42), mk(0x43)];
+  const once = S.animationDiff(three, 'once');
+  const loop = S.animationDiff(three, 'loop');
+  const ping = S.animationDiff(three, 'pingpong');
+  check('once is two transitions of one cell each',
+        once.cells === 2 && once.transitions === 2 && once.worst === 1,
+        JSON.stringify(once));
+  check('loop adds the wrap back to frame 1 as a third transition',
+        loop.cells === 3 && loop.transitions === 3, JSON.stringify(loop));
+  check('ping-pong counts the way back too: the forward pass, twice over',
+        ping.cells === once.cells * 2 && ping.transitions === 4, JSON.stringify(ping));
+  check('and the mode defaults to once, so an older caller counts what it counted',
+        JSON.stringify(S.animationDiff(three)) === JSON.stringify(once));
+  check('one frame costs nothing to play, in any mode',
+        S.animationDiff([mk(0x41)], 'pingpong').transitions === 0);
+}
+
 // --- 5. the art text round-trips -------------------------------------------
 section('the art text form');
 {
