@@ -156,11 +156,11 @@
 +	STO	A,DOORQ
 +	MOV	A,C
 +	STO	A,DOORQ
-+DR1:	LD	A,DOORR
++DR1:	LD	A,DOORR		;the length
 +	ORA	A
 +	JZ	DR1
-+	LD	A,DOORR		;the length
 +	LD	A,DOORR		;the result code
++	ORA	A
 +	RET
  RLWA	=	*		;LWA OF ROM RESIDENT CODE
  
@@ -221,10 +221,10 @@
 +	MOV	A,B
 +	ORA	C
 +	JRNZ	SS1
-+	LD	A,0FFEH
++	LD	A,1FFEH
 +	CMP	E
 +	JNZ	SCRET
-+	LD	A,0FFFH
++	LD	A,1FFFH
 +	CMP	D
 +	JNZ	SCRET
 +;6. the blit: one LDIR of 4096 bytes, 21.5 ms at 4 MHz

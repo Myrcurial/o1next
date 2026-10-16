@@ -30,6 +30,24 @@
 ;  85 = 80 + 5.  With both fixed the same build reports `no ERRORs, 487 Labels,
 ;  Program LWA = 40B7h`, and the guard is still silent.
 ;
+;TWO MORE DEFECTS, AND THE ACCEPTANCE FOUND THEM (2026-10-15, turn 4)
+;  These two are in the *running* code, and neither is visible in a boot.  They
+;  were found the first time the whole chain was measured end to end --
+;  tools/emulator-setup/mame-osborne1nx/bootscreen-check.sh, which reads the two
+;  video planes back off the machine:
+;  * DOOR's `JNZ` tested flags left by its own *length* probe, because
+;    `LD A,(NN)` does not set the flags -- so every caller took its "no such
+;    content" path however well the door answered, and the machine printed the
+;    stock 1.44 sign-on with the door answering OK (measured with a tap on
+;    2800h/2801h: 40 03 written, 01 00 00 read back).
+;  * the frame trailer's *sum* was read from the half's own 0FFEh instead of the
+;    window's 1FFEh -- the magic check below had it right and this did not -- so
+;    the check could never pass and the code returned before the blit: the screen
+;    stayed the bright fill with no character written anywhere.
+;  Fixed, the monitor is 128 bytes (`0F67h`-`0FE6h`, 21 free to the guard) and the
+;  frame lands on both planes; with no splash mounted the run measures the
+;  fallback instead, which is what says the frame is this code's doing.
+;
 ;HOW THE LISTING IS READ (and why throttling was not the answer)
 ;  `o1keys.sh` now takes `O1_MAME_EXTRA` (default `-nothrottle`), so a run can be
 ;  throttled -- but the listing never needs watching.  The ACT80's `L=` option
@@ -76,23 +94,46 @@ SCRN44:	LDK	DE,IMSG
 	CALL	OSTR		;the stock sign-on message
 	RET
 ;THE DOOR, and both callers share it -- the stub above and the RAM code below.
-;B is the opcode, C its operand, and the result code comes back in A.  The
+;B is the opcode, C its operand, and the result code comes back in A *with the
+;flags set from it*, because the flags are what both callers test.  The
 ;transaction is the mailbox protocol's: the reply register reads 0 while the
 ;firmware is not ready, then the length, then the bytes (docs/mailbox-protocol.md
 ;3).  The address is 2800H/2801H, not 2300H/2301H, because the onboard selects
 ;check two address bits and 2301H is the floppy's track register as well as the
 ;keyboard's row 0 (docs/rom-pico-protocol.md 2, docs/o1-mainboard-schematic.md 7a).
+;
+;THE `ORA A` BEFORE THE `RET` IS NOT DECORATION, AND ITS ABSENCE WAS THE FIRST
+;DEFECT THE EMULATOR FOUND IN THIS CODE (2026-10-15, #247 turn 4).  `LD A,(NN)`
+;DOES NOT SET THE FLAGS, so `JNZ` after `CALL DOOR` was testing the flags left by
+;the *length* probe -- non-zero whenever the door answered at all -- and every
+;caller took its "no such content" path whatever the reply said.  The assembly
+;was right, the device was right, the door answered OK, and the machine printed
+;the stock 1.44 sign-on anyway: measured, not deduced (a read/write tap on the
+;door showed 40 03 written and 01 00 00 read back, and the stock message on the
+;screen).  The result code is read once, into A, and the flags come from *it*.
+;
+;AND ONE READ IS ENOUGH because every reply this code asks for is one byte long --
+;PRESENT answers with the result code alone.  A longer reply (INFO's three, ECHO's
+;two) is left part-read, which the protocol allows: a write abandons a pending
+;reply (mailbox-protocol.md 3).  This code never sends one.
+;
+;THE LINE HAS NO COMMENT ON PURPOSE.  `rom2.diff` is what the assembler is given,
+;and the build has a measured size sensitivity (docs/rom-13-reconstruction.md 7):
+;a source two bytes longer put the hex file's tail on a record the emulator's
+;floppy write-back damages, and the same two bytes came back.  So the code lines
+;here and in the diff are byte-identical and carry no prose; the reasoning is
+;this comment block, which emits nothing.
 DOOR:
 	PROC
 	MOV	A,B
 	STO	A,DOORQ
 	MOV	A,C
 	STO	A,DOORQ
-DR1:	LD	A,DOORR
+DR1:	LD	A,DOORR		;the length
 	ORA	A
 	JZ	DR1
-	LD	A,DOORR		;the length
 	LD	A,DOORR		;the result code
+	ORA	A
 	RET
 RLWA	=	*		;LWA OF ROM RESIDENT CODE
 
@@ -133,7 +174,12 @@ SCRN40:
 	CALL	DOOR
 	JNZ	SCRET		;no frame: the text stays, which is the whole point
 ;5. the trailer, at 0FF8H of the half: six bytes of magic, then the 16-bit sum of
-;the 4088 bytes before them
+;the 4088 bytes before them.  THE SUM IS AT 1FFEH, NOT 0FFEH -- the *half's*
+;0FFEh is the *window's* 1FFEh, and reading 0FFEh reads the ROM's own byte (0FFh
+;from the vendor's fill) so the sum can never match.  That was the second defect
+;the emulator found (2026-10-15, #247 turn 4): the magic check below is right and
+;the sum check was not, and the code returned before the blit -- the screen stayed
+;the bright fill, with no character written anywhere.  Measured, not deduced.
 	LK	HL,1FF8H
 	LDK	DE,SMAG
 	LK	C,6
@@ -159,10 +205,10 @@ SS2:	INC	HL
 	MOV	A,B
 	ORA	C
 	JRNZ	SS1
-	LD	A,0FFEH
+	LD	A,1FFEH
 	CMP	E
 	JNZ	SCRET
-	LD	A,0FFFH
+	LD	A,1FFFH
 	CMP	D
 	JNZ	SCRET
 ;6. the blit: one LDIR of 4096 bytes, 21.5 ms at 4 MHz
