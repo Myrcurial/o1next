@@ -792,12 +792,26 @@ becomes the stub.
 
 **Measured, 2026-10-15 (turn 3's second pass): it is built.** Option 1 is what
 landed — `PRESENT(3)` and a 4096-byte blob — and the blob is **183 bytes** at
-`4000h`–`40B6h`, with `Program LWA = 40B7h`. The monitor's own new code is now
-**130 bytes**, `0F67h`–`0FE8h`, **19 free to the guard**: the cold boot, the
-sign-on hook, and the ~30-byte stub that fetches the blob. One assembly produces
+`4000h`–`40B6h`, with `Program LWA = 40B7h`. The monitor's own new code is
+**128 bytes**, `0F67h`–`0FE6h`, **21 free to the guard**: the cold boot, the
+sign-on hook, and the stub that fetches the blob (`SCRN`, `0FB4h`–`0FE6h`, 51
+bytes including the shared door helper). One assembly produces
 both artifacts, so `rom2asm.sh` checks two extents and
 [`tools/research/rom2blob.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom2blob.py) turns the `4000h` records into
 [`firmware/rom-service/screen.bin`](https://github.com/Myrcurial/o1next/blob/main/firmware/rom-service/screen.bin).
+
+**And turns 3's `130 bytes` came down to `128` because the acceptance found two
+defects in the new code (2026-10-15, turn 4).** Neither was visible in a boot:
+the door helper's `JNZ` was testing flags left by its *length* probe rather than
+by the result code, so every caller took its "no such content" path and the
+machine printed the stock 1.44 sign-on however well the door answered; and the
+frame's trailer *sum* was read from the half's `0FFEh` instead of the window's
+`1FFEh` — the ROM's own byte — so the check could never pass and the screen
+stayed the bright fill with no character written. Both are fixed, the blob is
+regenerated, and `bootscreen-check.sh` measures the result off the machine: the
+character plane, byte for byte, and the attribute plane, bit 7 — with no splash
+mounted it measures the fallback instead, which is what says the frame is the
+code's doing.
 
 **And the 85 errors that stood in the way were not syntax errors.** They were two
 defects, both read off the ACT80's own listing (which `L=B:` writes to a file

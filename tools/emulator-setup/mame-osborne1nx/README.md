@@ -21,8 +21,10 @@ device, on hardware, is the RP2350 firmware's personality (#179, #192).
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
-| `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1's selector** — the transaction the ROM's screen code will drive, and the measurement that settles the door's address (#247) |
-| `romservice-check.sh` | **the door's acceptance** — the real frame, no frame, a corrupt frame, an erased frame, and a wrong-sized frame refused (#247) |
+| `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1's selector** — the transaction the ROM's screen code will drive, the measurement that settles the door's address, and `PRESENT(3)` (#247) |
+| `romservice-check.sh` | **the door's acceptance** — the four combinations of the frame and the splash, two bad frames, and each wrong-sized asset refused (#247) |
+| `o1next-bootscreen.lua` | the headless check of **the screen itself** — the two video planes read back off the machine after the ROM's stub has run (#247) |
+| `bootscreen-check.sh` | **the screen's acceptance** — the frame on both planes with the splash mounted, and the stock sign-on with it absent (#247) |
 | `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
 | `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, RETURN, and what the monitor then does; `O1_BSH=6` re-runs the same nine checks on 8 KiB blocks (#247) |
 | `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
@@ -134,7 +136,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the **softROM window** — all 8 KB of `0000-1FFF`, three ways | **yes** — `o1next-softrom.lua`, all 8192 bytes, in `softrom-check.sh` |
 | the **ROM service's door** — ECHO, INFO, NOP, an unknown opcode, the abandon rule | **yes** — `o1next-romservice.lua`, in `romservice-check.sh` |
 | **page 1's selector** — `PRESENT(0/1/2)`, each frame half with its own trailer in place | **yes** — the same harness: both halves byte-compared against the frame, both trailers checked at `0FF8h` |
-| **`PRESENT(3)`, the boot splash** | **in the device, not yet in the acceptance** — `-bootsplash` serves the page byte-for-byte and `INFO` sets its flag (both read back through the door), and a wrong-sized file is refused with the reason; step 5 is where the committed acceptance goes |
+| **`PRESENT(3)`, the boot splash** | **yes** — `romservice-check.sh` runs the four combinations of the frame and the splash, checks the served page byte-for-byte against `screen.bin`, `INFO`'s two flags against what is mounted, and a wrong-sized file refused with the reason |
 | **no frame, an erased frame, a corrupt frame** — served, unvalidated, and the trailer fails | **yes** — `romservice-check.sh`: the door answers `09h` with no frame and leaves page 1 alone, and serves a bad frame's bytes as they are, because the check is the ROM's |
 | **the door's address** — `0x2301` is the floppy's track register, so the door is at `2800h` | **yes** — measured in the harness: `0x2301` reads what `0x2101` reads, and a request written to `0x2300` never reaches the door |
 | **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
@@ -207,17 +209,34 @@ aliasing `tools/o1_mame_probe.lua`'s C9 report and
 matters *here*, and `2800h` is the fix — the part of
 `docs/o1-memory-io-map.md` §7's recommended block that nothing selects.
 
-`romservice-check.sh` runs the harness five ways — the real frame, no frame, a
-corrupt frame, an erased one, and a 4096-byte frame that the slot refuses with
-the reason — so the fallback path is proved before the ROM code that depends on
-it exists.
+`romservice-check.sh` runs the harness six ways — the four combinations of the
+frame and the splash, so each of `INFO`'s flags is seen set and clear, plus a
+corrupt frame and an erased one — and each wrong-sized asset is refused with the
+reason, so the fallback path is proved before the ROM code that depends on it
+exists.
 
-It does not yet cover `PRESENT(3)`. The slot and the asset class behind it are in
-the device (step 4), and a page served through `PRESENT(3)` has been read back byte
-for byte against `screen.bin`, with `INFO` reporting the screen's flag and a
-wrong-sized file refused — but that was a throwaway probe, not an acceptance. The
-committed acceptance for the screen is step 5: the `PRESENT(3)` cases here, and a
-harness that reads the video RAM *and* the attribute array back.
+```sh
+tools/emulator-setup/mame-osborne1nx/bootscreen-check.sh
+```
+
+**And the screen itself has an acceptance now, which is the one that reads the
+*result* rather than a door.** ROM 2.0's monitor calls its stub at the sign-on, the
+stub asks for the screen's code with `PRESENT(3)` and jumps into it, and the code
+blits the frame into the two video planes — so `bootscreen-check.sh` reads those
+planes back off the machine and compares them against `frame.bin`: the character
+plane byte for byte, and the attribute plane bit 7 (the array is one bit wide, so
+that is the whole comparison — and it still bites at `0FF8h`, where the frame's own
+attribute trailer is dim and the bright fill alone would leave it lit). It is run
+twice, because one run cannot tell "the code drew it" from "it happened to be
+there": with no splash mounted the stub takes its fallback, prints the stock 1.44
+sign-on, and the frame has to **not** be on the screen.
+
+That acceptance is what found the two defects in the screen code (2026-10-15,
+#247 turn 4), neither of which any boot could see: the door helper's `JNZ` was
+testing flags left by its *length* probe instead of by the result code, so every
+caller took its "no such content" path however well the door answered; and the
+frame trailer's *sum* was read from the half's `0FFEh` instead of the window's
+`1FFEh`. Both are fixed, and the monitor is 128 bytes rather than 130.
 
 
 

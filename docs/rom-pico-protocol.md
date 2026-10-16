@@ -186,9 +186,10 @@ the screen code is firmware like the frame and no payload change is needed), the
 **payload's spare** (497 bytes at `1E0Fh`, where the hand-over stub already lives),
 or §4.7's **Plan B** (a banked loader). All three fit; the choice is the
 maintainer's, and the code is home-agnostic. **Chosen 2026-10-15: the first one** —
-built and measured, with the stub at `0F67h`–`0FE8h` taking 30 of the tail's 72
-bytes and 19 left over (`docs/o1-rom-2.0.md` §4.7), and the asset served by
-`PRESENT(3)` — content id 3 in §4's table.
+built and measured: the monitor's new code runs `0F67h`–`0FE6h`, 128 bytes of the
+tail's 149 to the vendor's guard at `0FFBh`, with 21 free, and the stub itself is
+`0FB4h`–`0FE6h` — 51 of the 72 bytes HCBOOT left (`docs/o1-rom-2.0.md` §4.7). The
+asset is served by `PRESENT(3)`, content id 3 in §4's table.
 
 ### 4.2 Result codes
 
