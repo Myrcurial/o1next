@@ -236,6 +236,24 @@ check('and 3x is bigger again',
 setValue('zoom', 1);
 check('and back to 1x', $('screen').style.width === '666px', $('screen').style.width);
 
+// The one thing about the letterbox that can be checked without a layout engine.
+// At 1x in a wide window there is a large area beside the canvas, and it must be
+// the machine's panel colour -- black beside the black the canvas draws reads as a
+// hole, and so would the page background, which is darker than the box it sits in.
+// jsdom cannot resolve `var(--panel)` through getComputedStyle, so this reads the
+// rule itself rather than the computed style.
+const wrapRule = /\.screenwrap\s*\{([^}]*)\}/.exec(html)[1];
+check('the area beside the canvas is the panel colour, not a hard-coded black',
+      /background:\s*var\(--panel\)/.test(wrapRule) && !/#000/.test(wrapRule),
+      wrapRule.trim());
+check('and the canvas is inset, so the panel shows as a bezel on every side',
+      /padding:\s*6px/.test(wrapRule), wrapRule.trim());
+check('and the canvas sits in a box of its own size, inside the panel',
+      $('screen').parentNode.className === 'screenbox' &&
+      $('screen').parentNode.parentNode.className === 'screenwrap',
+      $('screen').parentNode.className + ' in ' +
+      $('screen').parentNode.parentNode.className);
+
 // The window's home is buffer column 0, row 0 -- which is where the ROM puts it
 // (VFLO = -22 cancels osborne1.cpp's 0x0b of horizontal blanking), and NOT column
 // 11, which is what evaluating that driver constant at scroll zero looks like.

@@ -88,11 +88,13 @@ button:hover { background: #2f3a4f; }
 button.primary { background: #2c4a2c; border-color: #4f8f4f; color: #d8ffd8; }
 button.danger { background: #4a2c2c; border-color: #8f4f4f; color: #ffd8d8; }
 button:disabled { opacity: 0.45; cursor: default; }
-/* The grid is shown at its own size -- one CSS pixel per dot, times the zoom step
-   -- and the wrapper scrolls when that is wider than the column.  The overlay
-   layer lives inside .screenbox, which is exactly the canvas box, so the viewport
-   and cursor marks stay aligned at every zoom. */
-.screenwrap { background: #000; border: 2px solid var(--panel); overflow: auto; max-width: 100%; }
+/* The screen sits inset in the machine's front panel, so whatever is beside a
+   canvas narrower than its panel is the *panel* -- not a black void.  At 1x in a
+   wide window there is a lot of it, and it has to look deliberate: black next to
+   the black the canvas draws reads as a hole, and the page's own background
+   (--ink, #10141c) is *darker* than the box it would sit in, so that would read as
+   a hole too.  --panel is the blue-grey the border already was. */
+.screenwrap { background: var(--panel); padding: 6px; overflow: auto; max-width: 100%; }
 .screenbox { position: relative; }
 canvas#screen { display: block; image-rendering: pixelated; }
 .overlays { position: absolute; inset: 0; pointer-events: none; }

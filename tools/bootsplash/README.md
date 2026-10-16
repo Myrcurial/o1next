@@ -131,6 +131,13 @@ cursor marks still line up — including when the panel is scrolled.
 window. The preview is the exception: it is scaled to fit its box, since it is for
 watching the animation rather than for inspecting pixels.
 
+**The area beside a canvas narrower than its panel is the panel.** At 1× in a wide
+window there can be a lot of it, and it is the machine's blue-grey (`--panel`,
+`#687898`, the same colour the border already was) with the canvas inset 6 px — so
+the screen reads as mounted in the front panel. It was `#000`, which is a hole: black
+beside the black the canvas itself draws. The page's own background is not the answer
+either, being *darker* than the box it would sit in, which is a hole of another shade.
+
 ## The pen: the whole ROM, always
 
 Every cell holds a **glyph code, 0–127**, plus one attribute bit. That is all a
