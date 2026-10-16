@@ -186,6 +186,24 @@ check('the screen canvas was drawn',
       !!$('screen').__pixels &&
       $('screen').__pixels.data.length === 1331 * 640 * 4);
 
+// The window's home is buffer column 0, row 0 -- which is where the ROM puts it
+// (VFLO = -22 cancels osborne1.cpp's 0x0b of horizontal blanking), and NOT column
+// 11, which is what evaluating that driver constant at scroll zero looks like.
+check('the viewport defaults to home: column 0, row 0',
+      $('vpcol').value === '0' && $('vprow').value === '0' &&
+      $('viewportBox').style.left === '0%' && $('viewportBox').style.top === '0%',
+      $('vpcol').value + ',' + $('vprow').value + ' css ' +
+      $('viewportBox').style.left + ',' + $('viewportBox').style.top);
+setValue('vpcol', 11);
+check('the origin field moves the viewport',
+      $('viewportBox').style.left !== '0%', $('viewportBox').style.left);
+clickOn('vpstock');
+check('the home button puts it back at (0,0)',
+      $('vpcol').value === '0' && $('viewportBox').style.left === '0%',
+      $('vpcol').value + ' ' + $('viewportBox').style.left);
+check('and the status explains why home is column 0, not 11',
+      /VFLO/.test(status()) && /column 0/.test(status()), status());
+
 // --- 2. click a cell, then type -------------------------------------------
 section('click a cell, then type');
 clickCell(0, 0);

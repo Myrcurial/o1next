@@ -166,7 +166,7 @@ details > summary { cursor: pointer; color: var(--cream); }
         <input type="number" id="vpcol" value="0" min="0" max="127" style="width:66px">
         <label for="vprow">row</label>
         <input type="number" id="vprow" value="0" min="0" max="8" style="width:56px">
-        <button id="vpstock" title="the stock 52-column window: osborne1.cpp draws it as draw_rows&lt;52,1&gt;(scroll_x() + 0x0b), so it starts at array column 11 when the PIA's scroll reads zero, and the guest can slide it">stock (52-col)</button>
+        <button id="vpstock" title="home: where the machine actually puts the window. The BIOS writes VFLO (-22 = 0xEA, rom144.asm's &quot;first line video offset&quot;) to the video PIA's port A at boot, which cancels the 11 character clocks of horizontal blanking that osborne1.cpp adds as 0x0b — so the display starts at buffer column 0. DOHOME returns to it; Ctrl+arrow slides away from it.">home (0,0)</button>
         <span class="hint" id="vphint"></span>
       </div>
       <div class="screenwrap">
@@ -464,6 +464,11 @@ function each(list, fn) { Array.prototype.forEach.call(list, fn); }
 
 function syncDerived() {
   redrawPalette();
+  // The origin fields follow the state, so a programmatic move -- the home button
+  // -- cannot leave the field showing a position the overlay is not at.  Not while
+  // the field has focus, or a half-typed number would be overwritten.
+  if (document.activeElement !== $('vpcol')) $('vpcol').value = String(state.col0);
+  if (document.activeElement !== $('vprow')) $('vprow').value = String(state.row0);
   $('penHint').textContent = 'pen: ' +
     (state.face === 'graphics' ? 'graphics font' : 'character font') + ', ' +
     (state.bright ? 'bright' : 'dim') +
@@ -981,12 +986,13 @@ $('vprow').addEventListener('change', function () {
 });
 
 $('vpstock').addEventListener('click', function () {
-  state.col0 = 11;
+  state.col0 = 0;
   state.row0 = 0;
   renderAll();
-  say('viewport at the stock machine\u2019s 52-column window: array columns 11-62, which is ' +
-      'osborne1.cpp\u2019s draw_rows<52,1>(scroll_x() + 0x0b) with the PIA\u2019s scroll at zero. ' +
-      'The guest can slide it, and the window wraps at column 128.');
+  say('viewport at home: buffer column 0, row 0 \u2014 where the machine actually puts it. ' +
+      'The BIOS writes VFLO (-22 = 0xEA) to the video PIA\u2019s port A at boot, which cancels ' +
+      'the 11 character clocks of horizontal blanking osborne1.cpp adds as 0x0b; DOHOME ' +
+      'returns to it, and Ctrl+arrow slides a character at a time.');
 });
 
 $('area').addEventListener('change', function () {

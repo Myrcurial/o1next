@@ -41,24 +41,59 @@ mode and only the type changes. The viewport is drawn over the grid so a designe
 can see what will be visible; **at 52 columns 76 of the 128 columns are off the
 screen**, which is easy to spend an hour drawing into.
 
-The overlay's origin is adjustable and defaults to column 0. The stock machine's
-window is **array columns 11–62** when the PIA's horizontal scroll reads zero:
-MAME's `osborne1` driver — `src/mame/osborne/osborne1.cpp`, which `osborne1nx`
-clones — draws it as `draw_rows<52, 1>(scroll_x() + 0x0b, …)`, and `scroll_x` is
-the guest's (`m_scroll_x = data >> 1`, port A of the video PIA at `2C00`). So 11
-is a *position*, not a constant: the guest can slide the window anywhere, and it
-wraps at column 128 (`(col + x) & 0x7f`). The **stock (52-col)** button moves the
-viewport to it.
+The overlay's origin is adjustable and its default is **column 0, row 0** —
+because that is where the machine actually puts the window. That is worth stating
+carefully, because the obvious reading of MAME's driver says otherwise and is
+wrong.
 
-Two footnotes, because that button is deliberately narrow:
+`src/mame/osborne/osborne1.cpp` (which `osborne1nx` clones) draws the visible
+window as `draw_rows<52, 1>(scroll_x() + 0x0b, …)`, and **`0x0b` is not a window
+position**. It is the driver's own note:
 
-- the 104-column path is a **different expression on a different machine** —
-  `osborne1sp`'s `(scroll_x() & 0x60) + (m_hc_left ? 0x09 : 0x01) + 0x17`, which
-  is 32 at reset and which scrolls in 32-column blocks;
+> The 7-bit column counter is preloaded near the beginning of the horizontal
+> blank period. The initial column is offset by the number of character clock
+> periods in the horizontal blank period minus one … there are 12 character
+> clock periods in the horizontal blank period, so subtracting 1 gives 0x0B.
+
+Eleven character clocks of horizontal blanking, then — and the ROM cancels them
+exactly. `rom144.asm` names the constant and writes it at boot:
+
+```
+VFLO:	=	-22		;First line video offset
+...
+;Set beginning line to 0
+	DEC	C		;C=0
+	CALL	OPBD
+;set for -10 char position AND DOUBLE DENSITY
+	LDK	C,VFLO
+	CALL	OPAD
+```
+
+`VFLO = -22` is `0xEA`, port A is `| horizontal offset | DD |`, so the offset
+field is **117** — eleven characters, though the ROM's own comment says ten, and
+the arithmetic needs eleven: `117 + 11 = 128 ≡ 0 (mod 128)`. The window starts at
+buffer column 0. Row 0 is the same story with no bias: the boot writes port B = 0
+and MAME reads `m_scroll_y = b_output() & 0x1f`.
+
+So **evaluating `scroll_x() + 0x0b` at `scroll_x == 0` gives 11, and that is a
+position the ROM never sets** — it is what the window looks like with its offset
+register zeroed, which is not a state the machine is ever in. `DOHOME` in the
+same source is the ROM's own "screen at home" routine (`ORI VFLO`), and `AHSCRL`
+tests for home with `SUB VFLO` / `RZ`. The **home (0,0)** button puts the viewport
+there; the default is already there.
+
+Two footnotes:
+
+- **The SCREEN-PAC lands at column 0 too, by a different route.** Its path is
+  `(scroll_x() & 0x60) + (m_hc_left ? 0x09 : 0x01) + 0x17`: it uses only the top
+  two bits of the offset — hence the guide's "horizontal scrolling by 32 column
+  blocks" — and fills the low five bits with a fixed 1 or 9. With the ROM's 117,
+  `(117 & 0x60) + 9 + 0x17 = 128 ≡ 0`. That is also why the stock 52-column mode
+  slides a character at a time (`SLIDER` does `LDK C,-2`) while the wide modes
+  move in 32-column blocks.
 - **80 columns is not a window this machine has at all.** `osborne1nv` is a
   different machine with its own BIOS and character generator, so the 80-column
-  setting here is the SCREEN-PAC *dot width*, not a window — and the button always
-  places the 52-column one.
+  setting here is the SCREEN-PAC *dot width*, not a window.
 
 ## The pen, and why a capital cannot be typed
 
