@@ -430,6 +430,21 @@ check('and the parser reads a mode back, not just a bit',
       S.parseAnimation(pp).loop === true, S.parseAnimation(pp).mode);
 check('and the status names the mode and the flags it wrote',
       /ping-pong \(flags 3\)/.test(status()), status());
+
+// And the one-shot bounce is its own mode, not a normalised ping-pong: flags 2,
+// which is bit 1 without bit 0, and it has to survive the round trip as itself.
+setValue('mode', 'pingpong-once');
+blobs.length = 0;
+clickOn('dlBin');
+const ppOnce = lastBytes();
+check('ping-pong once is written as flags 2: bit 1 without bit 0',
+      ppOnce[9] === S.ANIM_PINGPONG, 'flags ' + ppOnce[9]);
+check('and it comes back as its own mode, not as a ping-pong',
+      S.parseAnimation(ppOnce).mode === 'pingpong-once' &&
+      S.parseAnimation(ppOnce).pingpong === true &&
+      S.parseAnimation(ppOnce).loop === false, S.parseAnimation(ppOnce).mode);
+check('and the status calls it what it is',
+      /ping-pong once \(flags 2\)/.test(status()), status());
 setValue('mode', 'loop');
 
 // --- 6. the .txt ----------------------------------------------------------
@@ -508,6 +523,21 @@ check('and it still repeats, because a ping-pong does', bounce.loopCount === 0,
 check('and the status says the bounce is in the file',
       /the bounce is written out in full: 3 frames and 1 on the way back/.test(status()),
       status());
+setValue('mode', 'pingpong-once');
+
+// The one-shot bounce is the same frames plus the return to frame 1, and the GIF
+// must not repeat it -- the file has to stop where the machine stops.
+blobs.length = 0;
+clickOn('dlGif');
+const onceGif = D.decodeGIF(Buffer.from(lastBytes()));
+check('a one-shot bounce writes 1 2 3 2 1 out, the return included',
+      onceGif.frames.length === 5, onceGif.frames.length + ' frames');
+check('and its last frame is the first frame again',
+      sameIdx(onceGif.frames[4].idx, S.renderIndexed(f[0].cells, f[0].attrs, vpOpts).idx));
+check('and the GIF does not repeat, because the machine does not',
+      onceGif.loopCount === null, 'loop count ' + onceGif.loopCount);
+check('and the status says the GIF stops on the last one',
+      /and the GIF stops on the last one/.test(status()), status());
 setValue('mode', 'loop');
 
 // --- 8. the .png, and a round trip through the import ---------------------
@@ -796,7 +826,7 @@ setValue('mode', 'loop');
   clickOn('first');
   clickOn('play');
   check('the play state names the mode and counts the steps in one cycle',
-        /ping-pong \(8 steps a cycle\)/.test($('playState').textContent),
+        /ping-pong \(8 steps, a cycle\)/.test($('playState').textContent),
         $('playState').textContent);
   const seen = [];
   const until = Date.now() + 400;
@@ -810,6 +840,27 @@ setValue('mode', 'loop');
         seen.indexOf(5) >= 0 && seen[seen.indexOf(5) + 1] === 4, seen.join(' '));
   check('and stopping puts the button back', $('play').textContent === 'play',
         $('play').textContent);
+
+  // The one-shot bounce: same walk, but it comes back to frame 1 and stops there,
+  // which is the whole difference between flags 2 and flags 3.
+  setValue('mode', 'pingpong-once');
+  clickOn('first');
+  clickOn('play');
+  check('the play state counts the return and says it stops',
+        /ping-pong once \(9 steps, then it stops\)/.test($('playState').textContent),
+        $('playState').textContent);
+  const walked = [];
+  const stopBy = Date.now() + 400;
+  while (Date.now() < stopBy) {
+    const n = parseInt($('frameCount').textContent, 10);
+    if (walked[walked.length - 1] !== n) walked.push(n);
+    await new Promise(function (r) { window.setTimeout(r, 5); });
+  }
+  check('it goes up to the last frame, back down, and stops on frame 1',
+        $('play').textContent === 'play' && $('frameCount').textContent === '1 / 5',
+        $('play').textContent + ' on ' + $('frameCount').textContent);
+  check('and the walk is 1 2 3 4 5 4 3 2 1, the return included',
+        walked.join('') === '123454321', walked.join(' '));
 
   setValue('mode', 'once');
   clickOn('first');

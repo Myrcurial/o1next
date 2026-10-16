@@ -244,10 +244,11 @@ details > summary { cursor: pointer; color: var(--cream); }
         <label for="fps">Frames per second</label>
         <input type="number" id="fps" value="10" min="1" max="60" style="width:64px">
         <label for="mode">Playback</label>
-        <select id="mode" title="once: play it through and stop. loop: jump back to frame 1 after the last. ping-pong: reverse at each end, so the last frame leads back into the second-last and the animation bounces.">
+        <select id="mode" title="once: play it through and stop on the last frame. loop: jump back to frame 1 after the last, forever. ping-pong, once: reverse at the end, come back to frame 1 and stop. ping-pong, repeat: bounce forever, so the last frame leads back into the second-last and round again.">
           <option value="once">once</option>
           <option value="loop" selected>loop</option>
-          <option value="pingpong">ping-pong</option>
+          <option value="pingpong-once">ping-pong, once</option>
+          <option value="pingpong">ping-pong, repeat</option>
         </select>
         <span class="hint" id="rateHint"></span>
       </div>
@@ -333,7 +334,7 @@ details > summary { cursor: pointer; color: var(--cream); }
       </div>
       <div class="note">The <code>.bin</code> is a 32-byte header and then the frames, each byte-identical to
         <code>firmware/rom-service/frame.bin</code> &mdash; <code>tail -c +33</code> of a one-frame file is that
-        asset exactly. The header's flags byte carries the playback mode (bit 0 loop, bit 1 ping-pong). The
+        asset exactly. The header's flags byte carries the playback mode (bit 0 repeat, bit 1 bounce). The
         header is this tool's proposal; the firmware side of #247 is not written yet.</div>
       <div class="note"><b>.txt</b> is the repo's art text, which the ROM's own loader reads with
         <code>sui 65</code> &mdash; so it cannot carry a cell holding glyph <b>0x41&ndash;0x61</b>, and with direct
@@ -389,7 +390,7 @@ var state = {
   penGlyph: null,       // set by the palette, for fill-with-pen
   paint: false,         // ...and, only if asked for, for painting on a cell click
   fps: 10,
-  mode: 'loop',         // 'once' | 'loop' | 'pingpong' -- the container's flags byte
+  mode: 'loop',         // 'once' | 'loop' | 'pingpong-once' | 'pingpong'
   frame: 0,
   frames: [{ cells: S.blankCells(), attrs: S.brightAttrs() }],
   cursor: 0,
@@ -401,9 +402,10 @@ var state = {
 };
 
 // What a mode is called in a sentence.  The words in the header are 'once',
-// 'loop' and 'pingpong'; these are what a person reads.
+// 'loop', 'pingpong-once' and 'pingpong'; these are what a person reads.
 function modeWord(mode) {
-  return mode === 'pingpong' ? 'ping-pong'
+  return mode === 'pingpong-once' ? 'ping-pong once'
+       : mode === 'pingpong' ? 'ping-pong'
        : mode === 'loop' ? 'looping' : 'once through';
 }
 
@@ -1185,8 +1187,12 @@ function updateDiff() {
     ? ' The mode is once, so there is no transition back.'
     : state.mode === 'loop'
       ? ' The mode is loop, so the wrap back to frame 1 is one of them.'
-      : ' The mode is ping-pong: the way back is the same transitions in reverse, ' +
-        'so the cost is counted twice.';
+      : state.mode === 'pingpong-once'
+        ? ' The mode is ping-pong once: the way back is the same transitions in ' +
+          'reverse, so the cost is counted twice, and the last blit is the return ' +
+          'to frame 1, where it stops.'
+        : ' The mode is ping-pong: the way back is the same transitions in reverse, ' +
+          'so the cost is counted twice.';
   $('diffHint').textContent = 'frame ' + (i + 1) + ' \u2192 ' + (i + 2) + ': ' +
     d.cells + ' of ' + d.of + ' cells differ (' +
     (100 * d.cells / d.of).toFixed(1) + '%), in ' + d.rows + ' of ' + S.ROWS +
@@ -1218,7 +1224,9 @@ function tick() {
   var order = orderForPlayback();
   state.orderAt++;
   if (state.orderAt >= order.length) {
-    if (state.mode === 'once') { stop(); return; }
+    // Bit 0 answers this, and it is not "is the mode 'once'": a one-shot bounce
+    // stops as well, and it stops on frame 1 because that is where a bounce ends.
+    if (!S.modeRepeats(state.mode)) { stop(); return; }
     state.orderAt = 0;
   }
   state.frame = order[state.orderAt];
@@ -1235,12 +1243,13 @@ function play() {
   state.order = null;
   var order = orderForPlayback();
   // Start where the cursor is, not at frame 1: pressing play is "show me this one
-  // moving", and for ping-pong that also decides which way it leaves.
+  // moving", and for a bounce that also decides which way it leaves.
   state.orderAt = Math.max(0, order.indexOf(state.frame));
   $('play').textContent = 'stop';
   $('playState').textContent = 'playing ' + state.frames.length + ' frames at ' +
     state.fps + ' fps, ' + modeWord(state.mode) +
-    (state.mode === 'pingpong' ? ' (' + order.length + ' steps a cycle)' : '');
+    ' (' + order.length + ' steps, ' +
+    (S.modeRepeats(state.mode) ? 'a cycle)' : 'then it stops)');
   state.timer = window.setInterval(tick, Math.max(16, Math.round(1000 / state.fps)));
 }
 
@@ -1266,16 +1275,21 @@ $('mode').addEventListener('change', function () {
   state.order = null;
   syncDerived();
   if (state.playing) { stop(); play(); }
-  say(state.mode === 'pingpong'
-    ? 'ping-pong: the last frame leads back into the second-last and the animation ' +
-      'bounces \u2014 the frames it turns on are the ones it plays, so neither end ' +
-      'is shown twice. The header carries it as flags bit 1, and the diff readout ' +
-      'now counts the way back.'
-    : state.mode === 'loop'
-      ? 'loop: after the last frame it jumps back to frame 1, which is one more ' +
-        'transition for the firmware to blit and is counted as one.'
-      : 'once: it plays through and stops on the last frame. The header says so, and ' +
-        'the diff readout stops counting at the last transition.');
+  say(state.mode === 'pingpong-once'
+    ? 'ping-pong once: the last frame reverses into the second-last and the ' +
+      'animation comes back down to frame 1, where it stops \u2014 the frames it ' +
+      'turns on are the ones it plays, so neither end is shown twice. The header ' +
+      'carries it as flags bit 1 alone, and the diff readout counts the way back.'
+    : state.mode === 'pingpong'
+      ? 'ping-pong, repeat: the last frame leads back into the second-last and the ' +
+        'animation bounces forever \u2014 the frames it turns on are the ones it ' +
+        'plays, so neither end is shown twice. The header carries it as flags bit 1 ' +
+        'with bit 0, and the diff readout counts the way back.'
+      : state.mode === 'loop'
+        ? 'loop: after the last frame it jumps back to frame 1, which is one more ' +
+          'transition for the firmware to blit and is counted as one.'
+        : 'once: it plays through and stops on the last frame. The header says so, and ' +
+          'the diff readout stops counting at the last transition.');
 });
 
 // --- export ---------------------------------------------------------------
@@ -1344,17 +1358,20 @@ $('dlGif').addEventListener('click', function () {
     return S.renderIndexed(state.frames[i].cells, state.frames[i].attrs, opts);
   });
   var delay = Math.max(2, Math.round(100 / state.fps));
-  var bytes = S.encodeGIF(frames, palette(), delay, state.mode !== 'once');
+  var bytes = S.encodeGIF(frames, palette(), delay, S.modeRepeats(state.mode));
   download(bytes, baseName() + '.gif', 'image/gif');
+  var bounce = ' \u2014 the bounce is written out in full: ' + state.frames.length +
+    ' frames and ' + (order.length - state.frames.length) + ' on the way back';
   say('wrote ' + baseName() + '.gif: ' + frames.length + ' frames at ' + state.fps +
       ' fps (' + delay + ' hundredths each), ' + bytes.length + ' bytes, ' +
       frames[0].w + '\u00d7' + frames[0].h +
       (state.mode === 'pingpong'
-        ? ' \u2014 the bounce is written out in full: ' + state.frames.length +
-          ' frames and ' + (order.length - state.frames.length) + ' on the way back.'
-        : state.mode === 'once'
-          ? ' \u2014 it plays once, so the GIF does not repeat.'
-          : '') +
+        ? bounce + '.'
+        : state.mode === 'pingpong-once'
+          ? bounce + ', and the GIF stops on the last one.'
+          : state.mode === 'once'
+            ? ' \u2014 it plays once, so the GIF does not repeat.'
+            : '') +
       ' GIF cannot go below 2 hundredths, and a browser often clamps playback ' +
       'under 20 ms.');
 });
@@ -1403,12 +1420,6 @@ function readFrames(bytes, isText) {
     var what = 'an ' + S.ANIM_MAGIC + ' container of ' + frames.length + ' frame' +
                (frames.length === 1 ? '' : 's') + ' at ' + anim.fps + ' fps, ' +
                modeWord(anim.mode) + ' (flags ' + anim.flags + '); every trailer held.';
-    // Bit 1 with bit 0 clear is a single bounce, and this tool writes a ping-pong
-    // as both bits.  Say so rather than silently normalising it.
-    if (anim.pingpong && !anim.loop)
-      what += ' Its flags are ' + anim.flags + ', which is bit 1 without bit 0 \u2014 ' +
-              'one bounce and stop; exporting writes ' + (S.ANIM_LOOP | S.ANIM_PINGPONG) +
-              '.';
     return { ok: true, frames: frames, fps: anim.fps, mode: anim.mode,
              flags: anim.flags, what: what };
   }
