@@ -166,7 +166,7 @@ details > summary { cursor: pointer; color: var(--cream); }
         <input type="number" id="vpcol" value="0" min="0" max="127" style="width:66px">
         <label for="vprow">row</label>
         <input type="number" id="vprow" value="0" min="0" max="8" style="width:56px">
-        <button id="vpstock" title="osborne1.cpp draws the window at array columns 11-62; the guest's PIA scroll slides it">stock (11,0)</button>
+        <button id="vpstock" title="the stock 52-column window: osborne1.cpp draws it as draw_rows&lt;52,1&gt;(scroll_x() + 0x0b), so it starts at array column 11 when the PIA's scroll reads zero, and the guest can slide it">stock (52-col)</button>
         <span class="hint" id="vphint"></span>
       </div>
       <div class="screenwrap">
@@ -984,8 +984,9 @@ $('vpstock').addEventListener('click', function () {
   state.col0 = 11;
   state.row0 = 0;
   renderAll();
-  say('viewport moved to the stock machine\u2019s window: array columns 11-62, from ' +
-      'osborne1.cpp \u2014 draw_rows<52,1>(scroll_x() + 0x0b), and scroll_x is the guest\u2019s PIA.');
+  say('viewport at the stock machine\u2019s 52-column window: array columns 11-62, which is ' +
+      'osborne1.cpp\u2019s draw_rows<52,1>(scroll_x() + 0x0b) with the PIA\u2019s scroll at zero. ' +
+      'The guest can slide it, and the window wraps at column 128.');
 });
 
 $('area').addEventListener('change', function () {

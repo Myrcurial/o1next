@@ -41,12 +41,24 @@ mode and only the type changes. The viewport is drawn over the grid so a designe
 can see what will be visible; **at 52 columns 76 of the 128 columns are off the
 screen**, which is easy to spend an hour drawing into.
 
-The overlay's origin is adjustable and defaults to column 0. The measured
-position of the stock machine's window is **array columns 11–62** —
-`osborne1.cpp`'s `draw_rows<52,1>(scroll_x() + 0x0b, …)`, cited in
-`tools/research/rom2strokes.py` — and the **stock (11,0)** button moves the
-viewport there. `scroll_x` is the guest's PIA, so it is a *position*, not a
-constant.
+The overlay's origin is adjustable and defaults to column 0. The stock machine's
+window is **array columns 11–62** when the PIA's horizontal scroll reads zero:
+MAME's `osborne1` driver — `src/mame/osborne/osborne1.cpp`, which `osborne1nx`
+clones — draws it as `draw_rows<52, 1>(scroll_x() + 0x0b, …)`, and `scroll_x` is
+the guest's (`m_scroll_x = data >> 1`, port A of the video PIA at `2C00`). So 11
+is a *position*, not a constant: the guest can slide the window anywhere, and it
+wraps at column 128 (`(col + x) & 0x7f`). The **stock (52-col)** button moves the
+viewport to it.
+
+Two footnotes, because that button is deliberately narrow:
+
+- the 104-column path is a **different expression on a different machine** —
+  `osborne1sp`'s `(scroll_x() & 0x60) + (m_hc_left ? 0x09 : 0x01) + 0x17`, which
+  is 32 at reset and which scrolls in 32-column blocks;
+- **80 columns is not a window this machine has at all.** `osborne1nv` is a
+  different machine with its own BIOS and character generator, so the 80-column
+  setting here is the SCREEN-PAC *dot width*, not a window — and the button always
+  places the 52-column one.
 
 ## The pen, and why a capital cannot be typed
 
