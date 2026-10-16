@@ -72,25 +72,27 @@ mame osborne1nx -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom
 ```
 
 **Two more slots mount the interposer's own flash.** `-frame` is the boot frame —
-two 4096-byte halves, characters then attributes — and `-screencode` is the boot
-screen's *code*, one 4096-byte window page. Both are served into window page 1
-when the ROM asks for them through the **ROM service's door**
+two 4096-byte halves, characters then attributes — and `-bootsplash` is the boot
+splash: the code that draws the screen, one 4096-byte window page. Both are served
+into window page 1 when the ROM asks for them through the **ROM service's door**
 (`docs/rom-pico-protocol.md` §4 and §5): `PRESENT(0)` the payload, `PRESENT(1)` and
-`PRESENT(2)` the frame's halves, `PRESENT(3)` the screen's code. With neither
-mounted the door answers "no such content" and the ROM keeps its own text — and
-for `PRESENT(3)` the monitor's stub prints the stock sign-on message instead, so an
-interposer without the blob is a 1.44. Both are generated, committed assets:
+`PRESENT(2)` the frame's halves, `PRESENT(3)` the boot splash. With neither mounted
+the door answers "no such content" and the ROM keeps its own text — and for
+`PRESENT(3)` the monitor's stub prints the stock sign-on message instead, so an
+interposer without the splash is a 1.44. Both are generated, committed assets:
 `firmware/rom-service/frame.bin` and `firmware/rom-service/screen.bin`.
 
 ```sh
 mame osborne1nx -rompath tools/emulator-setup/roms \
     -softrom /tmp/rom2.rom -frame firmware/rom-service/frame.bin \
-    -screencode firmware/rom-service/screen.bin
+    -bootsplash firmware/rom-service/screen.bin
 ```
 
-Each image option is named after its device's image *type*, not its tag — so
-`-screencode` is not `-screen`: `-screen` is MAME's own (it selects which screen to
-display), and the machine's video screen owns the tag `screen` besides.
+`-bootsplash` and not `-screen`, twice over: an image device's command-line option
+is named after its image *type* and its slot after its tag, and `screen` is taken
+for both — by MAME's own display option, and by the machine's video screen. (The
+asset's *file* keeps the screen's name, `screen.bin`, because that is what the code
+in it is for: the splash is what it draws.)
 
 **That is the headless shape and `mame` on `PATH` has no such machine** — it is a
 patch, so the binary is the one `apply.sh` built. To actually *use* the machine
@@ -132,7 +134,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the **softROM window** — all 8 KB of `0000-1FFF`, three ways | **yes** — `o1next-softrom.lua`, all 8192 bytes, in `softrom-check.sh` |
 | the **ROM service's door** — ECHO, INFO, NOP, an unknown opcode, the abandon rule | **yes** — `o1next-romservice.lua`, in `romservice-check.sh` |
 | **page 1's selector** — `PRESENT(0/1/2)`, each frame half with its own trailer in place | **yes** — the same harness: both halves byte-compared against the frame, both trailers checked at `0FF8h` |
-| **`PRESENT(3)`, the screen's own code** | **in the device, not yet in the acceptance** — `-screencode` serves the page byte-for-byte and `INFO` sets its flag (both read back through the door), and a wrong-sized file is refused with the reason; step 5 is where the committed acceptance goes |
+| **`PRESENT(3)`, the boot splash** | **in the device, not yet in the acceptance** — `-bootsplash` serves the page byte-for-byte and `INFO` sets its flag (both read back through the door), and a wrong-sized file is refused with the reason; step 5 is where the committed acceptance goes |
 | **no frame, an erased frame, a corrupt frame** — served, unvalidated, and the trailer fails | **yes** — `romservice-check.sh`: the door answers `09h` with no frame and leaves page 1 alone, and serves a bad frame's bytes as they are, because the check is the ROM's |
 | **the door's address** — `0x2301` is the floppy's track register, so the door is at `2800h` | **yes** — measured in the harness: `0x2301` reads what `0x2101` reads, and a request written to `0x2300` never reaches the door |
 | **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
@@ -182,8 +184,8 @@ stub at `1E01h`, and `FF` from `1E0Fh` to `1FFFh`.
 The window's page 1 is not always the payload. The ROM's screen asks the
 interposer for the boot frame — two 4096-byte halves, characters and attributes —
 and page 1 serves whichever half it asked for, through a bank-2 register pair
-(`docs/rom-pico-protocol.md` §4 and §5). The screen's *code* is a third asset the
-same way: it does not fit the monitor's tail, so the monitor keeps a ~30-byte stub
+(`docs/rom-pico-protocol.md` §4 and §5). The boot splash is a third asset the same
+way: the code does not fit the monitor's tail, so the monitor keeps a ~30-byte stub
 that asks for it with `PRESENT(3)`, copies page 1 to RAM at `4000h` and jumps
 (`docs/o1-rom-2.0.md` §4.7). The device implements the transaction: write the
 opcode then its operands to `2800h`, read the reply from `2801h` (`0` = not ready,

@@ -55,7 +55,7 @@
 +		m_acb4000(*this, "acb4000"),
 +		m_softrom(*this, "softrom"),
 +		m_frame(*this, "frame"),
-+		m_screencode(*this, "screencode")
++		m_bootsplash(*this, "bootsplash")
 +	{
 +	}
 +
@@ -72,10 +72,10 @@
 +	required_device<softrom_device> m_softrom;
 +	required_device<o1frame_device> m_frame;
 +	// NB: not `m_screen`, which osborne1_state already owns for the video screen --
-+	// and the tag is `screencode` for the same reason, plus one more: an image
-+	// device's command-line option is named after its image *type*, and `-screen`
-+	// belongs to MAME.  So the slot, the type and the option are all `screencode`.
-+	required_device<o1screen_device> m_screencode;
++	// and the slot is `bootsplash` for the same reason: the tag `screen` is that
++	// video screen's, and an image device's command-line option is named after its
++	// image *type*, so the tag, the type and the option are all `bootsplash`.
++	required_device<o1bootsplash_device> m_bootsplash;
  };
  
  
@@ -221,13 +221,13 @@
 +	// content" and the ROM keeps its own text, which is the fallback path.
 +	O1FRAME(config, m_frame);
 +
-+	// And the screen's own code, the same way: it does not fit the monitor's tail,
++	// And the boot splash, the same way: its code does not fit the monitor's tail,
 +	// so the monitor's stub asks for it with PRESENT(3), copies page 1 to RAM at
-+	// 4000h and jumps (docs/o1-rom-2.0.md 4.7).  With no -screen mounted the door
-+	// answers "no such content" and the stub prints the stock sign-on message
++	// 4000h and jumps (docs/o1-rom-2.0.md 4.7).  With no -bootsplash mounted the
++	// door answers "no such content" and the stub prints the stock sign-on message
 +	// instead, which is the 1.44's own behaviour -- so an interposer without the
-+	// blob is a 1.44, not a broken machine.
-+	O1SCREEN(config, m_screencode);
++	// splash is a 1.44, not a broken machine.
++	O1BOOTSPLASH(config, m_bootsplash);
  }
  
  
@@ -830,7 +830,7 @@
 +}
 --- /dev/null
 +++ b/src/devices/machine/softrom.h
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,252 @@
 +// license:BSD-3-Clause
 +// copyright-holders:James Arlen
 +/***************************************************************************
@@ -866,16 +866,16 @@
 +    in the video RAM, so the frame is *two* 4096-byte halves, characters and
 +    attributes, and each is a window page in its turn.  `PRESENT(id)` selects:
 +    0 the payload, 1 the frame's character half, 2 its attribute half, 3 the
-+    screen's own code.  v1.0's attribute half is all 0xFF -- every cell bright --
++    boot splash.  v1.0's attribute half is all 0xFF -- every cell bright --
 +    because bit 7 set is bright and that is what the array reads back, its low
 +    seven bits not being physically present.
 +
-+    AND THE SCREEN'S CODE IS AN ASSET OF ITS OWN, not a third page of one.  It
-+    does not fit the monitor's tail -- 183 bytes against the 72 that were free --
-+    so the monitor keeps a ~30-byte stub that asks for it with `PRESENT(3)`,
-+    copies page 1 to RAM at 4000h and jumps (docs/o1-rom-2.0.md 4.7).  It is an
-+    asset rather than a page because it is code the ROM *runs*, and page 1 is
-+    where the frame goes.
++    AND THE BOOT SPLASH IS AN ASSET OF ITS OWN, not a third page of one.  It is
++    the *code* the monitor runs to draw the screen, and it does not fit the
++    monitor's tail -- 183 bytes against the 72 that were free -- so the monitor
++    keeps a ~30-byte stub that asks for it with `PRESENT(3)`, copies page 1 to RAM
++    at 4000h and jumps (docs/o1-rom-2.0.md 4.7).  It is an asset rather than a page
++    because page 1 is where the frame goes.
 +
 +    THE DOOR.  A bank-2 register pair the machine maps.  The machine owns the
 +    address -- osborne1.cpp's DOOR_BASE note says which and why, and it is a
@@ -889,13 +889,15 @@
 +    same behaviour, so a firmware that implements one implements both.  The one
 +    command the screen needs is `PRESENT`.
 +
-+    Each image is named on the machine's own command line, after its device's
-+    image *type* -- and the screen's code is `-screencode`, because `-screen` is
-+    already MAME's own (it selects which screen to display).  The slot's tag is
-+    `screencode` for a second reason: the machine's video screen owns the tag
-+    `screen`:
++    Each image is named on the machine's own command line, after its device's tag:
 +
-+        mame osborne1nx -softrom rom2.rom -frame frame.bin -screencode screen.bin
++        mame osborne1nx -softrom rom2.rom -frame frame.bin -bootsplash screen.bin
++
++    `-bootsplash` and not `-screen`: an image device's command-line option is named
++    after its image *type* and its slot after its tag, and `screen` is taken for
++    both -- by MAME's own display option, and by the machine's video screen.  The
++    file it mounts is `firmware/rom-service/screen.bin`, because the asset *is* the
++    screen's code; the splash is what that code draws.
 +
 +***************************************************************************/
 +
@@ -966,19 +968,20 @@
 +};
 +
 +
-+// The boot screen's own code: one window page, which the monitor's stub asks for
-+// with PRESENT(3), copies to RAM at 4000h and jumps into (docs/o1-rom-2.0.md 4.7).
-+class o1screen_device : public o1asset_device
++// The boot splash: the code the monitor's stub asks for with PRESENT(3), copies to
++// RAM at 4000h and jumps into.  One window page, because that is what the stub
++// copies (docs/o1-rom-2.0.md 4.7).
++class o1bootsplash_device : public o1asset_device
 +{
 +public:
-+	o1screen_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++	o1bootsplash_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
 +
-+	static constexpr u32 SCREEN_SIZE = 0x1000;
++	static constexpr u32 BOOTSPLASH_SIZE = 0x1000;
 +
-+	virtual u32 asset_size() const noexcept override { return SCREEN_SIZE; }
-+	virtual const char *asset_description() const noexcept override { return "the screen's code is one 4096-byte window page"; }
-+	virtual const char *image_type_name() const noexcept override { return "screencode"; }
-+	virtual const char *image_brief_type_name() const noexcept override { return "screencode"; }
++	virtual u32 asset_size() const noexcept override { return BOOTSPLASH_SIZE; }
++	virtual const char *asset_description() const noexcept override { return "the boot splash is one 4096-byte window page"; }
++	virtual const char *image_type_name() const noexcept override { return "bootsplash"; }
++	virtual const char *image_brief_type_name() const noexcept override { return "bootsplash"; }
 +};
 +
 +
@@ -1029,7 +1032,7 @@
 +		PAGE_PAYLOAD     = 0,   // CBIOS + MD-10 BIOS + the hand-over stub
 +		PAGE_FRAME_CHARS = 1,   // the frame's character half
 +		PAGE_FRAME_ATTRS = 2,   // the frame's attribute half, the 9th bit
-+		PAGE_SCREEN      = 3    // the screen's own code, for the stub to run
++		PAGE_BOOTSPLASH  = 3    // the boot splash: the code the stub runs
 +	};
 +
 +	// the ROM service's command set and result codes (docs/mailbox-protocol.md
@@ -1042,11 +1045,11 @@
 +	static constexpr u8 RC_UNKNOWN_OPCODE = 0x01;
 +	static constexpr u8 RC_NO_CONTENT     = 0x09;
 +	static constexpr u8 INFO_VERSION      = 0x01;
-+	static constexpr u8 INFO_FLAG_FRAME   = 0x01;   // a frame is mounted
-+	static constexpr u8 INFO_FLAG_SCREEN  = 0x02;   // the screen's code is mounted
++	static constexpr u8 INFO_FLAG_FRAME      = 0x01;   // a frame is mounted
++	static constexpr u8 INFO_FLAG_BOOTSPLASH = 0x02;   // a boot splash is mounted
 +
 +	bool has_frame();
-+	bool has_screen();
++	bool has_bootsplash();
 +
 +	void request(u8 data);
 +	void execute();
@@ -1055,15 +1058,15 @@
 +
 +	// The asset slots.  The tags are absolute because a finder resolves relative
 +	// to the device that owns it, and the slots are the machine's, not this one's.
-+	// The screen's slot is `screencode`, not `screen`: the image *type* names the
-+	// command-line option and `-screen` is MAME's own, and the machine's video
-+	// screen owns the tag `screen` besides.  Both follow the type name.
-+	required_region_ptr<u8>          m_monitor;     // the stock part, from the machine
-+	optional_device<o1frame_device>  m_frame;       // the frame slot, ":frame"
-+	optional_device<o1screen_device> m_screencode;  // the screen slot, ":screencode"
-+	offs_t                           m_mask;        // how the stock part mirrors: A12 ignored
-+	std::vector<u8>                  m_image;       // the mounted image, empty if none
-+	bool                             m_mirror;      // the image is the stock part, so it mirrors
++	// The boot splash's tag and image *type* are both `bootsplash` -- not `screen`,
++	// which the machine's own video screen owns.  The image type is what names the
++	// command-line option, so that is `-bootsplash`.
++	required_region_ptr<u8>              m_monitor;     // the stock part, from the machine
++	optional_device<o1frame_device>      m_frame;       // the frame slot, ":frame"
++	optional_device<o1bootsplash_device> m_bootsplash;  // the boot splash, ":bootsplash"
++	offs_t                               m_mask;        // how the stock part mirrors: A12 ignored
++	std::vector<u8>                      m_image;       // the mounted image, empty if none
++	bool                                 m_mirror;      // the image is the stock part, so it mirrors
 +
 +	u8  m_page1;            // what page 1 serves
 +	u8  m_request;          // the opcode being assembled, 0 if none
@@ -1077,7 +1080,7 @@
 +// device type definitions
 +DECLARE_DEVICE_TYPE(SOFTROM, softrom_device)
 +DECLARE_DEVICE_TYPE(O1FRAME, o1frame_device)
-+DECLARE_DEVICE_TYPE(O1SCREEN, o1screen_device)
++DECLARE_DEVICE_TYPE(O1BOOTSPLASH, o1bootsplash_device)
 +
 +#endif // MAME_MACHINE_SOFTROM_H
 --- /dev/null
@@ -1100,7 +1103,7 @@
 +// device type definitions
 +DEFINE_DEVICE_TYPE(SOFTROM, softrom_device, "softrom", "SoftROM (the ROM window, from an image file)")
 +DEFINE_DEVICE_TYPE(O1FRAME, o1frame_device, "o1frame", "O1 boot frame (two 4096-byte halves, from a file)")
-+DEFINE_DEVICE_TYPE(O1SCREEN, o1screen_device, "o1screen", "O1 boot screen code (one window page, from a file)")
++DEFINE_DEVICE_TYPE(O1BOOTSPLASH, o1bootsplash_device, "o1bootsplash", "O1 boot splash (the screen's code: one window page, from a file)")
 +
 +
 +//-------------------------------------------------
@@ -1159,8 +1162,8 @@
 +{
 +}
 +
-+o1screen_device::o1screen_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
-+	: o1asset_device(mconfig, O1SCREEN, tag, owner, clock)
++o1bootsplash_device::o1bootsplash_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
++	: o1asset_device(mconfig, O1BOOTSPLASH, tag, owner, clock)
 +{
 +}
 +
@@ -1174,7 +1177,7 @@
 +	, device_image_interface(mconfig, *this)
 +	, m_monitor(*this, DEVICE_SELF)
 +	, m_frame(*this, ":frame")
-+	, m_screencode(*this, ":screencode")
++	, m_bootsplash(*this, ":bootsplash")
 +	, m_mask(0)
 +	, m_mirror(false)
 +	, m_page1(PAGE_PAYLOAD)
@@ -1251,9 +1254,9 @@
 +			}
 +			break;
 +
-+		case PAGE_SCREEN:
-+			if (has_screen())
-+				asset = &m_screencode->data();
++		case PAGE_BOOTSPLASH:
++			if (has_bootsplash())
++				asset = &m_bootsplash->data();
 +			break;
 +
 +		default:
@@ -1287,9 +1290,9 @@
 +	return bool(m_frame) && m_frame->mounted();
 +}
 +
-+bool softrom_device::has_screen()
++bool softrom_device::has_bootsplash()
 +{
-+	return bool(m_screencode) && m_screencode->mounted();
++	return bool(m_bootsplash) && m_bootsplash->mounted();
 +}
 +
 +void softrom_device::reset_transaction()
@@ -1325,18 +1328,18 @@
 +			// for the web UI and for a human, not for the ROM: the ROM never
 +			// asks whether a frame exists, because the trailer *is* the query
 +			// (docs/rom-pico-protocol.md 4).  The flags are how something that
-+			// is not the ROM tells a firmware with a frame -- or the screen's
-+			// own code -- from one without.
++			// is not the ROM tells a firmware with a frame -- or a boot splash
++			// -- from one without.
 +			u8 const flags = (has_frame() ? INFO_FLAG_FRAME : 0)
-+					| (has_screen() ? INFO_FLAG_SCREEN : 0);
++					| (has_bootsplash() ? INFO_FLAG_BOOTSPLASH : 0);
 +			u8 const payload[2] = { INFO_VERSION, flags };
 +			answer(RC_OK, payload, 2);
 +		}
 +		break;
 +
 +	case OP_PRESENT:
-+		// Page 1 is the payload, one of the frame's halves, or the screen's own
-+		// code.  An id the firmware does not serve -- or one whose asset is not
++		// Page 1 is the payload, one of the frame's halves, or the boot splash.
++		// An id the firmware does not serve -- or one whose asset is not
 +		// mounted -- answers 09h and leaves page 1 alone, so the ROM keeps
 +		// whatever it had (docs/rom-pico-protocol.md section 4.2).
 +		if (operand == PAGE_PAYLOAD)
@@ -1349,7 +1352,7 @@
 +			m_page1 = operand;
 +			answer(RC_OK, nullptr, 0);
 +		}
-+		else if ((operand == PAGE_SCREEN) && has_screen())
++		else if ((operand == PAGE_BOOTSPLASH) && has_bootsplash())
 +		{
 +			m_page1 = operand;
 +			answer(RC_OK, nullptr, 0);
