@@ -188,14 +188,27 @@ check('the status line is the ready message', /ready/.test(status()), status());
 check('the palette is all 128 glyphs, each with a canvas',
       doc.querySelectorAll('#palette .swatch').length === 128 &&
       doc.querySelectorAll('#palette .swatch canvas').length === 128);
-check('the swatches are labelled with their glyph code, in code order',
-      doc.querySelectorAll('#palette .swatch .k')[0].textContent === '00' &&
-      doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === '41' &&
-      doc.querySelectorAll('#palette .swatch .k')[127].textContent === '7F');
-check('and a swatch says how to reach its glyph',
-      /type "A"/.test(doc.querySelectorAll('#palette .swatch')[0x41].title) &&
-      /sui 65: "A"/.test(doc.querySelectorAll('#palette .swatch')[0].title),
+check('the swatches are labelled with the key for the pen mode, not the code',
+      doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === 'A' &&
+      doc.querySelectorAll('#palette .swatch .k')[0].textContent === '' &&
+      doc.querySelectorAll('#palette .swatch .k')[0x20].textContent === 'sp',
+      '0x41="' + doc.querySelectorAll('#palette .swatch .k')[0x41].textContent +
+      '" 0x00="' + doc.querySelectorAll('#palette .swatch .k')[0].textContent + '"');
+check('the tooltip names the key in this mode and in the other',
+      /standard: type "A"/.test(doc.querySelectorAll('#palette .swatch')[0x41].title) &&
+      /graphical: "A"/.test(doc.querySelectorAll('#palette .swatch')[0].title),
       doc.querySelectorAll('#palette .swatch')[0].title);
+// Switching modes relabels the whole palette -- that is the ask.
+pickRadio('keys', 'sui65');
+check('graphical characters relabel the palette: 0x00 is "A" and 0x41 has no key',
+      doc.querySelectorAll('#palette .swatch .k')[0].textContent === 'A' &&
+      doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === '',
+      '0x00="' + doc.querySelectorAll('#palette .swatch .k')[0].textContent +
+      '" 0x41="' + doc.querySelectorAll('#palette .swatch .k')[0x41].textContent + '"');
+pickRadio('keys', 'direct');
+check('and standard characters relabel it back',
+      doc.querySelectorAll('#palette .swatch .k')[0].textContent === '' &&
+      doc.querySelectorAll('#palette .swatch .k')[0x41].textContent === 'A');
 check('the monitor list is populated', $('monitor').options.length === 4);
 // 80 columns at 2x: 128 cells x 8 dots x 0.65 x 2 = 1331 wide, 32 x 10 x 2 tall.
 check('the screen canvas is 1331 x 640 (80 columns, 2x)',
@@ -250,7 +263,7 @@ pickRadio('keys', 'sui65');
 type('A');
 st = status();
 f = currentFrames();
-check('with sui 65 keys the same key types the block glyph 0x00',
+check('with graphical characters the same key types the block glyph 0x00',
       f[0].cells[3] === 0x00, 'got 0x' + S.hex(f[0].cells[3], 2));
 
 pickRadio('keys', 'direct');
@@ -265,12 +278,27 @@ check('the dim pen writes the glyph but clears the ninth bit',
 section('the palette, and the trailer');
 doc.querySelectorAll('#palette .swatch')[127].click();
 check('clicking the hatch swatch selects glyph 0x7F', /glyph 0x7F/.test(status()), status());
+// A cell click aims by default.  It must NOT paint, or click-then-type lands a
+// cell to the right of where you clicked -- which is the whole complaint.
+clickCell(5, 10);
+const aimStatus = status();
+f = currentFrames();
+check('a cell click only aims, it does not paint the palette glyph',
+      f[0].cells[5 * S.COLS + 10] === S.BLANK,
+      '0x' + S.hex(f[0].cells[5 * S.COLS + 10], 2));
+check('and the status says it is aiming',
+      /type a key to place a glyph/.test(aimStatus), aimStatus);
+$('paintOnClick').checked = true;
+$('paintOnClick').dispatchEvent(new window.Event('change', { bubbles: true }));
 clickCell(5, 10);
 f = currentFrames();
-check('clicking a cell with a palette glyph paints it there',
+check('with paint-on-click ticked, a click does paint it there',
       f[0].cells[5 * S.COLS + 10] === 0x7F,
-      'got 0x' + S.hex(f[0].cells[5 * S.COLS + 10], 2));
+      '0x' + S.hex(f[0].cells[5 * S.COLS + 10], 2));
+$('paintOnClick').checked = false;
+$('paintOnClick').dispatchEvent(new window.Event('change', { bubbles: true }));
 clickCell(31, 120);
+type('p');
 check('row 31, columns 120-127 refuse the pen \u2014 that is the trailer',
       /trailer/.test(status()), status());
 
@@ -330,7 +358,7 @@ const art = S.parseArtText(String.fromCharCode.apply(null, txt));
 check('nothing in it is unreadable', art.unknown.length === 0, art.unknown.join(' '));
 f = currentFrames();
 // Art text is read with `sui 65`, so it cannot carry a cell holding glyph
-// 0x41-0x61 -- and this frame has a capital in it, typed with direct keys.
+// 0x41-0x61 -- and this frame has a capital in it, typed with standard characters.
 const lossy = S.artTextLossy(f[0].cells);
 let artDiff = 0, artOutside = 0;
 for (let i = 0; i < S.FRAME; i++) {
@@ -411,9 +439,9 @@ check('the GIF palette is the monitor palette',
   // --- 9. copy forward, with an offset ------------------------------------
   section('copy forward, with an offset');
   // The import left exactly one frame.  Put a glyph in it, then move the screen.
-  // The palette swatch clicked in section 3 is still the pen, and a cell click would
-  // paint the hatch rather than place a glyph.  Clicking the selected swatch again
-  // clears it -- which is also the only way back to "clicking a cell just aims".
+  // The palette swatch from section 3 is still the pen, but a cell click no longer
+  // paints it -- that is opt-in now.  Clicking the selected swatch again still clears
+  // it, which is what "fill with pen" needs to stop using.
   doc.querySelectorAll('#palette .swatch')[127].click();
   check('clicking the selected swatch again clears the pen',
         /pen cleared/.test(status()), status());

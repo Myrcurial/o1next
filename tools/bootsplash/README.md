@@ -130,15 +130,24 @@ the graphics pen refuse most keys. The pen is now:
 
 | Setting | What a key means |
 |---|---|
-| **Direct keys** (the default) | the key's own code *is* the glyph. `A` draws a capital A, `p` draws a p, space draws the blank — every printable character, `0x20`–`0x7E`. |
-| **`sui 65` keys** | the ROM's loader arithmetic, for one purpose: a screen authored this way is one whose `.txt` export `rom2strokes.py` can read back. `0x41`–`0x61` become glyphs `0x00`–`0x20`, so in *this* mode a capital cannot be typed as a letter. |
+| **Standard characters** (the default) | the key's own code *is* the glyph. `A` draws a capital A, `p` draws a p, space draws the blank — every printable character, `0x20`–`0x7E`. |
+| **Graphical characters** | the ROM's `sui 65` loader arithmetic, kept for one purpose: a screen authored this way is one whose `.txt` export `rom2strokes.py` can read back. `0x41`–`0x61` become glyphs `0x00`–`0x20`, so in *this* mode a capital cannot be typed as a letter. |
 
-**Neither mode refuses a key.** The **34 glyphs that no printable key reaches** —
-the 32 block glyphs `0x00`–`0x1F` and the `0x7F` hatch — come from the palette, and
-the palette shows **all 128**, in code order, labelled with the glyph code. Clicking
-a swatch makes it the pen for cell clicks; clicking it again clears it.
+**Neither mode refuses a key.** The palette shows **all 128** glyphs in code order,
+and **its labels follow the pen mode**, because the label should be the key you can
+act on: in standard characters glyph `0x41` is labelled `A` and the 32 block glyphs
+are blank; switch to graphical characters and glyph `0x00` is labelled `A` while
+`0x41` goes blank. A blank label means no key reaches that glyph *in the mode you
+are in*; the tooltip always names both modes. Clicking a swatch makes it the pen,
+and clicking it again clears it.
 
-The cost of direct keys falls entirely on the `.txt` export: art text cannot carry
+**A cell click only aims the cursor.** It places nothing unless you tick **paint
+cells on click** under the palette — because a click that also painted *and advanced*
+would put your next keystroke one cell to the right of where you clicked, which is
+not how anyone uses a keyboard. With a glyph as the pen, **fill with pen** paints it
+over a selection.
+
+The cost of standard characters falls entirely on the `.txt` export: art text cannot carry
 a cell holding glyph `0x41`–`0x61`, because those characters *are* the graphics
 keys. The exporter counts them and says so rather than writing something that will
 read back wrong, and **the `.bin` is unaffected** — a frame is glyph codes and has
@@ -256,10 +265,13 @@ actually be asked to move.
 - the committed frame survives `planes → buildFrame` unchanged;
 - a bent byte, a bent magic and a truncated container are each caught;
 - the **pen** is checked as a claim about the machine rather than a convention:
-  every printable key reaches a glyph in *both* key modes, direct keys give the
-  key's own code (`A` → `0x41`), `sui 65` keys give the loader's arithmetic
-  (`A` → `0x00`), and **all 128 glyphs are reachable** — by a key, or by the
-  palette for the 34 that no key reaches;
+  every printable key reaches a glyph in *both* modes, standard characters give the
+  key's own code (`A` → `0x41`), graphical characters give the loader's arithmetic
+  (`A` → `0x00`), and **all 128 glyphs are reachable** — by a key, or from the palette;
+- the **palette labels** are checked to follow the mode (glyph `0x41` is `A` in
+  standard and blank in graphical; `0x00` the other way round), and a **cell click
+  is checked not to paint** unless paint-on-click is ticked — since a click that
+  painted *and* advanced is what made click-then-type land a cell to the right;
 - the **clipboard** is checked for the thing it must not lose: a copy of a cell
   holding glyph `0x41` *and* dim keeps both, paste puts both down and clips at the
   screen edge and the trailer, and `invertAttrs` flips the ninth bit twice to the
@@ -310,7 +322,7 @@ the tool asserts the ROM's CRC32 at load and prints it in the page.
   but *not* through that tool's `--art`. `selftest.js` asserts the difference
   rather than papering over it. One line in that tool would close it.
 - **Art text cannot express a cell holding glyph `0x41`–`0x61`**, because those
-  characters *are* the graphics keys. With direct keys that is one keystroke away —
+  characters *are* the graphics keys. With standard characters that is one keystroke away —
   type a capital — so the exporter reports how many cells would be lost rather than
   writing characters that read back as different glyphs. The `.bin` carries them
   fine; this is a limit of the art-text format, not of the frame.

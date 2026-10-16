@@ -105,7 +105,7 @@ function sampleScreen() {
   };
   const text = (r, c, s) => {
     // Through the app's own pen, so the sample is a screen the app could really
-    // have produced.  Direct keys: a key is its own glyph code, capitals included.
+    // have produced.  Standard characters: a key is its own glyph code, capitals included.
     for (let i = 0; i < s.length; i++) {
       const g = S.glyphForKey(s.charCodeAt(i), 'direct');
       if (g !== null) put(r, c + i, g);
@@ -251,7 +251,7 @@ section('the art text form');
 {
   const { cells } = sampleScreen();
   // Art text is read by `sui 65`, so it cannot carry a cell holding glyph
-  // 0x41-0x61 -- and with direct keys a capital is exactly one of those.  The
+  // 0x41-0x61 -- and with standard characters a capital is exactly one of those.  The
   // round trip is lossless *except* there, and the tool says how many.
   const lossy = S.artTextLossy(cells);
   const parsed = S.parseArtText(S.artText(cells));
@@ -265,7 +265,7 @@ section('the art text form');
         diffOutside === 0, diffOutside + ' cells differ that are not the lossy ones');
   check('and every cell that does differ is one art text cannot carry',
         diff === lossy.length, diff + ' differ, ' + lossy.length + ' reported');
-  check('the lossy cells are real: a capital typed with direct keys',
+  check('the lossy cells are real: a capital typed with standard characters',
         lossy.length > 0 && cells[lossy[0]] >= 0x41 && cells[lossy[0]] <= 0x61,
         lossy.length + ' cells, first is glyph 0x' + S.hex(cells[lossy[0]], 2));
 
@@ -281,11 +281,11 @@ section('the art text form');
 
   // The two keyboard modes, and the fact that they are *only* about 0x41-0x61.
   const A = 'A'.charCodeAt(0), a = 'a'.charCodeAt(0), p = 'p'.charCodeAt(0);
-  check('direct keys: a key is its own glyph code',
+  check('standard characters: a key is its own glyph code',
         S.glyphForKey(A, 'direct') === 0x41 && S.glyphForKey(a, 'direct') === 0x61 &&
         S.glyphForKey(p, 'direct') === 0x70 &&
         S.glyphForKey(' '.charCodeAt(0), 'direct') === 0x20);
-  check('sui 65 keys: 0x41-0x61 is the graphics range, as the loader reads it',
+  check('graphical characters: 0x41-0x61 is the graphics range, as the loader reads it',
         S.glyphForKey(A, 'sui65') === 0x00 && S.glyphForKey(a, 'sui65') === 0x20 &&
         S.glyphForKey(p, 'sui65') === 0x70);
   check('neither mode refuses a printable key',
