@@ -92,6 +92,20 @@ cp "$ROM_SRC/$ROM_CHAR" "$DEST/roms/$MACHINE/$ROM_CHAR"
 cp "$HERE/boot-o1next.sh" "$DEST/boot-o1next.sh"
 chmod +x "$DEST/boot-o1next.sh"
 
+# The interposer's two flash assets (#247).  A staged machine that could not
+# mount them would be a machine without its boot screen: `-frame` is the frame's
+# two halves and `-bootsplash` is the code that draws it, and the launcher already
+# takes both through the environment.  They are *not* images the emulator writes
+# to (both devices are read-only), so they are mounted as given -- but the staged
+# copies are still the point: this directory owes the repo nothing.
+ASSETS="$REPO/firmware/rom-service"
+for f in frame.bin screen.bin; do
+    [ -f "$ASSETS/$f" ] || { echo "stage.sh: missing asset: $ASSETS/$f" >&2; exit 1; }
+done
+mkdir -p "$DEST/assets"
+cp "$ASSETS/frame.bin" "$DEST/assets/frame.bin"
+cp "$ASSETS/screen.bin" "$DEST/assets/screen.bin"
+
 # The staged copy is a copy, so check it rather than trusting it.
 got_main="$(crc32 "$DEST/roms/$MACHINE/$ROM_MAIN")"
 got_char="$(crc32 "$DEST/roms/$MACHINE/$ROM_CHAR")"
@@ -146,6 +160,9 @@ built-from  $MAME
 roms/$MACHINE/$ROM_MAIN   crc32 $got_main
 roms/$MACHINE/$ROM_CHAR   crc32 $got_char
 
+assets/frame.bin          crc32 $(crc32 "$DEST/assets/frame.bin")   the boot frame: 4096 bytes of characters, then 4096 of attributes
+assets/screen.bin         crc32 $(crc32 "$DEST/assets/screen.bin")   the boot splash: the screen's code, one window page
+
 boot-o1next.sh    copied from $HERE/boot-o1next.sh
 EOF
 
@@ -185,6 +202,25 @@ They are staged **once and never overwritten** -- MAME writes back into a floppy
 image as it runs, so those copies are yours to keep. Add your own anywhere and
 pass the path.
 
+## The boot screen
+
+The interposer's two flash assets are staged in \`assets/\` (#247), so a staged
+machine can mount them the way the repo's launcher does -- \`-frame\` is the boot
+frame's two 4096-byte halves, characters then attributes, and \`-bootsplash\` is the
+code that draws it, one window page the ROM's stub asks for with \`PRESENT(3)\`
+(\`docs/o1-rom-2.0.md\` 4.7):
+
+\`\`\`sh
+O1_SOFTROM=/path/to/rom2.rom \\
+O1_FRAME=assets/frame.bin \\
+O1_BOOTSPLASH=assets/screen.bin \\
+  ./boot-o1next.sh
+\`\`\`
+
+ROM 2.0's *image* is not staged: it is assembled in the repo, by
+\`tools/research/rom2asm.sh\` and \`rom2image.py\`, both of which need MAME and the
+ACT80. Without one the machine boots the stock 1.44 and the two assets are inert.
+
 ## The hard disk
 
 The MD-10's CP/M, three partitions at \`A0>\` / \`B0>\` / \`C0>\`, needs a drive
@@ -206,6 +242,7 @@ drives.)
 | \`boot-o1next.sh\` | the launcher |
 | \`mame/$MACHINE\` | the patched binary |
 | \`roms/$MACHINE/\` | the ROM set |
+| \`assets/\` | the interposer's two flash assets: \`frame.bin\` and \`screen.bin\` |
 | \`run/\` | MAME's \`cfg/\` and \`snap/\`, and copies of images from git trees |
 | \`MANIFEST\` | what went in, and from where |
 
@@ -216,7 +253,7 @@ EOF
 
 echo
 echo "staged, in $DEST:"
-echo "  boot-o1next.sh   mame/$MACHINE   roms/$MACHINE/   run/   MANIFEST   README.md"
+echo "  boot-o1next.sh   mame/$MACHINE   roms/$MACHINE/   assets/   run/   MANIFEST   README.md"
 echo
 echo "  cd $DEST && ./boot-o1next.sh ../floppies/system-disk.imd"
 
