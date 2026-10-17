@@ -246,6 +246,36 @@ does not inherit it) and the two boundaries worth knowing: art text cannot carry
 cell holding glyph `0x41`–`0x61`, and `rom2strokes.py`'s art loader has no
 `U+00C0` case, so the `0x7F` hatch travels in a `.bin` but not in art text.
 
+## Reading the animation's container (`bootanim.py`)
+
+`firmware/rom-service/boot-animation.bin` is the boot screen as a *sequence*: a
+32-byte `O1SPLASH` header and then the frames back to back, each already sealed
+(#247's W5). This reads it, and it does the two jobs that used to belong to a
+committed `frame.bin`:
+
+```
+tools/research/bootanim.py --check               # validate the container and every frame
+tools/research/bootanim.py --info                # the header, and the mode the flags mean
+tools/research/bootanim.py --resting -o OUT.bin  # the frame it rests on, as the 8192-byte asset
+tools/research/bootanim.py --frame N -o OUT.bin  # frame N, 0-based
+```
+
+**`--check` is the ROM-side acceptance.** The animation is not the ROM's to draw —
+the RP2354B DMA-blits it in — so what the ROM side *can* say is that the asset is
+**valid**: the header's own sum over bytes 0–23, the declared geometry, flags and
+frame count, the body length that count implies, and **each frame's own trailer**,
+which is the test a machine runs before drawing one. Nothing here looks at the
+animation's *content*, because nothing on that side has any business doing so.
+
+**`--resting` is what `-frame` mounts.** The frame the ROM is served is the one the
+animation *rests* on — the last frame of a `once` animation, frame 89 of 90 — so
+`romservice-check.sh`, `bootscreen-check.sh` and `stage.sh` derive it rather than
+mounting a second copy. `firmware/rom-service/frame.bin` was **retired on
+2026-10-16**, and a copy could only ever drift from the animation it came from.
+
+Standard library only.
+
+
 ## Reading scanned schematics (`schematic_render.sh`, `schematic_atlas.sh`)
 
 Renders sheets — or a zoomed region of one sheet — from a scanned schematic
