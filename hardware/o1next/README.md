@@ -19,7 +19,7 @@ AHCT to the original NMOS part).
 | Block | Approach | Difficulty |
 |---|---|---|
 | CPU + RAM + ROM | Z84C00 (new), 64 KB SRAM (replaces 16× 4116 DRAM + refresh), **ROM 2.00** in a 27C128/Flash part — the *same image* the interposer runs (#83, see below) | Trivial |
-| Video | Char-gen + CRTC-class logic; **HDMI out only** — the RP2350 drives it, and the SFF board carries **no composite driver circuitry at all** (interposer video personality reusable) | Moderate |
+| Video | Char-gen + CRTC-class logic; **HDMI out only** — the RP2354B drives it, and the SFF board carries **no composite driver circuitry at all** (interposer video personality reusable) | Moderate |
 | Floppy | 360K half-height drive + onboard DD data separator (enables PC 360K MFM reads → FATCOPY, #51) | Moderate |
 | I/O (serial/GPIB/RTC) | 6850 ACIA, IEEE-488, RTC — interposer personalities onboard | Moderate |
 | Keyboard | Cherry MX matrix; O1-compatible scan encoding | Low–moderate |
@@ -103,7 +103,7 @@ story.
 ### Video: HDMI in, and nothing else
 
 - **8" 1024×768 HDMI internal panel**, plus an **external HDMI port**. This is
-  possible because the **RP2350 drives HDMI** directly and because that panel size
+  possible because the **RP2354B drives HDMI** directly and because that panel size
   and resolution are readily available off the shelf.
 - **There is no composite driver circuitry on the SFF board.** The discrete
   analogue chain the LFF board faithfully reproduces is simply not carried here,

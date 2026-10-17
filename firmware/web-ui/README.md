@@ -1,6 +1,6 @@
-# web-ui — browser interface (RP2350, lwIP HTTP)
+# web-ui — browser interface (RP2354B, lwIP HTTP)
 
-C64 Ultimate-style browser UI served by the Pico 2 W: the single place
+C64 Ultimate-style browser UI served by the RP2354B: the single place
 to manage every interposer personality — no local mods required on the
 machine, and a CP/M-side utility (`software/mount-com/`) covers
 in-machine control for the image library.
@@ -9,7 +9,7 @@ Tracks: part of #16; consumed by #20, #19, #21/#56, #45.
 
 ## Definition
 
-- lwIP HTTP server + static assets + small JSON API on the Pico 2 W.
+- lwIP HTTP server + static assets + small JSON API on the RP2354B.
 - Pages/endpoints:
   - **Storage:** image library browse/upload, mount to drive A/B or
     Drive C (`../floppy-emulator/`, `../drive-c-gpib/`)

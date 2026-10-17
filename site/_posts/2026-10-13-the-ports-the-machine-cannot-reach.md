@@ -47,7 +47,7 @@ Z80 sits behind an emulated card that decodes the full 8-bit I/O address. Below
 not *in* MAME; it is a patch, and that distinction matters at the end of this post.
 
 It is written as a real MAME machine and a real MAME device, not as a hack,
-because the same device is meant to become the RP2350 firmware's personality on
+because the same device is meant to become the RP2354B firmware's personality on
 hardware later. The patch is five files and 704 lines against MAME 0.289, and
 `tools/emulator-setup/mame-osborne1nx/apply.sh` puts it into a source tree and
 builds it.

@@ -1,4 +1,4 @@
-# virtual-printer — Virtual Epson MX-80, capture → PDF on-device (RP2350)
+# virtual-printer — Virtual Epson MX-80, capture → PDF on-device (RP2354B)
 
 The **Virtual Epson MX-80**: captures Centronics-mode output on the
 IEEE-488 port and renders it to PDF emulating a period 9-pin Epson
@@ -11,9 +11,9 @@ Tracks: #19. References archived in `research/mx80/`.
 
 - **Capture:** snoop the IEEE-488/Centronics write path, buffer the
   byte stream per print job.
-- **Renderer (runs on the Pico 2 W):** emulate the 9-pin printhead into
+- **Renderer (runs on the RP2354B):** emulate the 9-pin printhead into
   a 1-bit raster page buffer — at ~60×72 DPI a full page is ~50 KB,
-  well within the RP2350's 520 KB SRAM. Then wrap the bitmap in a
+  well within the RP2354B's 520 KB SRAM. Then wrap the bitmap in a
   minimal PDF (plain objects + xref, no compression required).
   - Supported: two fonts, double-wide, italics, bold, underline.
   - **Not supported:** graphics printout (ESC K/L) — period-documented

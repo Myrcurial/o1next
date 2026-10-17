@@ -1,6 +1,6 @@
 # O1 Interposer — Virtual Peripherals: Bus & Address-Space Block Diagram
 
-How the RP2350 interposer sits on the Z80 bus and where each virtual
+How the RP2354B interposer sits on the Z80 bus and where each virtual
 peripheral lives in the Osborne 1 memory and I/O maps.
 
 ## 1. Where the interposer physically sits
@@ -22,14 +22,14 @@ flowchart TB
         ZSKT --- ROMSKT & RAM & VRAM & IO
     end
 
-    subgraph INTP["RP2350 Interposer (in Z80 socket)"]
+    subgraph INTP["RP2354B Interposer (in Z80 socket)"]
         direction TB
         Z80["Original Z80A<br/>(NMOS, 4 MHz)<br/>reinstalled here"]
-        BUF["74LVC245 buffers /<br/>level shifters<br/>(5V Z80 <-> 3.3V RP2350)"]
-        PIO["RP2350 PIO + DMA<br/>bus sniffer / driver"]
-        MCU["RP2350 cores<br/>cycle decoder +<br/>peripheral firmware"]
+        BUF["74LVC245 buffers /<br/>level shifters<br/>(5V Z80 <-> 3.3V RP2354B)"]
+        PIO["RP2354B PIO + DMA<br/>bus sniffer / driver"]
+        MCU["RP2354B cores<br/>cycle decoder +<br/>peripheral firmware"]
         WIFI["WiFi / USB<br/>stream out"]
-        VID["Video renderer<br/>(shadow VRAM + font)<br/>DVI/HDMI via RP2350 HSTX"]
+        VID["Video renderer<br/>(shadow VRAM + font)<br/>DVI/HDMI via RP2354B HSTX"]
         HDMI["HDMI monitor out"]
         Z80 <--> BUF <--> PIO <--> MCU --> WIFI
         PIO --> VID --> HDMI
@@ -96,7 +96,7 @@ flowchart LR
         VP["Virtual-peripheral<br/>mailbox RAM<br/>(e.g. EF00-EFFF)"]
     end
 
-    MCU2["RP2350 firmware"]
+    MCU2["RP2354B firmware"]
     MAP -->|"MREQ+A15-A0 snooped"| DEC{"Decode<br/>match?"}
     DEC -->|"no: pass through"| MB2["Onboard ROM/RAM<br/>respond normally"]
     DEC -->|"yes: assert override,<br/>tri-state host, drive bus"| VP
@@ -132,7 +132,7 @@ flowchart TB
     DEC2 --> ONB
     DEC2 --> CP88
     DEC2 -->|"claim free base B"| V1 & V2 & V3 & V4
-    V1 & V2 & V3 & V4 <--> FW["RP2350<br/>peripheral firmware"]
+    V1 & V2 & V3 & V4 <--> FW["RP2354B<br/>peripheral firmware"]
     FW --> NET["WiFi / SD /<br/>host stream"]
 ```
 
@@ -154,9 +154,9 @@ a leaked write cannot move the bank latches.
 |---|---|---|---|---|
 | **Network disk** | I/O ports | base+0..3 (cfg) | command/data/status FIFO | SD image / WiFi block server |
 | **WiFi modem** | I/O ports | base+4..7 (cfg) | 8250-ish UART regs | TCP/Telnet over WiFi |
-| **RTC** | I/O ports | base+8..B (cfg) | RT-60A-compatible regs (see #7) | RP2350 RTC / NTP |
+| **RTC** | I/O ports | base+8..B (cfg) | RT-60A-compatible regs (see #7) | RP2354B RTC / NTP |
 | **Virtual MX-80 printer** | I/O ports | base+C..F (cfg) | Centronics-style data+strobe | WiFi / USB to host spooler |
-| **Video / HDMI output** (ScreenPac personality, #24) | memory snoop + char-gen tap | VRAM `F000-FFFF` (passive) + UA15 socket | none — transparent to host | DVI/HDMI via RP2350 HSTX (§5) |
+| **Video / HDMI output** (ScreenPac personality, #24) | memory snoop + char-gen tap | VRAM `F000-FFFF` (passive) + UA15 socket | none — transparent to host | DVI/HDMI via RP2354B HSTX (§5) |
 
 The four I/O peripherals are each an independent decode window; firmware
 registers a `{base, mask, read_fn, write_fn}` entry and the cycle decoder
@@ -174,7 +174,7 @@ that function in firmware and extends it to a modern output:
 
 1. **VRAM snoop.** Video RAM lives at `F000-FFFF` (128×32 cells, 52×24
    visible). Sitting in the Z80 socket, the interposer already sees every
-   bus cycle; writes into the VRAM window update a shadow copy in RP2350
+   bus cycle; writes into the VRAM window update a shadow copy in RP2354B
    RAM.
 2. **Font capture.** The 2716 character ROM (128 chars × 8×10 pixels) is
    dumped once at init through the UA15 tap — or a known-good font image
@@ -187,8 +187,8 @@ that function in firmware and extends it to a modern output:
    *replacing* the font would mean intercepting those two pins between
    socket and ROM, so the design keeps the fitted ROM as the source of
    truth and preloads a font image for the 80/104-column modes instead.
-3. **Render + output.** The second RP2350 core renders the shadow frame
-   and drives DVI/HDMI via the RP2350 **HSTX** peripheral (or
+3. **Render + output.** The second RP2354B core renders the shadow frame
+   and drives DVI/HDMI via the RP2354B **HSTX** peripheral (or
    PicoDVI-style bitbang). O1 timing is gentle: 15.9744 MHz master,
    8 MHz dot clock, 60 Hz frame — comfortably inside DVI 640×480 margins
    with integer upscale.
@@ -203,7 +203,7 @@ that function in firmware and extends it to a modern output:
 - **AppleII-VGA** — `github.com/markadev/AppleII-VGA`: Pico-based VGA
   card; same snoop-and-render architecture, VGA instead of DVI.
 - **PicoDVI** — `github.com/Wren6991/PicoDVI`: the RP2040 DVI bitbang
-  library; on the RP2350 the HSTX hardware does the heavy lifting
+  library; on the RP2354B the HSTX hardware does the heavy lifting
   instead.
 
 All four prove the pattern this personality needs: a Pico-class MCU
@@ -234,7 +234,7 @@ flowchart LR
         VRTC["virtual RTC"]
         VACT["virtual HD"]
     end
-    REAL -->|"sniff real cycles<br/>to learn protocol"| LEARN["RP2350<br/>capture"]
+    REAL -->|"sniff real cycles<br/>to learn protocol"| LEARN["RP2354B<br/>capture"]
     LEARN --> VIRT
     VIRT -->|"later: replace real hw<br/>on same ports"| HOST["O1 runs unchanged<br/>software"]
 ```

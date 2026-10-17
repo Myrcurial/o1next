@@ -1,4 +1,4 @@
-# acb4000-scsi — Adaptec ACB-4000 SCSI-1 personality (RP2350)
+# acb4000-scsi — Adaptec ACB-4000 SCSI-1 personality (RP2354B)
 
 **Issue:** #179 (part of #8). **Status: the three layers are built and tested on
 the host; the end-to-end acceptance — the period MD-10 software booting CP/M from
@@ -81,7 +81,7 @@ length.
   not this personality's, and it is what `docs/acb4000-personality.md` records.
 - **The FAT32 store.** `acb4000_store.c` ships the in-memory implementation. The
   blob format is #180 and the mailbox front end is #181.
-- **The RP2350/PIO glue.** The register block is modelled, not driven; the PIO
+- **The RP2354B/PIO glue.** The register block is modelled, not driven; the PIO
   side is `firmware/bus-analyzer/`'s shared engine (#17) and the on-hardware
   validation is Phase 4 (#29).
 

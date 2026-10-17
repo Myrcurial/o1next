@@ -45,11 +45,11 @@ GPIO expanders (µs latency vs 250 ns T-states), a bigger MCU class
   32 bits into the RP2350 in ~210 ns — inside one 250 ns T-state at
   4 MHz. 6 GPIO instead of 32; also exercises the production AHCT
   logic family on a cheap board.
-- **Rev A/B (production interposer): RP2350B.** The 80-pad package has
+- **Rev A/B (production interposer): RP2354B.** The 80-pad package has
   **48 GPIO** — full 32-line capture *plus* the drive-mode transceivers
-  every personality needs, no muxing. WiFi via a CYW43439 module, or
-  the onboard ESP32 as the radio (see "Modem" above). The Pico 2 W
-  module constraint applies only to the Rev 0 probe.
+  every personality needs, no muxing. WiFi is the onboard ESP32 on UART0,
+  not a radio module. The Pico 2 W module constraint applies only to the
+  Rev 0 probe.
 - Fallback if the '165 chain misbehaves at bring-up: minimal 26-line
   set (A0–15, D0–7, /MREQ, /RD, CLK + one gate) — viable because all
   O1 peripherals are memory-mapped and refresh is distinguishable
