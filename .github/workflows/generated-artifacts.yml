@@ -1,13 +1,12 @@
 name: generated artifacts
 
-# The site's font family, the site's masthead, the firmware's boot frame and the
-# book's chapter pages are *generated* and then committed, because GitHub Pages
-# serves the repository as-is -- the deploy workflow builds Jekyll but does not run
-# our tools.  That only stays true if the generated files are kept in step with
-# their sources: edit a document in docs/ without re-running the builder and the
-# published book silently goes stale, still showing the old text, and edit the
-# boot-screen art without re-running rom2strokes.py and the firmware compiles in a
-# frame that no longer matches the drawing.
+# The site's font family, the site's masthead and the book's chapter pages are
+# *generated* and then committed, because GitHub Pages serves the repository as-is
+# -- the deploy workflow builds Jekyll but does not run our tools.  That only stays
+# true if the generated files are kept in step with their sources: edit a document
+# in docs/ without re-running the builder and the published book silently goes
+# stale, still showing the old text, and edit the boot-screen art without
+# re-running rom2strokes.py and the site's masthead no longer matches the drawing.
 #
 # The boot screen's *code* is generated too, and differently: it is the vendor's
 # ACT80 assembling rom2-screen.asm, so nothing on this runner can recompute its
@@ -19,6 +18,12 @@ name: generated artifacts
 # tooling that produced the files.  The PDF is deliberately *not* checked: it
 # needs typst, which this runner does not have, and it is committed rather than
 # built on deploy.
+#
+# The firmware's boot frame used to be checked here as well, rebuilt from that same
+# art.  It was retired on 2026-10-16: the boot screen is now the animation the
+# RP2354B plays (firmware/rom-service/boot-animation.bin, #247's W5), and no tool in
+# this repo generates that from anything -- so there is nothing to compare it to,
+# and the frame half of `rom2strokes.py --check` went with it.
 
 on:
   push:
@@ -32,7 +37,6 @@ on:
       - 'tools/build_book.py'
       - 'tools/research/rom2strokes.py'
       - 'tools/research/rom2blob.py'
-      - 'firmware/rom-service/frame.bin'
       - 'firmware/rom-service/screen.bin'
       - 'site/assets/fonts/**'
       - 'site/assets/o1next-logo.png'
@@ -50,7 +54,6 @@ on:
       - 'tools/build_book.py'
       - 'tools/research/rom2strokes.py'
       - 'tools/research/rom2blob.py'
-      - 'firmware/rom-service/frame.bin'
       - 'firmware/rom-service/screen.bin'
       - 'site/assets/fonts/**'
       - 'site/assets/o1next-logo.png'
@@ -64,7 +67,7 @@ permissions:
 
 jobs:
   generated:
-    name: fonts + masthead + frame + screen blob + book pages match their sources
+    name: fonts + masthead + screen blob + book pages match their sources
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -73,10 +76,10 @@ jobs:
         with:
           python-version: '3.x'
 
-      # The masthead, frame and blob checks need the standard library and files in
-      # the repo, and nothing else -- so they run before the one install this job
+      # The masthead and blob checks need the standard library and files in the
+      # repo, and nothing else -- so they run before the one install this job
       # has to do.
-      - name: Masthead and boot frame match the boot-screen art
+      - name: Masthead matches the boot-screen art
         run: python3 tools/research/rom2strokes.py --check
 
       # The blob cannot be rebuilt here -- it is the vendor's ACT80's output -- so

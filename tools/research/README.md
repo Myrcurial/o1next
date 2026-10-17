@@ -315,9 +315,10 @@ scratch programs, "figuring it out" notebooks/scripts.
   change later). `--half chars|attrs` writes one half — the shape the ROM's
   `PRESENT(1)`/`PRESENT(2)` delivers — and `--verify` validates a frame, or a
   single half, off the disk with no art and no chargen, which is the whole
-  machine-free test. The committed asset is `firmware/rom-service/frame.bin`, and
-  `--check` re-builds it and compares bytes so the art and the firmware's copy
-  cannot drift.
+  machine-free test. The committed asset used to be
+  `firmware/rom-service/frame.bin`; it was **retired on 2026-10-16**, when the boot
+  screen became the animation the RP2354B plays, and `--check` no longer rebuilds a
+  frame — it checks the site masthead, which is still drawn from this art.
   `--png` renders the character half with the character generator, and `--logo`
   renders the *art* as the site masthead — light glyphs on a transparent ground,
   i.e. the screen inverted, because the site header is the machine's blue panel and

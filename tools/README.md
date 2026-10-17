@@ -174,6 +174,78 @@ rather than the repo — so the repo carries its own. CI is unaffected: it insta
 both into its runner's Python and runs `python3 tools/romfont.py --check`. The
 tool is the same either way.
 
+## Drawing a boot splash (`bootsplash/`)
+
+The ROM 2.0 boot screen's designer: a 128×32 grid of the machine's own
+characters, as many frames as you like, played back at a chosen rate and exported
+for the RP2354B (#247).
+
+It is a browser tool — **open `tools/bootsplash/bootsplash.html` from `file://`**,
+double click it, no server and no build. The grid, the palette, the preview and
+both image exports are drawn from the character generator ROM's own bits, which
+the page embeds and CRC-checks at load, so what is on the screen is what the
+machine would draw.
+
+The distinction it is built around: the **screen** is the video buffer, 128 × 32
+cells = exactly one 4096-byte window page; the **viewport** is what the machine
+puts on the glass, 52, 80 or 104 columns × 24 rows. At 52 columns most of the
+screen is not on it, so the viewport is drawn over the grid.
+
+What it writes:
+
+- **`.bin`** — a 32-byte `O1SPLASH` header (version, flags, 128×32, fps, frame
+  count, a sum) and then the frames. Each frame is **8192 bytes = two
+  sealed 4096-byte halves**; `tail -c +33` of a one-frame file is one, and the
+  committed asset is this tool's own output, at
+  `firmware/rom-service/boot-animation.bin`. The flags byte carries the
+  playback mode — **bit 0 repeat, bit 1 bounce** — so all four combinations are
+  offered: once (`1 2 3`), loop, ping-pong once (`1 2 3 2 1`, then stop) and
+  ping-pong repeat (`1 2 3 2 1 2 3 2 …`). The header is this tool's proposal — the
+  firmware side of #247 is not written — and the frames are not.
+- **`.txt`** — the frame as art text, in the repo's own convention
+  (`research/boot-screen/README.md`), latin-1, one character per cell, so it
+  round-trips through `tools/research/rom2strokes.py`.
+- **PNG** and **animated GIF** of the frame or the viewport, in one of four
+  monitor palettes, with dim cells drawn dim.
+
+An animation is built with **copy forward**: take the screen or the viewport, move
+it by an offset in columns and rows, and write it into the next frame — adding one
+if there is no next one. The offset is unrestricted and either direction, because
+the tool is not the device; and under the control is a readout of **what the
+firmware would have to blit** for each transition, since the Pico diffs consecutive
+frames rather than copying them (#247). The readout counts the mode's own
+transitions: a loop has the wrap back to frame 1, and a bounce has the way back as
+well, which is twice the forward cost — the same for both ping-pongs, since the
+return is taken once either way.
+
+Frames are re-ordered by moving them (buttons, `Alt`+arrows, or dragging a
+thumbnail — the filmstrip *is* the play order) or by **copy to position**, which
+puts a copy at a chosen frame number rather than immediately after its source.
+Import has two targets: **the whole animation** (replace, fps and mode included) and
+**this frame**, which writes the file's frames in where you are — so a half-built
+animation can be exported, added to one frame at a time, and imported back without
+redrawing anything.
+
+```sh
+node tools/bootsplash/selftest.js     # 89 checks, no dependencies
+node tools/bootsplash/ui-test.js      # 140 checks, needs jsdom
+```
+
+`selftest.js` checks the format against things that are not this tool: it
+re-seals the committed animation's frames' own halves and requires them back byte
+for byte, builds a frame and requires `rom2strokes.py` to build the same bytes from
+the same art, and decodes its own PNG and GIF — the GIF with **macOS's ImageIO**
+as well as with a reader written to the spec. `ui-test.js` drives the actual page
+in a real DOM and decodes what its four download buttons produce.
+
+Neither is in CI: the first needs nothing and could be, the second wants jsdom
+and this repo's toolchain has no browser. `tools/bootsplash/README.md` has the
+whole story — including why **all 128 glyphs are available in every cell** (the
+`sui 65` arithmetic belongs to the *art-text format*, not to a frame, so this tool
+does not inherit it) and the two boundaries worth knowing: art text cannot carry a
+cell holding glyph `0x41`–`0x61`, and `rom2strokes.py`'s art loader has no
+`U+00C0` case, so the `0x7F` hatch travels in a `.bin` but not in art text.
+
 ## Reading scanned schematics (`schematic_render.sh`, `schematic_atlas.sh`)
 
 Renders sheets — or a zoomed region of one sheet — from a scanned schematic

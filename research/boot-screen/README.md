@@ -132,8 +132,11 @@ high. So the artifact is **8192 bytes: the character half, then the attribute
 half**, each one window page with its own trailer, and v1.0's attribute half is all
 `FFh` — every cell bright. `--frame` writes both; `--half` writes one, which is the
 shape the ROM's `PRESENT(1)`/`PRESENT(2)` delivers. The contract is
-`docs/rom-pico-protocol.md` §4.1 and §5, and the committed asset — the firmware's
-copy — is `firmware/rom-service/frame.bin`.
+`docs/rom-pico-protocol.md` §4.1 and §5. The committed asset — the firmware's copy —
+used to be `firmware/rom-service/frame.bin`; **it was retired on 2026-10-16**, when
+the boot screen became the animation the RP2354B plays
+(`firmware/rom-service/boot-animation.bin`, #247's W5). What this directory's art is
+still *for* is the **site masthead** (`site/assets/o1next-logo.png`, via `--logo`).
 
 ```
 tools/research/rom2strokes.py --frame /tmp/frame.bin              # 8192 B, CRC32 6eef5af9

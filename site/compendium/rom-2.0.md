@@ -936,9 +936,11 @@ flash holds the *default disks*.
 the character half then the attribute half**, each with its own trailer at its own
 `0FF8h` — and the art is placed by `--origin`; see §2.3 for why that is not
 cosmetic. `--half` writes one half, `--verify` validates a half or a whole frame
-off the disk, and the copy the firmware compiles in is
-[`firmware/rom-service/frame.bin`](https://github.com/Myrcurial/o1next/blob/main/firmware/rom-service/frame.bin) — which `--check` re-builds and compares byte for
-byte, so the art and the asset cannot drift.
+off the disk. The copy the firmware compiles in used to be
+`firmware/rom-service/frame.bin`; that asset was **retired on 2026-10-16**, when the
+boot screen became the animation the RP2354B plays
+([`firmware/rom-service/boot-animation.bin`](https://github.com/Myrcurial/o1next/blob/main/firmware/rom-service/boot-animation.bin), #247's W5), and the `--check` that re-built
+it went with it.
 
 ## 5. The six open questions from #83, answered
 

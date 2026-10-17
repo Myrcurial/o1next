@@ -81,8 +81,14 @@ into window page 1 when the ROM asks for them through the **ROM service's door**
 `PRESENT(2)` the frame's halves, `PRESENT(3)` the boot splash. With neither mounted
 the door answers "no such content" and the ROM keeps its own text — and for
 `PRESENT(3)` the monitor's stub prints the stock sign-on message instead, so an
-interposer without the splash is a 1.44. Both are generated, committed assets:
-`firmware/rom-service/frame.bin` and `firmware/rom-service/screen.bin`.
+interposer without the splash is a 1.44.
+
+The frame **used** to be a generated, committed asset at
+`firmware/rom-service/frame.bin`; that file was **retired on 2026-10-16**
+(`firmware/rom-service/README.md`), when the boot screen became the animation the
+RP2354B plays, so the harnesses here stop with *"no boot frame at …"* until this
+directory's #247 rewrite lands. `-bootsplash` mounts
+`firmware/rom-service/screen.bin`, which is still in the tree.
 
 ```sh
 mame osborne1nx -rompath tools/emulator-setup/roms \

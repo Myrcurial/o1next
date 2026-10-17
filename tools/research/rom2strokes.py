@@ -58,8 +58,15 @@ Usage:
     tools/research/rom2strokes.py --frame OUT.bin --half attrs   # just one half
     tools/research/rom2strokes.py --verify OUT.bin # do its trailers hold?
     tools/research/rom2strokes.py --logo OUT.png   # the site masthead
-    tools/research/rom2strokes.py --check          # fail if the masthead *or* the
-                                                   # committed frame is stale
+    tools/research/rom2strokes.py --check          # fail if the masthead is stale
+
+    --frame no longer feeds a committed asset, and --check no longer checks one.
+    `firmware/rom-service/frame.bin` was **retired on 2026-10-16**: the boot screen
+    became the animation the RP2354B plays (`tools/bootsplash/`,
+    `firmware/rom-service/boot-animation.bin`, #247's W5), and the generator and the
+    byte-for-byte check went with it.  What remains here is a converter -- art text
+    to a frame, a frame validated off the disk -- and the masthead, whose source is
+    still `research/boot-screen/`.
 """
 import argparse
 import importlib.util
@@ -573,30 +580,12 @@ def verify(path):
     return good
 
 
-def check_asset(rows, path, origin):
-    """Does the committed frame still match the art?  `--check`'s other half.
-
-    Bytes rather than a trailer, because the build is deterministic -- the art is
-    in this repo and the placement is arithmetic -- so a drift is an exact
-    difference and not a judgement.  It is what `check_logo()` does for the
-    masthead, for the same reason: the frame is a firmware asset compiled into
-    the Pico's flash, and an asset that has drifted from its source should fail
-    here rather than ship (`docs/rom-pico-protocol.md` section 5).
-    """
-    if not os.path.exists(path):
-        print('frame MISSING: %s' % path)
-        print('  run: tools/research/rom2strokes.py --frame %s' % path)
-        return 1
-    want = frame(rows, origin)
-    have = open(path, 'rb').read()
-    if have == want:
-        print('frame OK: %s matches the art (%d bytes = %s, then %s)'
-              % (path, len(want), HALF_NAMES[0], HALF_NAMES[1]))
-        return 0
-    print('frame STALE: %s does not match the art' % path)
-    print('  committed %d bytes, re-build %d bytes' % (len(have), len(want)))
-    print('  run: tools/research/rom2strokes.py --frame %s' % path)
-    return 1
+# `check_asset()` -- the byte-for-byte check of the committed frame -- is gone.
+# `firmware/rom-service/frame.bin` was retired on 2026-10-16 and there is nothing
+# left for it to check: the boot screen is the animation the RP2354B plays, and its
+# frames are validated by the machine's own trailer test (`--verify` here,
+# `tools/bootsplash/selftest.js` there), not against an art file that no longer
+# draws the screen.
 
 
 def main(argv=None):
@@ -626,9 +615,8 @@ def main(argv=None):
                          'transparent ground, i.e. the screen inverted, because '
                          'the site header is the machine\'s blue panel')
     ap.add_argument('--check', action='store_true',
-                    help='verify the committed masthead and the committed frame '
-                         'still match the art, and exit non-zero if they do not; '
-                         'writes nothing')
+                    help='verify the committed masthead still matches the art, and '
+                         'exit non-zero if it does not; writes nothing')
     args = ap.parse_args(argv)
 
     rows = load_art(args.art)
@@ -641,11 +629,8 @@ def main(argv=None):
         return 0 if verify(args.verify) else 1
 
     if args.check:
-        rc = check_logo(rows, os.path.join(repo, 'site', 'assets',
-                                           'o1next-logo.png'))
-        rc |= check_asset(rows, os.path.join(repo, 'firmware', 'rom-service',
-                                             'frame.bin'), args.origin)
-        return rc
+        return check_logo(rows, os.path.join(repo, 'site', 'assets',
+                                            'o1next-logo.png'))
 
     pat = {g: quadrant(b) for g, b in glyphs().items()}
     pat[BLANK] = 0
@@ -722,9 +707,10 @@ def main(argv=None):
         print('the whole point -- and the check is a compare against six bytes plus')
         print('a 16-bit sum, which is a loop over the page and about 20 ms.')
         print()
-        print('The frame is the firmware asset at firmware/rom-service/frame.bin,')
-        print('and --check re-builds it from this art and compares bytes, so the')
-        print('two cannot drift.')
+        print('This frame is not a committed asset.  The boot screen is now the')
+        print('animation the RP2354B plays (tools/bootsplash/, and the asset at')
+        print('firmware/rom-service/boot-animation.bin); the frame written here is a')
+        print('conversion of this art, and nothing in the repo commits or checks it.')
 
         if args.png:
             render_frame(chars, args.png)
