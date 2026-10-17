@@ -155,8 +155,11 @@ Everything below is measured on `osborne1nx` unless marked.
    `OUT (03h)`. 21.5 ms. This is **not** optional: the array is not a blank slate
    — 4072 of 4096 cells already read `FFh`, but **24 read `7Fh`**, which is dim,
    and they would show as scattered dim cells in a 4096-cell frame.
-3. Print the fallback text — `o1next - press return`, 27 bytes, replacing
-   `IMSG`'s 182, so it **frees 155 bytes** (`o1-rom-2.0.md` §4.9).
+3. Print the fallback text — the animation's own two lines and bright/dim runs, at
+   its own rows and columns, 72 bytes against `IMSG`'s 182 (`o1-rom-2.0.md` §4.9).
+   **It positions itself**, with `VCLRS` first: `CURS` is 0 when this code runs, so a
+   message that does not is written to address 0 and never appears. Its dim runs are
+   the vendor's `ESC,VSHI` … `ESC,VEHI` half-intensity mode.
 4. `PRESENT(1)`; read the frame's character half out of the window; check the
    trailer (§5).
 5. If it validates: `LDIR 1000h → F000h`, 4096 bytes, 21.5 ms — over the text.
@@ -170,7 +173,9 @@ Two 4096-byte passes ≈ **43 ms**, against a floppy boot measured in seconds. *
 ROM cost does not fit the monitor's tail, and the assembler's own guard is what
 said so** (2026-10-15, #247 turn 3): the 1.44 layout leaves 150 bytes above
 `0F67h`, `HCBOOT` took 77 of them (`0F67h`–`0FB3h`), and the screen's code — the
-fill, the text, the door, the trailer and the two blits — is **182 bytes**:
+fill, the text, the door, the trailer and the two blits — is **212 bytes** (182 when
+it was first measured, on 2026-10-15; #247's W3 gave the fallback the screen's own two
+lines and their bright/dim runs):
 
 ```
 I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.

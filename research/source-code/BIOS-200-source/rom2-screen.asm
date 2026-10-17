@@ -6,7 +6,7 @@
 ;
 ;WHAT IS PROVEN
 ;  * the stub + the blob assemble in ONE ACT80 pass: the blob's `ORG 4000H`
-;    segment works, and the listing puts SCRN40 at 4000H, ending 40B7H
+;    segment works, and the listing puts SCRN40 at 4000H, ending 40D4H
 ;  * the vendor's guard does NOT fire: RLWA is the monitor's own end (~0FE8H),
 ;    so the tail fits with room to spare
 ;  * the two pieces are independent of the *assembly*: the blob is extracted
@@ -155,17 +155,22 @@ SCRN40:
 ;again (docs/rom-pico-protocol.md 4.1 step 1)
 	DISDIM
 ;2. every cell bright.  The array is not a blank slate -- 24 of its 4096 cells
-;read 7FH, dim, at the sign-on -- so this is not optional
+;read 7FH, dim, at the sign-on -- so this is not optional.  ALL 4096 OF THEM: the
+;store above covers 0F000H, so the LDIR has to cover the 4095 after it, and it
+;covered 0FF0H -- 15 cells short, the last 15 of the array (0FFF1H-0FFFFH) left
+;dim.  Measured 2026-10-17 (#247): the fill's own signature was 4081 cells bright
+;and 15 dim, and those 15 sit in rows nobody sees, so only the frame's attribute
+;half -- compared over all 4096 -- ever showed it.
 	ENADIM
 	LK	HL,0F000H
 	STO	0FFH,[HL]
 	LK	DE,0F001H
-	LK	BC,0FF0H
+	LK	BC,0FFFH
 	LDIR
 	DISDIM
-;3. the barebones sign-on, which is what stays if there is no frame.  Short on
-;purpose: the text is cheap here, and the art's own caption inside the X says the
-;same thing in its own words
+;3. the fallback, which is what stays if there is no frame: the screen's own two
+;lines and bright/dim runs, at its own rows and columns (#247's W3).  See SMSG below
+;for what it costs and why it has to position itself.
 	LDK	DE,SMSG
 	CALL	OSTR
 ;4. PRESENT(1): the frame's character half into page 1
@@ -234,9 +239,35 @@ SPAY:	LK	B,040H
 	LK	C,0
 	CALL	DOOR
 SCRET:	RET
-;the barebones fallback: the last character carries bit 7, which is the terminator
-;OSTR looks for
-SMSG:	DB	'o1next  rom 2.0 2026',CR,LF
-	DB	'press return to begi'
+;THE FALLBACK, AND IT NOW CARRIES THE SCREEN'S OWN FORMAT (#247's W3, 2026-10-17).
+;Two lines and the same bright/dim runs as the animation's resting frame, at the
+;frame's own rows and columns: array rows 20 and 22, ink from columns 24 and 30.
+;Three things were measured rather than assumed, and the first is why the fallback
+;was never on the screen at all before this:
+;
+;  * **CURS is 0 when this code runs.**  START clears 0EF00H-0EFEFH on every pass,
+;    and COUT writes through CURS -- so a message that does not position itself is
+;    written to address 0, which is this ROM, and nothing appears anywhere.  The
+;    vendor's IMSG began with VCLRS for exactly that reason; this message does the
+;    same, and VCLRS also homes the cursor to the video memory's first cell.
+;  * **dim is the vendor's own half-intensity mode**, ESC,VSHI ... ESC,VEHI: VHALF
+;    writes DIMBIT (00H) into the attribute array, and a cell holding 00H reads
+;    back 7FH -- which is the animation's own dim value, so the plane and the
+;    asset's attribute half compare byte for byte.
+;  * **the 07FH repeat escape is OSTR's own** (IMSG uses it: `07Fh, 11, ' '`), so a
+;    padding run costs three bytes instead of twenty.
+;
+;The message is 72 bytes against IMSG's 182, and there is no code with it: the
+;attribute runs *are* the text's own escapes, so the attribute code did not have to
+;move into this blob after all -- the vendor already had the mechanism.  The last
+;character carries bit 7, which is the terminator OSTR looks for.
+SMSG:	DB	VCLRS
+	DB	07Fh,20,LF, 07Fh,24,' '
+	DB	'osborne 1 next '
+	DB	ESC,VSHI, 'rom 2.0 2026', ESC,VEHI
+	DB	CR,LF,CR,LF, 07Fh,30,' '
+	DB	ESC,VSHI, 'press', ESC,VEHI
+	DB	' return ', ESC,VSHI
+	DB	'to begi'
 	DB	'n'+80H
 SMAG:	DB	'O1NEXT'

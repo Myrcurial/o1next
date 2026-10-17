@@ -165,7 +165,7 @@
  RLWA	=	*		;LWA OF ROM RESIDENT CODE
  
  	MSG	'LENGTH OF THIS ROM IS = ',RLWA-1
-@@ -4654,6 +4782,93 @@
+@@ -4654,6 +4782,99 @@
  
  	ECHO	0FFFH-RLWA  !	DB   0FFH
  	ENDM
@@ -181,7 +181,7 @@
 +	LK	HL,0F000H
 +	STO	0FFH,[HL]
 +	LK	DE,0F001H
-+	LK	BC,0FF0H
++	LK	BC,0FFFH
 +	LDIR
 +	DISDIM
 +;3. the barebones sign-on, which is what stays if there is no frame.  Short on
@@ -252,8 +252,14 @@
 +SCRET:	RET
 +;the barebones fallback: the last character carries bit 7, which is the terminator
 +;OSTR looks for
-+SMSG:	DB	'o1next  rom 2.0 2026',CR,LF
-+	DB	'press return to begi'
++SMSG:	DB	VCLRS
++	DB	07Fh,20,LF, 07Fh,24,' '
++	DB	'osborne 1 next '
++	DB	ESC,VSHI, 'rom 2.0 2026', ESC,VEHI
++	DB	CR,LF,CR,LF, 07Fh,30,' '
++	DB	ESC,VSHI, 'press', ESC,VEHI
++	DB	' return ', ESC,VSHI
++	DB	'to begi'
 +	DB	'n'+80H
 +SMAG:	DB	'O1NEXT'
  
