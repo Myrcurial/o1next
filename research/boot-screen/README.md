@@ -135,7 +135,7 @@ shape the ROM's `PRESENT(1)`/`PRESENT(2)` delivers. The contract is
 `docs/rom-pico-protocol.md` §4.1 and §5. The committed asset — the firmware's copy —
 used to be `firmware/rom-service/frame.bin`; **it was retired on 2026-10-16**, when
 the boot screen became the animation the RP2354B plays
-(`firmware/rom-service/bootsplash.bin`, #247's W5). What this directory's art is
+(`firmware/rom-service/boot-animation.bin`, #247's W5). What this directory's art is
 still *for* is the **site masthead** (`site/assets/o1next-logo.png`, via `--logo`).
 
 ```

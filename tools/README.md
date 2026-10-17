@@ -197,7 +197,7 @@ What it writes:
   count, a sum) and then the frames. Each frame is **8192 bytes = two
   sealed 4096-byte halves**; `tail -c +33` of a one-frame file is one, and the
   committed asset is this tool's own output, at
-  `firmware/rom-service/bootsplash.bin`. The flags byte carries the
+  `firmware/rom-service/boot-animation.bin`. The flags byte carries the
   playback mode — **bit 0 repeat, bit 1 bounce** — so all four combinations are
   offered: once (`1 2 3`), loop, ping-pong once (`1 2 3 2 1`, then stop) and
   ping-pong repeat (`1 2 3 2 1 2 3 2 …`). The header is this tool's proposal — the

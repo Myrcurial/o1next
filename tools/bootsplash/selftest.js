@@ -7,7 +7,7 @@
  *
  *   1. the embedded character ROM is the ROM          -- CRC32 5297c109
  *   2. the trailer is the machine's trailer           -- re-seals the committed
- *                                                        firmware/rom-service/bootsplash.bin
+ *                                                        firmware/rom-service/boot-animation.bin
  *                                                        (every frame of it) and must
  *                                                        reproduce it byte for byte
  *   3. the whole frame builder is the machine's       -- builds a frame and has
@@ -38,7 +38,7 @@ const ROM_PATH = path.join(REPO, 'tools', 'emulator-setup', 'roms', 'char.ua15')
 // The committed boot-screen asset is the *animation*.  Frame 1 of it is the
 // reference frame for the checks that need a real one: it is a frame the machine's
 // own trailer test accepts, and it is the one that actually ships.
-const ASSET_PATH = path.join(REPO, 'firmware', 'rom-service', 'bootsplash.bin');
+const ASSET_PATH = path.join(REPO, 'firmware', 'rom-service', 'boot-animation.bin');
 const ASSET = S.parseAnimation(fs.readFileSync(ASSET_PATH));
 const STROKES = path.join(REPO, 'tools', 'research', 'rom2strokes.py');
 
