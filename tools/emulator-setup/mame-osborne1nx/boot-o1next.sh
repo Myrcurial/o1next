@@ -53,9 +53,15 @@
 #   1.44 (#247 step 8):
 #
 #     O1_SOFTROM=/tmp/rom2.rom \
-#     O1_FRAME=firmware/rom-service/frame.bin \
+#     O1_FRAME=/tmp/frame.bin \
 #     O1_BOOTSPLASH=firmware/rom-service/screen.bin \
 #       tools/emulator-setup/mame-osborne1nx/boot-o1next.sh
+#
+#   `-frame` is the frame the ROM is *served*, and since #247's W5 that is the frame
+#   the animation rests on -- it is no longer a committed file.  Take it out of the
+#   asset first:
+#
+#     python3 tools/research/bootanim.py --resting -o /tmp/frame.bin
 #
 # THE SAME SCRIPT RUNS IN A *STAGED* TEST MACHINE
 #   `stage.sh` copies this script out of the repo with the patched binary and the
@@ -214,10 +220,11 @@ if [ -n "$SOFTROM" ]; then
 fi
 
 # The interposer's two flash assets, mounted the same way and for the same reason.
-# `-frame` is the boot frame's two halves and `-bootsplash` is the code that draws
-# the boot screen; `-bootsplash` and not `-screen` because an image device's option
-# is named after its image *type*, and `screen` is taken -- see
-# tools/emulator-setup/mame-osborne1nx/README.md.
+# `-frame` is the frame the ROM is served -- since #247's W5 that is the frame the
+# animation *rests* on, derived with tools/research/bootanim.py --resting rather than
+# committed -- and `-bootsplash` is the code that draws the boot screen; `-bootsplash`
+# and not `-screen` because an image device's option is named after its image *type*,
+# and `screen` is taken -- see tools/emulator-setup/mame-osborne1nx/README.md.
 FRAME="${O1_FRAME:-}"
 if [ -n "$FRAME" ]; then
     [ -f "$FRAME" ] || { echo "boot-o1next.sh: no such boot frame: $FRAME" >&2; exit 1; }

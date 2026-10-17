@@ -22,9 +22,9 @@ device, on hardware, is the RP2354B firmware's personality (#179, #192).
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
 | `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1's selector** — the transaction the ROM's screen code will drive, the measurement that settles the door's address, and `PRESENT(3)` (#247) |
-| `romservice-check.sh` | **the door's acceptance** — the four combinations of the frame and the splash, two bad frames, and each wrong-sized asset refused (#247) |
-| `o1next-bootscreen.lua` | the headless check of **the screen itself** — the two video planes read back off the machine after the ROM's stub has run (#247) |
-| `bootscreen-check.sh` | **the screen's acceptance** — the frame on both planes with the splash mounted, and the stock sign-on with it absent (#247) |
+| `romservice-check.sh` | **the door's acceptance** — that the animation is a valid asset, the four combinations of the frame and the splash, two bad frames, and each wrong-sized asset refused (#247). The frame is **derived** from the animation's resting frame by `tools/research/bootanim.py`; `frame.bin` was retired on 2026-10-16 |
+| `o1next-bootscreen.lua` | the headless check of **the screen itself** — the two video planes read back off the machine after the ROM's stub has run, and the fallback the code prints when there is no frame (#247) |
+| `bootscreen-check.sh` | **the screen's acceptance** — the frame on both planes with the splash mounted, the stock sign-on with it absent, and the fallback on its own rows (#247) |
 | `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
 | `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, RETURN, and what the monitor then does; `O1_BSH=6` re-runs the same nine checks on 8 KiB blocks (#247) |
 | `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
@@ -83,16 +83,27 @@ the door answers "no such content" and the ROM keeps its own text — and for
 `PRESENT(3)` the monitor's stub prints the stock sign-on message instead, so an
 interposer without the splash is a 1.44.
 
-The frame **used** to be a generated, committed asset at
-`firmware/rom-service/frame.bin`; that file was **retired on 2026-10-16**
-(`firmware/rom-service/README.md`), when the boot screen became the animation the
-RP2354B plays, so the harnesses here stop with *"no boot frame at …"* until this
-directory's #247 rewrite lands. `-bootsplash` mounts
-`firmware/rom-service/screen.bin`, which is still in the tree.
+The frame **is no longer a committed asset** (#247's W5). It was
+`firmware/rom-service/frame.bin`, **retired on 2026-10-16**
+(`firmware/rom-service/README.md`) when the boot screen became the animation the
+RP2354B plays — and the frame the ROM is served is the one the animation **rests**
+on, so the harnesses **derive** it, with
+`tools/research/bootanim.py --resting`, from
+`firmware/rom-service/boot-animation.bin` rather than mounting a second copy that
+could only drift from the animation it came from.
+
+The animation is the asset, and the ROM side has exactly one thing to say about it:
+that it is **valid** — the container's own sum, its declared geometry and flags, and
+every frame's own trailer (`bootanim.py --check`). Nothing on this side looks at the
+animation's *content*, because the RP2354B is what draws it.
 
 ```sh
+# the frame the ROM is served, out of the animation it rests on
+python3 tools/research/bootanim.py --check    firmware/rom-service/boot-animation.bin
+python3 tools/research/bootanim.py --resting -o /tmp/frame.bin
+
 mame osborne1nx -rompath tools/emulator-setup/roms \
-    -softrom /tmp/rom2.rom -frame firmware/rom-service/frame.bin \
+    -softrom /tmp/rom2.rom -frame /tmp/frame.bin \
     -bootsplash firmware/rom-service/screen.bin
 ```
 

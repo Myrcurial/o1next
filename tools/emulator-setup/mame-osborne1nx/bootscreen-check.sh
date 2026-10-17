@@ -55,15 +55,24 @@ fi
 
 ROMPATH="${O1_ROMPATH:-$REPO/tools/emulator-setup/roms}"
 WORK="${O1_WORK:-/tmp/o1next-bootscreen-check}"
-FRAME="$REPO/firmware/rom-service/frame.bin"
+# The frame is **derived from the animation**, not committed (#247's W5): `frame.bin`
+# was retired on 2026-10-16, and the frame the ROM is served is the one the animation
+# *rests* on.  tools/research/bootanim.py is what says the asset is valid and takes
+# that frame out of it.
+ANIM="$REPO/firmware/rom-service/boot-animation.bin"
+FRAME="$WORK/frame.bin"
 SPLASH="$REPO/firmware/rom-service/screen.bin"
 LUA="$HERE/o1next-bootscreen.lua"
 
 [ -d "$ROMPATH" ] || { echo "bootscreen-check.sh: no such ROM path: $ROMPATH" >&2; exit 1; }
-[ -f "$FRAME" ] || {
-    echo "bootscreen-check.sh: no boot frame at $FRAME" >&2
+FRAME_OK=0
+if [ -f "$ANIM" ] && python3 "$REPO/tools/research/bootanim.py" --check "$ANIM" \
+        && python3 "$REPO/tools/research/bootanim.py" --resting -o "$FRAME"; then
+    FRAME_OK=1
+else
+    echo "bootscreen-check.sh: no valid animation at $ANIM" >&2
     echo "  the frame's own two runs need it; the fallback run below does not." >&2
-    FRAME_OK=0; }
+fi
 [ -f "$SPLASH" ] || { echo "bootscreen-check.sh: no boot splash at $SPLASH" >&2; exit 1; }
 [ -f "$LUA" ] || { echo "bootscreen-check.sh: no harness at $LUA" >&2; exit 1; }
 
@@ -87,7 +96,11 @@ grep -E '^  ok  monitor|^wrote' "$WORK/rom2image.log"
 echo "== the machine =="
 echo "  binary:  $MAME"
 echo "  monitor: $MONITOR"
-echo "  frame:   $FRAME ($([ "$FRAME_OK" = 1 ] && wc -c < "$FRAME" | tr -d ' ' || echo 0) bytes)"
+if [ "$FRAME_OK" = 1 ]; then
+    echo "  frame:   $FRAME ($(wc -c < "$FRAME" | tr -d ' ') bytes, the animation's resting frame)"
+else
+    echo "  frame:   <none -- no valid animation at $ANIM>"
+fi
 echo "  splash:  $SPLASH ($(wc -c < "$SPLASH" | tr -d ' ') bytes)"
 echo
 

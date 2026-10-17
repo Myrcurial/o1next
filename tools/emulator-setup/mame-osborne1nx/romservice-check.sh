@@ -76,14 +76,20 @@ fi
 ROMPATH="${O1_ROMPATH:-$REPO/tools/emulator-setup/roms}"
 WORK="${O1_WORK:-/tmp/o1next-romservice-check}"
 MONITOR="$REPO/research/roms/os1-144.rom"
-FRAME="$REPO/firmware/rom-service/frame.bin"
+# The frame is **not a committed asset any more** (#247's W5).  `frame.bin` was
+# retired on 2026-10-16, when the boot screen became the animation the RP2354B
+# plays: the frame the ROM is served is the one the animation *rests* on, and a
+# separate copy could only ever drift from the animation it was taken from.  So it
+# is derived here, from the animation itself, by tools/research/bootanim.py.
+ANIM="$REPO/firmware/rom-service/boot-animation.bin"
+FRAME="$WORK/frame.bin"
 SPLASH="$REPO/firmware/rom-service/screen.bin"
 LUA="$HERE/o1next-romservice.lua"
 
 [ -x "$MAME" ] || { echo "romservice-check.sh: not executable: $MAME" >&2; exit 1; }
 [ -d "$ROMPATH" ] || { echo "romservice-check.sh: no such ROM path: $ROMPATH" >&2; exit 1; }
 [ -f "$MONITOR" ] || { echo "romservice-check.sh: no stock monitor at $MONITOR" >&2; exit 1; }
-[ -f "$FRAME" ] || { echo "romservice-check.sh: no boot frame at $FRAME" >&2; exit 1; }
+[ -f "$ANIM" ] || { echo "romservice-check.sh: no boot animation at $ANIM" >&2; exit 1; }
 [ -f "$SPLASH" ] || { echo "romservice-check.sh: no boot splash at $SPLASH" >&2; exit 1; }
 [ -f "$LUA" ] || { echo "romservice-check.sh: no harness at $LUA" >&2; exit 1; }
 
@@ -100,14 +106,23 @@ echo
 # window, so page 1 is the payload and page 0 the stock monitor.
 "$REPO/tools/research/rom2image.py" -o "$WORK/rom2.rom" > "$WORK/rom2image.log" 2>&1
 echo "image: $(wc -c < "$WORK/rom2.rom" | tr -d ' ') bytes, from rom2image.py ($WORK/rom2image.log)"
-echo "frame: $(wc -c < "$FRAME" | tr -d ' ') bytes, firmware/rom-service/frame.bin"
-echo "splash: $(wc -c < "$SPLASH" | tr -d ' ') bytes, firmware/rom-service/screen.bin"
+echo "animation: $(wc -c < "$ANIM" | tr -d ' ') bytes, firmware/rom-service/boot-animation.bin"
+echo "splash:    $(wc -c < "$SPLASH" | tr -d ' ') bytes, firmware/rom-service/screen.bin"
+
+# The asset, and the frame that comes out of it.  This exits rather than voting:
+# without a valid animation there is no frame to serve, and every check below would
+# be measuring a machine with a broken asset in it.  The same check votes, as
+# `--check` again, once the verdict function exists.
+echo
+echo "== the asset: the animation, and the frame the ROM is served"
+python3 "$REPO/tools/research/bootanim.py" --check "$ANIM" || exit 1
+python3 "$REPO/tools/research/bootanim.py" --resting -o "$FRAME" || exit 1
+echo
 
 # The frame's variants, built here rather than committed: a corrupt frame (one
 # byte flipped in each half, so each half's own sum no longer matches) and an
 # erased one (all 0xFF, which is what erased flash answers).  The splash's
 # variant is a half-page, which its slot has to refuse.
-cp "$FRAME" "$WORK/frame.bin"
 cp "$FRAME" "$WORK/frame-corrupt.bin"
 printf '\000' | dd of="$WORK/frame-corrupt.bin" bs=1 seek=291 conv=notrunc 2>/dev/null
 printf '\000' | dd of="$WORK/frame-corrupt.bin" bs=1 seek=4387 conv=notrunc 2>/dev/null
@@ -121,6 +136,22 @@ FAIL=0
 verdict() {  # verdict LABEL RESULT
     if [ "$2" = 0 ]; then echo "  PASS  $1"; else echo "  FAIL  $1"; FAIL=1; fi
 }
+
+# --- the asset, as a verdict --------------------------------------------------
+# **This is the ROM-side acceptance (#247's W5).**  The animation is not the ROM's
+# to draw -- the RP2354B DMA-blits it in -- so nothing on this side looks at the
+# animation's *content*.  What it can say, and all it can say, is that the asset is
+# **valid**: the container's own sum, its declared geometry and flags, and every
+# frame's own trailer, which is the test a machine would run before drawing one.
+echo "== the asset is valid, which is all the ROM side can ask of it"
+if python3 "$REPO/tools/research/bootanim.py" --check "$ANIM" > "$WORK/bootanim.log" 2>&1; then
+    sed 's/^/  /' "$WORK/bootanim.log"
+    verdict "the animation is a valid asset -- container sum, geometry, flags, every frame" 0
+else
+    sed 's/^/  /' "$WORK/bootanim.log"
+    verdict "the animation is a valid asset -- container sum, geometry, flags, every frame" 1
+fi
+echo
 
 # --- the door, the selector, and the address --------------------------------
 # `-softrom`, `-frame` and `-bootsplash` are each device's own machine option,

@@ -26,7 +26,7 @@
 --   SDL_VIDEODRIVER=dummy \
 --     mame osborne1nx -video none -sound none -nothrottle \
 --     -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom \
---     -frame firmware/rom-service/frame.bin \
+--     -frame /tmp/frame.bin \
 --     -bootsplash firmware/rom-service/screen.bin \
 --     -autoboot_script o1next-romservice.lua -seconds_to_run 2
 --
