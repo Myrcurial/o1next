@@ -329,6 +329,16 @@ the door to name which one — whether `PRESENT` grows a frame index, or the fir
 advances its own sequence and the ROM keeps asking for "the frame" as it does today.
 That is #247's, and it is not settled here.
 
+**What the emulator does meanwhile (2026-10-17, #247's W5).** `osborne1nx`'s frame
+slot still takes one two-half frame, and the harnesses now **derive** it from the
+animation's resting frame — `tools/research/bootanim.py --resting`, the last frame of
+a `once` animation — rather than mounting the committed `frame.bin` that was retired
+on 2026-10-16. So the ROM is served exactly the frame the animation settles on, and
+nothing in the tree can drift from the asset it came from. The *pacing* stays the
+RP2354B's, which is why the ROM side only ever validates the container: the same
+tool's `--check` is the whole of the ROM-side acceptance (the header's sum, the
+declared geometry and flags, and every frame's own trailer).
+
 
 ## 6. The memory map at the moment the screen runs, and what happens when it fails
 

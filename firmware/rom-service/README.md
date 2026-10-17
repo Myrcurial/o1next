@@ -110,11 +110,14 @@ Two consequences, both deliberate:
 - **`research/boot-screen/` stays.** Its art is no longer the boot screen, but it is
   still the **site masthead's** source (`site/assets/o1next-logo.png`, via `--logo`),
   and that is the half of `--check` that remains.
-- **The MAME harnesses still mount a frame.** `romservice-check.sh` asks for
-  `firmware/rom-service/frame.bin` and now stops immediately with *"no boot frame
-  at …"*. That directory is rewritten by the #247 branch — the frame slot, the
-  screen's code, the four acceptances — so it was left to that work rather than
-  patched twice here.
+- **The MAME harnesses derive the frame instead.** Since #247's W5,
+  `romservice-check.sh`, `bootscreen-check.sh` and `stage.sh` take the frame the ROM
+  is *served* out of **this animation** — `tools/research/bootanim.py --resting`, the
+  frame it rests on — so no committed copy can drift from the asset it came from.
+  The same tool's `--check` is the **ROM-side acceptance**: the container's own sum,
+  its declared geometry and flags, and every frame's own trailer, which is the test a
+  machine runs before drawing one. Nothing on the ROM side looks at the animation's
+  content, because the RP2354B is what draws it.
 
 ## What is not here yet
 
@@ -122,12 +125,16 @@ Two consequences, both deliberate:
   `2800h`/`2801h` for the ROM — *not* `2300h`/`2301h`, which is the floppy's
   track register and the keyboard's row 0; `docs/rom-pico-protocol.md` 2), the
   payload served out of flash
-- `PRESENT(3)` in `softrom_device` and the screen harness — #247's turns 4 and 5,
-  which prove the sequence in the emulator first. The screen's code is written and
-  assembles (`research/source-code/BIOS-200-source/rom2-screen.asm`), and
-  `screen.bin` is extracted from that build; what is missing is the device slot
-  that serves it and the check that reads the video RAM back.
+- ~~`PRESENT(3)` in `softrom_device` and the screen harness~~ — **done.** The device
+  serves the page (`-bootsplash`), and `bootscreen-check.sh` reads the two video
+  planes back off the machine: the frame on both planes with the splash mounted, and
+  the screen code's own fallback with no frame in it (#247's W3). The screen's code
+  is `research/source-code/BIOS-200-source/rom2-screen.asm`, and `screen.bin` is
+  extracted from that build with its own staleness guard (`rom2blob.py --check`).
 - the RP2354B's own video renderer: the shadow VRAM, the frame pacing, and the stop
   on the Z80's first write — W4 and W5 of #247, which prove it in the emulator first
-- the retirement itself: the blob, `PRESENT(3)` and the two-half serving are still
-  in the tree on the #247 branch
+- ~~the retirement itself~~ — **done (#247's W5).** The blob is `screen.bin` with its
+  own staleness guard, `PRESENT(3)` serves it as a page, and the frame the ROM is
+  served is **derived** from this animation (`bootanim.py --resting`) rather than
+  committed. What is left is the *hardware* side: the RP2354B playing the animation
+  and pacing it from its own flash, which is the firmware's work, not this emulator's.
