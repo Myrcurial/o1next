@@ -137,6 +137,7 @@ becomes. The content ids:
 | `0` | **the payload** — CBIOS + MD-10 BIOS image + the hand-over stub, 3599 bytes | the hand-over (§4.1 step 7), and `BANKSEL` generally |
 | `1` | **the frame's character half** — 4096 bytes | the screen (§5) |
 | `2` | **the frame's attribute half** — 4096 bytes, the 9th bit | the screen (§5) |
+| `3` | **the screen's own code** — 4096 bytes, one window page, which the monitor's stub copies to RAM at `4000h` and jumps into | the monitor's stub (§4.1). **Chosen 2026-10-15**, from §4.1's three candidate homes: the code is firmware like the frame and no payload change is needed. Built and measured — 183 bytes of code in the page, `0F67h`–`40B7h` for the monitor and the blob together, 19 bytes free to the guard |
 
 `INFO` is for the web UI and for a human, not for the ROM: **the ROM never asks
 whether a frame exists** — the trailer *is* the query (§6). It is here so that a
@@ -154,8 +155,11 @@ Everything below is measured on `osborne1nx` unless marked.
    `OUT (03h)`. 21.5 ms. This is **not** optional: the array is not a blank slate
    — 4072 of 4096 cells already read `FFh`, but **24 read `7Fh`**, which is dim,
    and they would show as scattered dim cells in a 4096-cell frame.
-3. Print the fallback text — `o1next - press return`, 27 bytes, replacing
-   `IMSG`'s 182, so it **frees 155 bytes** (`o1-rom-2.0.md` §4.9).
+3. Print the fallback text — the animation's own two lines and bright/dim runs, at
+   its own rows and columns, 72 bytes against `IMSG`'s 182 (`o1-rom-2.0.md` §4.9).
+   **It positions itself**, with `VCLRS` first: `CURS` is 0 when this code runs, so a
+   message that does not is written to address 0 and never appears. Its dim runs are
+   the vendor's `ESC,VSHI` … `ESC,VEHI` half-intensity mode.
 4. `PRESENT(1)`; read the frame's character half out of the window; check the
    trailer (§5).
 5. If it validates: `LDIR 1000h → F000h`, 4096 bytes, 21.5 ms — over the text.
@@ -165,10 +169,32 @@ Everything below is measured on `osborne1nx` unless marked.
    the same 4096 bytes of window page 1, so presenting the frame evicts the
    payload, and the hand-over needs it (§5).
 
-Two 4096-byte passes ≈ **43 ms**, against a floppy boot measured in seconds. The
-ROM cost sits inside the 72 free bytes `o1-rom-2.0.md` §4.7 leaves below `0FB4h` —
-and the assembler's own `IF RLWA > 0FFBH / .9 ERROR CODE TOO LARGE` guard is the
-arbiter, which is the right place to find out.
+Two 4096-byte passes ≈ **43 ms**, against a floppy boot measured in seconds. **The
+ROM cost does not fit the monitor's tail, and the assembler's own guard is what
+said so** (2026-10-15, #247 turn 3): the 1.44 layout leaves 150 bytes above
+`0F67h`, `HCBOOT` took 77 of them (`0F67h`–`0FB3h`), and the screen's code — the
+fill, the text, the door, the trailer and the two blits — is **212 bytes** (182 when
+it was first measured, on 2026-10-15; #247's W3 gave the fallback the screen's own two
+lines and their bright/dim runs):
+
+```
+I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.
+```
+
+That is the guard `IF RLWA > 0FFBH / .9 ERROR CODE TOO LARGE` doing its job, and
+it settles §4.7's "does the monitor code fit" question in the negative. The code
+is written and measured — `research/source-code/BIOS-200-source/rom2-screen.asm` —
+and it needs a home: **a third content id in the softROM** (`PRESENT(3)` serving a
+4096-byte blob in the Pico's flash, beside the frame, with a ~21-byte stub in the
+monitor that copies page 1 to RAM and jumps into it — the recommended one, because
+the screen code is firmware like the frame and no payload change is needed), the
+**payload's spare** (497 bytes at `1E0Fh`, where the hand-over stub already lives),
+or §4.7's **Plan B** (a banked loader). All three fit; the choice is the
+maintainer's, and the code is home-agnostic. **Chosen 2026-10-15: the first one** —
+built and measured: the monitor's new code runs `0F67h`–`0FE6h`, 128 bytes of the
+tail's 149 to the vendor's guard at `0FFBh`, with 21 free, and the stub itself is
+`0FB4h`–`0FE6h` — 51 of the 72 bytes HCBOOT left (`docs/o1-rom-2.0.md` §4.7). The
+asset is served by `PRESENT(3)`, content id 3 in §4's table.
 
 ### 4.2 Result codes
 
@@ -302,6 +328,16 @@ number a designer reads is the number the Pico is asked for.
 the door to name which one — whether `PRESENT` grows a frame index, or the firmware
 advances its own sequence and the ROM keeps asking for "the frame" as it does today.
 That is #247's, and it is not settled here.
+
+**What the emulator does meanwhile (2026-10-17, #247's W5).** `osborne1nx`'s frame
+slot still takes one two-half frame, and the harnesses now **derive** it from the
+animation's resting frame — `tools/research/bootanim.py --resting`, the last frame of
+a `once` animation — rather than mounting the committed `frame.bin` that was retired
+on 2026-10-16. So the ROM is served exactly the frame the animation settles on, and
+nothing in the tree can drift from the asset it came from. The *pacing* stays the
+RP2354B's, which is why the ROM side only ever validates the container: the same
+tool's `--check` is the whole of the ROM-side acceptance (the header's sum, the
+declared geometry and flags, and every frame's own trailer).
 
 
 ## 6. The memory map at the moment the screen runs, and what happens when it fails

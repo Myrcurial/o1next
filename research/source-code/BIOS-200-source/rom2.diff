@@ -1,15 +1,27 @@
 --- a/ROM144.ASM
 +++ b/ROM2.ASM
-@@ -295,11 +295,18 @@
- 	EI			;ENABLE INTERUPTS
+@@ -1,3 +1,4 @@
++	LIST	-L,-R
+ ;.Date: 2/4/1983
+ ;.Author: Roger W. Chapman
+ ;.Title: DOUBLE DENSITY ROM : REV 1.44
+@@ -289,17 +290,23 @@
  
+ *SIGN ON PROMPT
+ 
+-	LDK	DE,IMSG
+-	CALL	OSTR		;Output initial message
++	CALL	SCRN		;ROM 2.0: the boot screen, not IMSG (#247)
+ 
+ 	EI			;ENABLE INTERUPTS
++
 +;ROM 2.0'S BOOT KEYS (#247).  RETURN IS THE BIG DEFAULT -- THE MACHINE'S OWN
 +;HARD DISK -- AND THE FLOPPIES ARE THE SHIFTED PAIR: COLON IS DRIVE A AND
 +;DOUBLE-QUOTE IS DRIVE B.  ESC IS RELEASED: THE CBIOS'S OWN ESCH CELL IS A
 +;DIFFERENT THING AND IS NOT TOUCHED, SO AN UNCLAIMED KEY FALLS THROUGH TO THE
 +;PROMPT'S JR START.  START CLEARS DSKSWP (0EFC7H) ON EVERY PASS, SO COLON IS
 +;ALWAYS DRIVE A AND DOUBLE-QUOTE ALWAYS DRIVE B.
-+
+ 
  	CALL	CI		;Get character
 -	CMP	ESC
 +	CMP	CR
@@ -21,7 +33,7 @@
  	JZ	CBOOT		;if cold boot off of A
  
  	INC	[hl]		;swap drives: A=B, B=A
-@@ -4642,9 +4649,78 @@
+@@ -4642,9 +4649,130 @@
  
  	PROC
  
@@ -32,12 +44,12 @@
 +;patch source is the CBIOS'S fixed address rather than a read through page zero:
 +;in bank 2 page zero IS this ROM, a write there is dropped, and a read there
 +;returns the ROM, so `LD HL,(0001H)` would read this file's own first bytes.
- 
++
 +	LK	HL,1000H		;CBIOS, out of the window
 +	LK	DE,0E100H		;... to where the stock system keeps it
 +	LK	BC,800H		;2048 bytes
 +	LDIR
- 
++
 +	LK	HL,1800H		;the MD-10 BIOS, out of the window
 +	LK	DE,0D800H		;... to where HARD.COM puts it
 +	LK	BC,5C5H		;1477 bytes, the length the image carries
@@ -69,7 +81,7 @@
 +;1633H AND THE MACHINE NEVER COMES BACK.  IT CANNOT BE WRITTEN FROM BANK 2:
 +;PAGE ZERO IS THIS ROM AND 0EFD2H IS ONLY REACHED IN RAM MODE.  SO A STUB
 +;COMES OUT OF THE PAYLOAD'S SPARE INTO RAM, AND THE SWITCH ENTERS *IT*.
-+
+ 
 +;THE STUB'S BYTES ARE THE PAYLOAD'S (tools/research/rom2image.py, 1E01H) --
 +;THE ROM CANNOT HOLD IT AND RUN IT, BECAUSE IT HAS TO RUN IN RAM:
 +;	LD	HL,0CB00H	;CCPADR: the exit's base, not this boot's CCP
@@ -82,7 +94,7 @@
 +;EXIT ADDS 1633H -- THE STOCK CCP-TO-CBIOS OFFSET -- TO FIND THE CBIOS'S
 +;RRI.  THIS BOOT PUTS THE SYSTEM AT 0C200H AND STILL PUTS THE CBIOS AT
 +;0E100H, SO 0CB00H IS THE RIGHT VALUE AND THE STOCK ONE.
-+
+ 
 +	LK	HL,1E01H		;the stub, out of the payload's spare
 +	LK	DE,0E0F0H		;... to RAM: the 104 bytes below the CBIOS
 +	LK	C,0EH			;14 bytes -- the stub's length
@@ -98,6 +110,159 @@
 +	JMP	0E8E2H		;SW2RAM, in the shipped CBIOS
 +
 +
++	LIST	*		;ROM 2.0's own code, listed: the vendor's stays off
++;ROM 2.0'S BOOT SCREEN (#247).  The screen's code is 182 bytes and the tail has
++;72 (docs/o1-rom-2.0.md 4.7), so the code lives in the interposer's flash and this
++;is the stub that fetches it: PRESENT(3) puts it in window page 1, the LDIR copies
++;it to RAM at 4000H, and the jump enters it.  The RAM code prints the fallback
++;text, fills the attribute array bright, draws the frame if there is one, puts the
++;payload back, and RETs -- which returns to this CALL's caller, the sign-on
++;prompt's own CALL CI.
++;
++;With no screen code in the flash the door answers 09H and the stock sign-on
++;message is printed instead, so an interposer without the blob is a 1.44
++;(docs/rom-pico-protocol.md 4.2).
++;
++;4000H is bank-1 RAM, mirrored in bank 2 and unclaimed before CBOOT
++;(docs/rom-pico-protocol.md 6).  The code has to run from RAM because page 1 is
++;where the frame goes: presenting the frame evicts the code.
++DOORQ:	=	2800H		;the ROM service: the request register
++DOORR:	=	2801H		;... and its reply register
++
++SCRN:
++	PROC
++	LK	B,040H		;PRESENT
++	LK	C,3		;... content 3: the screen code
++	CALL	DOOR
++	JNZ	SCRN44		;no such content: the 1.44's own message instead
++	LK	HL,1000H	;the code, out of window page 1
++	LK	DE,4000H	;... to RAM
++	LK	BC,1000H	;4096 bytes: the whole page
++	LDIR
++	JMP	4000H		;... and enter it; its RET returns to our caller
++SCRN44:	LDK	DE,IMSG
++	CALL	OSTR		;the stock sign-on message
++	RET
++;THE DOOR, and both callers share it -- the stub above and the RAM code below.
++;B is the opcode, C its operand, and the result code comes back in A.  The
++;transaction is the mailbox protocol's: the reply register reads 0 while the
++;firmware is not ready, then the length, then the bytes (docs/mailbox-protocol.md
++;3).  The address is 2800H/2801H, not 2300H/2301H, because the onboard selects
++;check two address bits and 2301H is the floppy's track register as well as the
++;keyboard's row 0 (docs/rom-pico-protocol.md 2, docs/o1-mainboard-schematic.md 7a).
++DOOR:
++	PROC
++	MOV	A,B
++	STO	A,DOORQ
++	MOV	A,C
++	STO	A,DOORQ
++DR1:	LD	A,DOORR		;the length
++	ORA	A
++	JZ	DR1
++	LD	A,DOORR		;the result code
++	ORA	A
++	RET
  RLWA	=	*		;LWA OF ROM RESIDENT CODE
  
  	MSG	'LENGTH OF THIS ROM IS = ',RLWA-1
+@@ -4654,6 +4782,99 @@
+ 
+ 	ECHO	0FFFH-RLWA  !	DB   0FFH
+ 	ENDM
++	ORG	4000H		;THE SCREEN'S CODE, where the stub puts it (#247)
++SCRN40:
++	PROC
++;1. the character RAM, not the attribute plane: F000H-FFFFH is the video RAM
++;again (docs/rom-pico-protocol.md 4.1 step 1)
++	DISDIM
++;2. every cell bright.  The array is not a blank slate -- 24 of its 4096 cells
++;read 7FH, dim, at the sign-on -- so this is not optional
++	ENADIM
++	LK	HL,0F000H
++	STO	0FFH,[HL]
++	LK	DE,0F001H
++	LK	BC,0FFFH
++	LDIR
++	DISDIM
++;3. the barebones sign-on, which is what stays if there is no frame.  Short on
++;purpose: the text is cheap here, and the art's own caption inside the X says the
++;same thing in its own words
++	LDK	DE,SMSG
++	CALL	OSTR
++;4. PRESENT(1): the frame's character half into page 1
++	LK	B,040H
++	LK	C,1
++	CALL	DOOR
++	JNZ	SCRET		;no frame: the text stays, which is the whole point
++;5. the trailer, at 0FF8H of the half: six bytes of magic, then the 16-bit sum of
++;the 4088 bytes before them
++	LK	HL,1FF8H
++	LDK	DE,SMAG
++	LK	C,6
++SM1:	LD	A,[DE]
++	MOV	B,A
++	LD	A,[HL]
++	CMP	B
++	JNZ	SCRET
++	INC	HL
++	INC	DE
++	DEC	C
++	JRNZ	SM1
++	LK	HL,1000H
++	LK	DE,0
++	LK	BC,0FF8H
++SS1:	LD	A,[HL]
++	ADD	A,E
++	MOV	E,A
++	JRNC	SS2
++	INC	D
++SS2:	INC	HL
++	DEC	BC
++	MOV	A,B
++	ORA	C
++	JRNZ	SS1
++	LD	A,1FFEH
++	CMP	E
++	JNZ	SCRET
++	LD	A,1FFFH
++	CMP	D
++	JNZ	SCRET
++;6. the blit: one LDIR of 4096 bytes, 21.5 ms at 4 MHz
++	LK	HL,1000H
++	LK	DE,0F000H
++	LK	BC,1000H
++	LDIR
++;7. PRESENT(2), and the attribute half if it validates: that is the 9th bit, and a
++;bad one costs only the bright fill that has already happened
++	LK	B,040H
++	LK	C,2
++	CALL	DOOR
++	JNZ	SPAY
++	ENADIM
++	LK	HL,1000H
++	LK	DE,0F000H
++	LK	BC,1000H
++	LDIR
++	DISDIM
++;8. PRESENT(0): the payload back, because the frame and the payload are the same
++;4096 bytes of page 1 and the hand-over needs it (docs/rom-pico-protocol.md 4.1)
++SPAY:	LK	B,040H
++	LK	C,0
++	CALL	DOOR
++SCRET:	RET
++;the barebones fallback: the last character carries bit 7, which is the terminator
++;OSTR looks for
++SMSG:	DB	VCLRS
++	DB	07Fh,20,LF, 07Fh,24,' '
++	DB	'osborne 1 next '
++	DB	ESC,VSHI, 'rom 2.0 2026', ESC,VEHI
++	DB	CR,LF,CR,LF, 07Fh,30,' '
++	DB	ESC,VSHI, 'press', ESC,VEHI
++	DB	' return ', ESC,VSHI
++	DB	'to begi'
++	DB	'n'+80H
++SMAG:	DB	'O1NEXT'
+ 
+ ;	END
+  
+\ No newline at end of file

@@ -16,17 +16,18 @@
 #        abandon-a-pending-reply rule -- the mailbox protocol's transaction
 #        (docs/mailbox-protocol.md 3), on a bank-2 register pair.
 #     2. **Page 1 is the selector's.**  PRESENT(0) the payload, PRESENT(1) the
-#        frame's character half, PRESENT(2) its attribute half, and each half's
-#        own O1NEXT + 16-bit-sum trailer at its own 0FF8h, in place -- which is
-#        what the ROM checks before it blits.
-#     3. **No frame is a case, not a crash.**  With no frame mounted, or an
-#        erased one, or a corrupt one, PRESENT(1) answers 09h and page 1 keeps
-#        the payload.  The door does *not* validate the frame: that check is the
-#        ROM's, and missing, erased and corrupt are one case
-#        (docs/rom-pico-protocol.md 6).
-#     4. **A wrong-sized frame is refused, loudly.**  A frame is two 4096-byte
-#        halves, so the slot refuses anything else rather than serving half a
-#        frame as if it were whole.
+#        frame's character half, PRESENT(2) its attribute half, PRESENT(3) the
+#        boot splash -- the code the monitor's stub copies to RAM at 4000h and
+#        enters -- and each half's own O1NEXT + 16-bit-sum trailer at its own
+#        0FF8h, in place, which is what the ROM checks before it blits.
+#     3. **A missing asset is a case, not a crash.**  With no frame mounted, or
+#        an erased one, or a corrupt one, PRESENT(1) answers 09h and page 1 keeps
+#        the payload; with no splash mounted, PRESENT(3) does the same.  The door
+#        does *not* validate the frame: that check is the ROM's, and missing,
+#        erased and corrupt are one case (docs/rom-pico-protocol.md 6).
+#     4. **A wrong-sized asset is refused, loudly.**  A frame is two 4096-byte
+#        halves and the splash is one 4096-byte page, so each slot refuses
+#        anything else rather than serving half of it as if it were whole.
 #     5. **The address.**  The protocol proposed 2300h/2301h; this machine says
 #        no, and says why: the onboard selects check two address bits, so 0x2301
 #        is the floppy's track register as well as the keyboard's row 0
@@ -75,13 +76,21 @@ fi
 ROMPATH="${O1_ROMPATH:-$REPO/tools/emulator-setup/roms}"
 WORK="${O1_WORK:-/tmp/o1next-romservice-check}"
 MONITOR="$REPO/research/roms/os1-144.rom"
-FRAME="$REPO/firmware/rom-service/frame.bin"
+# The frame is **not a committed asset any more** (#247's W5).  `frame.bin` was
+# retired on 2026-10-16, when the boot screen became the animation the RP2354B
+# plays: the frame the ROM is served is the one the animation *rests* on, and a
+# separate copy could only ever drift from the animation it was taken from.  So it
+# is derived here, from the animation itself, by tools/research/bootanim.py.
+ANIM="$REPO/firmware/rom-service/boot-animation.bin"
+FRAME="$WORK/frame.bin"
+SPLASH="$REPO/firmware/rom-service/screen.bin"
 LUA="$HERE/o1next-romservice.lua"
 
 [ -x "$MAME" ] || { echo "romservice-check.sh: not executable: $MAME" >&2; exit 1; }
 [ -d "$ROMPATH" ] || { echo "romservice-check.sh: no such ROM path: $ROMPATH" >&2; exit 1; }
 [ -f "$MONITOR" ] || { echo "romservice-check.sh: no stock monitor at $MONITOR" >&2; exit 1; }
-[ -f "$FRAME" ] || { echo "romservice-check.sh: no boot frame at $FRAME" >&2; exit 1; }
+[ -f "$ANIM" ] || { echo "romservice-check.sh: no boot animation at $ANIM" >&2; exit 1; }
+[ -f "$SPLASH" ] || { echo "romservice-check.sh: no boot splash at $SPLASH" >&2; exit 1; }
 [ -f "$LUA" ] || { echo "romservice-check.sh: no harness at $LUA" >&2; exit 1; }
 
 mkdir -p "$WORK"
@@ -97,17 +106,30 @@ echo
 # window, so page 1 is the payload and page 0 the stock monitor.
 "$REPO/tools/research/rom2image.py" -o "$WORK/rom2.rom" > "$WORK/rom2image.log" 2>&1
 echo "image: $(wc -c < "$WORK/rom2.rom" | tr -d ' ') bytes, from rom2image.py ($WORK/rom2image.log)"
-echo "frame: $(wc -c < "$FRAME" | tr -d ' ') bytes, firmware/rom-service/frame.bin"
+echo "animation: $(wc -c < "$ANIM" | tr -d ' ') bytes, firmware/rom-service/boot-animation.bin"
+echo "splash:    $(wc -c < "$SPLASH" | tr -d ' ') bytes, firmware/rom-service/screen.bin"
+
+# The asset, and the frame that comes out of it.  This exits rather than voting:
+# without a valid animation there is no frame to serve, and every check below would
+# be measuring a machine with a broken asset in it.  The same check votes, as
+# `--check` again, once the verdict function exists.
+echo
+echo "== the asset: the animation, and the frame the ROM is served"
+python3 "$REPO/tools/research/bootanim.py" --check "$ANIM" || exit 1
+python3 "$REPO/tools/research/bootanim.py" --resting -o "$FRAME" || exit 1
+echo
 
 # The frame's variants, built here rather than committed: a corrupt frame (one
 # byte flipped in each half, so each half's own sum no longer matches) and an
-# erased one (all 0xFF, which is what erased flash answers).
-cp "$FRAME" "$WORK/frame.bin"
+# erased one (all 0xFF, which is what erased flash answers).  The splash's
+# variant is a half-page, which its slot has to refuse.
 cp "$FRAME" "$WORK/frame-corrupt.bin"
 printf '\000' | dd of="$WORK/frame-corrupt.bin" bs=1 seek=291 conv=notrunc 2>/dev/null
 printf '\000' | dd of="$WORK/frame-corrupt.bin" bs=1 seek=4387 conv=notrunc 2>/dev/null
 dd if=/dev/zero bs=8192 count=1 2>/dev/null | tr '\000' '\377' > "$WORK/frame-erased.bin"
 dd if="$FRAME" of="$WORK/frame-short.bin" bs=4096 count=1 2>/dev/null
+cp "$SPLASH" "$WORK/screen.bin"
+dd if="$SPLASH" of="$WORK/screen-short.bin" bs=2048 count=1 2>/dev/null
 echo
 
 FAIL=0
@@ -115,45 +137,61 @@ verdict() {  # verdict LABEL RESULT
     if [ "$2" = 0 ]; then echo "  PASS  $1"; else echo "  FAIL  $1"; FAIL=1; fi
 }
 
+# --- the asset, as a verdict --------------------------------------------------
+# **This is the ROM-side acceptance (#247's W5).**  The animation is not the ROM's
+# to draw -- the RP2354B DMA-blits it in -- so nothing on this side looks at the
+# animation's *content*.  What it can say, and all it can say, is that the asset is
+# **valid**: the container's own sum, its declared geometry and flags, and every
+# frame's own trailer, which is the test a machine would run before drawing one.
+echo "== the asset is valid, which is all the ROM side can ask of it"
+if python3 "$REPO/tools/research/bootanim.py" --check "$ANIM" > "$WORK/bootanim.log" 2>&1; then
+    sed 's/^/  /' "$WORK/bootanim.log"
+    verdict "the animation is a valid asset -- container sum, geometry, flags, every frame" 0
+else
+    sed 's/^/  /' "$WORK/bootanim.log"
+    verdict "the animation is a valid asset -- container sum, geometry, flags, every frame" 1
+fi
+echo
+
 # --- the door, the selector, and the address --------------------------------
-# `-softrom` and `-frame` are each device's own machine option, named after its
-# tag (softrom.h).  The harness is told what was mounted so it can check the
-# served bytes against the files.
-service() {  # service LABEL LOG [FRAME]
-    label="$1"; log="$2"; frame="${3:-}"
-    if [ -n "$frame" ]; then
-        O1_SOFTROM_IMAGE="$WORK/rom2.rom" O1_FRAME="$frame" \
-        O1_SOFTROM_MONITOR="$MONITOR" \
-        SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -softrom "$WORK/rom2.rom" \
-            -frame "$frame" \
-            -video none -sound none -nothrottle -rompath "$ROMPATH" \
-            -autoboot_script "$LUA" -seconds_to_run 2 > "$log" 2>&1 || true
-    else
-        O1_SOFTROM_IMAGE="$WORK/rom2.rom" O1_SOFTROM_MONITOR="$MONITOR" \
-        SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -softrom "$WORK/rom2.rom" \
-            -video none -sound none -nothrottle -rompath "$ROMPATH" \
-            -autoboot_script "$LUA" -seconds_to_run 2 > "$log" 2>&1 || true
-    fi
+# `-softrom`, `-frame` and `-bootsplash` are each device's own machine option,
+# named after its tag (softrom.h).  The harness is told what was mounted so it can
+# check the served bytes against the files *and* INFO's two flags against what was
+# really there -- so the four combinations are the four combinations.
+service() {  # service LABEL LOG [FRAME] [SPLASH]
+    label="$1"; log="$2"; frame="${3:-}"; splash="${4:-}"
+    set -- "$MACHINE" -softrom "$WORK/rom2.rom" \
+        -video none -sound none -nothrottle -rompath "$ROMPATH" \
+        -autoboot_script "$LUA" -seconds_to_run 2
+    if [ -n "$frame" ]; then set -- "$@" -frame "$frame"; fi
+    if [ -n "$splash" ]; then set -- "$@" -bootsplash "$splash"; fi
+    O1_SOFTROM_IMAGE="$WORK/rom2.rom" O1_SOFTROM_MONITOR="$MONITOR" \
+    O1_FRAME="$frame" O1_BOOTSPLASH="$splash" \
+    SDL_VIDEODRIVER=dummy "$MAME" "$@" > "$log" 2>&1 || true
     echo "== $label"
-    grep -E '^  (PASS|FAIL)|^ROMSERVICE:|^  (chars|attrs) trailer|^  INFO:|^  (floppy|contract)' \
+    grep -E '^  (PASS|FAIL)|^ROMSERVICE:|^  (chars|attrs) trailer|^  splash trailer|^  INFO:|^  (floppy|contract)' \
         "$log" | sed 's/^/  /'
     if grep -q '^ROMSERVICE: PASS' "$log"; then verdict "$label" 0; else verdict "$label" 1; fi
     echo
 }
 
-service "the real frame -- both halves, both trailers"  "$WORK/svc-frame.log"    "$WORK/frame.bin"
-service "no frame -- PRESENT(1) is 09h and page 1 stays" "$WORK/svc-noframe.log"
-service "a corrupt frame -- served unvalidated"          "$WORK/svc-corrupt.log" "$WORK/frame-corrupt.bin"
-service "an erased frame -- the fallback path"           "$WORK/svc-erased.log"  "$WORK/frame-erased.bin"
+# The four combinations of the two assets, so each of INFO's flags is seen set
+# and clear, and the two bad frames on top of that.
+service "the real frame and the real splash -- both flags"    "$WORK/svc-both.log"    "$WORK/frame.bin" "$WORK/screen.bin"
+service "the real frame, no splash -- bit 0 alone"            "$WORK/svc-frame.log"   "$WORK/frame.bin"
+service "no frame, the real splash -- bit 1 alone"            "$WORK/svc-splash.log"  ""                "$WORK/screen.bin"
+service "neither -- both answer 09h and page 1 stays"         "$WORK/svc-none.log"
+service "a corrupt frame, the real splash"                    "$WORK/svc-corrupt.log" "$WORK/frame-corrupt.bin" "$WORK/screen.bin"
+service "an erased frame, the real splash"                    "$WORK/svc-erased.log"  "$WORK/frame-erased.bin"  "$WORK/screen.bin"
 
 # The two halves the ROM will actually be served have to carry good trailers, or
 # the screen never comes up: that is the assertion the harness cannot make on a
 # corrupt frame and this is where it is made on a good one.
-if [ "$(grep -c 'trailer ok' "$WORK/svc-frame.log")" = 2 ]; then
+if [ "$(grep -c 'trailer ok' "$WORK/svc-both.log")" = 2 ]; then
     verdict "the real frame's two trailers both check out" 0
 else
     verdict "the real frame's two trailers both check out" 1
-    grep 'trailer' "$WORK/svc-frame.log" | sed 's/^/        /'
+    grep 'trailer' "$WORK/svc-both.log" | sed 's/^/        /'
 fi
 for f in svc-corrupt svc-erased; do
     if [ "$(grep -c 'trailer BAD' "$WORK/$f.log")" = 2 ]; then
@@ -176,6 +214,21 @@ if grep -q 'a frame is two 4096-byte halves: 4096 bytes, not 8192' "$WORK/svc-sh
     verdict "a 4096-byte frame is refused, with the reason" 0
 else
     verdict "a 4096-byte frame is refused, with the reason" 1
+fi
+echo
+
+# --- and a wrong-sized splash, the same way ---------------------------------
+echo "== a 2048-byte splash -- one page is not two, and half a page is not one"
+O1_SOFTROM_IMAGE="$WORK/rom2.rom" O1_SOFTROM_MONITOR="$MONITOR" \
+SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -softrom "$WORK/rom2.rom" \
+    -bootsplash "$WORK/screen-short.bin" \
+    -video none -sound none -nothrottle -rompath "$ROMPATH" \
+    -autoboot_script "$LUA" -seconds_to_run 1 > "$WORK/svc-splash-short.log" 2>&1 || true
+grep -i 'boot splash is one 4096-byte window page' "$WORK/svc-splash-short.log" | sed 's/^/  /'
+if grep -q 'the boot splash is one 4096-byte window page: 2048 bytes, not 4096' "$WORK/svc-splash-short.log"; then
+    verdict "a 2048-byte splash is refused, with the reason" 0
+else
+    verdict "a 2048-byte splash is refused, with the reason" 1
 fi
 echo
 

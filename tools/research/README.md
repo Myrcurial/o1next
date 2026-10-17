@@ -80,6 +80,11 @@ scratch programs, "figuring it out" notebooks/scripts.
   runs. Without it the patched flow leaves the select byte `00h`, every
   transaction is delivered to no target, and the guest reports no error at all.
   Note `O1_ROMPATH` must be absolute, because MAME runs from a neutral directory.
+  **`O1_MAME_EXTRA` replaces MAME's own arguments**, and its default is the
+  `-nothrottle` every caller has always got; set it *empty* to run at the
+  machine's real speed. That is what reading an assembler listing needs — the
+  ACT80's is ~4700 lines and its error markers are inline in it, so unthrottled
+  it scrolls past in under a second of wall time (#247 step 8, turn 3).
 - **`acb4000.lua`** — a MAME-side *trace* of the MD-10's ACB-4000 host-adapter
   ports (`30h`–`33h`), written for #178 to watch the driver build its DPB. It
   produced the finding instead: MAME's `osborne1` decodes only two I/O address
@@ -327,6 +332,23 @@ scratch programs, "figuring it out" notebooks/scripts.
   stale — and does the same for the frame. It needs the standard library and files
   in the repo, and nothing else, so
   `.github/workflows/generated-artifacts.yml` runs it.
+- **`rom2blob.py`** — the boot screen's *code* as an artifact (#247 step 8).
+  **`--extract ROM2.HEX -o screen.bin`** takes the records at and above `4000h` out
+  of a ROM 2.0 build, requires them to be contiguous, and writes the 4096-byte
+  window page the monitor's stub asks for with `PRESENT(3)` and copies to RAM at
+  `4000h`. The code is the first 183 bytes, the rest is the vendor's own `FFh` fill,
+  and the top of the page carries a trailer the code never reads: `O1NEXT`, the
+  digest of the source it came from, and a 16-bit sum. **`--lwa`** is the
+  assembler's own `Program LWA`, so a build that lost the blob's tail cannot pass as
+  one that did not.
+  **`--check` is different in kind from every other guard here.** Nothing can
+  recompute the vendor's ACT80's output, and CI has no MAME, so it is a *staleness*
+  check rather than a rebuild: `screen.bin` carries the digest of
+  `rom2-screen.asm` as it stood when the blob was extracted, and the check fails
+  when the source has moved on without it. That is what makes it runnable in
+  `.github/workflows/generated-artifacts.yml`, where the frame's byte comparison
+  needs only Python.
+
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
   **7695-byte image** from the repo's own files and re-checks every anchor the
   design quotes, exiting non-zero if one moves. In: the monitor (the stock 1.44, or

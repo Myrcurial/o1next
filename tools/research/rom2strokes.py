@@ -131,11 +131,18 @@ HALF_NAMES = ('chars', 'attrs')
 #
 # If the frame is missing or malformed, the monitor must still say something
 # useful.  It does not cost anything extra, because ROM 2.0 *replaces* the stock
-# sign-on rather than adding to it: IMSG is 182 bytes, and this is 21.
+# sign-on rather than adding to it: IMSG is 182 bytes.
+#
+# #247's W3 (2026-10-17): the fallback is the screen's own two lines and the same
+# bright/dim runs, at the animation's own rows and columns, and it *positions
+# itself* -- CURS is 0 when the screen code runs, so a message that does not is
+# written to address 0 and never appears.  The 72 is the message as it stands in
+# the blob (research/source-code/BIOS-200-source/rom2-screen.asm), where the
+# padding is OSTR's 07FH repeat escape and the dim runs are ESC,VSHI ... ESC,VEHI.
 
-FALLBACK = 'o1next - press return'
-FALLBACK_LEN = len(FALLBACK)          # OSTR stops on a byte with bit 7 set, so
-IMSG_LEN = 182                        # the string is its own terminator
+FALLBACK = 'osborne 1 next / rom 2.0 2026 + press return to begin, dim runs'
+FALLBACK_LEN = 72                      # the message's own bytes, escapes included
+IMSG_LEN = 182                        # the vendor's sign-on it replaces
 
 # The letter boxes, measured off `o1next-art.txt` (research/boot-screen/README).
 BOXES = [('O', 26, 46), ('1', 47, 59), ('N', 61, 82),
@@ -685,19 +692,21 @@ def main(argv=None):
         print('read dim at the sign-on, and they would show in a 4096-cell frame.')
         print()
         print('The fallback is free too, because it *replaces* the stock sign-on')
-        print('rather than joining it:')
+        print('rather than joining it -- and since #247\'s W3 it is the screen\'s own')
+        print('two lines and bright/dim runs, at the animation\'s own rows and')
+        print('columns (array rows 20 and 22, ink from columns 24 and 30):')
         print()
-        print('    %s   %2d bytes of text, and the last character'
-              % (FALLBACK.upper(), FALLBACK_LEN))
-        print('                                  carries bit 7, which is the')
-        print('                                  terminator OSTR looks for')
-        print('    LDK DE,MSG / CALL OSTR        6 bytes of code')
+        print('    the message                   %2d bytes, escapes and padding'
+              % FALLBACK_LEN)
+        print('                                  included, and the last character')
+        print('                                  carries bit 7, the terminator OSTR')
+        print('                                  looks for')
         print('    ------------------------------')
         print('    total                        %2d bytes, against IMSG\'s %d'
-              % (FALLBACK_LEN + 6, IMSG_LEN))
+              % (FALLBACK_LEN, IMSG_LEN))
         print()
         print('So the fallback *frees* %d bytes, and pays for its own check.'
-              % (IMSG_LEN - FALLBACK_LEN - 6))
+              % (IMSG_LEN - FALLBACK_LEN))
         print()
         print('Order at boot: print the text first, then PRESENT(1), page the')
         print('character half in and check its trailer; if it is right, blit over')

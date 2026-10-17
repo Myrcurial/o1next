@@ -47,6 +47,22 @@
 #   and the store that makes the hand-over work is in the ROM.  `rom2-check.sh` is
 #   this, headless and measured.
 #
+#   To see **the boot splash**, mount the interposer's two flash assets with it.
+#   The monitor's tail holds only the stub -- the splash's code does not fit it --
+#   so without that code the machine prints the stock sign-on message and is a
+#   1.44 (#247 step 8):
+#
+#     O1_SOFTROM=/tmp/rom2.rom \
+#     O1_FRAME=/tmp/frame.bin \
+#     O1_BOOTSPLASH=firmware/rom-service/screen.bin \
+#       tools/emulator-setup/mame-osborne1nx/boot-o1next.sh
+#
+#   `-frame` is the frame the ROM is *served*, and since #247's W5 that is the frame
+#   the animation rests on -- it is no longer a committed file.  Take it out of the
+#   asset first:
+#
+#     python3 tools/research/bootanim.py --resting -o /tmp/frame.bin
+#
 # THE SAME SCRIPT RUNS IN A *STAGED* TEST MACHINE
 #   `stage.sh` copies this script out of the repo with the patched binary and the
 #   ROM set beside it, into a directory that owes the repo nothing:
@@ -203,6 +219,23 @@ if [ -n "$SOFTROM" ]; then
     SOFTROM="$(abspath "$SOFTROM")"
 fi
 
+# The interposer's two flash assets, mounted the same way and for the same reason.
+# `-frame` is the frame the ROM is served -- since #247's W5 that is the frame the
+# animation *rests* on, derived with tools/research/bootanim.py --resting rather than
+# committed -- and `-bootsplash` is the code that draws the boot screen; `-bootsplash`
+# and not `-screen` because an image device's option is named after its image *type*,
+# and `screen` is taken -- see tools/emulator-setup/mame-osborne1nx/README.md.
+FRAME="${O1_FRAME:-}"
+if [ -n "$FRAME" ]; then
+    [ -f "$FRAME" ] || { echo "boot-o1next.sh: no such boot frame: $FRAME" >&2; exit 1; }
+    FRAME="$(abspath "$FRAME")"
+fi
+BOOTSPLASH="${O1_BOOTSPLASH:-}"
+if [ -n "$BOOTSPLASH" ]; then
+    [ -f "$BOOTSPLASH" ] || { echo "boot-o1next.sh: no such boot splash: $BOOTSPLASH" >&2; exit 1; }
+    BOOTSPLASH="$(abspath "$BOOTSPLASH")"
+fi
+
 # MAME's default is full screen, and `-window` is the only thing that keeps the
 # mac OSD off the whole display; it is harmless for the SDL OSD.
 set -- osborne1nx -window -skip_gameinfo -rompath "$ROMPATH"
@@ -211,6 +244,8 @@ if [ -n "$FLOP1" ]; then set -- "$@" -flop1 "$FLOP1"; fi
 if [ -n "$FLOP2" ]; then set -- "$@" -flop2 "$FLOP2"; fi
 if [ -n "$HARD" ]; then set -- "$@" -harddisk "$HARD"; fi
 if [ -n "$SOFTROM" ]; then set -- "$@" -softrom "$SOFTROM"; fi
+if [ -n "$FRAME" ]; then set -- "$@" -frame "$FRAME"; fi
+if [ -n "$BOOTSPLASH" ]; then set -- "$@" -bootsplash "$BOOTSPLASH"; fi
 if [ -n "${O1_SECONDS:-}" ]; then set -- "$@" -seconds_to_run "$O1_SECONDS"; fi
 
 if [ "$STAGED" = 1 ]; then
@@ -227,6 +262,16 @@ if [ -n "$SOFTROM" ]; then
     echo "  softROM:   $SOFTROM"
 else
     echo "  softROM:   none -- the machine's own ROM"
+fi
+if [ -n "$FRAME" ]; then
+    echo "  boot frame: $FRAME"
+else
+    echo "  boot frame: none"
+fi
+if [ -n "$BOOTSPLASH" ]; then
+    echo "  boot splash: $BOOTSPLASH"
+else
+    echo "  boot splash: none -- the monitor's stub prints the stock sign-on instead"
 fi
 echo "  cfg/snap:  $RUNDIR"
 echo "  quit with  Esc, or the window's close button"

@@ -769,6 +769,61 @@ byte-identical (§4.6). That is 67 bytes of copy, patch and jump, plus the 10-by
 the whole new monitor; `HCBOOT` is the part of it that is written, and it came in
 under its share.
 
+**And the boot screen does not fit in the 72 that are left (measured 2026-10-15,
+#247 turn 3).** The screen's code — the attribute fill, the fallback text, the
+door helper, the trailer check and the two `LDIR` blits — is **212 bytes** (182 when
+first measured; #247's W3 grew the fallback), and the assembler's own guard says so in
+its own words:
+
+```
+I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.
+```
+
+So §8 item 2's question is answered: **the monitor code does not fit in 150
+bytes**, and the screen is the piece that proves it. The code is written and
+measured in [`research/source-code/BIOS-200-source/rom2-screen.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-200-source/rom2-screen.asm) (with the
+per-piece arithmetic), and it needs a home rather than a squeeze — a **third
+content id in the softROM** (`PRESENT(3)`, a 4096-byte blob in the Pico's flash
+beside the frame, reached by a ~21-byte stub that copies page 1 to RAM and jumps
+into it; recommended, because it needs no payload change and the screen code is
+firmware like the frame), the **payload's spare** (`1E0Fh`–`1FFFh`, 497 bytes,
+where the hand-over stub already lives), or this section's **Plan B** (a banked
+loader). Any of the three fits in the tail's 72 bytes, because the monitor's share
+becomes the stub.
+
+**Measured, 2026-10-15 (turn 3's second pass): it is built.** Option 1 is what
+landed — `PRESENT(3)` and a 4096-byte blob — and the blob is **183 bytes** at
+`4000h`–`40B6h`, with `Program LWA = 40B7h`. The monitor's own new code is
+**128 bytes**, `0F67h`–`0FE6h`, **21 free to the guard**: the cold boot, the
+sign-on hook, and the stub that fetches the blob (`SCRN`, `0FB4h`–`0FE6h`, 51
+bytes including the shared door helper). One assembly produces
+both artifacts, so `rom2asm.sh` checks two extents and
+[`tools/research/rom2blob.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom2blob.py) turns the `4000h` records into
+[`firmware/rom-service/screen.bin`](https://github.com/Myrcurial/o1next/blob/main/firmware/rom-service/screen.bin).
+
+**And turns 3's `130 bytes` came down to `128` because the acceptance found two
+defects in the new code (2026-10-15, turn 4).** Neither was visible in a boot:
+the door helper's `JNZ` was testing flags left by its *length* probe rather than
+by the result code, so every caller took its "no such content" path and the
+machine printed the stock 1.44 sign-on however well the door answered; and the
+frame's trailer *sum* was read from the half's `0FFEh` instead of the window's
+`1FFEh` — the ROM's own byte — so the check could never pass and the screen
+stayed the bright fill with no character written. Both are fixed, the blob is
+regenerated, and `bootscreen-check.sh` measures the result off the machine: the
+character plane, byte for byte, and the attribute plane, bit 7 — with no splash
+mounted it measures the fallback instead, which is what says the frame is the
+code's doing.
+
+**And the 85 errors that stood in the way were not syntax errors.** They were two
+defects, both read off the ACT80's own listing (which `L=B:` writes to a file
+rather than scrolling past on the console): five comment lines that had lost their
+leading `;`, so four assembled as illegal mnemonics — three bytes of junk code each
+at `0FB4h` and `0FD9h` — and one as an unterminated string; and the blob sitting
+*inside* the vendor's `ECHO 0FFFH-RLWA ! DB 0FFH … ENDM` block. `ECHO` **repeats**
+its body, so the blob was assembled and listed 11 times: ten extra passes over its
+eight labels, and 80 duplicate-label errors. 85 = 80 + 5. With both fixed the build
+is `no ERRORs, 487 Labels, Program LWA = 40B7h`.
+
 ### 4.8 The feature set: what to take from OZROM, and what to refuse
 
 OZROM 1E is the pattern for *how* to be a replacement ROM ([`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md)
@@ -838,20 +893,36 @@ definition does not move — it still covers exactly the 4088 bytes before the
 trailer. The one cost is that the monitor's compare grows from four bytes to
 six, inside the 150-byte budget §4.4 accounts as about 126 used (#228).
 
-**The fallback is `o1next - press return`, and it costs nothing** — because ROM 2.0
-*replaces* the stock sign-on rather than adding to it:
+**The fallback is the screen's own two lines, and it costs nothing** — because ROM 2.0
+*replaces* the stock sign-on rather than adding to it. Since #247's W3 (2026-10-17) it
+carries the **same text and the same bright/dim runs as the animation's resting
+frame**, at the frame's own rows and columns — array rows 20 and 22, ink from columns
+24 and 30:
 
 | | bytes |
 |---|---|
-| the text (21 characters; the last carries bit 7, which is `OSTR`'s terminator) | 21 |
-| `LDK DE,MSG` / `CALL OSTR` | 6 |
-| **total** | **27** |
+| the message: `VCLRS`, the padding as `OSTR`'s `7Fh` repeat escape, both lines, and the `ESC,VSHI`/`ESC,VEHI` mode changes | 72 |
 | `IMSG`, which it replaces (§2.1) | 182 |
 
-So the fallback **frees 155 bytes**, and pays for its own validity check out of
-them. The order at boot is: **print the text first, then page the frame in and
-check the trailer; if it is right, blit over the text.** A missing or malformed
-image leaves the message on screen, which is the whole point of having it.
+So the fallback still **frees 110 bytes**, and it needs no code of its own: the
+attribute runs *are* the text's own escapes, and dim is the vendor's own
+half-intensity mode. Three things were measured rather than assumed, and the first is
+why an unpositioned fallback is not merely misplaced — it is invisible:
+
+- **`CURS` is 0 when the screen code runs.** `START` clears `0EF00h`–`0EFEFh` on
+  every pass, and `COUT` writes through `CURS` — so a message that does not position
+  itself is written to address 0, which is the ROM, and nothing appears anywhere. The
+  vendor's `IMSG` began with `VCLRS` for exactly that reason; the fallback does too.
+- **dim is `ESC,VSHI` … `ESC,VEHI`**, the vendor's half-intensity mode: `VHALF`
+  writes `DIMBIT` (`00h`) into the attribute array, which reads back **`7Fh`** — the
+  animation's own dim value, so the plane and the asset's attribute half compare byte
+  for byte.
+- **the `7Fh` repeat escape is `OSTR`'s own** (`IMSG` uses it), so a padding run of
+  twenty costs three bytes rather than twenty.
+
+The order at boot is unchanged: **print the text first, then page the frame in and
+check the trailer; if it is right, blit over the text.** A missing or malformed image
+leaves the message on screen, which is the whole point of having it.
 
 **And the blit is two passes, not one — measured 2026-10-15.** The O1's video cell
 is **9 bits**: 8 for the character and 1 for brightness, and the 9th bit is not in
@@ -996,9 +1067,16 @@ So the ROM's own half of deliverable 3 is done and measured; what is left is the
    chain is the hand-over, and it is named: `CCPADR` (`0EFD2h`), the ROM's own
    `CBOOT`'s store, without which the interrupt handler's exit cannot return to RAM
    (§4.6, item 10).
-2. **Does ROM 2.0's monitor code fit in 150 bytes?** The estimate in §4.7 says yes
-   with ~24 bytes to spare; the assembler's guard is the arbiter. Plan B is a
-   banked loader.
+2. **Does ROM 2.0's monitor code fit in 150 bytes?** **Answered — no, and the boot
+   screen is the piece that proves it** (measured 2026-10-15, §4.7). `HCBOOT` took
+   77 of the 150; the screen's code is 212 bytes (182 when first measured) against
+   the 72 that are left, and
+   the assembler's own guard said `CODE TOO LARGE`. The screen code is written and
+   measured in [`research/source-code/BIOS-200-source/rom2-screen.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-200-source/rom2-screen.asm); what it
+   needs is a **home** — a third softROM content id (`PRESENT(3)`, recommended), the
+   payload's spare, or Plan B's banked loader — because the monitor's share then
+   becomes a ~21-byte stub that copies it to RAM and jumps. The rest of the
+   monitor's extensions (`BANKSEL`, `SCRMOD`, `VERSION`) are still estimates.
 3. **If a register is wanted at `2300h`.** `2300h` is free per the schematic and the
    ROM source, but a write there has never been measured on a real machine — the
    decode is described as sloppy ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §7). The *latch* it was

@@ -369,6 +369,36 @@ wrong when they are handed to the emulated controller. It is the same class as
 seen there — but this is six records, and their content is not FF, so that
 recovery does not apply.
 
+### 7.1 What #247 measured, and what it changes (2026-10-15)
+
+The ROM 2.0 build hit this again, in the `C0 DE` shape `acthex.py` names, and the
+measurements narrow it further — because they rule out the disk, the drive and the
+host's speed, and leave the *build's own byte stream*:
+
+- the damaged bytes are in the **raw image the emulator wrote back**, not in the
+  read path: `imdinfo.py` fills an *unavailable* sector with `E5`, and these runs
+  are `C0 DE`, so the image already held them (measured on `run_b.raw`);
+- **sending the hex to the other drive changes nothing.** The same record was
+  damaged with `ACT80 B:ROM2 H=B:` and with `ACT80 B:ROM2 H=A:` — a different
+  disk, a different allocation, the same `C0 DE` at the same record;
+- **throttling changes nothing.** Five `-nothrottle` runs and one run at the
+  machine's real speed (`O1_MAME_EXTRA=`) produced byte-identical damage — which is
+  the doc's old finding, re-measured;
+- what *did* change it was the source. The preceding build of the same code — with
+  two bytes of inline prose in `rom2.diff` that emit nothing — had **no** damaged
+  records at all, and moving that prose out of the diff's code lines (so the
+  assembled `ROM2.ASM` went from 90676 bytes to 90607, both inside the same 177
+  CP/M blocks) brought the clean build back. The damaged record is the same one
+  either way, with the same bytes under it.
+
+So the variable this build can control is the size and content of what the guest
+writes, not where it writes it. What that means in practice is recorded where it
+bites: `rom2asm.sh`'s step 8 refuses the build rather than padding the hole, and
+`rom2blob.py` refuses it a second time — so the next person to hit this gets a
+failure, not a silent artifact. `acthex.py --merge` and
+`rom13-reassemble.sh`'s `O1_RUNS` remain the union-of-runs answer, and they only
+help once the damage moves between runs, which for this shape it did not.
+
 ## 8. What upstream gets, and what it should be told
 
 **MAME wants `osb13.bin`, 4096 bytes, inside `osborne1.zip`.** We can hand over

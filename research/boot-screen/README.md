@@ -161,10 +161,13 @@ its own**, so either validates without the other: the character half is checked
 *before* the blit, so the fallback text survives a bad frame, and the attribute half
 after — where a bad one costs only the bright fill that has already happened.
 
-If it is missing or wrong, the monitor leaves **`o1next - press return`** on the
-screen. That costs nothing, because ROM 2.0 replaces the stock sign-on rather than
-adding to it: 21 bytes of text plus 6 bytes of code, against `IMSG`'s **182** — so
-the fallback frees 155 bytes and pays for its own check out of them.
+If it is missing or wrong, the monitor leaves **the screen's own two lines** on the
+screen — the animation's text and its bright/dim runs, at its own rows and columns
+(#247's W3, 2026-10-17). That costs nothing, because ROM 2.0 replaces the stock
+sign-on rather than adding to it: 72 bytes of message against `IMSG`'s **182**, and
+no code of its own — the attribute runs are the text's own escapes. It *positions
+itself* with `VCLRS`, because `CURS` is 0 when the screen code runs and `COUT`
+writes through it.
 
 Order at boot: print the text first, then `PRESENT(1)`, page the character half in
 and check its trailer, and blit over the text if it is right; then `PRESENT(2)` and

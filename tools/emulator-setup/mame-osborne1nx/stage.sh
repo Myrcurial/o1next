@@ -92,6 +92,26 @@ cp "$ROM_SRC/$ROM_CHAR" "$DEST/roms/$MACHINE/$ROM_CHAR"
 cp "$HERE/boot-o1next.sh" "$DEST/boot-o1next.sh"
 chmod +x "$DEST/boot-o1next.sh"
 
+# The interposer's flash assets (#247), as of **W5**: the **animation** is the
+# asset, and the frame the ROM is served is the one the animation *rests* on.
+# `frame.bin` was retired on 2026-10-16, so the staged frame is **derived** from the
+# animation here rather than copied from a second file that could only ever drift
+# from it.  `-frame` is that frame's two halves and `-bootsplash` is the code that
+# draws it, and the launcher already takes both through the environment.
+ASSETS="$REPO/firmware/rom-service"
+for f in boot-animation.bin screen.bin; do
+    [ -f "$ASSETS/$f" ] || { echo "stage.sh: missing asset: $ASSETS/$f" >&2; exit 1; }
+done
+mkdir -p "$DEST/assets"
+cp "$ASSETS/boot-animation.bin" "$DEST/assets/boot-animation.bin"
+cp "$ASSETS/screen.bin" "$DEST/assets/screen.bin"
+python3 "$REPO/tools/research/bootanim.py" --check "$ASSETS/boot-animation.bin" >/dev/null || {
+    echo "stage.sh: the animation is not the asset it says it is:" >&2
+    python3 "$REPO/tools/research/bootanim.py" --check "$ASSETS/boot-animation.bin" >&2
+    exit 1; }
+python3 "$REPO/tools/research/bootanim.py" --resting -o "$DEST/assets/frame.bin" || {
+    echo "stage.sh: could not take the resting frame out of the animation" >&2; exit 1; }
+
 # The staged copy is a copy, so check it rather than trusting it.
 got_main="$(crc32 "$DEST/roms/$MACHINE/$ROM_MAIN")"
 got_char="$(crc32 "$DEST/roms/$MACHINE/$ROM_CHAR")"
@@ -146,6 +166,10 @@ built-from  $MAME
 roms/$MACHINE/$ROM_MAIN   crc32 $got_main
 roms/$MACHINE/$ROM_CHAR   crc32 $got_char
 
+assets/boot-animation.bin crc32 $(crc32 "$DEST/assets/boot-animation.bin")   the boot screen: a 32-byte O1SPLASH header and 90 sealed frames
+assets/screen.bin         crc32 $(crc32 "$DEST/assets/screen.bin")   the boot splash: the screen's code, one window page
+assets/frame.bin          crc32 $(crc32 "$DEST/assets/frame.bin")   derived here: the frame the animation rests on, 4096 of characters then 4096 of attributes
+
 boot-o1next.sh    copied from $HERE/boot-o1next.sh
 EOF
 
@@ -185,6 +209,34 @@ They are staged **once and never overwritten** -- MAME writes back into a floppy
 image as it runs, so those copies are yours to keep. Add your own anywhere and
 pass the path.
 
+## The boot screen
+
+The interposer's flash assets are staged in \`assets/\` (#247), so a staged machine
+can mount them the way the repo's launcher does -- \`-frame\` is the frame's two
+4096-byte halves, characters then attributes, and \`-bootsplash\` is the code that
+draws it, one window page the ROM's stub asks for with \`PRESENT(3)\`
+(\`docs/o1-rom-2.0.md\` 4.7):
+
+\`\`\`sh
+O1_SOFTROM=/path/to/rom2.rom \\
+O1_FRAME=assets/frame.bin \\
+O1_BOOTSPLASH=assets/screen.bin \\
+  ./boot-o1next.sh
+\`\`\`
+
+**The asset is the animation** (\`assets/boot-animation.bin\`): a 32-byte
+\`O1SPLASH\` header and 90 sealed frames, 128 x 32, 8 fps, played once. The frame the
+ROM is *served* is the one the animation **rests** on, so \`assets/frame.bin\` is
+**derived from it** when this machine is staged -- the separate committed frame was
+retired on 2026-10-16, and a second copy could only ever drift from the animation it
+came from. Nothing here looks at the animation's content: the ROM side can only say
+that the asset is *valid*, and \`tools/research/bootanim.py --check\` is what says it
+(container sum, geometry, flags, and every frame's own trailer).
+
+ROM 2.0's *image* is not staged: it is assembled in the repo, by
+\`tools/research/rom2asm.sh\` and \`rom2image.py\`, both of which need MAME and the
+ACT80. Without one the machine boots the stock 1.44 and the two assets are inert.
+
 ## The hard disk
 
 The MD-10's CP/M, three partitions at \`A0>\` / \`B0>\` / \`C0>\`, needs a drive
@@ -206,6 +258,7 @@ drives.)
 | \`boot-o1next.sh\` | the launcher |
 | \`mame/$MACHINE\` | the patched binary |
 | \`roms/$MACHINE/\` | the ROM set |
+| \`assets/\` | the interposer's flash assets: \`boot-animation.bin\`, \`screen.bin\`, and the \`frame.bin\` derived from the animation |
 | \`run/\` | MAME's \`cfg/\` and \`snap/\`, and copies of images from git trees |
 | \`MANIFEST\` | what went in, and from where |
 
@@ -216,7 +269,7 @@ EOF
 
 echo
 echo "staged, in $DEST:"
-echo "  boot-o1next.sh   mame/$MACHINE   roms/$MACHINE/   run/   MANIFEST   README.md"
+echo "  boot-o1next.sh   mame/$MACHINE   roms/$MACHINE/   assets/   run/   MANIFEST   README.md"
 echo
 echo "  cd $DEST && ./boot-o1next.sh ../floppies/system-disk.imd"
 

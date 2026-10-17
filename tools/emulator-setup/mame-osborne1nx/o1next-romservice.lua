@@ -2,13 +2,14 @@
 -- 1's selector (#247 step 8, turn 2).
 --
 -- WHY THIS EXISTS
---   Step 8's first piece is the interposer's side of the ROM's screen: the ROM
+--   Step 8's first pieces are the interposer's side of the ROM's screen: the ROM
 --   asks for the boot frame's halves through a bank-2 register pair, and page 1
 --   of the ROM window is the payload *or* one of those halves
---   (docs/rom-pico-protocol.md 4 and 5).  None of that existed -- the window
---   served the payload and nothing else -- so this drives the whole transaction
---   from the machine's side, with the same writes the ROM's screen code will
---   make, and checks what page 1 then holds.
+--   (docs/rom-pico-protocol.md 4 and 5); and the *code* that draws the screen is
+--   a third asset the same way, asked for with PRESENT(3) and copied to RAM by
+--   the monitor's stub (docs/o1-rom-2.0.md 4.7).  Both are driven from the
+--   machine's side here, with the same writes the ROM's screen code makes, and
+--   what page 1 then holds is what is checked.
 --
 -- THE ADDRESS IS THE ONE THING THE MACHINE CAN SETTLE
 --   The protocol proposed 2300h/2301h, on the grounds that
@@ -25,12 +26,14 @@
 --   SDL_VIDEODRIVER=dummy \
 --     mame osborne1nx -video none -sound none -nothrottle \
 --     -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom \
---     -frame firmware/rom-service/frame.bin \
+--     -frame /tmp/frame.bin \
+--     -bootsplash firmware/rom-service/screen.bin \
 --     -autoboot_script o1next-romservice.lua -seconds_to_run 2
 --
 -- Environment:
 --   O1_SOFTROM_IMAGE  the image mounted with -softrom, if any (page 1's payload)
 --   O1_FRAME          the image mounted with -frame, if any (the boot frame)
+--   O1_BOOTSPLASH     the image mounted with -bootsplash, if any (the screen's code)
 --   O1_SOFTROM_MONITOR  the stock 4 KB monitor, needed only with no -softrom
 --   O1_DOOR           the door's base in bank 2 (default 0x2800)
 --   O1_CONTRACT       the base the protocol proposed (default 0x2300)
@@ -50,10 +53,12 @@ local CONTRACT  = tonumber(os.getenv("O1_CONTRACT") or "") or 0x2300
 local FDC_TRACK = tonumber(os.getenv("O1_FDC_TRACK") or "") or 0x2101
 local IMAGE     = os.getenv("O1_SOFTROM_IMAGE")
 local FRAME     = os.getenv("O1_FRAME")
+local SPLASH    = os.getenv("O1_BOOTSPLASH")
 local MONITOR   = os.getenv("O1_SOFTROM_MONITOR")
 -- an empty environment variable is an unset one: Lua would call "" a mounted file
 if IMAGE == "" then IMAGE = nil end
 if FRAME == "" then FRAME = nil end
+if SPLASH == "" then SPLASH = nil end
 if MONITOR == "" then MONITOR = nil end
 
 -- the ROM service's opcodes and result codes (docs/mailbox-protocol.md 4, plus
@@ -147,6 +152,7 @@ local function run()
   local image = IMAGE and slurp(IMAGE) or nil
   local monitor = MONITOR and slurp(MONITOR) or nil
   local frame = FRAME and slurp(FRAME) or nil
+  local splash = SPLASH and slurp(SPLASH) or nil
 
   logf(string.format("romservice: the door at %04X, page 1's selector, and the address the protocol proposed",
                      DOOR))
@@ -189,20 +195,28 @@ local function run()
   check(r and (n == 2) and (r[1] == RC_OK) and (r[2] == 0xa5),
         "ECHO A5 comes back", r and list(r, n))
 
-  -- INFO: the version, and the flag that says whether a frame is mounted
+  -- INFO: the version, and the flags -- bit 0 a frame, bit 1 the boot splash
+  -- (softrom.h's INFO_FLAG_FRAME and INFO_FLAG_BOOTSPLASH)
   r, n = door(OP_INFO)
   check(r and (n == 3) and (r[1] == RC_OK),
         "INFO answers with the version and the flags", r and list(r, n))
-  local has_frame = false
+  local has_frame, has_splash = false, false
   if r and (n == 3) then
-    has_frame = (r[3] ~= 0)
-    logf(string.format("  INFO: version %02X, flags %02X (%s)",
-                       r[2], r[3], has_frame and "a frame is mounted" or "no frame"))
+    local flags = r[3]
+    has_frame, has_splash = (flags & 0x01) ~= 0, (flags & 0x02) ~= 0
+    logf(string.format("  INFO: version %02X, flags %02X (%s, %s)",
+                       r[2], flags,
+                       has_frame and "a frame is mounted" or "no frame",
+                       has_splash and "a boot splash is mounted" or "no boot splash"))
   end
   check(has_frame == (FRAME ~= nil),
         "INFO's frame flag agrees with what the harness mounted",
-        "flags say " .. tostring(has_frame) .. ", O1_FRAME is " ..
+        "the flag says " .. tostring(has_frame) .. ", O1_FRAME is " ..
         (FRAME and "set" or "unset"))
+  check(has_splash == (SPLASH ~= nil),
+        "INFO's boot splash flag agrees with what the harness mounted",
+        "the flag says " .. tostring(has_splash) .. ", O1_BOOTSPLASH is " ..
+        (SPLASH and "set" or "unset"))
 
   -- PRESENT(0): the payload, which is where page 1 already is
   r, n = door(OP_PRESENT, 0)
@@ -250,12 +264,29 @@ local function run()
           "and leaves page 1 alone (the payload is still there)")
   end
 
-  -- an id the firmware does not serve: 09h, and page 1 unchanged
+  -- PRESENT(3): the boot splash -- the code the monitor's stub copies to RAM at
+  -- 4000h and enters (docs/o1-rom-2.0.md 4.7).  One 4096-byte window page, served
+  -- byte for byte: unlike the frame it is *not* someone else's file whose trailer
+  -- is the ROM's business, it is the interposer's own asset, and its provenance
+  -- is the trailer at its own 0FF0h (tools/research/rom2blob.py).
   local before = P:read_u8(STOCK)
   r, n = door(OP_PRESENT, 3)
-  check(r and (n == 1) and (r[1] == RC_NO_CONTENT),
-        "PRESENT(3) answers 'no such content'", r and list(r, n))
-  check(P:read_u8(STOCK) == before, "and leaves page 1 alone")
+  if has_splash then
+    check(r and (n == 1) and (r[1] == RC_OK),
+          "PRESENT(3) -- the boot splash -- answers OK", r and list(r, n))
+    w = window()
+    bad, got, want = page1_diff(w, function(a) return string.byte(splash, a + 1) end, STOCK)
+    check(not bad, "page 1 now holds the boot splash, byte for byte",
+          bad and string.format("page 1 +%04X is %02X, expected %02X", bad, got, want))
+    local magic = ""
+    for i = 0, 5 do magic = magic .. string.char(w[STOCK + 0xff0 + i]) end
+    logf(string.format("  splash trailer at 0FF0: %s   (the asset's own provenance, " ..
+                       "not the ROM's check)", magic))
+  else
+    check(r and (n == 1) and (r[1] == RC_NO_CONTENT),
+          "PRESENT(3) with no boot splash answers 'no such content'", r and list(r, n))
+    check(P:read_u8(STOCK) == before, "and leaves page 1 alone")
+  end
 
   -- NOP, and an unknown opcode: the way back to a known state
   r, n = door(OP_NOP)

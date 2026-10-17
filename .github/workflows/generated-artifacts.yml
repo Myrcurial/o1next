@@ -8,10 +8,16 @@ name: generated artifacts
 # stale, still showing the old text, and edit the boot-screen art without
 # re-running rom2strokes.py and the site's masthead no longer matches the drawing.
 #
-# All three tools have a --check mode for exactly this, and none of them needs
-# the host tooling that produced the files.  The PDF is deliberately *not*
-# checked: it needs typst, which this runner does not have, and it is committed
-# rather than built on deploy.
+# The boot screen's *code* is generated too, and differently: it is the vendor's
+# ACT80 assembling rom2-screen.asm, so nothing on this runner can recompute its
+# bytes.  Its check is therefore a staleness check rather than a rebuild --
+# screen.bin carries a digest of the source it was extracted from, and this job
+# fails when the source has moved on without it (tools/research/rom2blob.py).
+#
+# All four tools have a --check mode for this, and none of them needs the host
+# tooling that produced the files.  The PDF is deliberately *not* checked: it
+# needs typst, which this runner does not have, and it is committed rather than
+# built on deploy.
 #
 # The firmware's boot frame used to be checked here as well, rebuilt from that same
 # art.  It was retired on 2026-10-16: the boot screen is now the animation the
@@ -25,10 +31,13 @@ on:
       - 'docs/**'
       - 'research/README.md'
       - 'research/boot-screen/**'
+      - 'research/source-code/BIOS-200-source/**'
       - 'book/**'
       - 'tools/romfont.py'
       - 'tools/build_book.py'
       - 'tools/research/rom2strokes.py'
+      - 'tools/research/rom2blob.py'
+      - 'firmware/rom-service/screen.bin'
       - 'site/assets/fonts/**'
       - 'site/assets/o1next-logo.png'
       - 'site/compendium/**'
@@ -39,10 +48,13 @@ on:
       - 'docs/**'
       - 'research/README.md'
       - 'research/boot-screen/**'
+      - 'research/source-code/BIOS-200-source/**'
       - 'book/**'
       - 'tools/romfont.py'
       - 'tools/build_book.py'
       - 'tools/research/rom2strokes.py'
+      - 'tools/research/rom2blob.py'
+      - 'firmware/rom-service/screen.bin'
       - 'site/assets/fonts/**'
       - 'site/assets/o1next-logo.png'
       - 'site/compendium/**'
@@ -55,7 +67,7 @@ permissions:
 
 jobs:
   generated:
-    name: fonts + masthead + book pages match their sources
+    name: fonts + masthead + screen blob + book pages match their sources
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -64,10 +76,17 @@ jobs:
         with:
           python-version: '3.x'
 
-      # The masthead check needs the standard library and files in the repo, and
-      # nothing else -- so it runs before the one install this job has to do.
+      # The masthead and blob checks need the standard library and files in the
+      # repo, and nothing else -- so they run before the one install this job
+      # has to do.
       - name: Masthead matches the boot-screen art
         run: python3 tools/research/rom2strokes.py --check
+
+      # The blob cannot be rebuilt here -- it is the vendor's ACT80's output -- so
+      # this is the staleness half of its guard: the digest screen.bin carries has
+      # to be the digest of rom2-screen.asm as it stands.
+      - name: The boot screen's code is in step with its source
+        run: python3 tools/research/rom2blob.py --check
 
       # romfont.py rebuilds the whole family to compare bytes, so it needs the
       # same build-time dependency the tool documents.

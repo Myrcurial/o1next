@@ -21,8 +21,10 @@ device, on hardware, is the RP2354B firmware's personality (#179, #192).
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
-| `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1's selector** — the transaction the ROM's screen code will drive, and the measurement that settles the door's address (#247) |
-| `romservice-check.sh` | **the door's acceptance** — the real frame, no frame, a corrupt frame, an erased frame, and a wrong-sized frame refused (#247) |
+| `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1's selector** — the transaction the ROM's screen code will drive, the measurement that settles the door's address, and `PRESENT(3)` (#247) |
+| `romservice-check.sh` | **the door's acceptance** — that the animation is a valid asset, the four combinations of the frame and the splash, two bad frames, and each wrong-sized asset refused (#247). The frame is **derived** from the animation's resting frame by `tools/research/bootanim.py`; `frame.bin` was retired on 2026-10-16 |
+| `o1next-bootscreen.lua` | the headless check of **the screen itself** — the two video planes read back off the machine after the ROM's stub has run, and the fallback the code prints when there is no frame (#247) |
+| `bootscreen-check.sh` | **the screen's acceptance** — the frame on both planes with the splash mounted, the stock sign-on with it absent, and the fallback on its own rows (#247) |
 | `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
 | `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, RETURN, and what the monitor then does; `O1_BSH=6` re-runs the same nine checks on 8 KiB blocks (#247) |
 | `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
@@ -38,7 +40,7 @@ The patch touches seven files:
 - `src/mame/mame.lst` — registers the machine (MAME builds its driver list from this)
 - `scripts/src/machine.lua` — registers the new devices' sources
 - `src/devices/machine/acb4000_host_adapter.{h,cpp}` — the card, new
-- `src/devices/machine/softrom.{h,cpp}` — the ROM window, the frame slot, and the ROM service's door, new
+- `src/devices/machine/softrom.{h,cpp}` — the ROM window, the two flash assets, and the ROM service's door, new
 
 ## Applying it
 
@@ -71,21 +73,45 @@ tools/research/rom2image.py -o /tmp/rom2.rom
 mame osborne1nx -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom
 ```
 
-**`-frame` mounts the boot frame**, which is the ROM's screen, not the machine's
-ROM: two 4096-byte halves — characters then attributes — served into window page
-1 when the ROM asks for them through the **ROM service's door**
-(`docs/rom-pico-protocol.md` §5). With none mounted the door answers "no such
-content" and the ROM keeps its own text, which is the fallback path. The frame
-**used** to be a generated, committed asset at `firmware/rom-service/frame.bin`;
-that file was **retired on 2026-10-16** (`firmware/rom-service/README.md`), when the
-boot screen became the animation the RP2354B plays, so this harness now stops with
-*"no boot frame at …"* until this directory's #247 rewrite lands. Nothing else in
-it changed.
+**Two more slots mount the interposer's own flash.** `-frame` is the boot frame —
+two 4096-byte halves, characters then attributes — and `-bootsplash` is the boot
+splash: the code that draws the screen, one 4096-byte window page. Both are served
+into window page 1 when the ROM asks for them through the **ROM service's door**
+(`docs/rom-pico-protocol.md` §4 and §5): `PRESENT(0)` the payload, `PRESENT(1)` and
+`PRESENT(2)` the frame's halves, `PRESENT(3)` the boot splash. With neither mounted
+the door answers "no such content" and the ROM keeps its own text — and for
+`PRESENT(3)` the monitor's stub prints the stock sign-on message instead, so an
+interposer without the splash is a 1.44.
+
+The frame **is no longer a committed asset** (#247's W5). It was
+`firmware/rom-service/frame.bin`, **retired on 2026-10-16**
+(`firmware/rom-service/README.md`) when the boot screen became the animation the
+RP2354B plays — and the frame the ROM is served is the one the animation **rests**
+on, so the harnesses **derive** it, with
+`tools/research/bootanim.py --resting`, from
+`firmware/rom-service/boot-animation.bin` rather than mounting a second copy that
+could only drift from the animation it came from.
+
+The animation is the asset, and the ROM side has exactly one thing to say about it:
+that it is **valid** — the container's own sum, its declared geometry and flags, and
+every frame's own trailer (`bootanim.py --check`). Nothing on this side looks at the
+animation's *content*, because the RP2354B is what draws it.
 
 ```sh
+# the frame the ROM is served, out of the animation it rests on
+python3 tools/research/bootanim.py --check    firmware/rom-service/boot-animation.bin
+python3 tools/research/bootanim.py --resting -o /tmp/frame.bin
+
 mame osborne1nx -rompath tools/emulator-setup/roms \
-    -softrom /tmp/rom2.rom -frame firmware/rom-service/frame.bin
+    -softrom /tmp/rom2.rom -frame /tmp/frame.bin \
+    -bootsplash firmware/rom-service/screen.bin
 ```
+
+`-bootsplash` and not `-screen`, twice over: an image device's command-line option
+is named after its image *type* and its slot after its tag, and `screen` is taken
+for both — by MAME's own display option, and by the machine's video screen. (The
+asset's *file* keeps the screen's name, `screen.bin`, because that is what the code
+in it is for: the splash is what it draws.)
 
 **That is the headless shape and `mame` on `PATH` has no such machine** — it is a
 patch, so the binary is the one `apply.sh` built. To actually *use* the machine
@@ -127,6 +153,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the **softROM window** — all 8 KB of `0000-1FFF`, three ways | **yes** — `o1next-softrom.lua`, all 8192 bytes, in `softrom-check.sh` |
 | the **ROM service's door** — ECHO, INFO, NOP, an unknown opcode, the abandon rule | **yes** — `o1next-romservice.lua`, in `romservice-check.sh` |
 | **page 1's selector** — `PRESENT(0/1/2)`, each frame half with its own trailer in place | **yes** — the same harness: both halves byte-compared against the frame, both trailers checked at `0FF8h` |
+| **`PRESENT(3)`, the boot splash** | **yes** — `romservice-check.sh` runs the four combinations of the frame and the splash, checks the served page byte-for-byte against `screen.bin`, `INFO`'s two flags against what is mounted, and a wrong-sized file refused with the reason |
 | **no frame, an erased frame, a corrupt frame** — served, unvalidated, and the trailer fails | **yes** — `romservice-check.sh`: the door answers `09h` with no frame and leaves page 1 alone, and serves a bad frame's bytes as they are, because the check is the ROM's |
 | **the door's address** — `0x2301` is the floppy's track register, so the door is at `2800h` | **yes** — measured in the harness: `0x2301` reads what `0x2101` reads, and a request written to `0x2300` never reaches the door |
 | **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
@@ -176,10 +203,13 @@ stub at `1E01h`, and `FF` from `1E0Fh` to `1FFFh`.
 The window's page 1 is not always the payload. The ROM's screen asks the
 interposer for the boot frame — two 4096-byte halves, characters and attributes —
 and page 1 serves whichever half it asked for, through a bank-2 register pair
-(`docs/rom-pico-protocol.md` §4 and §5). The device implements the transaction:
-write the opcode then its operands to `2800h`, read the reply from `2801h` (`0` =
-not ready, else the length, then the bytes), with the mailbox protocol's result
-codes and its abandon-a-pending-reply recovery rule.
+(`docs/rom-pico-protocol.md` §4 and §5). The boot splash is a third asset the same
+way: the code does not fit the monitor's tail, so the monitor keeps a ~30-byte stub
+that asks for it with `PRESENT(3)`, copies page 1 to RAM at `4000h` and jumps
+(`docs/o1-rom-2.0.md` §4.7). The device implements the transaction: write the
+opcode then its operands to `2800h`, read the reply from `2801h` (`0` = not ready,
+else the length, then the bytes), with the mailbox protocol's result codes and its
+abandon-a-pending-reply recovery rule.
 
 ```sh
 tools/emulator-setup/mame-osborne1nx/romservice-check.sh
@@ -196,10 +226,34 @@ aliasing `tools/o1_mame_probe.lua`'s C9 report and
 matters *here*, and `2800h` is the fix — the part of
 `docs/o1-memory-io-map.md` §7's recommended block that nothing selects.
 
-`romservice-check.sh` runs the harness five ways — the real frame, no frame, a
-corrupt frame, an erased one, and a 4096-byte frame that the slot refuses with
-the reason — so the fallback path is proved before the ROM code that depends on
-it exists.
+`romservice-check.sh` runs the harness six ways — the four combinations of the
+frame and the splash, so each of `INFO`'s flags is seen set and clear, plus a
+corrupt frame and an erased one — and each wrong-sized asset is refused with the
+reason, so the fallback path is proved before the ROM code that depends on it
+exists.
+
+```sh
+tools/emulator-setup/mame-osborne1nx/bootscreen-check.sh
+```
+
+**And the screen itself has an acceptance now, which is the one that reads the
+*result* rather than a door.** ROM 2.0's monitor calls its stub at the sign-on, the
+stub asks for the screen's code with `PRESENT(3)` and jumps into it, and the code
+blits the frame into the two video planes — so `bootscreen-check.sh` reads those
+planes back off the machine and compares them against `frame.bin`: the character
+plane byte for byte, and the attribute plane bit 7 (the array is one bit wide, so
+that is the whole comparison — and it still bites at `0FF8h`, where the frame's own
+attribute trailer is dim and the bright fill alone would leave it lit). It is run
+twice, because one run cannot tell "the code drew it" from "it happened to be
+there": with no splash mounted the stub takes its fallback, prints the stock 1.44
+sign-on, and the frame has to **not** be on the screen.
+
+That acceptance is what found the two defects in the screen code (2026-10-15,
+#247 turn 4), neither of which any boot could see: the door helper's `JNZ` was
+testing flags left by its *length* probe instead of by the result code, so every
+caller took its "no such content" path however well the door answered; and the
+frame trailer's *sum* was read from the half's `0FFEh` instead of the window's
+`1FFEh`. Both are fixed, and the monitor is 128 bytes rather than 130.
 
 
 
