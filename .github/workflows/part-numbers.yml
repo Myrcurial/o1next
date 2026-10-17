@@ -1,0 +1,38 @@
+name: part numbers
+
+# The interposer carries the bare RP2354B, and the tree drifted once already:
+# after the radio-bearing module was dropped, the prose kept saying "Pico 2 W"
+# and "RP2350" for weeks -- and RP2354 without the B is the part without the
+# 2 MB flash we actually need.  tools/check_part_numbers.py is the guard.
+#
+# It runs on every push and pull request rather than behind a path filter: a
+# part number can be introduced anywhere, and a guard that only looks where we
+# expect the mistake is a guard that misses it.  The scan is a walk over the
+# tracked text files, so it costs a couple of seconds.
+#
+# The exemptions are declared in the tool with their reasons -- the interposer
+# survey (research on other people's projects), its generated mirror, the
+# superseded Rev 0 probe (whose module is the reason the production board uses
+# the bare part), and research/ (an archive of other people's material).
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  part-numbers:
+    name: "one part number: RP2354B, and no Pico modules"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Part numbers match the board
+        run: python3 tools/check_part_numbers.py --check
