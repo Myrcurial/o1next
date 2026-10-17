@@ -38,7 +38,7 @@
  *     of frames: the RP2354B is the display, it paces them from its own flash, and
  *     it stops on the Z80's first video-RAM write.  The container is a 32-byte
  *     header and then the frames back to back, and it is the firmware's contract
- *     now rather than a proposal -- `firmware/rom-service/bootsplash.bin` is the
+ *     now rather than a proposal -- `firmware/rom-service/boot-animation.bin` is the
  *     first instance of it.  Its flags byte carries the playback mode: bit 0
  *     repeats, bit 1 bounces, so all four combinations are a mode, and
  *     `playbackOrder` is the one place that says what each one plays.

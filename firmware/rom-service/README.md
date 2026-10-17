@@ -8,7 +8,7 @@ itself was regenerated, and "How the screen gets drawn" below is the summary.
 
 | File | What it is |
 |---|---|
-| `bootsplash.bin` | **the boot screen**: a 32-byte `O1SPLASH` header and then **90 sealed frames** back to back, 8 fps, played once. Each frame is **8192 bytes = two 4096-byte halves**, characters then attributes, each carrying its own `O1NEXT` magic and 16-bit sum at its own `0FF8h`. SHA-256 `0d9fa6c2…42541b` — see "The animation" below |
+| `boot-animation.bin` | **the boot screen**: a 32-byte `O1SPLASH` header and then **90 sealed frames** back to back, 8 fps, played once. Each frame is **8192 bytes = two 4096-byte halves**, characters then attributes, each carrying its own `O1NEXT` magic and 16-bit sum at its own `0FF8h`. SHA-256 `0d9fa6c2…42541b` — see "The animation" below |
 
 **Nothing here is generated any more, and nothing re-checks it against a source.**
 The tool that drew it is interactive — `tools/bootsplash/` *is* the tool — so there
@@ -36,7 +36,7 @@ Both halves are the *character* half's shape: the trailer's eight bytes sit in c
 
 ## The animation
 
-`bootsplash.bin` is the boot screen as a **sequence**: a 32-byte `O1SPLASH` header
+`boot-animation.bin` is the boot screen as a **sequence**: a 32-byte `O1SPLASH` header
 and then 90 sealed frames back to back, 737,312 bytes in all. The header says
 128 × 32, **8 fps**, **flags 0 — `once`**, and carries its own 16-bit sum over bytes
 0–23, so the container validates itself before a frame is read.
@@ -55,14 +55,11 @@ container and all four modes are specified in `docs/rom-pico-protocol.md` §5.1.
 | what it plays | the striped `O` mark and its two captions; a full-buffer `O1NEXT` wipe; a clear; the mark rising into place; then `press return to begin`, whose **return** blinks bright and settles |
 | where the ink is | the settled frames stay inside **columns 0–50**, so they fit the 52-column window; the wipe phase runs to the buffer's own edge (column 127), so a 52-column window sees only its left half |
 
-**The art text is not the source, but it could be.** Every frame is expressible in
-the repo's art-text convention — the big wordmark is drawn with the *block* glyphs
-(`0x08`, `0x0A`, `0x15`, `0x16`, `0x18`, `0x19`) rather than letters, and the
-captions are lowercase — so **no cell holds a glyph in `0x41–0x61`**, which is that
-format's one lossy range. The tool exports a frame as art text one frame at a time,
-so 90 files plus `tools/research/rom2strokes.py --frame` would make this asset
-rebuildable from text. Nobody has asked for it, so the `.bin` is the artifact of
-record and this paragraph is the note that the path exists.
+**The art text is not the source, and is not wanted as one.** The tool that drew it
+is interactive, so the `.bin` is the artifact of record and nothing in this repo
+rebuilds it. (For the record, it *would* survive a round trip through the art-text
+convention — the wordmark is drawn with block glyphs and the captions are lowercase,
+so no cell holds a glyph in `0x41–0x61` — but that is a fact, not a plan.)
 
 ## How the screen gets drawn (#247's W5)
 

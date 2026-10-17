@@ -15,7 +15,7 @@ name: generated artifacts
 #
 # The firmware's boot frame used to be checked here as well, rebuilt from that same
 # art.  It was retired on 2026-10-16: the boot screen is now the animation the
-# RP2354B plays (firmware/rom-service/bootsplash.bin, #247's W5), and no tool in
+# RP2354B plays (firmware/rom-service/boot-animation.bin, #247's W5), and no tool in
 # this repo generates that from anything -- so there is nothing to compare it to,
 # and the frame half of `rom2strokes.py --check` went with it.
 

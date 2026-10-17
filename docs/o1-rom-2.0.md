@@ -880,7 +880,7 @@ cosmetic. `--half` writes one half, `--verify` validates a half or a whole frame
 off the disk. The copy the firmware compiles in used to be
 `firmware/rom-service/frame.bin`; that asset was **retired on 2026-10-16**, when the
 boot screen became the animation the RP2354B plays
-(`firmware/rom-service/bootsplash.bin`, #247's W5), and the `--check` that re-built
+(`firmware/rom-service/boot-animation.bin`, #247's W5), and the `--check` that re-built
 it went with it.
 
 ## 5. The six open questions from #83, answered

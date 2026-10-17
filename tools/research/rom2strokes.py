@@ -63,7 +63,7 @@ Usage:
     --frame no longer feeds a committed asset, and --check no longer checks one.
     `firmware/rom-service/frame.bin` was **retired on 2026-10-16**: the boot screen
     became the animation the RP2354B plays (`tools/bootsplash/`,
-    `firmware/rom-service/bootsplash.bin`, #247's W5), and the generator and the
+    `firmware/rom-service/boot-animation.bin`, #247's W5), and the generator and the
     byte-for-byte check went with it.  What remains here is a converter -- art text
     to a frame, a frame validated off the disk -- and the masthead, whose source is
     still `research/boot-screen/`.
@@ -709,7 +709,7 @@ def main(argv=None):
         print()
         print('This frame is not a committed asset.  The boot screen is now the')
         print('animation the RP2354B plays (tools/bootsplash/, and the asset at')
-        print('firmware/rom-service/bootsplash.bin); the frame written here is a')
+        print('firmware/rom-service/boot-animation.bin); the frame written here is a')
         print('conversion of this art, and nothing in the repo commits or checks it.')
 
         if args.png:

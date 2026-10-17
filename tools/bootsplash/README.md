@@ -220,7 +220,7 @@ half[0FFEh..0FFFh]  the 16-bit sum of the 4088 body bytes, little-endian
 ```
 
 The contract is `docs/rom-pico-protocol.md` §4 and §5, and **the committed asset
-is this tool's own output**: `firmware/rom-service/bootsplash.bin`, the 90-frame
+is this tool's own output**: `firmware/rom-service/boot-animation.bin`, the 90-frame
 animation. Nothing about the *frames* is this tool's invention — the format is the
 machine's, and what it writes is what ships.
 
@@ -245,7 +245,7 @@ The header is always written:
 **This header is the firmware's contract now**, not a proposal: #247's W5 makes the
 frame asset *the animation the RP2354B plays*, the RP2354B paces it from its own
 flash and stops on the Z80's first video-RAM write, and
-`firmware/rom-service/bootsplash.bin` is the first instance of it. What is *not*
+`firmware/rom-service/boot-animation.bin` is the first instance of it. What is *not*
 this tool's invention is the 8192 bytes behind the header — `tail -c +33 out.bin` is
 a valid frame. The flags byte, and what each mode plays, is
 `docs/rom-pico-protocol.md` §5.1.
