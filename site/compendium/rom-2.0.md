@@ -771,8 +771,9 @@ under its share.
 
 **And the boot screen does not fit in the 72 that are left (measured 2026-10-15,
 #247 turn 3).** The screen's code — the attribute fill, the fallback text, the
-door helper, the trailer check and the two `LDIR` blits — is **182 bytes**, and
-the assembler's own guard says so in its own words:
+door helper, the trailer check and the two `LDIR` blits — is **212 bytes** (182 when
+first measured; #247's W3 grew the fallback), and the assembler's own guard says so in
+its own words:
 
 ```
 I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.
@@ -892,20 +893,36 @@ definition does not move — it still covers exactly the 4088 bytes before the
 trailer. The one cost is that the monitor's compare grows from four bytes to
 six, inside the 150-byte budget §4.4 accounts as about 126 used (#228).
 
-**The fallback is `o1next - press return`, and it costs nothing** — because ROM 2.0
-*replaces* the stock sign-on rather than adding to it:
+**The fallback is the screen's own two lines, and it costs nothing** — because ROM 2.0
+*replaces* the stock sign-on rather than adding to it. Since #247's W3 (2026-10-17) it
+carries the **same text and the same bright/dim runs as the animation's resting
+frame**, at the frame's own rows and columns — array rows 20 and 22, ink from columns
+24 and 30:
 
 | | bytes |
 |---|---|
-| the text (21 characters; the last carries bit 7, which is `OSTR`'s terminator) | 21 |
-| `LDK DE,MSG` / `CALL OSTR` | 6 |
-| **total** | **27** |
+| the message: `VCLRS`, the padding as `OSTR`'s `7Fh` repeat escape, both lines, and the `ESC,VSHI`/`ESC,VEHI` mode changes | 72 |
 | `IMSG`, which it replaces (§2.1) | 182 |
 
-So the fallback **frees 155 bytes**, and pays for its own validity check out of
-them. The order at boot is: **print the text first, then page the frame in and
-check the trailer; if it is right, blit over the text.** A missing or malformed
-image leaves the message on screen, which is the whole point of having it.
+So the fallback still **frees 110 bytes**, and it needs no code of its own: the
+attribute runs *are* the text's own escapes, and dim is the vendor's own
+half-intensity mode. Three things were measured rather than assumed, and the first is
+why an unpositioned fallback is not merely misplaced — it is invisible:
+
+- **`CURS` is 0 when the screen code runs.** `START` clears `0EF00h`–`0EFEFh` on
+  every pass, and `COUT` writes through `CURS` — so a message that does not position
+  itself is written to address 0, which is the ROM, and nothing appears anywhere. The
+  vendor's `IMSG` began with `VCLRS` for exactly that reason; the fallback does too.
+- **dim is `ESC,VSHI` … `ESC,VEHI`**, the vendor's half-intensity mode: `VHALF`
+  writes `DIMBIT` (`00h`) into the attribute array, which reads back **`7Fh`** — the
+  animation's own dim value, so the plane and the asset's attribute half compare byte
+  for byte.
+- **the `7Fh` repeat escape is `OSTR`'s own** (`IMSG` uses it), so a padding run of
+  twenty costs three bytes rather than twenty.
+
+The order at boot is unchanged: **print the text first, then page the frame in and
+check the trailer; if it is right, blit over the text.** A missing or malformed image
+leaves the message on screen, which is the whole point of having it.
 
 **And the blit is two passes, not one — measured 2026-10-15.** The O1's video cell
 is **9 bits**: 8 for the character and 1 for brightness, and the 9th bit is not in
@@ -1052,7 +1069,8 @@ So the ROM's own half of deliverable 3 is done and measured; what is left is the
    (§4.6, item 10).
 2. **Does ROM 2.0's monitor code fit in 150 bytes?** **Answered — no, and the boot
    screen is the piece that proves it** (measured 2026-10-15, §4.7). `HCBOOT` took
-   77 of the 150; the screen's code is 182 bytes against the 72 that are left, and
+   77 of the 150; the screen's code is 212 bytes (182 when first measured) against
+   the 72 that are left, and
    the assembler's own guard said `CODE TOO LARGE`. The screen code is written and
    measured in [`research/source-code/BIOS-200-source/rom2-screen.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-200-source/rom2-screen.asm); what it
    needs is a **home** — a third softROM content id (`PRESENT(3)`, recommended), the
