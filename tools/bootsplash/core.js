@@ -34,15 +34,14 @@
  *     dim").
  *
  * THE ANIMATION CONTAINER
- *     #247's last note hands the pacing to the RP2354B, so the asset becomes a
- *     *sequence* of frames.  The container is a 32-byte header and then the frames
- *     back to back; frame n is byte-identical to the committed single-frame asset
- *     `firmware/rom-service/frame.bin`, so `tail -c +33` of a one-frame animation
- *     is that file.  The header is this tool's proposal -- the firmware side of
- *     #247 is not written yet -- and it is one constant to change.  Its flags
- *     byte carries the playback mode: bit 0 repeats, bit 1 bounces, so all four
- *     combinations are a mode, and `playbackOrder` is the one place that says
- *     what each one plays.
+ *     #247's W5 hands the pacing to the RP2354B, so the asset becomes a *sequence*
+ *     of frames: the RP2354B is the display, it paces them from its own flash, and
+ *     it stops on the Z80's first video-RAM write.  The container is a 32-byte
+ *     header and then the frames back to back, and it is the firmware's contract
+ *     now rather than a proposal -- `firmware/rom-service/bootsplash.bin` is the
+ *     first instance of it.  Its flags byte carries the playback mode: bit 0
+ *     repeats, bit 1 bounces, so all four combinations are a mode, and
+ *     `playbackOrder` is the one place that says what each one plays.
  */
 (function (root) {
   'use strict';
@@ -353,8 +352,8 @@
   //    26       6    reserved, zero
   //    32       N*8192   the frames, back to back, each already sealed
   //
-  // The frames are not re-sealed and not re-ordered: frame 0 of a one-frame
-  // animation IS `firmware/rom-service/frame.bin`.
+  // The frames are not re-sealed and not re-ordered: a frame is byte-identical to
+  // the 8192 bytes the machine's own trailer test accepts, whatever wrote it.
 
   function u16(bytes, at, v) { bytes[at] = v & 0xFF; bytes[at + 1] = (v >>> 8) & 0xFF; }
   function u32(bytes, at, v) {
