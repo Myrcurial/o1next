@@ -1,4 +1,4 @@
-# kvm-console — web-based KVM for the O1 (RP2350 + RP2040)
+# kvm-console — web-based KVM for the O1 (RP2354B + RP2040)
 
 Browser-based KVM console: watch the Osborne's screen and type into it
 from a web page. An interposer personality composed from two existing

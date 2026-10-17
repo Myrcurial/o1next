@@ -1,4 +1,4 @@
-# floppy-emulator — floppy interposer + image library (RP2350)
+# floppy-emulator — floppy interposer + image library (RP2354B)
 
 Gotek/FlashFloppy analogue built into the interposer: interrupt the
 Shugart bus between motherboard and drives; mount `.IMD`/`.HFE` images

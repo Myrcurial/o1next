@@ -188,7 +188,7 @@ message. A modal is the opposite: it blocks, it expires, and it produces nothing
   taken in-project — never treat them as replaceable stock images.
 - Issue labels: `research`, `pre-hardware`, `hardware`, `firmware`,
   `software`, `hardware-gated`, `documentation`, `deliverable`, `misc`. Phase
-  flow: Phase 0 research → Phase 1 hardware (KiCad) → Phase 2 Pico 2 W firmware
+  flow: Phase 0 research → Phase 1 hardware (KiCad) → Phase 2 RP2354B firmware
   → Phase 3 Osborne-side software → Phase 4 on-hardware validation → Phase 5
   modern-parts reproduction → **Phase Ω delivery**. Don't start `hardware-gated`
   work in software sessions.

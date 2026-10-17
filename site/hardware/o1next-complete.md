@@ -46,7 +46,7 @@ power.
 - **USB-C PD, with an optional 18650 battery path.** The same power board serves
   both boards.
 - **The display is settled: HDMI.** An **8" 1024×768 panel** inside and an
-  **external HDMI port** — the RP2350 drives it directly, and those panels are
+  **external HDMI port** — the RP2354B drives it directly, and those panels are
   readily available. **The SFF board carries no composite driver circuitry at
   all**, so the discrete analogue chain the LFF board reproduces is simply not
   here.

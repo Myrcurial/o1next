@@ -50,7 +50,7 @@ software delay loops) is divided down from it. Consequences:
      feature to calculation-bound work (SuperCalc recalc, dBASE II, compilers,
      assemblers). A classic PC-era **"TURBO" switch** selects 4 MHz ↔ 8 MHz.
   3. **Serial** — no clean fix at the ACIA. Mitigation: build a **baud-rate
-     buffering corrector** into the WiFi modem (#21). The modem's RP2350 talks to
+     buffering corrector** into the WiFi modem (#21). The modem's RP2354B talks to
      the far end at a rock-solid standard rate (2400/9600) and tolerates whatever
      the O1 ACIA is actually doing: on **send** it buffers until a batch accumulates
      before transmitting; on **receive** it buffers a frame, then re-clocks it out

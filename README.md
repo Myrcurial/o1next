@@ -1,7 +1,7 @@
 # o1next
 
 A general-purpose Z80 bus interposer for the Osborne 1, built around the
-Raspberry Pi Pico 2 W (RP2350 + CYW43439 WiFi), plus the research and
+RP2354B, plus the research and
 reverse-engineering work it enables — and, downstream, a modern-parts
 Osborne 1 reproduction (the "O1NEXT").
 
@@ -9,7 +9,7 @@ Osborne 1 reproduction (the "O1NEXT").
 
 The Osborne 1 places all peripherals in memory-mapped banks and the Z80 has a
 simple, slow (4 MHz) external bus. A passive/active interposer in the Z80
-socket, connected to a Pico 2, makes the machine both **observable** and
+socket, connected to an RP2354B, makes the machine both **observable** and
 **extensible**:
 
 | Personality | What it does | Code / issue |
@@ -22,7 +22,7 @@ socket, connected to a Pico 2, makes the machine both **observable** and
 | **Virtual printer** | Centronics-mode capture on the IEEE-488 port rendered to PDF, emulating a period 9-pin Epson MX-80 | `firmware/virtual-printer/` #19 |
 
 The image library and the printer's PDFs are served by a C64 Ultimate-style
-browser UI on the Pico 2 W, with a CP/M-side utility for in-machine control; no
+browser UI on the RP2354B, with a CP/M-side utility for in-machine control; no
 local mods to the O1 are required (`firmware/web-ui/`).
 
 Electrical/mechanical constraints and the settled design decisions live in

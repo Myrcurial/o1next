@@ -13,7 +13,7 @@ Tracks **#11** (Phase 1), **#12** (interface spec), **#13** (Rev A), **#15**
 ## What it is
 
 The centrepiece: a board that sits **between the Z80 and its socket**, carrying a
-**Pico 2 W** (RP2350 + CYW43439). Because it sees every bus cycle, it can both
+**RP2354B**. Because it sees every bus cycle, it can both
 **observe** the machine and **drive** it — which is what makes the whole
 "virtual peripheral" idea possible.
 
@@ -31,7 +31,7 @@ CoPower-88 (#23), the SCREEN-PAC video personality (#24) and the web KVM console
   PIO.
 - **74AHCT/HCT both directions.** All Osborne 1s are NMOS Z80s, so AHCT/HCT
   matches the NMOS I/O thresholds; this superseded an earlier 74LVC245 choice.
-- **Its own dedicated 5 V feed** near the Z80 socket, sized for Pico 2 W WiFi
+- **Its own dedicated 5 V feed** near the Z80 socket, sized for RP2354B WiFi
   bursts (~300 mA+).
 - **It must stack.** The design has to coexist with a real SCREEN-PAC *and* a
   real CoPower-88 on a fully-loaded machine, so pass-through height matters.
@@ -46,7 +46,7 @@ CoPower-88 (#23), the SCREEN-PAC video personality (#24) and the web KVM console
   board, so the passive step was skipped.
 - **Rev A engineering sample** — the *instrument*. An SMT Z84C00 on the board
   (pull the original CPU, drop the interposer in), **/BUSRQ bus mastering**,
-  a 595/165 shift-register drive-and-capture fabric, Pico 2 plus a castellated
+  a 595/165 shift-register drive-and-capture fabric, the bare RP2354B plus a castellated
   ESP32-C3, and W25Q library flash. The goal is blunt: the development partner
   **controls the hardware** — memory read/write, ROM dumping, code injection and
   execute.

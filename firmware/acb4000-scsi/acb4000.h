@@ -16,7 +16,7 @@
  *
  * This file is pure logic -- no hardware access, no RTOS, no SDK -- so it builds
  * and is tested on the host (see test_acb4000.c and run_tests.sh), exactly as
- * `firmware/rom-ident/` does.  On the RP2350 the same three files are compiled
+ * `firmware/rom-ident/` does.  On the RP2354B the same three files are compiled
  * into the interposer firmware and the store is backed by the FAT32 library
  * instead of a malloc'd buffer; nothing else changes.
  *
@@ -96,7 +96,7 @@ struct acb4000_store {
 };
 
 /* The in-memory implementation: what the host tests use, and the shape the
- * RP2350's store takes before the FAT32 library is wired in.  `format()` fills
+ * RP2354B's store takes before the FAT32 library is wired in.  `format()` fills
  * every block with the byte -- which is what makes a blank volume one repeated
  * byte, the property #180's sparse blob encoding is built on. */
 typedef struct {

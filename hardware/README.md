@@ -10,7 +10,7 @@ no PCB layouts exist yet (Phase 1, issue #11).
 
 | Folder | Device | Issues | Status |
 |---|---|---|---|
-| `interposer/` | Z80 bus interposer — the core board. **Rev A engineering sample** (`interposer/reva/`, 2-off, SMD): active interposer w/ SMT Z84C00, /BUSRQ bus mastering (memory R/W + code injection), Pico 2 + ESP32-C3, W25Q library flash; **three socket taps** — Z80, **main ROM UD11** (the Pico serves the ROM window, so no ROM part is needed — ROM 2.00), char-gen UA15. Rev 0 passive probe superseded (kept for record) | #11, #12, #13, #15, #83 | Rev A ES schematic generated, ready for KiCad capture review + routing. The UD11 tap and its daughterboard are new and belong in #12's interface spec |
+| `interposer/` | Z80 bus interposer — the core board. **Rev A engineering sample** (`interposer/reva/`, 2-off, SMD): active interposer w/ SMT Z84C00, /BUSRQ bus mastering (memory R/W + code injection), RP2354B + ESP32-C3, W25Q library flash; **three socket taps** — Z80, **main ROM UD11** (the RP2354B serves the ROM window, so no ROM part is needed — ROM 2.00), char-gen UA15. Rev 0 passive probe superseded (kept for record) | #11, #12, #13, #15, #83 | Rev A ES schematic generated, ready for KiCad capture review + routing. The UD11 tap and its daughterboard are new and belong in #12's interface spec |
 | `front-panel-ui/` | Front panel faceplate & UI pod — SD/USB storage, **HDMI out**, OLED, FlashFloppy-style controls, modem LED bank | #14 | Concept |
 | `usb-keyboard-adapter/` | Standalone RP2040 USB-HID → P4 keyboard adapter ("jam a USB keyboard into an O1"); two power variants: internal +12V (J6) or external powered-hub for no-open-case use | #47 | Reference design defined; spec validation pending |
 | `wifi-modem-module/` | Severable WiFi modem (ESP32 Zimodem fork: telnet + SSH, baud buffering) for the MODEM (P1) TTL port; ships with COMM PAC-look case STLs for the left storage pocket | #56, #21, #57 | Concept; P1/DE-9 pinout + levels documented |
@@ -23,9 +23,9 @@ no PCB layouts exist yet (Phase 1, issue #11).
 - **Level shifting:** 74AHCT/74HCT for anything touching the Z80 bus —
   all O1s are NMOS Z80s (research-gaps #2, resolved 2026-10-09).
 - **Interposer power:** dedicated 5 VDC feed near the Z80 socket, sized
-  for Pico 2 W WiFi bursts (~300 mA+).
+  for RP2354B WiFi bursts (~300 mA+).
 - **Standalone USB power (added 2026-10-14, #207):** one 5 V net carries the
-  Pico 2 W **and** the library flash, and that net is reachable from USB alone
+  RP2354B **and** the library flash, and that net is reachable from USB alone
   — so the board runs, and its flash is programmable, with no host machine, no
   Z80 socket and no chassis supply. Preparing a board (fill the library, then
   install it) is a bench procedure, not something that needs a donor machine

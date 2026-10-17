@@ -69,7 +69,7 @@ uses, and the modem is a firmware personality now — so the physical port has
 nothing left to do.
 
 The display is an **8" 1024×768 HDMI panel** inside, plus an **external HDMI
-port**: the RP2350 drives HDMI directly, and that panel size is available off the
+port**: the RP2354B drives HDMI directly, and that panel size is available off the
 shelf.
 
 ## What it keeps

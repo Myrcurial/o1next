@@ -1,4 +1,4 @@
-# bus-analyzer — passive Z80 bus capture (RP2350)
+# bus-analyzer — passive Z80 bus capture (RP2354B)
 
 Cycle-accurate capture of address/data/control traffic from the
 interposer, streamed over USB (and WiFi when idle bandwidth allows).

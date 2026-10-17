@@ -1,7 +1,7 @@
-# screenpac-video — SCREEN-PAC 80/104-column video + HDMI (RP2350)
+# screenpac-video — SCREEN-PAC 80/104-column video + HDMI (RP2354B)
 
 Emulates the SCREEN-PAC 80/104-column video personality and provides
-modern video out — **HDMI**, via the RP2350's HSTX block, with the
+modern video out — **HDMI**, via the RP2354B's HSTX block, with the
 connector on `hardware/front-panel-ui/`.
 
 Tracks: #24; char-gen ROM context in #44.
@@ -9,7 +9,7 @@ Tracks: #24; char-gen ROM context in #44.
 ## Output: HDMI, not VGA (settled 2026-10-11)
 
 The personality's output is **HDMI**. **VGA is not pursued**: HSTX is fixed to
-GP12–19 on the RP2350, so a resistor DAC would need the same range and the two are
+GP12–19 on the RP2354B, so a resistor DAC would need the same range and the two are
 mutually exclusive.
 
 The same decision now applies across the project — the SFF board carries **HDMI
@@ -61,7 +61,7 @@ The O1's screen is **memory-mapped video RAM**; the char-gen socket tap
 (UA15) gives the font. So the video personality can be built as pure
 **memory-side reconstruction**: watch video-RAM writes on the Z80 bus
 (already have them), read the installed font ROM via the UA15 tap,
-render the frame in the RP2350 → HDMI. No fly leads, no soldered
+render the frame in the RP2354B → HDMI. No fly leads, no soldered
 taps. ScreenPac mode-register writes are also bus-visible, so 80/104
 column switching is tracked automatically.
 

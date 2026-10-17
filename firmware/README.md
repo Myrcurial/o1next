@@ -1,7 +1,7 @@
 # firmware/
 
 Firmware deliverables for the o1next project, one folder per
-component. Three target platforms: **RP2350** (Pico 2 W on the
+component. Three target platforms: **RP2354B** (the
 interposer), **ESP32** (WiFi modem, shared between the severable module
 and the interposer-onboard option), and **RP2040** (keyboard matrix
 injection, shared between the standalone adapter and the KVM/second-
@@ -14,20 +14,20 @@ See `software/` for code that runs on the Osborne itself (CP/M) and
 
 | Folder | Platform | Component | Issues | Difficulty |
 |---|---|---|---|---|
-| `bus-analyzer/` | RP2350 | Passive cycle-accurate bus capture → USB/WiFi; includes the shared memory-map snoop/poke engine all personalities build on | #17 | Hard (timing-critical) |
-| `rt60a-rtc/` | RP2350 | RT-60A real-time clock register emulation | #18, #37 | Easy |
-| `virtual-printer/` | RP2350 | Virtual Epson MX-80: Centronics-on-IEEE-488 capture → on-device 9-pin raster → PDF (with tractor-feed page edges) over HTTP | #19 | Medium |
-| `floppy-emulator/` | RP2350 | MFM flux interposer + `.IMD`/`.HFE` image library ("Drive C" RAM disk option) | #20 | Hardest |
-| `drive-c-gpib/` | RP2350 | Drive C IEEE-488 ramdisk/storage device personality, incl. the **TurboPac** variant (Drive C as cache in front of a Trantor hard disk) | #22, #6 | Medium |
-| `acb4000-scsi/` | RP2350 | Adaptec ACB-4000 SCSI-1 target (the MD-10's controller) — portable: one SCSI personality + a configurable host-adapter shim serves any Z80 machine with an ACB-4000-class driver | #8, #179 | Medium — target, shim and store built and host-tested (`run_tests.sh`, CI); the FAT32 store (#180) and the end-to-end acceptance are open |
-| `screenpac-video/` | RP2350 | SCREEN-PAC 80/104-col video + **HDMI out**; char-gen socket tap, reads installed font ROM at init | #24, #44 | Medium-hard |
-| `kvm-console/` | RP2350 + RP2040 | Web KVM: video snoop (reuses screenpac-video) + keyboard matrix injection (reuses keyboard-matrix) | #45 | Medium (composition) |
-| `copower88-shim/` | RP2350 | Virtual CoPower-88: 8088 emulation + host mailbox protocol so SWP software runs without the physical board | #23, #3-#5 | Hardest; sequence last |
-| `web-ui/` | RP2350 | C64 Ultimate-style HTTP interface: image library, modem, printer PDFs, status, control | #16, #27 | Medium |
+| `bus-analyzer/` | RP2354B | Passive cycle-accurate bus capture → USB/WiFi; includes the shared memory-map snoop/poke engine all personalities build on | #17 | Hard (timing-critical) |
+| `rt60a-rtc/` | RP2354B | RT-60A real-time clock register emulation | #18, #37 | Easy |
+| `virtual-printer/` | RP2354B | Virtual Epson MX-80: Centronics-on-IEEE-488 capture → on-device 9-pin raster → PDF (with tractor-feed page edges) over HTTP | #19 | Medium |
+| `floppy-emulator/` | RP2354B | MFM flux interposer + `.IMD`/`.HFE` image library ("Drive C" RAM disk option) | #20 | Hardest |
+| `drive-c-gpib/` | RP2354B | Drive C IEEE-488 ramdisk/storage device personality, incl. the **TurboPac** variant (Drive C as cache in front of a Trantor hard disk) | #22, #6 | Medium |
+| `acb4000-scsi/` | RP2354B | Adaptec ACB-4000 SCSI-1 target (the MD-10's controller) — portable: one SCSI personality + a configurable host-adapter shim serves any Z80 machine with an ACB-4000-class driver | #8, #179 | Medium — target, shim and store built and host-tested (`run_tests.sh`, CI); the FAT32 store (#180) and the end-to-end acceptance are open |
+| `screenpac-video/` | RP2354B | SCREEN-PAC 80/104-col video + **HDMI out**; char-gen socket tap, reads installed font ROM at init | #24, #44 | Medium-hard |
+| `kvm-console/` | RP2354B + RP2040 | Web KVM: video snoop (reuses screenpac-video) + keyboard matrix injection (reuses keyboard-matrix) | #45 | Medium (composition) |
+| `copower88-shim/` | RP2354B | Virtual CoPower-88: 8088 emulation + host mailbox protocol so SWP software runs without the physical board | #23, #3-#5 | Hardest; sequence last |
+| `web-ui/` | RP2354B | C64 Ultimate-style HTTP interface: image library, modem, printer PDFs, status, control | #16, #27 | Medium |
 | `zimodem-fork/` | ESP32 | Zimodem fork: Hayes/telnet baseline + SSH + double-sided baud-rate buffer | #21, #56 | Medium (fork-and-extend) |
 | `keyboard-matrix/` | RP2040 | TinyUSB HID host → 8×8 matrix injection; shared by the standalone adapter, KVM, and front-panel USB port | #47, #45, #14 | Easy-medium |
-| `rom-ident/` | RP2350 (host-testable) | Identify the fitted ROM at boot by CRC32 (table generated from `docs/o1-rom-variants.md`) and gate the personalities on it: refuses Drive C / printer under OZROM 1E, degrades video to a warning | #86 | Gate + table done and tested; the socket read needs a board |
-| `rom-service/` | RP2350 | The ROM's window page 1 and the **boot frame in flash**: the ROM-service command class (`PRESENT`), two doors (I/O `0E7h`/`0EBh`, bank-2 `2300h`/`2301h`), one protocol | #247 | Easy-medium — the 8192-byte frame is generated, committed and drift-checked; the module itself is `docs/rom-pico-protocol.md`'s open item |
+| `rom-ident/` | RP2354B (host-testable) | Identify the fitted ROM at boot by CRC32 (table generated from `docs/o1-rom-variants.md`) and gate the personalities on it: refuses Drive C / printer under OZROM 1E, degrades video to a warning | #86 | Gate + table done and tested; the socket read needs a board |
+| `rom-service/` | RP2354B | The ROM's window page 1 and the **boot frame in flash**: the ROM-service command class (`PRESENT`), two doors (I/O `0E7h`/`0EBh`, bank-2 `2300h`/`2301h`), one protocol | #247 | Easy-medium — the 8192-byte frame is generated, committed and drift-checked; the module itself is `docs/rom-pico-protocol.md`'s open item |
 
 ## Project rule
 
@@ -39,20 +39,21 @@ work and a known-good test suite — these personalities are pure win.
 ## Cross-cutting constraints
 
 - **Radio jitter — and why it is no longer the interposer's problem.** The
-  interposer used to carry a **Pico 2 W *module***, whose CYW43439 sat alongside
-  the RP2350 and added jitter to bus capture and MFM flux emulation. **That is no
-  longer the design**: the board carries the bare **RP2354** part — which is where
+  interposer used to carry a **radio-bearing module**, whose CYW43439 sat
+  alongside the MCU and added jitter to bus capture and MFM flux emulation.
+  **That is no
+  longer the design**: the board carries the bare **RP2354B** part — which is where
   the firmware and the splash frame live — and the radio is an **ESP32 on UART0**
   (GP38/39). So the jitter source has moved *off* the bus-critical chip entirely,
   which is strictly better for every personality. The rule becomes a **link**
   rule rather than a fencing rule: the ESP32 is never asked for anything inside a
   capture or flux window, and the UART link is the only thing crossing between
-  them. (Corrected 2026-10-15: this section named CYW43, which is a module we no
-  longer fit.)
+  them. (Corrected 2026-10-15: this section named the module's radio part, which
+  is a module we no longer fit.)
 - **One modem codebase:** the ESP32 Zimodem fork serves both the severable module
   and the interposer's onboard ESP32. **The variant is not yet chosen** — C3, C5
   (dual band) or S3/S3A (SSH headroom) — and the decision needs the modem's own
   requirements written down first; see #21, #56 and
   `hardware/interposer/README.md`.
 - **Level shifting** is a hardware concern (74AHCT/HCT) — firmware
-  assumes clean 3.3 V logic at the RP2350 pins.
+  assumes clean 3.3 V logic at the RP2354B pins.
