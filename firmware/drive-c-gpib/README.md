@@ -1,4 +1,4 @@
-# drive-c-gpib — Drive C IEEE-488 storage personality (RP2350)
+# drive-c-gpib — Drive C IEEE-488 storage personality (RP2354B)
 
 Pico-based GPIB device emulating the "Drive C" ramdisk and period
 IEEE-488 hard-disk products. When this personality runs, the **original

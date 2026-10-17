@@ -380,6 +380,36 @@ CI runs it on every change to `hardware/**/*.kicad_sch` or `gen_*_sch.py`
 (`.github/workflows/schematic-check.yml`). Requires `kicad-cli` (KiCad 7+);
 set `KICAD_CLI` if it is not on PATH. Standard library only.
 
+## Part numbers (`check_part_numbers.py`)
+
+The interposer carries the **bare RP2354B** — the 48-GPIO, 2 MB-flash B part on a
+custom PCB. Not a Pico module, not the A part, not the B-less RP2354. This is the
+guard that keeps the tree saying so (#247, T3/W0).
+
+```
+tools/check_part_numbers.py            # scan, exit 1 on a violation
+tools/check_part_numbers.py --check    # the same check (CI spells it this way)
+tools/check_part_numbers.py --quiet    # only the exit status
+```
+
+It forbids five spellings — `RP2350`, `RP2350B`, `RP2354` (without the B),
+`Pico 2` and `Pico W` — in every tracked text file. The bare word "Pico" is
+deliberately **not** forbidden: it survives as shorthand for the interposer's
+MCU in 39 places across 17 files, and a guard that forbade it would fire on the
+prior art, on PicoEm and on PicoDVI.
+
+The exemptions are declared in the tool, each with its reason: the interposer
+survey and its generated mirror (research on *other people's* projects, whose
+MCUs really are RP2040 and Pico W), the superseded Rev 0 probe (it records the
+module it was designed around, and that module's 26 GPIO are the reason the
+production board uses the bare part), `research/` (an archive of other people's
+material), and the guard's own two files. Binaries are skipped by content, so an
+archived PDF or a `.bin` cannot trip it.
+
+It runs on every push and pull request rather than behind a path filter
+(`.github/workflows/part-numbers.yml`): a part number can be introduced anywhere.
+Standard library only.
+
 ## Tool evaluation notes (why this exists)
 
 - **SAMdisk 4** (Simon Owen; built from source, macOS: cmake) —

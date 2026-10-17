@@ -1,4 +1,4 @@
-# revb/ — Rev B personality engine: RP2350B pin map
+# revb/ — Rev B personality engine: RP2354B pin map
 
 Rev A (ES) and Rev B are **separate products, not revisions**: Rev A is
 the mastering/debug instrument (shift-register fabric, CPU stopped);
@@ -22,13 +22,13 @@ Live response does **not** require direct address pins:
   GPIO; /WAIT stretching is the period-correct mechanism slow
   peripherals always used.
 
-## RP2350B pin map (48 GPIO)
+## RP2354B pin map (48 GPIO)
 
 | Pins | Function | Notes |
 |---|---|---|
 | GP0–7 | **D0–7** data bus | via 74AHCT245 (bidir) |
 | GP8–11 | **/MREQ, /IORQ, /RD, /WR** | direct, raw edges — cycle framing |
-| GP12–19 | **HSTX → HDMI** | HSTX is fixed to GP12–19 on RP2350; a VGA resistor DAC would need the same range, so the two are mutually exclusive — **HDMI is the choice**, VGA not pursued (front-panel pod carries the connector) |
+| GP12–19 | **HSTX → HDMI** | HSTX is fixed to GP12–19 on RP2354B; a VGA resistor DAC would need the same range, so the two are mutually exclusive — **HDMI is the choice**, VGA not pursued (front-panel pod carries the connector) |
 | GP20 | /M1 | direct (opcode-fetch vs cycle typing) |
 | GP21 | CLK | direct — PIO timing reference |
 | GP22 | **/WAIT drive** | fast OC buffer; the personality enabler |
@@ -46,7 +46,7 @@ Live response does **not** require direct address pins:
 | GP45, GP46 | **I²C SDA, SCL** | front-panel OLED/encoder, expanders, "just in case" |
 | GP47 | trigger / debug LED / ADDR_HIT2 | spare comparator window |
 
-**ESP32-C3 side (offloaded from RP2350):** Hayes-style LED bank
+**ESP32-C3 side (offloaded from RP2354B):** Hayes-style LED bank
 (charlieplexed or I²C expander), modem UART link, web radio. EN/BOOT
 driven from 595 bits (slow by nature).
 

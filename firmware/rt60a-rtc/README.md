@@ -1,4 +1,4 @@
-# rt60a-rtc — the RT-60A **time service** (RP2350)
+# rt60a-rtc — the RT-60A **time service** (RP2354B)
 
 **Decision (2026-10-11, #7): implement the RT-60A's documented ABI, not its
 hardware.** This is the firmware-side record of that decision; the research side
@@ -51,7 +51,7 @@ preserved as a meaning, not overwritten.
 reads `0x0040`, and the At Trap and file-stamping behaviour is a BIOS/BDOS patch
 — it is code, not data. So the work splits:
 
-1. **The interposer is the clock.** Accurate time from the RP2350 RTC (or core
+1. **The interposer is the clock.** Accurate time from the RP2354B RTC (or core
    timer), settable from the web UI, optionally NTP-synced when WiFi is up;
    battery-backed behaviour in flash so time survives reboots. Exposed through
    the personality mailbox — **no IEEE handshake, no MSM5832**.

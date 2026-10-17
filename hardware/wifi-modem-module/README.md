@@ -2,7 +2,7 @@
 
 Hayes-compatible WiFi modem for the Osborne 1, designed as a **severable
 module**: usable standalone on the MODEM (P1) port, or as part of the
-interposer (where the Pico 2 W personality #21 does the same job via
+interposer (where the RP2354B personality #21 does the same job via
 memory-map snooping instead).
 
 Tracks: #56 (extension of #21). Physical interface documented by #57.

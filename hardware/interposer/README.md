@@ -1,7 +1,7 @@
 # interposer — Z80 bus interposer (core board)
 
 The centerpiece of the project: a board that sits between the Osborne 1's
-Z80 and its socket, carrying a Raspberry Pi Pico 2 W (RP2350 + CYW43439).
+Z80 and its socket, carrying an RP2354B.
 
 Tracks: #11 (Phase 1 hardware design), #12 (electrical/mechanical
 interface spec), #13 (Rev A schematic + PCB), #15 (Rev B SMD).
@@ -62,12 +62,12 @@ separate LFF path to design, document or test for — one brief covers both.
   NMOS Z80s; AHCT/HCT matches NMOS I/O thresholds. (Decision
   2026-10-09, research-gaps #2; supersedes "74LVC245-class".)
 - **Power:** own dedicated 5 VDC feed from a rail near the Z80 socket,
-  sized for Pico 2 W WiFi bursts (~300 mA+). (Decision 2026-10-09.)
-- **Power, standalone (added 2026-10-14, #207):** the Pico 2 W and the W25Q
+  sized for RP2354B WiFi bursts (~300 mA+). (Decision 2026-10-09.)
+- **Power, standalone (added 2026-10-14, #207):** the RP2354B and the W25Q
   library flash share one 5 V net, and that net must be reachable **from USB
   alone** — the board runs, and the flash is programmable, with the interposer
   out of the machine and no host supply connected. This rules out the case
-  where the Pico is USB-powered and the flash is fed from the machine's rail:
+  where the MCU is USB-powered and the flash is fed from the machine's rail:
   the library could not be filled. Filling the onboard library, then installing
   the board, is the intended bench sequence. The SFF board carries the same
   requirement (`../o1next/README.md`).
@@ -79,17 +79,19 @@ separate LFF path to design, document or test for — one brief covers both.
 
 Two ways to deliver the WiFi modem (#21/#56) from the interposer:
 
-- **(a) Pure firmware personality:** the Pico 2 W's CYW43439 provides
-  WiFi; the modem is a Zimodem-style reimplementation on the Pico SDK /
-  lwIP, snooping/driving the memory-mapped 6850 ACIA. Fewer parts, but
-  SSH is not realistic on the Pico 2 W and the radio shares the RP2350
-  with timing-critical PIO work (WiFi IRQ fencing needed).
-- **(b) Onboard ESP32 adjacent to the Pico 2 W:** the interposer
+- **(a) Pure firmware personality — retired (2026-10-15):** it relied on the
+  module's own CYW43439 for WiFi, and the board carries no radio-bearing
+  module any more. The modem would have been a Zimodem-style
+  reimplementation on the Pico SDK / lwIP, snooping/driving the
+  memory-mapped 6850 ACIA — but SSH was not realistic on the RP2354B, and
+  the radio shared the chip with timing-critical PIO work (WiFi IRQ
+  fencing needed).
+- **(b) Onboard ESP32 adjacent to the RP2354B:** the interposer
   carries the same ESP32 module as the severable modem
   (`../wifi-modem-module/`), running the Zimodem fork with SSH +
-  baud buffering; the Pico 2 W just bridges ACIA traffic to it. More
+  baud buffering; the RP2354B just bridges ACIA traffic to it. More
   BOM, but SSH works today, the modem firmware is shared with the
-  severable module, and RP2350 timing stays clean.
+  severable module, and RP2354B timing stays clean.
 
 Current leaning: **(b)** — one modem firmware codebase across both
 devices, SSH capability, and cleaner real-time behavior. Confirm
@@ -121,7 +123,7 @@ with no card or stick inserted (and the O1NEXT can boot
 - **Rev A engineering sample (`reva/`, 2-off, almost all SMD):**
   active interposer — SMT Z84C00 on board (pull the original CPU, drop
   the interposer in), /BUSRQ bus mastering, 595/165 shift-register
-  drive+capture fabric, Pico 2 module + castellated ESP32-C3 for WiFi,
+  drive+capture fabric, the bare RP2354B + castellated ESP32-C3 for WiFi,
   W25Q library flash. Design goal: **the dev partner controls the
   hardware** — memory R/W, ROM dumping (incl. the CoPower-88 monitor
   ROM, resolving research-gaps #4 by direct read), code injection +
@@ -129,7 +131,7 @@ with no card or stick inserted (and the O1NEXT can boot
 - Rev A production (#13): incorporates ES errata.
 - **Rev B (#15) — a separate product, not a revision:** Rev A is the
   mastering/debug instrument; Rev B is the **live-cycle personality
-  engine**. Full RP2350B pin allocation in `revb/README.md`. The
+  engine**. Full RP2354B pin allocation in `revb/README.md`. The
   enabling decisions:
   - **Zero direct address pins:** a 74AHCT688 window comparator
     (595-programmable match) + **/WAIT cycle stretching** — the
@@ -137,7 +139,7 @@ with no card or stick inserted (and the O1NEXT can boot
     address lines with 2 (ADDR_HIT, /WAIT drive).
   - Timing-critical direct set is only: D0–7, /MREQ, /IORQ, /RD, /WR,
     /M1, CLK, DATA_OE/DIR — 13 pins.
-  - **HSTX is fixed to GP12–19** on RP2350 → **HDMI** there. A VGA
+  - **HSTX is fixed to GP12–19** on RP2354B → **HDMI** there. A VGA
     resistor DAC would need the same range, so the two are mutually
     exclusive; **HDMI is the choice** and VGA is not pursued.
   - **Status/LED bank moves to the ESP32** (charlieplexed or I²C

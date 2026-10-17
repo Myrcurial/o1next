@@ -9,7 +9,7 @@ erased to offset `0` before any handler sees it. That measurement is
 
 The machine and the device are written as a real MAME machine and a real MAME
 device, so the patch is shaped to be sent upstream — and so that the same
-device, on hardware, is the RP2350 firmware's personality (#179, #192).
+device, on hardware, is the RP2354B firmware's personality (#179, #192).
 
 ## What is in here
 

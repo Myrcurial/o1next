@@ -3,7 +3,7 @@
 
 Structural schematic for routing: Z80 pass-through (plug J1 + on-board SMT
 Z84C00 U1), 74AHCT595/245 bus drive, 74AHCT165 capture chain, 74AHCT244/125
-control drive, Pico 2 W + ESP32-C3 + SPI flash, 3V3 LDO.
+control drive, RP2354B + ESP32-C3 + SPI flash, 3V3 LDO.
 Buses are connected by net labels (standard practice), so re-mapping
 GPIO assignments later is a label edit, not a re-route.
 
@@ -171,8 +171,8 @@ PICO_NET = {
     'GP7':'/OE_SYSCTL', # U11 125: /RESET /INT /NMI /WAIT /BUSRQ drive
     'GP8':'PD0','GP9':'PD1','GP10':'PD2','GP11':'PD3',   # U9 A-side (data to drive)
     'GP12':'PD4','GP13':'PD5','GP14':'PD6','GP15':'PD7',
-    'GP16':'ESP_TXD',   # RP2350 UART0 TX -> ESP32 RX
-    'GP17':'ESP_RXD',   # RP2350 UART0 RX <- ESP32 TX
+    'GP16':'ESP_TXD',   # RP2354B UART0 TX -> ESP32 RX
+    'GP17':'ESP_RXD',   # RP2354B UART0 RX <- ESP32 TX
     'GP18':'FLASH_SCK','GP19':'FLASH_MOSI','GP20':'FLASH_MISO','GP21':'/CS_FLASH',
     'GP22':'/MREQ_RAW', # raw bus lines for PIO strobe/trigger
     'GP26':'/IORQ_RAW','GP27':'Z80_CLK','GP28':'/BUSAK'}
@@ -247,7 +247,7 @@ syms = {'Z80': make_z80('Z80_DIP40','J'), 'Z84': make_z84(), '165': make_165('74
 out = ['(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
        f'  (uuid "{uid()}")', '  (paper "A2")',
        f'  (title_block (title "o1next interposer Rev A engineering sample") (date "{datetime.date.today()}") (rev "A-ES")',
-       '    (comment 1 "Active interposer: bus mastering via /BUSRQ, SR-based drive+capture, SMT Z84C00, Pico 2 + ESP32-C3. Engineering sample - 2 off."))',
+       '    (comment 1 "Active interposer: bus mastering via /BUSRQ, SR-based drive+capture, SMT Z84C00, RP2354B + ESP32-C3. Engineering sample - 2 off."))',
        '  (lib_symbols']
 for s in syms.values(): out.append(s.lib_sexpr().rstrip('\n'))
 out.append('  )')

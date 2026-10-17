@@ -15,7 +15,7 @@ code injection into a running machine over USB/WiFi.
 - **J1:** 40-pin plug into the O1's Z80 socket.
 - **U1 (Z84C00, SMT 44-pin):** the machine's CPU lives on the
   interposer. Bus mastering: assert /BUSRQ, wait /BUSAK, the Z80 floats
-  and the RP2350 owns the bus.
+  and the RP2354B owns the bus.
 - **Drive path (slow-tolerant by design):** 4× 74AHCT595 (U3/U4/U5/U15)
   — address A0–15, control /MREQ//IORQ//RD//WR//M1//RFSH, and
   system-control bits (D_/RESET, D_/INT, D_/NMI, D_/WAIT, D_/BUSRQ).
@@ -29,15 +29,14 @@ code injection into a running machine over USB/WiFi.
 - **Capture path:** 3× 74AHCT165 (U6–U8) — address echo, data-in — the
   analyzer front end from Rev 0, retained for passive capture while the
   Z84C00 runs.
-- **U2 (Pico 2, castellated module):** brains. USB to the host is the
-  Pico's own connector.
+- **U2 (RP2354B):** brains. USB to the host is the part's own connector.
 - **U12 (ESP32-C3 castellated module):** WiFi — UART bridge to the
-  RP2350 (GP16/17); runs the Zimodem fork later
+  RP2354B (GP16/17); runs the Zimodem fork later
   (`firmware/zimodem-fork/`), AT-bridge firmware initially.
 - **U13 (W25Q 64 Mb SPI flash):** the built-in diskette library
   (boot diskette at minimum).
 - **Power:** J2 dedicated 5 V in; U14 LDO makes 3V3 for the ESP32/flash
-  (Pico's own regulator is not sized for the C3's TX bursts).
+  (the part's own regulator is not sized for the C3's TX bursts).
 
 ## What this enables (firmware roadmap hooks)
 
@@ -54,7 +53,7 @@ code injection into a running machine over USB/WiFi.
 ## Which Z80 signals are timing-critical (and which aren't)
 
 The partitioning rule: **while bus-mastering (/BUSAK held), everything
-is slow** — the Z80 is stopped and the RP2350 sets the pace, so
+is slow** — the Z80 is stopped and the RP2354B sets the pace, so
 shift registers suffice for all drive. Speed is only needed for
 *live* observation/response while the CPU runs at 4 MHz (250 ns
 T-states).

@@ -10,7 +10,7 @@ Tracks: #47 (split out of #45). Target: PCBway build.
 ## Reference design
 
 - **MCU:** RP2040 running a USB HID host stack (TinyUSB host mode) →
-  8×8 matrix state. Chosen over Pico 2 W deliberately: no radio needed,
+  8×8 matrix state. Chosen over RP2354B deliberately: no radio needed,
   lowest cost, standard chip for retro USB-HID-host adapters.
 - **I/O:** watch 8 host row-drive lines (inputs), drive 8 column lines
   open-collector (matching the stock 74LS05 stage) — 16 GPIO.

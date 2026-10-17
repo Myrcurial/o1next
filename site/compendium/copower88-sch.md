@@ -73,7 +73,7 @@ i.e. the board snoops ONLY IORQ cycles, one address bit, and data.
 - The CoPower-88 is itself a **bus interposer precedent**: it sits on
   the host IORQ space with a minimal signal set (IORQ, RD, WR, A0-A7,
   D0-D7, RESET) and steals bus cycles via HOLD for refresh. Our
-  RP2350 design needs the same signals, plus WAIT for finer-grained
+  RP2354B design needs the same signals, plus WAIT for finer-grained
   interposition (the SWP board couldn't stretch cycles; it used HOLD).
 - Emulating a CoPower-88 (#26): trap IORQ at the DIP-configured base,
   implement PORT0/PORT1 + status bit0 semantics, and run the 8088
