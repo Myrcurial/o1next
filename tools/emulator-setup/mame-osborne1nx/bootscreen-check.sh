@@ -60,7 +60,10 @@ SPLASH="$REPO/firmware/rom-service/screen.bin"
 LUA="$HERE/o1next-bootscreen.lua"
 
 [ -d "$ROMPATH" ] || { echo "bootscreen-check.sh: no such ROM path: $ROMPATH" >&2; exit 1; }
-[ -f "$FRAME" ] || { echo "bootscreen-check.sh: no boot frame at $FRAME" >&2; exit 1; }
+[ -f "$FRAME" ] || {
+    echo "bootscreen-check.sh: no boot frame at $FRAME" >&2
+    echo "  the frame's own two runs need it; the fallback run below does not." >&2
+    FRAME_OK=0; }
 [ -f "$SPLASH" ] || { echo "bootscreen-check.sh: no boot splash at $SPLASH" >&2; exit 1; }
 [ -f "$LUA" ] || { echo "bootscreen-check.sh: no harness at $LUA" >&2; exit 1; }
 
@@ -84,7 +87,7 @@ grep -E '^  ok  monitor|^wrote' "$WORK/rom2image.log"
 echo "== the machine =="
 echo "  binary:  $MAME"
 echo "  monitor: $MONITOR"
-echo "  frame:   $FRAME ($(wc -c < "$FRAME" | tr -d ' ') bytes)"
+echo "  frame:   $FRAME ($([ "$FRAME_OK" = 1 ] && wc -c < "$FRAME" | tr -d ' ' || echo 0) bytes)"
 echo "  splash:  $SPLASH ($(wc -c < "$SPLASH" | tr -d ' ') bytes)"
 echo
 
@@ -92,6 +95,8 @@ FAIL=0
 verdict() {  # verdict LABEL RESULT
     if [ "$2" = 0 ]; then echo "  PASS  $1"; else echo "  FAIL  $1"; FAIL=1; fi
 }
+
+if [ "$FRAME_OK" = 1 ]; then
 
 # --- the splash: the stub asks, the code runs, the screen is drawn ----------
 echo "== the splash: the frame on the character plane and on the attribute plane"
@@ -120,6 +125,29 @@ if grep -q '^SCREEN: PASS' "$WORK/screen-stock.log"; then
     verdict "with no splash the frame is not drawn, so the frame above is the code's" 0
 else
     verdict "with no splash the frame is not drawn, so the frame above is the code's" 1
+fi
+echo
+
+else
+    verdict "the frame's own two runs (no boot frame mounted -- the asset is retired)" 1
+    echo
+fi
+
+# --- the splash and NO frame: the screen code's own fallback (#247's W3) -----
+# This is the run that needs no frame asset, so it works while the frame's is
+# retired: the code runs, PRESENT(1) has nothing to answer with, and the fallback
+# it has already printed is what stays on the screen.
+echo "== the fallback: the screen's own two lines, and its bright/dim runs"
+O1_BOOTSPLASH="$SPLASH" O1_EXPECT=fallback \
+SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -softrom "$WORK/rom2.rom" \
+    -bootsplash "$SPLASH" \
+    -video none -sound none -nothrottle -rompath "$ROMPATH" \
+    -autoboot_script "$LUA" -seconds_to_run 30 > "$WORK/screen-fallback.log" 2>&1 || true
+grep -E '^  (PASS|FAIL)|^SCREEN:|^  \|' "$WORK/screen-fallback.log" | sed 's/^/  /'
+if grep -q '^SCREEN: PASS' "$WORK/screen-fallback.log"; then
+    verdict "the fallback is the screen's own two lines, at its own rows and runs" 0
+else
+    verdict "the fallback is the screen's own two lines, at its own rows and runs" 1
 fi
 echo
 

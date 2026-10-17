@@ -49,6 +49,10 @@
 --                  has to be on the screen.  `stock` -- no splash is mounted, so
 --                  the stub prints the stock sign-on and the frame has to *not*
 --                  be, which is what says the frame came from the screen code.
+--                  `fallback` -- the splash *is* mounted and no frame is, so the
+--                  screen code runs and its own fallback has to be on the screen:
+--                  the animation's two lines and its bright/dim runs (#247's W3).
+--                  It needs no frame asset, so it runs while the frame's is retired.
 --
 -- It prints SCREEN: PASS or SCREEN: FAIL, and exits 0 or 1.
 
@@ -139,13 +143,16 @@ local function row_text(plane, r)
 end
 
 local function run()
-  assert(FRAME, "o1next-bootscreen.lua: set O1_FRAME to the boot frame")
-  local frame = slurp(FRAME)
+  if EXPECT ~= "fallback" then
+    assert(FRAME, "o1next-bootscreen.lua: set O1_FRAME to the boot frame")
+  end
+  local frame = FRAME and slurp(FRAME) or nil
   local splash = SPLASH and slurp(SPLASH) or nil
 
   logf("the boot screen, read off the machine")
   logf("  monitor: ROM 2.0's, in the softROM window -- its sign-on stub is the caller")
-  logf(string.format("  frame:   %s (%d bytes)", FRAME, #frame))
+  logf("  frame:   " .. (frame and string.format("%s (%d bytes)", FRAME, #frame)
+                        or "<none -- the fallback is what this run expects>"))
   logf("  splash:  " .. (splash and string.format("%s (%d bytes)", SPLASH, #splash)
                         or "<none -- the stub prints the stock sign-on instead>"))
   logf("  expect:  " .. EXPECT)
@@ -169,8 +176,12 @@ local function run()
     logf(string.format("the frame's characters are on the character plane after %s " ..
                        "emulated seconds", landed and string.format("%.2f", waited)
                        or "15.00 (they never were)"))
+  elseif EXPECT == "fallback" then
+    emu.wait(6)   -- the screen code runs, prints its own fallback, and stops there
+    logf("the splash is mounted and no frame is, so the screen code prints its own " ..
+         "fallback -- the animation's two lines, which this run reads back")
   else
-    emu.wait(3)   -- no splash: the fallback text, and then the prompt
+    emu.wait(3)   -- no splash: the stock sign-on, and then the prompt
     logf("no splash is mounted, so the stub takes its fallback: the stock sign-on is " ..
          "what this run expects to find")
   end
@@ -181,6 +192,10 @@ local function run()
 
   logf("the character plane (OUT 03h, then F000h-FFFFh), the first 8 of 32 rows:")
   for r = 0, 7 do logf("  |" .. row_text(ch, r) .. "|") end
+  if EXPECT == "fallback" then
+    logf("... and the two rows the fallback writes:")
+    for r = 20, 22 do logf("  |" .. row_text(ch, r) .. "|") end
+  end
   logf("")
 
   if EXPECT == "splash" then
@@ -199,6 +214,54 @@ local function run()
     for a = 0xff8, 0xffd do if (at[a] & 0x80) == 0 then dim = dim + 1 end end
     check(dim == 6, string.format("the frame's attribute trailer at 0FF8h is on the plane, " ..
                                   "dim (%d of 6)", dim))
+  elseif EXPECT == "fallback" then
+    -- #247's W3: the screen code's own fallback, at the animation's own rows and
+    -- columns and with the animation's own bright/dim runs.  It is checked here
+    -- rather than against the frame, because this is the run with no frame in it.
+    local L1, L1C = "osborne 1 next rom 2.0 2026", 24
+    local L2, L2C = "press return to begin", 30
+    for _, spec in ipairs({ { 20, L1, L1C }, { 22, L2, L2C } }) do
+      local r, want, col = spec[1], spec[2], spec[3]
+      local got = {}
+      for c = col, col + #want - 1 do
+        got[#got + 1] = string.char(ch[r * STRIDE + c] % 128)
+      end
+      got = table.concat(got)
+      check(got == want,
+            string.format("row %d carries the screen's own line |%s|", r, want),
+            got ~= want and ("got |" .. got .. "|") or nil)
+    end
+    local stray = 0
+    for r = 0, 31 do
+      for c = 0, STRIDE - 1 do
+        local b = ch[r * STRIDE + c] % 128
+        if b ~= 32 and b ~= 0 then
+          local mine = (r == 20 and c >= L1C and c < L1C + #L1)
+                    or (r == 22 and c >= L2C and c < L2C + #L2)
+          if not mine then stray = stray + 1 end
+        end
+      end
+    end
+    check(stray == 0, "the two lines are the whole screen -- no other ink",
+          stray .. " stray cell(s)")
+    -- the dim runs, and only them.  The bright fill covers all 4096 cells, so a
+    -- dim cell anywhere else is a defect -- which is how the fill's own 15-cell
+    -- shortfall was found (2026-10-17).
+    local DIM = { { 20, 39, 50 }, { 22, 30, 34 }, { 22, 43, 50 } }
+    local want, dimtotal = 0, 0
+    for _, d in ipairs(DIM) do want = want + (d[3] - d[2] + 1) end
+    for a = 0, PLANE - 1 do if (at[a] & 0x80) == 0 then dimtotal = dimtotal + 1 end end
+    check(dimtotal == want,
+          string.format("exactly the fallback's %d dim cells and no others -- the " ..
+                        "bright fill is all 4096", want), dimtotal .. " dim cell(s)")
+    for _, d in ipairs(DIM) do
+      local bad = 0
+      for c = d[2], d[3] do if (at[d[1] * STRIDE + c] & 0x80) ~= 0 then bad = bad + 1 end end
+      check(bad == 0, string.format("row %d cols %d-%d is dim", d[1], d[2], d[3]),
+            bad .. " bright")
+    end
+    check((at[20 * STRIDE + 38] & 0x80) ~= 0,
+          "row 20 col 38 is bright, so the dim run really starts at 39")
   else
     local n = compare(ch, frame, 0, false)
     check(n > 0, "the frame is not on the screen -- the stub printed the stock sign-on instead")
