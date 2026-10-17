@@ -75,8 +75,12 @@ mame osborne1nx -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom
 ROM: two 4096-byte halves — characters then attributes — served into window page
 1 when the ROM asks for them through the **ROM service's door**
 (`docs/rom-pico-protocol.md` §5). With none mounted the door answers "no such
-content" and the ROM keeps its own text, which is the fallback path. The frame is
-a generated, committed asset: `firmware/rom-service/frame.bin`.
+content" and the ROM keeps its own text, which is the fallback path. The frame
+**used** to be a generated, committed asset at `firmware/rom-service/frame.bin`;
+that file was **retired on 2026-10-16** (`firmware/rom-service/README.md`), when the
+boot screen became the animation the RP2354B plays, so this harness now stops with
+*"no boot frame at …"* until this directory's #247 rewrite lands. Nothing else in
+it changed.
 
 ```sh
 mame osborne1nx -rompath tools/emulator-setup/roms \

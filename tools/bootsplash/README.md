@@ -219,9 +219,10 @@ half[0FF8h..0FFDh]  'O1NEXT', six bytes of magic
 half[0FFEh..0FFFh]  the 16-bit sum of the 4088 body bytes, little-endian
 ```
 
-The contract is `docs/rom-pico-protocol.md` §4 and §5, and **frame *n* of an
-export is byte-identical to the committed asset `firmware/rom-service/frame.bin`**
-(CRC32 `6eef5af9`). Nothing about the frames is this tool's invention.
+The contract is `docs/rom-pico-protocol.md` §4 and §5, and **the committed asset
+is this tool's own output**: `firmware/rom-service/bootsplash.bin`, the 90-frame
+animation. Nothing about the *frames* is this tool's invention — the format is the
+machine's, and what it writes is what ships.
 
 The **container** around them is: #247 hands the pacing to the RP2354B, so the
 asset becomes a sequence, and a sequence has to say how long each frame lasts.
@@ -241,11 +242,13 @@ The header is always written:
 32   N * 8192            the frames, back to back, each already sealed
 ```
 
-**This header is a proposal.** The firmware side of #247 is not written, so there
-is nothing yet to conform to, and it is one constant to change. What is *not* a
-proposal is the 8192 bytes behind it — `tail -c +33 out.bin` is a valid frame
-today, and for a one-frame animation it is `frame.bin` exactly. The flags byte, and
-what each mode plays, is `docs/rom-pico-protocol.md` §5.1.
+**This header is the firmware's contract now**, not a proposal: #247's W5 makes the
+frame asset *the animation the RP2354B plays*, the RP2354B paces it from its own
+flash and stops on the Z80's first video-RAM write, and
+`firmware/rom-service/bootsplash.bin` is the first instance of it. What is *not*
+this tool's invention is the 8192 bytes behind the header — `tail -c +33 out.bin` is
+a valid frame. The flags byte, and what each mode plays, is
+`docs/rom-pico-protocol.md` §5.1.
 
 ## The playback mode: the four things two bits can say
 
@@ -367,8 +370,9 @@ actually be asked to move.
 
 - the embedded ROM is `char.ua15` (CRC32 `5297c109`), and every glyph dot decodes
   as `rom[row*128 + code]`, bit 7 leftmost;
-- **re-sealing the committed `frame.bin`'s own two halves reproduces it byte for
-  byte** — so the trailer is the machine's trailer, not a lookalike;
+- **every frame of the committed animation passes the machine's own trailer test**,
+  and **re-sealing frame 1's two halves reproduces it byte for byte** — so the
+  trailer is the machine's trailer, not a lookalike;
 - a frame built here is **byte-identical** to one built by
   `tools/research/rom2strokes.py` from the same art, through that module's own
   `chars_half`/`attrs_half`/`seal`;

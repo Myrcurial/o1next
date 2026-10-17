@@ -7,8 +7,9 @@
  *
  *   1. the embedded character ROM is the ROM          -- CRC32 5297c109
  *   2. the trailer is the machine's trailer           -- re-seals the committed
- *                                                        firmware/rom-service/frame.bin
- *                                                        and must reproduce it byte for byte
+ *                                                        firmware/rom-service/bootsplash.bin
+ *                                                        (every frame of it) and must
+ *                                                        reproduce it byte for byte
  *   3. the whole frame builder is the machine's       -- builds a frame and has
  *                                                        tools/research/rom2strokes.py
  *                                                        build the same one from the same
@@ -34,7 +35,11 @@ const S = require('./core.js');
 const HERE = __dirname;
 const REPO = path.resolve(HERE, '..', '..');
 const ROM_PATH = path.join(REPO, 'tools', 'emulator-setup', 'roms', 'char.ua15');
-const FRAME_PATH = path.join(REPO, 'firmware', 'rom-service', 'frame.bin');
+// The committed boot-screen asset is the *animation*.  Frame 1 of it is the
+// reference frame for the checks that need a real one: it is a frame the machine's
+// own trailer test accepts, and it is the one that actually ships.
+const ASSET_PATH = path.join(REPO, 'firmware', 'rom-service', 'bootsplash.bin');
+const ASSET = S.parseAnimation(fs.readFileSync(ASSET_PATH));
 const STROKES = path.join(REPO, 'tools', 'research', 'rom2strokes.py');
 
 let passed = 0, failed = 0;
@@ -69,11 +74,24 @@ section('the character generator ROM');
         S.GRAPHICS_KEYS.map(k => k.key + '=' + k.glyph).join(' '));
 }
 
-// --- 2. the trailer, against the committed frame ---------------------------
-section('the trailer, against the committed frame');
+// --- 2. the trailer, against the committed asset ---------------------------
+// The asset is the animation, so the whole of it is checked here first -- the
+// header, and every frame's own trailer -- and then frame 1 stands in as "a real
+// frame" for the checks that only need one.
+section('the trailer, against the committed animation');
 {
-  const frame = fs.readFileSync(FRAME_PATH);
-  check('frame.bin is 8192 bytes', frame.length === 8192, frame.length + ' bytes');
+  check('the committed asset is an animation of 90 frames at 8 fps',
+        ASSET.ok && ASSET.frames.length === 90 && ASSET.fps === 8 &&
+        ASSET.mode === 'once',
+        ASSET.why || (ASSET.frames.length + ' frames, ' + ASSET.fps + ' fps, ' +
+                      ASSET.mode));
+  let badFrames = 0;
+  ASSET.frames.forEach((f) => { if (!S.checkFrame(f).ok) badFrames++; });
+  check('every frame of it passes the machine\u2019s own trailer test',
+        badFrames === 0, badFrames + ' of ' + ASSET.frames.length + ' failed');
+
+  const frame = Buffer.from(ASSET.frames[0]);
+  check('its frame 1 is 8192 bytes', frame.length === 8192, frame.length + ' bytes');
   for (const [name, off] of [['character', 0], ['attribute', 4096]]) {
     const half = frame.subarray(off, off + 4096);
     const resealed = S.seal(half.subarray(0, S.TRAILER_AT));
@@ -83,7 +101,7 @@ section('the trailer, against the committed frame');
     check('re-sealing the ' + name + ' half reproduces it byte for byte', same,
           'sum ' + S.hex(res.sum));
   }
-  check('checkFrame() accepts the committed frame', S.checkFrame(frame).ok,
+  check('checkFrame() accepts it', S.checkFrame(frame).ok,
         S.checkFrame(frame).why);
   // And a single flipped body byte must be caught.
   const bent = Buffer.from(frame);
@@ -205,11 +223,12 @@ section('the frame builder, against tools/research/rom2strokes.py');
           S.hex(S.HATCH_CODE, 2));
   }
 
-  // frame.bin -> planes -> frame.bin, with no art file in the loop at all.
-  const planes = S.parseFrame(fs.readFileSync(FRAME_PATH));
-  check('the committed frame survives planes -> buildFrame unchanged',
+  // a committed frame -> planes -> a committed frame, with no art file in the
+  // loop at all.
+  const planes = S.parseFrame(ASSET.frames[0]);
+  check('the animation’s frame 1 survives planes -> buildFrame unchanged',
         Buffer.from(S.buildFrame(planes.cells, planes.attrs))
-              .equals(fs.readFileSync(FRAME_PATH)));
+              .equals(Buffer.from(ASSET.frames[0])));
 
   const art = S.artTextBytes(S.blankCells());
   check('the art text is 32 lines of 128 characters', art.length === 32 * 129,
@@ -219,11 +238,11 @@ section('the frame builder, against tools/research/rom2strokes.py');
 // --- 4. the animation container --------------------------------------------
 section('the animation container');
 {
-  const one = Buffer.from(fs.readFileSync(FRAME_PATH));
+  const one = Buffer.from(ASSET.frames[0]);
   const anim = Buffer.from(S.buildAnimation([one], 10, true));
   check('a one-frame animation is 32 + 8192 bytes', anim.length === 32 + 8192,
         anim.length + ' bytes');
-  check('tail -c +33 of it is the committed frame.bin',
+  check('tail -c +33 of it is frame 1 of the committed animation',
         anim.subarray(S.ANIM_HEADER).equals(one));
   const back = S.parseAnimation(anim);
   check('it parses back with the fps and the loop flag', back.ok &&
@@ -254,7 +273,7 @@ section('the animation container');
 // of the interface: a mode a caller cannot name is a mode a caller cannot ask for.
 section('the playback mode');
 {
-  const one = Buffer.from(fs.readFileSync(FRAME_PATH));
+  const one = Buffer.from(ASSET.frames[0]);
   const flagOf = (mode) => S.buildAnimation([one], 10, mode)[9];
   check('once is flags 0, loop is 1, ping-pong once is 2, ping-pong is 3',
         flagOf('once') === 0 && flagOf('loop') === S.ANIM_LOOP &&

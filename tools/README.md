@@ -195,8 +195,9 @@ What it writes:
 
 - **`.bin`** — a 32-byte `O1SPLASH` header (version, flags, 128×32, fps, frame
   count, a sum) and then the frames. Each frame is **8192 bytes = two
-  sealed 4096-byte halves**, byte-identical to `firmware/rom-service/frame.bin`;
-  `tail -c +33` of a one-frame file *is* that asset. The flags byte carries the
+  sealed 4096-byte halves**; `tail -c +33` of a one-frame file is one, and the
+  committed asset is this tool's own output, at
+  `firmware/rom-service/bootsplash.bin`. The flags byte carries the
   playback mode — **bit 0 repeat, bit 1 bounce** — so all four combinations are
   offered: once (`1 2 3`), loop, ping-pong once (`1 2 3 2 1`, then stop) and
   ping-pong repeat (`1 2 3 2 1 2 3 2 …`). The header is this tool's proposal — the
@@ -231,8 +232,8 @@ node tools/bootsplash/ui-test.js      # 140 checks, needs jsdom
 ```
 
 `selftest.js` checks the format against things that are not this tool: it
-re-seals the committed `frame.bin`'s own halves and requires them back byte for
-byte, builds a frame and requires `rom2strokes.py` to build the same bytes from
+re-seals the committed animation's frames' own halves and requires them back byte
+for byte, builds a frame and requires `rom2strokes.py` to build the same bytes from
 the same art, and decodes its own PNG and GIF — the GIF with **macOS's ImageIO**
 as well as with a reader written to the spec. `ui-test.js` drives the actual page
 in a real DOM and decodes what its four download buttons produce.

@@ -235,9 +235,11 @@ half at `1000h`, and one `LDIR` moves it to `F000h`.
 trailer — the art's rows 24–31 are off-screen and carry it. It writes **both
 halves**, each with its own trailer, so one command produces the whole 8192-byte
 artifact; `--half chars|attrs` writes one, `--verify` checks one or both off the
-disk with nothing but the file, and the frame is a build artifact of that art. It
-is committed at `firmware/rom-service/frame.bin`, and `--check` re-builds it and
-compares bytes, so the art, the asset and the firmware's copy cannot drift.
+disk with nothing but the file. **That artifact is no longer a committed asset:**
+the single frame at `firmware/rom-service/frame.bin` was retired on 2026-10-16, when
+the boot screen became the animation the RP2354B plays (§5.1, and #247's W5), and
+the byte-for-byte check that re-built it went with it. The art stays, because the
+site masthead is still drawn from it.
 
 ### 5.1 The animation: a container, and the two bits that pace it
 
