@@ -10,8 +10,8 @@
 
   Runs entirely in the browser, from file://, with no server and no network: the
   glyphs, the fonts and the logic are all embedded or beside this file.  The
-  output format is the machine's own -- see core.js, and note that the frames are
-  byte-identical to firmware/rom-service/frame.bin.
+  output format is the machine's own -- see core.js, and note that what this tool
+  writes IS the committed asset: firmware/rom-service/bootsplash.bin.
 
   The two faces below are copies of site/assets/fonts/osborne1-80.woff2 and
   osborne1-art-80.woff2, which tools/romfont.py builds from the character
@@ -332,10 +332,11 @@ details > summary { cursor: pointer; color: var(--cream); }
         <button id="dlGif">download GIF</button>
         <button id="dlTxt">download .txt</button>
       </div>
-      <div class="note">The <code>.bin</code> is a 32-byte header and then the frames, each byte-identical to
-        <code>firmware/rom-service/frame.bin</code> &mdash; <code>tail -c +33</code> of a one-frame file is that
-        asset exactly. The header's flags byte carries the playback mode (bit 0 repeat, bit 1 bounce). The
-        header is this tool's proposal; the firmware side of #247 is not written yet.</div>
+      <div class="note">The <code>.bin</code> is a 32-byte header and then the frames, each <b>8192 bytes =
+        two sealed 4096-byte halves</b> &mdash; <code>tail -c +33</code> of a one-frame file is one of them. This
+        is the committed asset's own format: <code>firmware/rom-service/bootsplash.bin</code> is this tool's
+        output. The flags byte carries the playback mode (bit 0 repeat, bit 1 bounce), and #247's W5 is the
+        contract it serves &mdash; the RP2354B paces the frames from its own clock and flash.</div>
       <div class="note"><b>.txt</b> is the repo's art text, which the ROM's own loader reads with
         <code>sui 65</code> &mdash; so it cannot carry a cell holding glyph <b>0x41&ndash;0x61</b>, and with direct
         keys a capital is exactly one of those. The export counts them and says so; the <code>.bin</code> is
