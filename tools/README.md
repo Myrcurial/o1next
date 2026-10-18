@@ -33,6 +33,15 @@ under the Homebrew prefix.
 
 ## Components
 
+- **picoem-bridge/** — the **host process** for the picoem bridge (#286, part of
+  #192): a Rust crate that owns an `rp2350-emu` instance and answers
+  `osborne1nx`'s bus cycles. It is the one thing in `tools/` that is **not
+  Python**, and that is deliberate: the emulator is a Rust library and the only
+  way to own an instance of it is to link it. Its dependencies are two —
+  `libc` (for `mkfifo`) and `rp2350-emu` pinned to a commit — and the frame
+  format it speaks is documented in `docs/picoem-bridge.md`. `cargo test` there
+  is a CI job; the full acceptance is
+  `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`.
 - **edsk2raw.py** — EXTENDED CPC DSK (SAMdisk output) to raw CP/M
   sector image. Sorts sectors by R id (handles interleave and Kaypro's
   side-continuous sector numbering: side0 = 0-9, side1 = 10-19).

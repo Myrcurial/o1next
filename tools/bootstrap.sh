@@ -144,7 +144,7 @@ check_host() {
 # Every row of REQUIREMENTS.md §Required, in that order.  A row is ok when the
 # tool resolves *and* runs; DEAD when it resolves to something that cannot.
 check_required() {
-    local p kicad pyfonts
+    local p kicad pyfonts armgcc libc
     local heading="${1:-required (REQUIREMENTS.md)}"
 
     rule "$heading"
@@ -305,18 +305,92 @@ check_required() {
         miss_row ghostscript 'brew install ghostscript'
         add_formula ghostscript
     fi
+
+    # ---------------------------------------------------------------- #286 ----
+    # The picoem bridge: the host process (tools/picoem-bridge), the firmware it
+    # runs (firmware/picoem-smoke), and the two third-party trees neither can
+    # vendor.  docs/picoem-bridge.md is the long version.
+
+    if have cargo && have rustc; then
+        ok_row rust "$(which_of cargo) — $(cargo --version 2>/dev/null)"
+    else
+        miss_row rust 'brew install rust'
+        add_formula rust
+    fi
+
+    if have cmake; then
+        ok_row cmake "$(which_of cmake) — $(cmake --version 2>/dev/null | head -1)"
+    else
+        miss_row cmake 'brew install cmake'
+        add_formula cmake
+    fi
+
+    if have ninja; then
+        ok_row ninja "$(which_of ninja) — $(ninja --version 2>/dev/null)"
+    else
+        miss_row ninja 'brew install ninja'
+        add_formula ninja
+    fi
+
+    if have picotool; then
+        ok_row picotool "$(which_of picotool) — $(picotool version 2>&1 | head -1)"
+    else
+        miss_row picotool 'brew install picotool'
+        add_formula picotool
+    fi
+
+    # A toolchain that resolves but cannot *link* is the trap here, and it is
+    # the same shape as the Ghostscript corpse above: Homebrew's
+    # `arm-none-eabi-gcc` formula ships no C library at all, so `-lc` fails with
+    # `cannot find -lc` and it reads like a broken linker.  The probe is
+    # `-print-file-name=libc.a`: a real toolchain answers with a path.
+    #
+    # The official toolchain is not on PATH on either machine -- it is a
+    # tarball unpacked outside the repo -- so this looks where
+    # firmware/picoem-smoke/build.sh looks: $PICO_TOOLCHAIN_PATH, then the
+    # documented $HOME/Documents/O1NEXT/toolchain/.
+    armgcc="$(which_of arm-none-eabi-gcc)"
+    if [ -z "$armgcc" ]; then
+        for cand in "${PICO_TOOLCHAIN_PATH:-}/bin/arm-none-eabi-gcc" \
+                    "$HOME"/Documents/O1NEXT/toolchain/arm-gnu-toolchain-*/bin/arm-none-eabi-gcc; do
+            if [ -x "$cand" ]; then armgcc="$cand"; break; fi
+        done
+    fi
+    if [ -n "$armgcc" ]; then
+        libc="$("$armgcc" -print-file-name=libc.a 2>/dev/null || true)"
+        case "$libc" in
+            /*)
+                ok_row arm-none-eabi-gcc "$armgcc — $("$armgcc" -dumpversion 2>/dev/null), libc at $libc"
+                ;;
+            *)
+                dead_row arm-none-eabi-gcc \
+                    "$armgcc — no C library (libc.a -> '$libc'); that is the Homebrew formula, and the firmware needs the official Arm GNU Toolchain (REQUIREMENTS.md)"
+                ;;
+        esac
+    else
+        miss_row arm-none-eabi-gcc \
+            'the official Arm GNU Toolchain tarball — not in Homebrew, see REQUIREMENTS.md'
+    fi
+
+    # picoem and the Pico SDK are clones, not formulae, so these two rows can
+    # only report.  Both live outside the repo on purpose (AGENTS.md).
+    if [ -f "$HOME/Documents/O1NEXT/picoem-286/crates/rp2350-emu/Cargo.toml" ]; then
+        ok_row picoem "clone at $HOME/Documents/O1NEXT/picoem-286 (the pin is in tools/picoem-bridge/Cargo.toml)"
+    else
+        miss_row picoem "git clone https://github.com/0x4D44/picoem.git \$HOME/Documents/O1NEXT/picoem-286"
+    fi
+
+    if [ -f "$HOME/Documents/O1NEXT/pico-sdk-2.3.1/pico_sdk_init.cmake" ]; then
+        ok_row pico-sdk "clone at $HOME/Documents/O1NEXT/pico-sdk-2.3.1"
+    else
+        miss_row pico-sdk "git clone --depth 1 --branch 2.3.1 https://github.com/raspberrypi/pico-sdk.git \$HOME/Documents/O1NEXT/pico-sdk-2.3.1"
+    fi
 }
 
 check_optional() {
     local t missing
 
     rule "optional (not required — see REQUIREMENTS.md)"
-
-    if have cmake; then
-        printf '  %-7s %-15s %s\n' ok cmake "$(which_of cmake) — to build SAMdisk 4"
-    else
-        printf '  %-7s %-15s %s\n' absent cmake 'brew install cmake — only to build SAMdisk 4'
-    fi
 
     if have samdisk || [ -x /tmp/samdisk/build/samdisk ]; then
         printf '  %-7s %-15s %s\n' ok samdisk 'only needed to re-run the TD0 leg of extract_all.sh'
