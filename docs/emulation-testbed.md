@@ -149,10 +149,10 @@ external stimulus, and **`FUNCSEL` is never consulted**.
   needs it.
 - **There is no device behind any peripheral.** Loopback is the only thing SPI can
   talk to: no microSD, no W25Q, no USB stick.
-- **There is no USB controller model at all** on RP2350 — only clock-tree entries
-  (`CLK_USB_CTRL/DIV/SELECTED`, `PLL_USB`). TinyUSB host MSC for the USB stick
-  medium is the largest single piece in this document, and §4.3 argues it should
-  never be built.
+- **There is no USB controller model at all** on the RP2354B — only clock-tree
+  entries (`CLK_USB_CTRL/DIV/SELECTED`, `PLL_USB`). TinyUSB host MSC for the USB
+  stick medium is the largest single piece in this document, and §4.3 argues it
+  should never be built.
 
 **And a fidelity gap worth recording on its own:** because `FUNCSEL` is not
 enforced, PIO and SIO drive pins *regardless of the mux*. That is precisely why
@@ -224,8 +224,9 @@ order of magnitude of effort:
 - **The transports are hardware-gated, and now for a named reason**: no pad mux
   (P5) and no device behind SPI (P6).
 - **The USB stick medium is permanently hardware-only.** There is no USB
-  controller model on RP2350 in this crate, and building one to test a file-copy
-  path is not a trade worth making. Record it as a decision, not as a gap.
+  controller model on the RP2354B in this crate, and building one to test a
+  file-copy path is not a trade worth making. Record it as a decision, not as a
+  gap.
 
 ## 5. The path
 
@@ -325,9 +326,9 @@ built (§4.3).
 
 **Why this is worth more than it looks.** P2 (`LDAEXB` mis-decoded as `LDRD` into
 `{Rt, pc}`), P3 (every UsageFault reported as `UNDEFINSTR`) and P1 (the CP0 table
-vs SDK 2.3.1) are **not o1next bugs**. Every project emulating an RP2350 running
-stock Pico SDK firmware hits all three. Those three findings, written up as a
-patch, are the most generally useful thing this project has produced about
+vs SDK 2.3.1) are **not o1next bugs**. Every project emulating an RP2354B and
+running stock Pico SDK firmware hits all three. Those three findings, written up
+as a patch, are the most generally useful thing this project has produced about
 emulation, and they cost an afternoon between them.
 
 ## 6. What cannot be emulated, ever

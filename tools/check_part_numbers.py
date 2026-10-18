@@ -47,6 +47,19 @@ Two more files are exempt because their *purpose* is to name the wrong spellings
     tools/README.md                 its documentation — a rule has to be able to
                                     state itself
 
+And one generated artifact, for a reason that is the same as the archive's:
+
+    tools/emulator-setup/picoem/rp2350-coproc-and-exclusive.patch
+                                  a **diff against someone else's source tree**
+                                  (#192).  Its `-` lines are picoem's own
+                                  comments, and picoem models the RP2354A as well
+                                  as the B part — a diff cannot rewrite what it
+                                  removes, and rewriting the record to suit our
+                                  vocabulary is exactly what the archive rule
+                                  forbids.  What the guard is for is *our* prose,
+                                  and that lives in the same directory's
+                                  `README.md`, which is not exempt.
+
 Binaries are skipped by content (a NUL byte), so an archived PDF or a
 `boot-animation.bin` cannot trip the guard.
 
@@ -82,6 +95,10 @@ EXEMPT_FILES = {
     "tools/check_part_numbers.py",
     ".github/workflows/part-numbers.yml",
     "tools/README.md",
+    # A diff against another project's source tree: its `-` lines are *their*
+    # comments, and picoem models the RP2354A as well as the B part.  See the
+    # header for the full argument.
+    "tools/emulator-setup/picoem/rp2350-coproc-and-exclusive.patch",
 }
 
 EXEMPT_DIRS = (
