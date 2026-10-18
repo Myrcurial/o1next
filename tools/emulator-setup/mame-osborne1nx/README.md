@@ -33,6 +33,8 @@ device, on hardware, is the RP2354B firmware's personality (#179, #192).
 | `rom2drives.lua` | **the N-drive acceptance** — `A0>`..`N0>`, a file written and read back on every drive, each drive's own ALV, and the LBA the *card* was asked for (#247) |
 | `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
 | `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
+| `o1next-picoem.lua` | **the picoem bridge's MAME half** (#286) — the card window's taps, and the 24-byte frame that carries each cycle to a real RP2354B firmware running inside picoem and back. A pair of FIFOs, not a socket: MAME's Lua has no socket library, and `docs/picoem-bridge.md` §2 has the measurement |
+| `picoem-check.sh` | **the bridge's acceptance** (#286) — a firmware binary built from this tree running inside picoem, `osborne1nx`'s bus cycles reaching its GPIO, and the answers coming back into the machine. Seven checks, and the firmware's own PC and cycle count are two of them |
 
 The patch touches seven files:
 

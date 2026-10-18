@@ -1,0 +1,26 @@
+[package]
+name = "picoem-bridge"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Host side of the picoem bridge: runs a real RP2354B firmware image in picoem and answers osborne1nx's bus cycles (#286)"
+license = "MIT"
+publish = false
+
+# `tools/` is Python stdlib only, and this crate is the documented exception:
+# it is a host tool that has to link an emulator, and the emulator is Rust.  The
+# rule and the exception are both written down in tools/README.md.
+[dependencies]
+# mkfifo(3) and nothing else: the channel is a pair of FIFOs and the rest is std.
+libc = "0.2"
+
+# picoem logs through `tracing`, and its warnings are the ones that matter here:
+# an unmodelled MMIO access is a warning in the emulator and a BusFault in the
+# firmware, so the bridge has to be able to show them.
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# The RP2354B emulator.  Pinned to a commit on purpose -- picoem is a personal
+# research project with no triage or PR SLA, so we pin and re-pin deliberately
+# rather than tracking main.  The commit, the reason and the re-pin procedure
+# are in REQUIREMENTS.md; Cargo.lock records the resolved graph.
+rp2350-emu = { git = "https://github.com/0x4D44/picoem", rev = "8e20a82e64ef0a416e21af20edd964138ecd41be" }

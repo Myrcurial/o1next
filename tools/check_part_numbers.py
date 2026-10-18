@@ -89,7 +89,12 @@ EXEMPT_DIRS = (
     "hardware/interposer/rev0",
 )
 
-SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__"}
+SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__",
+             # Generated build output, the same category as .venv: a Pico SDK
+             # build tree and a Rust target/ are full of the third party's own
+             # vocabulary, and neither is tracked.  (firmware/*/build/ and
+             # tools/picoem-bridge/target/ -- #286.)
+             "build", "target"}
 
 MAX_BYTES = 2 * 1024 * 1024
 

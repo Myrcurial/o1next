@@ -1,0 +1,54 @@
+name: picoem-bridge
+
+# The picoem bridge's frame format and channel, host-tested (#286, part of #192).
+#
+# This job is cheap and it is the one that keeps the wire honest: the frame has
+# TWO copies -- src/frame.rs and
+# tools/emulator-setup/mame-osborne1nx/o1next-picoem.lua -- and only one of them
+# can be compiled.  These tests pin the layout, the length, the checksum and the
+# rejection of a torn or misaligned frame; a real FIFO round trip is in there
+# too.  No MAME, no Pico SDK, no firmware, no board.
+#
+# The full acceptance -- a firmware running in picoem, answering osborne1nx's bus
+# cycles -- needs the patched MAME, the SDK and the Arm toolchain, and lives in
+# tools/emulator-setup/mame-osborne1nx/picoem-check.sh.  It is a developer's
+# command, not a CI job, and docs/picoem-bridge.md says why.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/picoem-bridge/**'
+      - '.github/workflows/picoem-bridge.yml'
+  pull_request:
+    paths:
+      - 'tools/picoem-bridge/**'
+      - '.github/workflows/picoem-bridge.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    # macOS, not ubuntu, and it is picoem that decides that: at the pinned
+    # commit `crates/picoem-common/src/pacer.rs` calls
+    # `std::arch::x86_64::__cpuid` **without an `unsafe` block** in a
+    # `#[cfg(target_arch = "x86_64")]` function, so the crate does not compile
+    # on x86_64 at all (E0133, measured on this job's first run on
+    # ubuntu-latest).  It builds cleanly on arm64, which is also where this
+    # bridge runs -- the whole o1next toolchain is macOS.  See the picoem row in
+    # REQUIREMENTS.md.
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: tools/picoem-bridge
+    steps:
+      - uses: actions/checkout@v4
+
+      # The crate is edition 2024 and rust-version 1.88; the runner's default
+      # toolchain is older than that.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88
+
+      # `rp2350-emu` is a git dependency pinned to a commit, so the first build
+      # fetches picoem.  --locked keeps the pinned graph.
+      - run: cargo test --release --locked
