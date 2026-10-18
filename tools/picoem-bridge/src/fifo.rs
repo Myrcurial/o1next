@@ -82,12 +82,27 @@ mod tests {
     use super::*;
     use crate::frame::{Reply, Request, LEN, OP_BUS_WRITE, ST_OK};
     use std::io::{Read, Write};
+    use std::path::PathBuf;
+
+    /// One scratch directory **per test**.
+    ///
+    /// The first version named it by pid alone, and cargo runs tests in
+    /// parallel threads of one process -- so three tests shared one directory
+    /// and raced on creating and removing it. On macOS the loser of that race
+    /// gets `EINVAL` out of `mkfifo`, which reads like a bug in `mkfifo` and is
+    /// a bug in the test.
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir()
+            .join(format!("picoem-bridge-test-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        dir
+    }
 
     #[test]
     fn a_fifo_round_trips_a_frame() {
-        let dir = std::env::temp_dir().join(format!("picoem-bridge-test-{}", std::process::id()));
+        let dir = scratch("round-trip");
         let path = dir.join("fifo");
-        let _ = std::fs::remove_file(&path);
         create_if_missing(&path).expect("mkfifo");
 
         let mut a = open(&path).expect("open A");
@@ -97,22 +112,19 @@ mod tests {
         b.read_exact(&mut buf).expect("read");
         assert_eq!(&buf, b"O1B1");
 
-        let _ = std::fs::remove_file(&path);
-        let _ = std::fs::remove_dir(&dir);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// The whole wire, over a real FIFO: build a request the way the MAME side
+    /// The whole wire, over real FIFOs: build a request the way the MAME side
     /// does, read it the way the bridge does, and answer it the way the MAME
     /// side parses it. This is the closest thing to the other copy of the
     /// contract that a test can be -- `o1next-picoem.lua` builds the same bytes
     /// in Lua, and this is what pins the two to the same layout.
     #[test]
     fn a_request_and_reply_round_trip_through_a_fifo() {
-        let dir = std::env::temp_dir().join(format!("picoem-bridge-test-{}", std::process::id()));
+        let dir = scratch("wire");
         let in_path = dir.join("in");
         let out_path = dir.join("out");
-        let _ = std::fs::remove_file(&in_path);
-        let _ = std::fs::remove_file(&out_path);
         create_if_missing(&in_path).expect("mkfifo in");
         create_if_missing(&out_path).expect("mkfifo out");
 
@@ -155,19 +167,15 @@ mod tests {
         out_read.read_exact(&mut buf).expect("read reply");
         assert_eq!(Reply::decode(&buf), Ok(reply), "the MAME side's view of the reply");
 
-        let _ = std::fs::remove_file(&in_path);
-        let _ = std::fs::remove_file(&out_path);
-        let _ = std::fs::remove_dir(&dir);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
     fn a_regular_file_at_the_path_is_refused() {
-        let dir = std::env::temp_dir().join(format!("picoem-bridge-test-{}", std::process::id()));
+        let dir = scratch("not-a-fifo");
         let path = dir.join("not-a-fifo");
-        std::fs::create_dir_all(&dir).expect("mkdir");
         std::fs::write(&path, b"").expect("write");
         assert!(create_if_missing(&path).is_err());
-        let _ = std::fs::remove_file(&path);
-        let _ = std::fs::remove_dir(&dir);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
