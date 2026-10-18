@@ -33,6 +33,7 @@
 #include "library.h"
 #include "mailbox.h"
 #include "media_dir.h"
+#include "suite.h"
 
 static int failures;
 
@@ -772,6 +773,11 @@ int main(int argc, char **argv)
     lib_init(&library, order, 3u);
     CHECK(lib_refresh(&library) == LIB_OK, "the fixture should walk");
     mb_init(&mbox, &library, NULL);
+
+    /* The shared suite -- the same checks test_fatfs.c runs over three real FAT
+     * volumes, so that "the library cannot tell them apart" is run, not argued. */
+    step("shared media suite");
+    failures += suite_media(order, 3u, "directory");
 
     step("identity");
     test_identity();
