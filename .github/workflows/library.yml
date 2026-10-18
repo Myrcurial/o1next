@@ -1,0 +1,40 @@
+name: library check
+
+# The image library and the mailbox engine are host-testable C with no board and no
+# SDK, so the whole thing is a seconds-long compile and run -- the same shape as the
+# acb4000-scsi and rom-ident jobs.  What it buys: the 8.3 identity, the kind and size
+# rules, the merge precedence and the protocol's reply framing are replayed through a
+# host-side client, so a change to any of them fails here rather than in a MAME
+# session three days later.
+#
+# It is also the only place this layer *can* be proved.  picoem (#192) has UART, SPI,
+# I2C, DMA and timers as stubs, so the storage path never runs in the emulator; the
+# host harness is not a fallback for it, it is the whole test.
+
+on:
+  push:
+    paths:
+      - 'firmware/library/**'
+      - '.github/workflows/library.yml'
+  pull_request:
+    paths:
+      - 'firmware/library/**'
+      - '.github/workflows/library.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: image library + mailbox host tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Host tests (the library, the engine, the media seam)
+        run: firmware/library/run_tests.sh -v
+
+      - name: shellcheck the test runner
+        run: shellcheck -S warning firmware/library/run_tests.sh
