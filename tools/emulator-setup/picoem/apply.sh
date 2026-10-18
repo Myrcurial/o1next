@@ -13,10 +13,14 @@
 #   3. with --test, cargo test -p rp2350-emu  (3674 pass, 0 fail)
 #
 # WHY THIS EXISTS RATHER THAN A PULL REQUEST
-#   picoem's issue tracker has never had an issue filed, and its CONTRIBUTING.md
-#   says in as many words that the safe path is to fork.  So the fixes live in
-#   Myrcurial/picoem and are recorded here as a patch, which keeps this
-#   repository self-describing even with no fork and no network.
+#   Not a preference: a pull request against picoem is **refused**.  Its issue
+#   tracker is disabled (the API reports `has_issues: false`), and opening a PR
+#   fails -- `CreatePullRequest` returns a permissions error while the REST
+#   endpoint returns 404.  Upstream contribution is closed, not merely slow, and
+#   its CONTRIBUTING.md says the safe path is to fork; the repository's settings
+#   then enforce it.  So the fixes live in Myrcurial/picoem and are recorded
+#   here as a patch, which keeps this repository self-describing even with no
+#   fork and no network.
 set -eu
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
