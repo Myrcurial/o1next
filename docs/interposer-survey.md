@@ -289,31 +289,46 @@ new and is the one to read before reusing anything here.**
 4. Streaming: PIO filtering -> RAM burst -> USB/WiFi drain.
 5. Active drive: WAIT-stretch and clock-gating hooks (BusRaider
    model) — being able to stop the clock is a superpower.
-5b. **Prior art for the timing claim, and it changes the question (§1.6).**
-    picoZ80 drives a cycle-accurate Z80 bus from three RP2350 PIO blocks,
-    *clocked by a derived Z80 clock*, with real wait states and inter-SM IRQ
-    handshakes — and has shipped 30 releases across four machine families. So
-    "can a PIO do a 4 MHz Z80 bus cycle-accurately" is answered, and the Rev B
-    question becomes **which architecture we want**: a *replacement* that owns
-    the clock, or an *interposer* that must follow it. Given that BusRaider's
-    lesson (2.2) and picoZ80's clocked PIO are the same insight from opposite
-    directions, **consider bringing Z80 CLK into the interposer** so a PIO can be
-    clocked from it — that is the difference between asserting the T2 timing
-    claim and being able to measure it.
-5c. **And the wait-state strategy has to be hardware, which is the part picoZ80
-    cannot tell us (§1.7).** Every project in this document that solves bus
-    timing *generates* the Z80 clock, so it controls when a cycle begins. The
-    interposer follows an external clock, so it cannot know when /MREQ is about
-    to fall — and z80_pico's measured conclusion is that this makes a *software*
-    /WAIT assertion impossible: the assertion has to be combinational (a D
-    flip-flop clocked by /MREQ, with /RFSH gating its clock input so refresh is
-    not mistaken for a memory cycle), and the release has to be hardware too (a
-    buffer's /OE tied to /RD, *"no software provision is needed"*). **Design
-    question for Rev B: is `ADDR_HIT`'s 688 comparator plus a PIO fast enough, or
-    is a D-FF on /MREQ required — and does that answer differ between passive and
-    active mode?** Two more numbers from the same source make the stakes plain:
-    three wait states per memory cycle **halved** that machine (3.8 MHz → ~2 MHz
-    effective), and the interposer must not do that at all when it is passive.
+5b. **The target clock is already in the design, so the prior art settles a
+    question Rev B had already answered (§1.6).** `hardware/interposer/revb/README.md`
+    allocates **GP21 = CLK, "direct — PIO timing reference"** — and the machine's
+    clock is a *mainboard* signal, 15.9744 MHz ÷ 4 through the UD3 LS161 counter
+    (`o1-memory-io-map.md` §1), not the Z80's own oscillator. So the interposer is
+    loading a distributed logic output rather than a crystal, which is the easy
+    case. picoZ80 proves the technique; the open item is therefore not *whether*
+    to use the clock but **what the state machine does with it**: a PIO *clocked*
+    by CLK executes one instruction per T-state (picoZ80's constraint, and why its
+    programs are one `set pins` per T-state), while a PIO on the system clock
+    *observing* CLK has ~37 instructions per T-state but must track cycle phase in
+    firmware. The Rev B README does not say which, and the two are different
+    programs.
+5c. **And /WAIT should be scheduled rather than raced — a structural argument, not
+    a cautious one.** Rev B asserts /WAIT *after* observing `ADDR_HIT` (GP23), so
+    it is a **reaction**: it must fit inside the window on every cycle, worst case,
+    across temperature, voltage and part tolerance. An assertion derived from the
+    clock phase can be made in **T1**, before the address has even settled, because
+    the interposer knows from the clock that this cycle is one it owns. A race has
+    a statistical margin; a schedule has a guaranteed one.
+
+    The window is genuinely comfortable and the claim is not obviously wrong: a
+    **ROM or I/O cycle gets no machine-inserted wait**, so `ADDR_HIT` early in T1
+    leaves ~1.5 T-states (≈375 ns at 4 MHz) to the falling edge of T2, and the
+    README's "~50 ns" is a 7× margin. But **50 ns is one term in an unmeasured
+    sum** — it is the PIO's response, and the path also contains the 688's
+    propagation, whatever converts its 5 V output down to GP23's 3.3 V, the PIO's
+    two-cycle input synchroniser, and the OC buffer's turn-on. That sum is the one
+    number the live-response path rests on, and it has not been measured.
+5d. **The machine already stretches its own cycles, so /WAIT is a wire-OR — with
+    three consequences.** `o1-memory-io-map.md` §1: RAM accesses insert ≈375 ns of
+    wait for non-M1 cycles and 188 ns for the first M1, while ROM executes with no
+    added delay. So (a) the interposer's /WAIT drive **must** be open-collector or
+    otherwise OR-able, and Rev B's "fast OC buffer" on GP22 is the right call;
+    (b) the interposer's T-state machine must tolerate TW states **it did not
+    insert**, because it cannot assume a cycle is three T-states long; and (c)
+    **MAME omits the machine's wait states** (`o1-mainboard-schematic.md` §8), so
+    this interaction cannot be exercised in emulation at all — which makes it a
+    hardware-gated gap in its own right, and the one behaviour a race is least
+    able to survive.
 6. Power: USB-powered Pico, common ground, heavy decoupling.
 7. Mechanical: turned-pin headers, minimal profile, early test-fit
    in the O1 case.
