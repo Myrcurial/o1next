@@ -20,3 +20,7 @@ Gemfile.lock
 # which interpreter `python3` is differs by machine, so the venv that
 # tools/bootstrap.sh creates is the portable answer.  Never committed.
 .venv/
+
+# The picoem bridge's Rust build output.  tools/ is otherwise Python stdlib
+# only; tools/picoem-bridge/ is the documented exception (tools/README.md).
+tools/picoem-bridge/target/
