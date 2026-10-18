@@ -13,9 +13,14 @@ a script to apply it, and the measurement behind every change.
 
 Not a preference — a constraint, and it is worth being exact about it:
 
-- **picoem has no issue tracker in use.** Its GitHub Issues tab reads `0` for
-  open *and* closed: it has never had an issue filed. A filed report would be
-  read by nobody.
+- **Its issue tracker is disabled and its pull requests are refused.** Measured:
+  the API reports `has_issues: false`, so there is no tracker to file into — the
+  `0 open / 0 closed` count is a property of a switched-off feature, not a
+  history — and opening a PR against it fails (`CreatePullRequest` returns a
+  permissions error, the REST endpoint returns 404, and the repository grants
+  `pull` and not `push`). Upstream contribution is **closed**, not merely slow,
+  which is why the fix went onto this fork (`Myrcurial/picoem` #1) rather than
+  being offered.
 - **Its `CONTRIBUTING.md` says to fork.** Verbatim: *"I'm happy to look at issues
   and pull requests, but I'm not making any commitments about response times,
   triage, or whether things will get merged or fixed. If you need certainty

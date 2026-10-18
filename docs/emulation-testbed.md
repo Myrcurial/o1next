@@ -96,17 +96,41 @@ These are the most valuable output of the survey that produced this document,
 because three of them are places where a document or an issue is **stale relative
 to the code**, and one of them changes the plan.
 
-### 3.1 picoem's issue tracker has never had an issue filed
+### 3.1 picoem's issue tracker is **disabled**, and PRs against it are refused
 
-Measured: `github.com/0x4D44/picoem/issues` reads **0 open and 0 closed**, for all
-time. Its `CONTRIBUTING.md` says, verbatim: *"I'm happy to look at issues and pull
+**Corrected 2026-10-18.** This section previously said the tracker had "never had an
+issue filed — 0 open and 0 closed, for all time". That was an **inference from a
+disabled feature written down as a fact**: the GitHub API reports
+`has_issues: false` on `0x4D44/picoem`, so the Issues feature is switched off and
+the `0 open / 0 closed` count says nothing at all about the project's history.
+Nobody could have filed one.
+
+The same check turned up the second half, which is the stronger fact: **a pull
+request cannot be opened against it either.** Measured:
+
+```
+gh pr create --repo 0x4D44/picoem --base main --head Myrcurial:…
+  -> GraphQL: Myrcurial does not have the correct permissions to execute
+     `CreatePullRequest`
+
+gh api repos/0x4D44/picoem/pulls -X POST …
+  -> 404 Not Found
+```
+
+and the repository grants `pull` but not `push` to a third party. So upstream
+contribution is not a route that is merely slow or unread — it is **closed**, and
+the fix that came out of this work went onto a fork as a result
+(`Myrcurial/picoem` #1, open and deliberately unmerged).
+
+Its `CONTRIBUTING.md` says, verbatim: *"I'm happy to look at issues and pull
 requests, but I'm not making any commitments about response times, triage, or
 whether things will get merged or fixed. If you need certainty around a fix or
-feature, the safest path is to fork."*
+feature, the safest path is to fork."* — which is the advice the repository's own
+settings then enforce.
 
-**So "document the gap upstream" is not a strategy.** A filed issue would be read
-by nobody. The community-useful artifact is a patch series this project owns —
-and the repository already has exactly that pattern for exactly that reason:
+**So "document the gap upstream" is not a strategy, and neither is "send a PR".**
+The community-useful artifact is a patch series this project owns — and the
+repository already has exactly that pattern for exactly that reason:
 `tools/emulator-setup/mame-osborne1nx/osborne1nx.patch` is a 1210-line patch to a
 source tree we do not own. `tools/emulator-setup/picoem/` is the second one.
 
