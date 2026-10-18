@@ -61,8 +61,11 @@ left the screen's code at **26 bytes** — fill the attribute array bright, prin
 fallback, return — so it fits the 72 bytes the stub used to occupy, and the monitor's
 new code is `0F67`–`0FCD` (**103 bytes**, **46 free** to the guard, up from 21).
 `tools/research/rom2asm.sh` reports both numbers and checks the code's 26 bytes *by
-value*, because the build's own hex can be damaged silently
-(`docs/rom-13-reconstruction.md` 7).
+value*.  The build's hex **is** damaged by the emulator's write-back
+(`docs/rom-13-reconstruction.md` 7), and every case anyone has seen is undecodable
+and caught loudly; the by-value check is there for the shape nobody has seen -- a
+corruption whose bytes happened to be valid hex, which would decode and pass every
+other check.
 
 ## The hunks
 
