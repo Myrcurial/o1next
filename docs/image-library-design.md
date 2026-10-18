@@ -3,9 +3,13 @@
 **Status: decided.** The layout, the three media and the merge rule are the
 maintainer's decision of 2026-10-18, recorded here so that `MOUNT.COM` (#27), the
 web UI (#16, #182), the hard-disk menu (#181) and the firmware all cite one page
-instead of four recollections. The library's *logic* is written and host-tested
-(`firmware/library/`, #283); the media behind the seam are **not** (#285), and
-nothing here has been measured on hardware.
+instead of four recollections.
+
+**And built:** the library, the merge and the protocol engine are written and
+host-tested (#283), and so is the media layer — FatFS R0.15 vendored, the seam over
+it, and three real FAT volumes formatted and read in CI (#285). What is *not* built
+is the board's transports and the NOR flash's wear-levelling layer (§7). Nothing
+here has been measured on hardware.
 
 **Revised the same day**, on the maintainer's correction: the precedence order is
 USB stick first (§3) — the stick is the transient member and the flash is the
@@ -31,6 +35,15 @@ They are **merged into one library**, not presented as three. A file is identifi
 by its CP/M 8.3 identity (§5) and de-duplicated across the media, so a name that
 exists in two places is **one** entry — and there is always something to pull from,
 because the external flash is always fitted.
+
+**"FAT32" is a size-dependent promise, and it is worth being exact about it** (found
+by writing the code, #285). FatFS picks the FAT type from the **cluster count**, and
+at the one-sector-per-cluster size a library of 100–400 KB images wants, a 16 MB
+volume is **FAT16** and only about 34 MB and up is FAT32. The external flash's
+16–64 MB range straddles that line. Nothing breaks: FatFS reads FAT12/16/32
+transparently and any card reader reads all three, so the requirement — *a volume a
+user can read with a card reader* — holds either way. What changes is only the word
+on the tin, and the size at which it is true.
 
 **The RP2354B's in-package 2 MB flash is not a medium.** It holds the firmware and
 its assets — the boot splash animation (`firmware/rom-service/boot-animation.bin`,
@@ -189,20 +202,41 @@ with the encoding marked as this implementation's proposal rather than a
 measurement. They are recorded here first because the code that needed them exists
 and the doc that owns them has not been revised.
 
-## 7. What is not here
+## 7. What is built, and what is not
 
-- **The media implementations.** FatFS vendored, the three transports, and the
-  wear-levelling layer the external NOR flash needs — FAT32 rewrites its FAT and
-  directory sectors constantly and SPI NOR erases in 4 KB blocks with a finite
-  cycle count, so FAT32 directly on NOR needs a block-mapping layer under it. That
-  is **#285**.
+**Built and host-tested** (#283, #285), all of it in `firmware/library/`:
+
+- the library, the merge, the mount table and the protocol engine;
+- **FatFS R0.15, vendored**, with its licence, its archive hash and per-file hashes
+  that CI re-checks;
+- `media_fatfs` — the seam over FatFS, which is the same code on the board;
+- the block-device seam beneath it, and a host device that is a volume image in a
+  file.
+
+The suite formats **three real FAT volumes** (64 MB, 64 MB, 16 MB), populates them
+through the seam, and runs the same checks the directory fixture gets. CI runs it in
+under a second.
+
+**Not here:**
+
+- **The board's transports** — the SPI transport to the external NOR flash, the
+  microSD over SPI, and the USB stick over TinyUSB MSC. They need a board; the seam
+  they plug into (`blockdev.h`) has its three slots already, and the follow-up
+  sub-issue is where they land.
+- **The FTL for the external NOR flash.** FAT32 rewrites its FAT and directory
+  sectors constantly, and SPI NOR erases in 4 KB blocks with a finite cycle count,
+  so a FAT volume directly on NOR needs a block-mapping layer with wear levelling
+  under it. The decision is made — an FTL beneath `diskio`, because that is the only
+  shape that keeps the volume FAT32 and readable in a card reader — and the code is
+  the follow-up.
 - **The web UI's listing.** `printer/` is its business (#182), and the long-name
   nicety §5 refuses is exactly the thing it can offer.
 - **The hard disk's drive letters.** #181.
-- **Anything measured.** No card, no stick, no flash part has been read by this
-  firmware. The layout is a decision, and the code that reads it has been tested
-  against a directory tree (`firmware/library/run_tests.sh`), which is a different
-  claim and is labelled as one.
+- **Anything measured on hardware.** No card, no stick and no flash part has been
+  read by this firmware. The layout is a decision, and the code that reads it has
+  been tested against real FAT volumes that FatFS wrote itself — which is a
+  different claim, and is labelled as one. A volume a *PC* formatted, and a card a
+  camera did, are the follow-ups.
 
 ## Sources
 

@@ -10,6 +10,11 @@ name: library check
 # It is also the only place this layer *can* be proved.  picoem (#192) has UART, SPI,
 # I2C, DMA and timers as stubs, so the storage path never runs in the emulator; the
 # host harness is not a fallback for it, it is the whole test.
+#
+# Since #285 that harness builds three real FAT volumes -- 64 MB for the external
+# flash, 64 MB for the microSD, 16 MB for the USB stick -- with FatFS's own f_mkfs,
+# populates them through the media seam, and runs *the same suite* the directory
+# fixture gets.  So "the library cannot tell them apart" is asserted, not argued.
 
 on:
   push:
@@ -27,14 +32,17 @@ permissions:
 
 jobs:
   tests:
-    name: image library + mailbox host tests
+    name: image library + mailbox + media host tests
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
-      - name: Host tests (the library, the engine, the media seam)
+      - name: The vendored FatFS is the release we vendored
+        run: firmware/library/third_party/fatfs/check.sh
+
+      - name: Host tests (the library, the engine, the media seam, three FAT volumes)
         run: firmware/library/run_tests.sh -v
 
-      - name: shellcheck the test runner
-        run: shellcheck -S warning firmware/library/run_tests.sh
+      - name: shellcheck the test runner and the vendored-hash check
+        run: shellcheck -S warning firmware/library/run_tests.sh firmware/library/third_party/fatfs/check.sh
