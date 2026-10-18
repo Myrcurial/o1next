@@ -28,7 +28,15 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # macOS, not ubuntu, and it is picoem that decides that: at the pinned
+    # commit `crates/picoem-common/src/pacer.rs` calls
+    # `std::arch::x86_64::__cpuid` **without an `unsafe` block** in a
+    # `#[cfg(target_arch = "x86_64")]` function, so the crate does not compile
+    # on x86_64 at all (E0133, measured on this job's first run on
+    # ubuntu-latest).  It builds cleanly on arm64, which is also where this
+    # bridge runs -- the whole o1next toolchain is macOS.  See the picoem row in
+    # REQUIREMENTS.md.
+    runs-on: macos-latest
     defaults:
       run:
         working-directory: tools/picoem-bridge
