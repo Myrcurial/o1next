@@ -15,11 +15,23 @@ picoem: R 31      firmware drove 5A  hb=1 -- OE DRV  (guest saw FF)
 
 One command proves it: `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`.
 
+**This is one half of a loop, and the loop does not close yet.** What the loop is,
+what is missing from it (the guest cannot read the firmware's answer), the gap
+register for *both* emulators and the plan for closing them are
+**`docs/emulation-testbed.md`** — that document owns the loop; this one owns the
+wire.
+
 **And it took six workarounds to get there**, every one of them a gap in picoem
 rather than in the firmware. §5 is the list, and it is the most valuable part of
-this document: the emulator cannot yet run a stock Pico SDK binary, and until it
-can, every personality the interposer is for (#179, #277) is being written
-against a chip that behaves differently from the real one in six specific ways.
+this document: the emulator could not yet run a stock Pico SDK binary, and until
+it can, every personality the interposer is for (#179, #277) is being written
+against a chip that behaves differently from the real one in specific ways.
+
+**Two of them are fixed** (2026-10-18): #5 (`ldaexb`) and #7 (the CP0 table, which
+was also missing the whole MCRR family). The fixes are in
+`tools/emulator-setup/picoem/`, the three firmware switches they forced are
+retired, and the retirement is measured — see `docs/emulation-testbed.md` §4.2 and
+§5 (Gate B). §5 below keeps the original measurements, with the fixed rows marked.
 
 Reads alongside `tools/picoem-bridge/README.md` (the host process),
 `firmware/picoem-smoke/README.md` (the firmware), `src/frame.rs` (the frame
@@ -164,22 +176,31 @@ Two mistakes cost real time here, and both are now in the code as comments:
    bus and the answer was gone — `data 00`, `flags 00`, on a firmware that was
    working perfectly.
 
-## 5. The six picoem gaps — the real finding
+## 5. The picoem gaps — the real finding
 
-**A stock Pico SDK binary does not run in picoem at the pinned commit.** It is
-not one bug; it is seven, in a chain, and each one has to be worked around before
-the next appears. Every one is measured, and the measurement is in the log or in
-the code.
+**A stock Pico SDK binary did not run in picoem at the pinned commit.** It was not
+one bug; it was seven, in a chain, and each one had to be worked around before the
+next appeared. Every one is measured, and the measurement is in the log or in the
+code.
 
-| # | Gap | Where it bites | Worked around by |
-|---|---|---|---|
-| 1 | The **bootrom boot path does not complete** | nothing boots through the mask ROM | start at the image's own vector table (`Entry::Image`) |
-| 2 | **CPACR is never enabled** (the bootrom does it) | the SDK's *first* initializer calls the ROM's `reset`, whose first instruction is `mrc2 p7, …` → UsageFault | `Chip::new` enables CP0–CP7, CP10/CP11 |
-| 3 | **every UsageFault is reported as `UFSR.UNDEFINSTR`** | #2 reads as a bad opcode, not a disabled coprocessor | nothing — a diagnostic trap, recorded here |
-| 4 | `runtime_init_bootrom_locking_enable` **polls `0x400E0828` forever** | the firmware spins in the SDK's own init | `PICO_RUNTIME_SKIP_INIT_BOOTROM_LOCKING_ENABLE` |
-| 5 | **`ldaexb` is mis-decoded as a load/store dual** | the core loads PC from memory and jumps to garbage | `PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL` |
-| 6 | **SIO is GPIO bank 0 only** | GP32–47 can be neither driven nor observed | keep the heartbeat in bank 0 (GP26) |
-| 7 | **CP0's encoding table does not match SDK 2.3.1** | every `gpio_set_dir` is a silent NOP; `gpio_get` reads the wrong register | `PICO_USE_GPIO_COPROCESSOR=0` |
+| # | Gap | Where it bites | Worked around by | State |
+|---|---|---|---|---|
+| 1 | The **bootrom boot path does not complete** | nothing boots through the mask ROM | start at the image's own vector table (`Entry::Image`) | open |
+| 2 | **CPACR is never enabled** (the bootrom does it) | the SDK's *first* initializer calls the ROM's `reset`, whose first instruction is `mrc2 p7, …` → UsageFault | `Chip::new` enables CP0–CP7, CP10/CP11 | open |
+| 3 | **every UsageFault is reported as `UFSR.UNDEFINSTR`** | #2 reads as a bad opcode, not a disabled coprocessor | nothing — a diagnostic trap, recorded here | open |
+| 4 | `runtime_init_bootrom_locking_enable` **polls `0x400E0828` forever** | the firmware spins in the SDK's own init | `PICO_RUNTIME_SKIP_INIT_BOOTROM_LOCKING_ENABLE` | open |
+| 5 | **`ldaexb` is mis-decoded as a load/store dual** | the core loads PC from memory and jumps to garbage | `PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL` | **FIXED** — `tools/emulator-setup/picoem/` |
+| 6 | **SIO is GPIO bank 0 only** | GP32–47 can be neither driven nor observed | keep the heartbeat in bank 0 (GP26) | open |
+| 7 | **CP0's encoding table does not match SDK 2.3.1 — and there is no CP0 MCRR dispatch at all** | every `gpio_set_dir` is a silent NOP; `gpio_get_all` reads the wrong register; **`gpio_put` and `gpio_set_dir` are MCRR and were not decoded at all** | `PICO_USE_GPIO_COPROCESSOR=0` | **FIXED** — same series |
+
+**Row 7 was understated when it was written.** This section's own patch list
+(§"What a picoem patch would have to do") says *"re-derive `cp0_mcr_mrc_family`'s
+table from `hardware/gpio_coproc.h`"*, and that is **necessary and not
+sufficient**: the SDK's `gpio_put()` is `gpioc_bit_out_put` (`mcrr p0, #4, gpio,
+value, c0`) and `gpio_set_dir()` is `gpioc_bit_oe_put` (`mcrr p0, #4, gpio, out,
+c4`) — a *different encoding family*, and picoem had no CP0 MCRR dispatch at all.
+Re-deriving the MCR/MRC table alone would have left the two most-used GPIO calls
+in any firmware as silent NOPs. `docs/emulation-testbed.md` §3.4 is the record.
 
 ### 1 — the bootrom never finishes
 

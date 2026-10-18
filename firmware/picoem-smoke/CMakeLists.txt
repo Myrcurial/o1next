@@ -94,13 +94,34 @@ target_link_libraries(picoem-smoke pico_stdlib)
 # ship: on real silicon the coprocessor path is the faster one.  The picoem fix
 # is to re-derive `cp0_mcr_mrc_family`'s table from `hardware/gpio_coproc.h`.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# **The GPIO coprocessor is back ON, and the alarm pool is back ON.**
+#
+# The two switches that used to be here --
+# `PICO_USE_GPIO_COPROCESSOR=0` and `PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL=1`
+# + `PICO_TIME_DEFAULT_ALARM_POOL_DISABLED=1` -- are **retired**, because the
+# picoem bugs they worked around are fixed:
+#
+#   * the SDK's GPIO access goes through CP0 (GPIOC), and picoem's CP0 table read
+#     `opc1` as the bank instead of the operation, and had no MCRR family at all
+#     -- so `gpio_put()` and `gpio_set_dir()` were silent NOPs.  Fixed.
+#   * claiming a hardware alarm runs `hw_claim_or_assert` ->
+#     `next_striped_spin_lock_num()`, which uses `ldaexb`/`strexb`, and picoem
+#     mis-decoded `ldaexb` as an `LDRD` into `{Rt, pc}`.  Fixed.
+#
+# Both fixes are in `tools/emulator-setup/picoem/`, and this firmware now uses
+# the **fast path the interposer will ship** rather than a workaround.
+#
+# The three bootrom switches above stay: the mask ROM's boot path does not
+# complete in picoem, and that is a *separate* gap of unknown size (the bootrom's
+# CP7 seed path, tracked upstream by picoem's own `#[ignore]`d
+# `test_flash_boot_blinky`).  It is deliberately not on the critical path --
+# `Entry::Image` is a legitimate route for a chip with no boot2.
+# ---------------------------------------------------------------------------
 target_compile_definitions(picoem-smoke PRIVATE
-    PICO_USE_GPIO_COPROCESSOR=0
     PICO_RUNTIME_SKIP_INIT_BOOTROM_RESET=1
     PICO_RUNTIME_SKIP_INIT_PER_CORE_BOOTROM_RESET=1
-    PICO_RUNTIME_SKIP_INIT_BOOTROM_LOCKING_ENABLE=1
-    PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL=1
-    PICO_TIME_DEFAULT_ALARM_POOL_DISABLED=1)
+    PICO_RUNTIME_SKIP_INIT_BOOTROM_LOCKING_ENABLE=1)
 
 # No stdio: the peripherals behind it are stubs in picoem.
 pico_enable_stdio_uart(picoem-smoke 0)
