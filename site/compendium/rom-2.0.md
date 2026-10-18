@@ -779,10 +779,10 @@ its own words:
 I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.
 ```
 
-So §8 item 2's question is answered: **the monitor code does not fit in 150
-bytes**, and the screen is the piece that proves it. The code is written and
+So §8 item 2's question is answered: **the monitor code did not fit in 150
+bytes**, and the screen was the piece that proved it. The code is written and
 measured in [`research/source-code/BIOS-200-source/rom2-screen.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-200-source/rom2-screen.asm) (with the
-per-piece arithmetic), and it needs a home rather than a squeeze — a **third
+per-piece arithmetic), and it needed a home rather than a squeeze — a **third
 content id in the softROM** (`PRESENT(3)`, a 4096-byte blob in the Pico's flash
 beside the frame, reached by a ~21-byte stub that copies page 1 to RAM and jumps
 into it; recommended, because it needs no payload change and the screen code is
@@ -791,15 +791,26 @@ where the hand-over stub already lives), or this section's **Plan B** (a banked
 loader). Any of the three fits in the tail's 72 bytes, because the monitor's share
 becomes the stub.
 
-**Measured, 2026-10-15 (turn 3's second pass): it is built.** Option 1 is what
-landed — `PRESENT(3)` and a 4096-byte blob — and the blob is **183 bytes** at
-`4000h`–`40B6h`, with `Program LWA = 40B7h`. The monitor's own new code is
+**Measured, 2026-10-15 (turn 3's second pass): it was built.** Option 1 landed —
+`PRESENT(3)` and a 4096-byte blob — and the blob is **183 bytes** at
+`4000h`–`40B6h`, with `Program LWA = 40B7h`. The monitor's own new code was
 **128 bytes**, `0F67h`–`0FE6h`, **21 free to the guard**: the cold boot, the
-sign-on hook, and the stub that fetches the blob (`SCRN`, `0FB4h`–`0FE6h`, 51
-bytes including the shared door helper). One assembly produces
-both artifacts, so `rom2asm.sh` checks two extents and
-[`tools/research/rom2blob.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom2blob.py) turns the `4000h` records into
-[`firmware/rom-service/screen.bin`](https://github.com/Myrcurial/o1next/blob/main/firmware/rom-service/screen.bin).
+sign-on hook, and the stub that fetched the blob (`SCRN`, `0FB4h`–`0FE6h`, 51
+bytes including the shared door helper). One assembly produced
+both artifacts, and `tools/research/rom2blob.py` turned the `4000h` records into
+`firmware/rom-service/screen.bin`.
+
+**And #278 undid it, on purpose, because the premise went (2026-10-17).** The
+stub, the blob, the asset, the tool and the `-bootsplash` slot all retired when the
+ROM-side frame path did: the RP2354B is the display (§4.9), so the screen's code is
+no longer the fill, the text, the door, the trailer and the two blits. It is **26
+bytes** — fill the attribute array bright, print the fallback, return — which fits
+the 72 the stub occupied, and the monitor's new code is `0F67h`–`0FCDh`: **103 bytes
+of the tail's 149, 46 free** to the guard at `0FFBh`, up from 21. The *message* went
+into `IMSG`'s own slot at `019Fh` (72 bytes of text where the vendor's 182-byte
+sign-on message sat, at the vendor's own length, with the vendor's `FF` fill behind
+it), so nothing below `0F67h` moved — and the 110 bytes left over there are what the
+signature and the extension table in this section will take.
 
 **And turns 3's `130 bytes` came down to `128` because the acceptance found two
 defects in the new code (2026-10-15, turn 4).** Neither was visible in a boot:
@@ -938,12 +949,18 @@ bits are not physically present and read high. Measured in `osborne1nx`:
 | the array at the sign-on | 4072 × `FFh`, **24 × `7Fh`** — so it is not a blank slate |
 | the 116 character cells at the sign-on | all bright |
 
-So the screen **fills the attribute array bright before it blits** (`OUT (02h)`,
-4096 stores of `FFh`, `OUT (03h)`), because 24 stray dim cells would show in a
-4096-cell frame. That is 21.5 ms more, and it is what leaves the *frame* free to
-carry dim accents later with no ROM change: **the frame is two 4096-byte halves —
-characters and attributes — and v1.0's attribute half is all `FFh`.** The format,
-the trailer and the whole sequence are [`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §4.1 and §5.
+So the screen **fills the attribute array bright** (`OUT (02h)`, 4096 stores of
+`FFh`, `OUT (03h)`), because 24 stray dim cells would show in a 4096-cell screen.
+That is 21.5 ms, and it is what makes the fallback's own dim runs the *only* dim
+cells on the screen — which is the trigger the RP2354B watches for (§4.9's `IMSG`,
+and [`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §5.1).
+
+**And since #278 that fill is the only thing the ROM does to the attribute plane.**
+It used to blit the frame's attribute half over the fill, and the RP2354B draws both
+planes out of the frame it is playing instead. The frame is still two 4096-byte
+halves — characters and attributes — and v1.0's attribute half is all `FFh`. The
+format, the trailer and the sequence that *used* to be the ROM's are
+[`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §4.1 and §5.
 
 **And the frame lives in the Pico's own flash, not the library flash** — one
 frame, compiled into the firmware, swappable only by rebuilding it. The library
@@ -957,7 +974,10 @@ off the disk. The copy the firmware compiles in used to be
 `firmware/rom-service/frame.bin`; that asset was **retired on 2026-10-16**, when the
 boot screen became the animation the RP2354B plays
 ([`firmware/rom-service/boot-animation.bin`](https://github.com/Myrcurial/o1next/blob/main/firmware/rom-service/boot-animation.bin), #247's W5), and the `--check` that re-built
-it went with it.
+it went with it. **`firmware/rom-service/screen.bin` — the screen's code, served as a
+window page — went the same way on 2026-10-17 (#278)**, when the code came back into
+the monitor's own tail; `tools/research/rom2blob.py` and `rom2asm.sh`'s `-b` retired
+with it.
 
 ## 5. The six open questions from #83, answered
 
@@ -1057,9 +1077,9 @@ So the ROM's own half of deliverable 3 is done and measured; what is left is the
    machine's own address map *is* the undecoded `A12`, so a softROM that decodes
    it gets two contiguous 4 KB pages for free (§4.1b).
    **The 11776-byte half is retired (§4.4, §4.5)** — the no-disk goal was dropped
-   on 2026-10-15, so the paging problem went with it. What is left is **one bit**:
-   window page 1 is either the payload or a frame half, and [`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md)
-   §4.1 owns that selector.
+   on 2026-10-15, so the paging problem went with it. **And the one bit that was
+   left is gone too (#278)**: window page 1 is the payload, always, because the ROM
+   no longer serves a frame and `PRESENT(1)`/`(2)`/`(3)` retired with the frame path.
    **And the boot's half is built**: `softrom_device` serves the window and
    `-softrom` names the image (§4.1b), accepted by `softrom-check.sh`; and
    ROM 2.0's monitor now *assembles* with `HCBOOT` filled in and runs the chain
@@ -1067,16 +1087,17 @@ So the ROM's own half of deliverable 3 is done and measured; what is left is the
    chain is the hand-over, and it is named: `CCPADR` (`0EFD2h`), the ROM's own
    `CBOOT`'s store, without which the interrupt handler's exit cannot return to RAM
    (§4.6, item 10).
-2. **Does ROM 2.0's monitor code fit in 150 bytes?** **Answered — no, and the boot
-   screen is the piece that proves it** (measured 2026-10-15, §4.7). `HCBOOT` took
-   77 of the 150; the screen's code is 212 bytes (182 when first measured) against
-   the 72 that are left, and
-   the assembler's own guard said `CODE TOO LARGE`. The screen code is written and
-   measured in [`research/source-code/BIOS-200-source/rom2-screen.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-200-source/rom2-screen.asm); what it
-   needs is a **home** — a third softROM content id (`PRESENT(3)`, recommended), the
-   payload's spare, or Plan B's banked loader — because the monitor's share then
-   becomes a ~21-byte stub that copies it to RAM and jumps. The rest of the
-   monitor's extensions (`BANKSEL`, `SCRMOD`, `VERSION`) are still estimates.
+2. **Does ROM 2.0's monitor code fit in 150 bytes?** **Answered twice, and the
+   second answer is the useful one** (§4.7). *No* — measured 2026-10-15: `HCBOOT`
+   took 77 of the 150, the screen's code was 212 bytes against the 72 left, and the
+   guard said `CODE TOO LARGE`. That sent the screen's code to the interposer's
+   flash as a third content id. **And then yes, after #278** (2026-10-17): the frame
+   path's retirement left the screen at **26 bytes**, so it fits the tail, and the
+   monitor's new code is `103` of the tail's `149` — **46 free** to the guard. What
+   that buys is exactly what this section wanted: the extension table's own home.
+   `IMSG`'s slot is 182 bytes with 110 of them free (the fallback text took 72), and
+   `BANKSEL`, `SCRMOD`, `VERSION` and the rest are still estimates — but there is
+   now room for them, in the tail and in the vendor's dead sign-on slot.
 3. **If a register is wanted at `2300h`.** `2300h` is free per the schematic and the
    ROM source, but a write there has never been measured on a real machine — the
    decode is described as sloppy ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §7). The *latch* it was

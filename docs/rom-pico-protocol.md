@@ -134,15 +134,15 @@ becomes. The content ids:
 
 | id | Content | Who needs it |
 |---|---|---|
-| `0` | **the payload** — CBIOS + MD-10 BIOS image + the hand-over stub, 3599 bytes | the hand-over (§4.1 step 7), and `BANKSEL` generally |
-| `1` | **the frame's character half** — 4096 bytes | the screen (§5) |
-| `2` | **the frame's attribute half** — 4096 bytes, the 9th bit | the screen (§5) |
-| `3` | **the screen's own code** — 4096 bytes, one window page, which the monitor's stub copies to RAM at `4000h` and jumps into | the monitor's stub (§4.1). **Chosen 2026-10-15**, from §4.1's three candidate homes: the code is firmware like the frame and no payload change is needed. Built and measured — 183 bytes of code in the page, `0F67h`–`40B7h` for the monitor and the blob together, 19 bytes free to the guard |
+| `0` | **the payload** — CBIOS + MD-10 BIOS image + the hand-over stub, 3599 bytes | the hand-over, and `BANKSEL` generally |
+| `1` | ~~the frame's character half~~ | **retired (#278)** — the RP2354B reads the animation out of its own flash, so nothing asks for a frame; the id answers `09h` |
+| `2` | ~~the frame's attribute half, the 9th bit~~ | **retired (#278)**, as above |
+| `3` | ~~the screen's own code, one window page~~ | **retired (#278)**: the code is 26 bytes in the monitor's own tail (§4.1) |
 
-`INFO` is for the web UI and for a human, not for the ROM: **the ROM never asks
-whether a frame exists** — the trailer *is* the query (§6). It is here so that a
-firmware with no frame and a firmware with a frame can be told apart by something
-that is not the ROM.
+`INFO` is for the web UI and for a human, not for the ROM: **the ROM asks the
+door for nothing at all now** (#278). It is here so that a firmware's version and
+its state can be read by something that is not the ROM; the flags byte is `00h`,
+because there is no asset slot left to report.
 
 ### 4.1 The boot sequence in full
 
@@ -160,41 +160,36 @@ Everything below is measured on `osborne1nx` unless marked.
    **It positions itself**, with `VCLRS` first: `CURS` is 0 when this code runs, so a
    message that does not is written to address 0 and never appears. Its dim runs are
    the vendor's `ESC,VSHI` … `ESC,VEHI` half-intensity mode.
-4. `PRESENT(1)`; read the frame's character half out of the window; check the
-   trailer (§5).
-5. If it validates: `LDIR 1000h → F000h`, 4096 bytes, 21.5 ms — over the text.
-6. `PRESENT(2)`; if the attribute half validates, `OUT (02h)` then
-   `LDIR 1000h → F000h`; otherwise the bright fill from step 2 stands.
-7. `OUT (03h)`; `PRESENT(0)` — **the payload back.** The frame and the payload are
-   the same 4096 bytes of window page 1, so presenting the frame evicts the
-   payload, and the hand-over needs it (§5).
+4. **Return.** That is the whole of it (#278): the ROM serves no frame and draws
+   none. Steps 4–7 used to be `PRESENT(1)`, the character half's trailer check, an
+   `LDIR` blit, `PRESENT(2)` and the attribute half, and `PRESENT(0)` to put the
+   payload back — 43 ms of copying, and most of the screen's 212 bytes. The RP2354B
+   is the display now, and the Z80's whole role is the trigger: the text below is
+   what it prints, and the Pico stops its animation on the Z80's first video-RAM
+   write.
 
-Two 4096-byte passes ≈ **43 ms**, against a floppy boot measured in seconds. **The
-ROM cost does not fit the monitor's tail, and the assembler's own guard is what
-said so** (2026-10-15, #247 turn 3): the 1.44 layout leaves 150 bytes above
-`0F67h`, `HCBOOT` took 77 of them (`0F67h`–`0FB3h`), and the screen's code — the
-fill, the text, the door, the trailer and the two blits — is **212 bytes** (182 when
-it was first measured, on 2026-10-15; #247's W3 gave the fallback the screen's own two
-lines and their bright/dim runs):
+**The cost, before and after (#278).** The frame path was 43 ms of copying and
+**212 bytes** of code against the **72** the 1.44 layout leaves above `HCBOOT` — the
+assembler's own guard is what said so (2026-10-15, #247 turn 3):
 
 ```
 I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.
 ```
 
-That is the guard `IF RLWA > 0FFBH / .9 ERROR CODE TOO LARGE` doing its job, and
-it settles §4.7's "does the monitor code fit" question in the negative. The code
-is written and measured — `research/source-code/BIOS-200-source/rom2-screen.asm` —
-and it needs a home: **a third content id in the softROM** (`PRESENT(3)` serving a
-4096-byte blob in the Pico's flash, beside the frame, with a ~21-byte stub in the
-monitor that copies page 1 to RAM and jumps into it — the recommended one, because
-the screen code is firmware like the frame and no payload change is needed), the
-**payload's spare** (497 bytes at `1E0Fh`, where the hand-over stub already lives),
-or §4.7's **Plan B** (a banked loader). All three fit; the choice is the
-maintainer's, and the code is home-agnostic. **Chosen 2026-10-15: the first one** —
-built and measured: the monitor's new code runs `0F67h`–`0FE6h`, 128 bytes of the
-tail's 149 to the vendor's guard at `0FFBh`, with 21 free, and the stub itself is
-`0FB4h`–`0FE6h` — 51 of the 72 bytes HCBOOT left (`docs/o1-rom-2.0.md` §4.7). The
-asset is served by `PRESENT(3)`, content id 3 in §4's table.
+That is the guard `IF RLWA > 0FFBH / .9 ERROR CODE TOO LARGE` doing its job. It
+was answered on 2026-10-15 with a third content id — `PRESENT(3)`, a 4096-byte page
+in the Pico's flash, copied to RAM at `4000h` by a 51-byte stub — and **#278 retired
+that home with the frame path**: with the trailer checks and the two blits gone, what
+is left is **26 bytes** — the bright fill, the print, the return — which fits the 72
+bytes the stub occupied. The monitor's new code now runs `0F67h`–`0FCDh`, **103 bytes
+of the tail's 149, with 46 free** to the vendor's guard at `0FFBh` (it was 21), and
+the message itself moved into `IMSG`'s own slot at `019Fh` — 72 bytes of text where
+the vendor's 182-byte sign-on message sat, at the vendor's own length, because
+nothing below `0F67h` may move (`docs/o1-rom-2.0.md` §4.2 and §4.9).
+
+The record is `research/source-code/BIOS-200-source/rom2-screen.asm`; the build is
+`tools/research/rom2asm.sh`, which reports both numbers and checks the 26 bytes *by
+value*.
 
 ### 4.2 Result codes
 
@@ -212,10 +207,13 @@ worth a boot delay.
 ## 5. The frame: 8192 bytes, and the 9th bit is real
 
 **The frame is two 4096-byte halves** — characters, then attributes — held in the
-**Pico's own flash**, compiled in as a firmware asset. There is **one frame**; the
-default ships with the firmware, and swapping it means rebuilding the firmware
-(which is the point: it is a product's face, not user data — but somebody will
-want to swap it, so the format is public and the default is in the repo).
+**Pico's own flash**, compiled in as a firmware asset, and **read by the RP2354B**
+(#278). It is not served to the ROM any more: the Pico is the display, it plays the
+animation out of its own flash (§5.1), and the Z80's whole role is the trigger. The
+format is unchanged, and it is the RP2354B's — swapping the asset means rebuilding
+the firmware (which is the point: it is a product's face, not user data — but
+somebody will want to swap it, so the format is public and the default is in the
+repo).
 
 **Why two halves, when v1.0's screen is all-bright.** The O1's video cell is
 **9 bits** — 8 for the character, 1 for brightness — and the 9th bit is not in the
@@ -231,11 +229,12 @@ video RAM. It lives in a *separate* 4K×1 array that `OUT (02h)` pages into
 | the 116 character cells at the sign-on | all bright |
 
 So **"all bright" is not a limitation of the format** — it is a frame whose
-attribute half is `FFh`. The format retains the 9th bit by construction, and a
-later frame can carry dim accents with **no ROM change**, because the ROM blits
-the attribute half whenever it validates. That is the answer to "we retain the
-ability to ship a frame that has a 9th bit": yes, and it costs the v1.0 frame
-nothing.
+attribute half is `FFh`. The format retains the 9th bit by construction, and the
+animation carries real dim accents with **no ROM change at all** — which is now
+truer than it was: the ROM never touches the attribute plane after the fill, and the
+Pico draws both planes out of the frame it is playing. That is the answer to "we
+retain the ability to ship a frame that has a 9th bit": yes, and it costs the v1.0
+frame nothing.
 
 **The trailer**, unchanged from `o1-rom-2.0.md` §4.9, at the **character half's**
 `0FF8h`:
@@ -246,14 +245,18 @@ nothing.
 | `0FFEh` | the 16-bit sum of `0000h–0FF7h`, little-endian |
 
 The attribute half carries the **same trailer at its own `0FF8h`**, so each half
-validates itself. The ROM checks the character half *before* it blits — so the
-fallback text survives a bad frame — and the attribute half after: a bad attribute
-half costs the bright fill, which has already happened, and nothing else.
+validates itself — and that is the *machine's* test now (#278), run by the RP2354B
+before it draws a frame and by `tools/research/bootanim.py --check` over every frame
+of the animation. A bad half is a frame the machine will not draw; the ROM is not
+involved, and its fallback text stays on the screen while the Pico has nothing to
+play.
 
-**And the frame's bulk is why it is a page, not a port.** A 4096-byte half cannot
-cross a command door that carries commands and metadata by design. So the door
-names the content and the **window carries it**: `PRESENT(1)` puts the character
-half at `1000h`, and one `LDIR` moves it to `F000h`.
+**And the frame's bulk is why it was a page, not a port.** A 4096-byte half cannot
+cross a command door that carries commands and metadata by design, so the door named
+the content and the window carried it: `PRESENT(1)` put the character half at
+`1000h`, and one `LDIR` moved it to `F000h`. Both halves of that sentence retired
+with the frame path (#278) — nothing crosses the door now, and nothing is copied:
+the Pico draws.
 
 **The frame is not the art.** `research/boot-screen/` holds the authored art
 (153 × 27 cells for the wordmark, or 125 × 28 for the 1NG one), and
@@ -323,21 +326,14 @@ to frame 1 and the repeating one's is the wrap into the next cycle — the same
 transition, taken once either way. `tools/bootsplash/` counts all four modes, so the
 number a designer reads is the number the Pico is asked for.
 
-**What is still not decided is how the ROM asks for frame *n*.** `PRESENT(1)` and
-`PRESENT(2)` name the two halves of *the* frame (§4.1 step 4), and a sequence needs
-the door to name which one — whether `PRESENT` grows a frame index, or the firmware
-advances its own sequence and the ROM keeps asking for "the frame" as it does today.
-That is #247's, and it is not settled here.
-
-**What the emulator does meanwhile (2026-10-17, #247's W5).** `osborne1nx`'s frame
-slot still takes one two-half frame, and the harnesses now **derive** it from the
-animation's resting frame — `tools/research/bootanim.py --resting`, the last frame of
-a `once` animation — rather than mounting the committed `frame.bin` that was retired
-on 2026-10-16. So the ROM is served exactly the frame the animation settles on, and
-nothing in the tree can drift from the asset it came from. The *pacing* stays the
-RP2354B's, which is why the ROM side only ever validates the container: the same
-tool's `--check` is the whole of the ROM-side acceptance (the header's sum, the
-declared geometry and flags, and every frame's own trailer).
+**And how the ROM asks for frame *n* is no longer a question (#278, 2026-10-17).**
+The answer that was being weighed — `PRESENT` growing a frame index, or the firmware
+advancing its own sequence — assumed the ROM asked at all. It does not: the Pico
+plays the animation out of its own flash, paced by its own clock, and stops on the
+Z80's first video-RAM write. So the *pacing* is entirely the RP2354B's, and the ROM
+side's only statement about the asset is that it is well-formed:
+`tools/research/bootanim.py --check` — the header's sum, the declared geometry and
+flags, and every frame's own trailer.
 
 
 ## 6. The memory map at the moment the screen runs, and what happens when it fails
@@ -348,19 +344,18 @@ no MD-10 BIOS. From `o1-rom-2.0.md` §4.4 and §4.2, confirmed in the machine:
 | Range | What it is when the screen runs | Safe to write? |
 |---|---|---|
 | `0000–0FFF` | the monitor, in the ROM window, **bank 2** | **no** — it is executing |
-| `1000–1FFF` | window page 1 — the payload, or the frame while the screen is up | yes, and the door owns which |
+| `1000–1FFF` | window page 1 — the payload, and only the payload (#278) | yes |
 | `2000–2FFF` | bank-2 onboard I/O window (memory-mapped) | **no** — it is the machine's I/O |
 | `2800–2801` | **this channel's registers**, inside that window | the firmware's |
 | `4000–EFFF` | bank-1 RAM, mirrored in bank 2 | yes — nothing has claimed it yet |
 | `F000–FFFF` | the video RAM, or the attribute array when BIT 9 is set | yes — this is the target |
 
 **Failure semantics, and why there is only one of them.** The trailer *is* the
-"is there a frame?" query, so a missing frame, an erased frame and a frame with a
-bad sum are **the same case**: the magic does not match, and the ROM leaves the
-text on screen. There is no error path to write, no retry to tune, and a firmware
-built with no frame is indistinguishable from a flash failure — which is the right
-default, because the fallback text is what the screen shows when the machine is
-working and the art is not.
+"is there a frame?" query — the RP2354B's, since #278 — so a missing frame, an
+erased frame and a frame with a bad sum are **the same case**: the magic does not
+match and the frame is not drawn. There is no error path to write and no retry to
+tune, and the screen shows the ROM's fallback, which is what the machine prints when
+the Pico has nothing to play.
 
 The recovery rule is `mailbox-protocol.md` §3's: an unknown opcode answers `01h`
 and resets the operand count, so a wedged ROM recovers with `NOP`.
@@ -379,10 +374,11 @@ and resets the operand count, so a wedged ROM recovers with `NOP`.
    interposer itself by `o1next-romservice.lua`, whose first check is exactly
    that comparison; the protocol is base-relative, so the correction moved one
    constant in the device, one in the machine's map, and the numbers here.
-2. **Whether the attribute half wants a trailer.** It costs eight bytes of the
-   ROM's budget to check. The alternative is to trust it whenever the character
-   half validates, which is defensible — a bad attribute half is 24 dim cells, not
-   a black screen. The assembler's guard is the arbiter.
+2. ~~**Whether the attribute half wants a trailer.**~~ **Settled by #278:** it keeps
+   one, and it is the *RP2354B's* check rather than the ROM's. Eight bytes per frame
+   is nothing against a 8192-byte frame, and the alternative — trusting a half
+   because the other one validated — would put dim cells on the screen the artist
+   did not draw.
 3. **Whether `PRESENT` and `BANKSEL` stay separate.** `BANKSEL` is
    `o1-rom-2.0.md` §4.7's extension 1 and `PRESENT` is its implementation; a
    program that wants to page the payload in itself calls the extension, not the
