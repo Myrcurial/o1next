@@ -21,11 +21,18 @@
 #   address (docs/o1-rom-2.0.md 4.2), so a byte moved anywhere below that is a
 #   moved anchor, not a feature -- and the assembler's own guard is the only
 #   other thing standing between us and a monitor that is subtly not the 1.44.
-#   So this fails if anything below 0F67h differs from the shipped ROM, with one
-#   deliberate exception: the sign-on dispatch's two key immediates, which the
-#   boot-key change moves (#247 step 4, docs/o1-rom-2.0.md 3.3), and which are
-#   checked *for value* rather than merely tolerated.  It also reports the new
-#   code's extent against the guard.
+#   So this fails if anything below 0F67h differs from the shipped ROM, with two
+#   deliberate exceptions, both checked *for value* rather than merely tolerated:
+#   the sign-on dispatch's two key immediates, which the boot-key change moves
+#   (#247 step 4, docs/o1-rom-2.0.md 3.3), and IMSG's own slot, where ROM 2.0's
+#   fallback message replaces the vendor's sign-on text at the vendor's own length
+#   (#278, docs/o1-rom-2.0.md 4.9).  It also reports the new code's extent against
+#   the guard, and the room that is left.
+#
+#   There is ONE artifact again (#278): the screen's code used to be a second one,
+#   a page at `ORG 4000H` extracted into firmware/rom-service/screen.bin, and the
+#   frame path's retirement brought it back into the tail.  So `-b`, step 8, and
+#   `rom2blob.py` are gone with it.
 #
 # WHAT THE EMULATOR DOES TO THE HEX FILE
 #   The ACT80's hex output arrives on the floppy with runs of 0xC0DE where hex
@@ -49,12 +56,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 
 OUT="/tmp/rom2-monitor.rom"
-BLOB=""
 WORK=""
 while [ $# -gt 0 ]; do
     case "$1" in
         -o) OUT="${2:?rom2asm.sh: -o needs a path}"; shift 2 ;;
-        -b) BLOB="${2:?rom2asm.sh: -b needs a path}"; shift 2 ;;
         -*) echo "rom2asm.sh: unknown option $1" >&2; exit 1 ;;
         *) WORK="$1"; shift ;;
     esac
@@ -71,7 +76,6 @@ abspath() {
     esac
 }
 OUT="$(abspath "$OUT")"
-[ -z "$BLOB" ] || BLOB="$(abspath "$BLOB")"
 
 ACT80="${O1_ACT80:-$REPO/research/act-assembler/ACT80.COM}"
 SRC="$REPO/research/source-code/BIOS-144-source/rom144.asm"
@@ -233,17 +237,16 @@ monend = int(sys.argv[4], 16)     # the monitor's last byte, from its own MSG
 progend = int(sys.argv[5], 16)    # the program's end: the blob's last byte + 1
 
 ENTRY, GUARD = 0x0F67, 0x0FFB     # the HCBOOT entry, and the vendor's own guard
-BLOB_AT, BLOB_LIMIT = 0x4000, 0x4FFF   # where `ORG 4000H` puts the screen code
 WINDOW_MAX = 64                   # the sign-on prompt is 28 bytes of it
-# ONE ASSEMBLY, TWO ARTIFACTS (#247 step 8, turn 3).  The monitor is the 4096-byte
-# image, and its new code has to stop at the vendor's guard.  The screen's code is
-# *not* in that image: it is `ORG 4000H`, a page the interposer serves and the stub
-# copies to RAM, and `rom2blob.py` turns its records into `screen.bin`.  So the
-# checks below are per-artifact, and the rule that used to reject anything above
-# the guard was rejecting the second artifact, not a mistake.
+# ONE ARTIFACT (#278, 2026-10-17).  It used to be two: the monitor, and the
+# screen's code as a page at `ORG 4000H` that `rom2blob.py` turned into
+# `screen.bin`.  The frame path's retirement put the screen's code back in the
+# monitor's own tail, where it fits, so the monitor is the whole build again --
+# and its new code has to stop at the vendor's guard.
 #
-# And the sign-on prompt is the one place below ENTRY where ROM 2.0 may change a
-# byte.  Two things change there, and they are not the same kind of thing:
+# And TWO places below ENTRY may differ, both of them named: the sign-on prompt
+# and IMSG's slot.  In the prompt two things change, and they are not the same
+# kind of thing:
 #
 #   * the two key immediates -- `CMP ESC` -> `CMP CR`, `CMP CR` -> `CMP ':'` --
 #     so RETURN is the hard disk and ':' is floppy A.  `"` is unchanged, and START
@@ -256,9 +259,16 @@ WINDOW_MAX = 64                   # the sign-on prompt is 28 bytes of it
 #     this check is really about, and why the window is allowed rather than the
 #     rule being dropped.
 #
-# So: below ENTRY there is exactly one contiguous window of differing bytes, it
-# contains both key addresses, and it is small.  Everything else below ENTRY must
-# be byte-identical, and so must everything from the window's end to ENTRY.
+# And IMSG's slot is the second window, at exactly 019F-0254: ROM 2.0's fallback
+# message where the vendor's sign-on message was, at the vendor's own length, so
+# that nothing below ENTRY moves.  There is no ORG between IMSG and the tail to
+# absorb a shorter one -- which is why the message is padded rather than shrunk,
+# and why the slot's extent is checked rather than merely tolerated.
+#
+# So: below ENTRY there are exactly two contiguous windows of differing bytes, one
+# is the prompt (small, and it contains both key addresses) and the other is
+# IMSG's slot (exactly 182 bytes).  Everything else below ENTRY must be
+# byte-identical, and so must everything between the two windows.
 #
 # The two key immediates are checked *by value* rather than at a fixed address,
 # and that is the same 3-byte shift: the stock's `CMP ESC` sits at 0x0048 and its
@@ -297,19 +307,57 @@ for i in below:
         windows[-1][1] = i
     else:
         windows.append([i, i])
+# TWO REGIONS BELOW THE ENTRY, AND BOTH ARE NAMED (#278, 2026-10-17):
+#
+#   * the sign-on prompt, where the hook and the two boot keys live -- the same
+#     window as before, and it is still walled off by the `ORG NMIA` below it;
+#   * IMSG's own slot at 019F-0254, where ROM 2.0's fallback message now lives.
+#     It keeps the vendor's 182 bytes because nothing below 0F67H may move: the
+#     CBIOS calls ROM routines by absolute address (docs/o1-rom-2.0.md 4.2), and
+#     there is no ORG between IMSG and the tail to absorb a shorter one.  The
+#     message is 72 bytes and the 110 behind it are the vendor's own FF fill --
+#     and they are what 4.7's signature and extension table will take.
+#
+# AND THE SLOT'S DIFF *FRAGMENTS*, which is why this is regions rather than one
+# window: the vendor's message and ROM 2.0's fallback are both text, and they share
+# bytes at scattered offsets (both start with VCLRS, both carry LF runs), so the
+# bytes that differ are not contiguous.  What may differ is the *region*; what the
+# message says is checked by value, below.
+#
+# A difference below ENTRY outside those two regions is a moved anchor.
+IMSG_AT, IMSG_LEN, MESSAGE = 0x019F, 182, 72
+prompt_diff = [i for i in below if i < IMSG_AT]
+slot_diff = [i for i in below if i >= IMSG_AT]
+outside = [i for i in slot_diff if i > IMSG_AT + IMSG_LEN - 1]
+if outside:
+    raise SystemExit(
+        'rom2asm.sh: the change below the HCBOOT entry at 0x%04X reaches '
+        '0x%04X, past IMSG\'s own slot at 0x%04X-0x%04X -- the sign-on prompt and '
+        'that slot are the only two places ROM 2.0 may differ, and anything else '
+        'is a moved anchor (docs/o1-rom-2.0.md 4.2)'
+        % (ENTRY, outside[0], IMSG_AT, IMSG_AT + IMSG_LEN - 1))
+if not prompt_diff:
+    raise SystemExit('rom2asm.sh: nothing below IMSG\'s slot changed, so the '
+                     'sign-on prompt was not touched -- and ROM 2.0 hooks the boot '
+                     'screen there (#247)')
+if not slot_diff:
+    raise SystemExit('rom2asm.sh: IMSG\'s slot at 0x%04X-0x%04X is unchanged -- '
+                     'the fallback message is not in this build (#278)'
+                     % (IMSG_AT, IMSG_AT + IMSG_LEN - 1))
+windows = []
+for i in prompt_diff:
+    if windows and i == windows[-1][1] + 1:
+        windows[-1][1] = i
+    else:
+        windows.append([i, i])
 if len(windows) != 1:
     raise SystemExit(
-        'rom2asm.sh: %d separate windows of change below the HCBOOT entry at '
-        '0x%04X (%s) -- the sign-on prompt is one, and a second is a moved '
+        'rom2asm.sh: %d separate windows of change in the sign-on prompt (%s) -- '
+        'the hook and the boot keys are one window, and a second is a moved '
         'anchor, which is not ROM 2.0 (docs/o1-rom-2.0.md 4.2)'
-        % (len(windows), ENTRY,
+        % (len(windows),
            ' '.join('%04x-%04x' % tuple(w) for w in windows[:4])))
 win_lo, win_hi = windows[0]
-if win_hi - win_lo + 1 > WINDOW_MAX:
-    raise SystemExit('rom2asm.sh: the change below the HCBOOT entry runs '
-                     '0x%04X-0x%04X, %d bytes -- the sign-on prompt is 28, so '
-                     'this is more than the hook and the boot keys'
-                     % (win_lo, win_hi, win_hi - win_lo + 1))
 window = built[win_lo:win_hi + 1]
 for pair, what in sorted(ROM2_KEYS.items()):
     if pair not in window:
@@ -321,6 +369,60 @@ if RELEASED in window:
     raise SystemExit('rom2asm.sh: the sign-on prompt still compares ESC -- ROM 2.0 '
                      'releases it, and an unclaimed key falls through to the '
                      'prompt\'s own JR START (#247 step 4)')
+
+# --- and IMSG's slot holds the fallback, and nothing else ---------------------
+# The message is the *trigger* the RP2354B watches for (docs/rom-pico-protocol.md
+# 5.1), so what it says is checked here by value rather than by a digest: the
+# first byte clears the screen (VCLRS, 1Ah -- it has to position itself, because
+# CURS is 0 when the screen code runs), the two lines are the animation's, the
+# last byte carries bit 7 (OSTR's terminator), and every byte behind it is the
+# vendor's FF fill.  The rows and the columns the animation expects are the
+# harness's to check: `bootscreen-check.sh` reads them off the machine's planes.
+imsg = built[IMSG_AT:IMSG_AT + IMSG_LEN]
+if imsg[0] != 0x1A:
+    raise SystemExit('rom2asm.sh: IMSG no longer starts with VCLRS -- the '
+                     'fallback has to position itself (docs/o1-rom-2.0.md 4.9)')
+for needle in (b'osborne 1 next ', b'press', b'to begi'):
+    if needle not in imsg[:MESSAGE]:
+        raise SystemExit('rom2asm.sh: the fallback in IMSG\'s slot does not carry '
+                         '%r -- the animation\'s own line is the trigger, and the '
+                         'RP2354B stops on it' % needle)
+if not imsg[MESSAGE - 1] & 0x80:
+    raise SystemExit('rom2asm.sh: the fallback\'s last byte has no bit 7 -- that '
+                     'is the terminator OSTR looks for, and without it the print '
+                     'runs on into the fill')
+if imsg[MESSAGE:] != b'\xff' * (IMSG_LEN - MESSAGE):
+    raise SystemExit('rom2asm.sh: the %d bytes behind the fallback are not the '
+                     'vendor\'s FF fill -- IMSG\'s slot has to keep its 182-byte '
+                     'length or everything below 0F67H moves (#278)'
+                     % (IMSG_LEN - MESSAGE))
+print('  and IMSG\'s slot at 0x%04X holds the fallback: %d bytes of text and %d of '
+      'fill, so the slot is still %d' % (IMSG_AT, MESSAGE, IMSG_LEN - MESSAGE,
+                                         IMSG_LEN))
+
+# --- and the screen code's own bytes are the ones the source wrote -----------
+# BY VALUE, and that is not belt-and-braces: the emulator's write-back damages hex
+# records silently as well as loudly (docs/rom-13-reconstruction.md 7), and the
+# coverage check below can only see a record that is *missing*, not one whose bytes
+# changed.  The screen code is the thing the machine runs at every sign-on, and it
+# is 26 bytes, so it is worth pinning: the fill (19, byte-identical to the blob's
+# own first 19 before #278), then `LD DE,IMSG` / `CALL OSTR` / `RET`.  `CALL OSTR`
+# is `CD B6 00`, because OSTR is at 00B6h below the entry and cannot move.
+# If the code is ever edited, this constant moves with it -- deliberately.
+SCREEN_AT = 0x0FB4        # right behind HCBOOT, which is 77 bytes from 0F67h
+SCREEN_CODE = bytes.fromhex('d3 03 d3 02 21 00 f0 36 ff 11 01 f0 01 ff 0f ed b0 '
+                            'd3 03 11 9f 01 cd b6 00 c9')
+got = built[SCREEN_AT:SCREEN_AT + len(SCREEN_CODE)]
+if got != SCREEN_CODE:
+    raise SystemExit(
+        'rom2asm.sh: the screen code at 0x%04X is not the 26 bytes the source '
+        'writes -- the image holds %s.  Either the code changed (then update '
+        'SCREEN_CODE here, in the same commit) or the build is damaged: this is '
+        'the shape the emulator\'s write-back makes when it hits the code instead '
+        'of the FF fill, and it is *silent* (docs/rom-13-reconstruction.md 7, '
+        '#278)' % (SCREEN_AT, got.hex(' ')))
+print('  and the screen code at 0x%04X-0x%04X is the source\'s own 26 bytes, by '
+      'value' % (SCREEN_AT, SCREEN_AT + len(SCREEN_CODE) - 1))
 
 # --- the monitor: the HCBOOT entry to the vendor's guard ----------------------
 mon = [i for i in diff if ENTRY <= i < 0x1000]
@@ -342,51 +444,41 @@ if mon_hi != monend:
         'usual cause (docs/rom-13-reconstruction.md 7).  Re-run the assembly.'
         % (mon_hi, monend))
 
-# --- and the blob is not in this image at all ---------------------------------
-# `ORG 4000H` is outside the monitor's 4096 bytes, so no diff above 0x1000 can
-# ever appear and a check here could not see the blob.  What *can* be checked is
-# that the program extends past the monitor into the blob's own page -- and if it
-# does not, the screen code is not in the build and step 8 has nothing to extract.
-# The blob's own extent is checked where its bytes are: `rom2blob.py --lwa`, on the
-# same `Program LWA`.
-if not BLOB_AT <= progend <= BLOB_LIMIT + 1:
+# --- and the program ends at the top of the 4 KB part -------------------------
+# There is no second artifact any more (#278).  The screen's code is in the tail,
+# so the last thing the assembler does is the vendor's own
+# `ECHO 0FFFH-RLWA ! DB 0FFH ... ENDM` -- and that block fills from the monitor's
+# end to 0FFEh, so the program ends at 0FFEh + 1 = 0FFFh.  The ROM's own last byte
+# (0FFFh) is the *reference's*, and it is 00h in the shipped 1.44 -- nothing has
+# ever written it, and the blob used to sit past it rather than on it.  A build
+# that stops short of 0FFFh is a build whose fill did not run, which is the hole
+# the emulator's floppy write-back used to make.
+if progend != 0x0FFF:
     raise SystemExit(
-        'rom2asm.sh: the assembler says the program ends at 0x%04X, which is not '
-        'in the blob\'s page at 0x%04X-0x%04X -- so the screen code is not in this '
-        'build, and there is no blob to extract (#247 step 8).  The blob is the '
-        '`ORG 4000H` part of research/source-code/BIOS-200-source/rom2-screen.asm, '
-        'and it goes *after* the vendor\'s `ENDM`: inside the `ECHO` block it is '
-        'assembled 0FFFH-RLWA times and every one of its labels is a duplicate.'
-        % (progend, BLOB_AT, BLOB_LIMIT))
+        'rom2asm.sh: the assembler says the program ends at 0x%04X, not 0FFFh -- '
+        'the vendor\'s ECHO fill to the top of the 4 KB part did not run, so the '
+        'image is not the one the source describes (#278)' % progend)
 
 print('  below 0x%04X: byte-identical to the 1.44%s'
-      % (ENTRY, (', except one window at 0x%04X-0x%04X -- the sign-on prompt'
-                 % (win_lo, win_hi)) if below else ', with no window at all'))
+      % (ENTRY, (', except two regions -- the sign-on prompt at 0x%04X-0x%04X and '
+                 'IMSG\'s slot at 0x%04X-0x%04X'
+                 % (win_lo, win_hi, IMSG_AT, IMSG_AT + IMSG_LEN - 1)) if below
+         else ', with no window at all'))
 print('  the boot keys: RETURN -> HCBOOT, ":" -> floppy A, \'"\' -> floppy B')
 print('  the monitor: 0x%04X-0x%04X, %d bytes, %d free to the guard'
       % (ENTRY, mon_hi, mon_hi - ENTRY + 1, GUARD - mon_hi))
 print('  and the assembler says the monitor ends at 0x%04X: the image agrees'
       % monend)
 print('  HCBOOT 0x%04X: %s' % (ENTRY, built[ENTRY:mon_hi + 1].hex(' ')))
-print('  the blob: the program ends at 0x%04X, past the monitor and inside the '
-      'page at 0x%04X -- its own artifact, and step 8 extracts it'
-      % (progend, BLOB_AT))
+print('  and the program ends at 0x%04X: the vendor\'s fill reaches the top of the '
+      '4 KB part, and there is no second artifact' % progend)
 open(out, 'wb').write(built)
 print('  wrote %s (4096 bytes, CRC32 %08x)' % (out, zlib.crc32(built)))
 PY
 
-if [ -n "$BLOB" ]; then
-    echo "== 8. the blob, as an artifact =="
-    # The blob's records are in the same hex the monitor came from: one assembly,
-    # two artifacts.  --lwa is the assembler's own `Program LWA`, so a build that
-    # lost the blob's tail cannot pass as one that did not.
-    python3 "$HERE/rom2blob.py" --extract "$WORK/ROM2.HEX" -o "$BLOB" \
-        --lwa "$PROGEND"
-fi
-
 cat <<'NOTE'
 
-NEXT: the image, the blob, and the machine that boots them.
+NEXT: the image, and the machine that boots it.
 
   tools/research/rom2image.py --monitor OUT -o /tmp/rom2.rom
   tools/emulator-setup/mame-osborne1nx/rom2-check.sh    # what HCBOOT does, measured
@@ -395,13 +487,11 @@ The monitor alone is not bootable: the payload -- the CBIOS, the MD-10 BIOS and
 the shim -- comes from rom2image.py, which is what puts them in the window at
 1000h and 1800h, where HCBOOT copies them out of.
 
-And the blob is not part of the monitor at all: it is the page the interposer
-serves for PRESENT(3), and `-b` is what puts it in firmware/rom-service/screen.bin.
-
-  tools/research/rom2asm.sh -o /tmp/rom2-monitor.rom \
-                            -b firmware/rom-service/screen.bin
-
-`tools/research/rom2blob.py --check` then verifies that the committed blob carries
-the digest of rom2-screen.asm as it stands, and fails when the source has moved on
-without it.  That is the CI check, because this script needs MAME and CI has none.
+There is no second artifact any more (#278, 2026-10-17).  The screen's code used to
+be a page the interposer served for `PRESENT(3)`, which `-b` extracted into
+`firmware/rom-service/screen.bin` with `tools/research/rom2blob.py` as its
+staleness guard.  The frame path retired, the screen's code came back into the
+monitor's tail where it fits, and the blob, its asset, its tool, this script's
+`-b` and step 8 all went with it.  What the screen code is, and what it must not
+disturb, is `research/source-code/BIOS-200-source/rom2-screen.asm`.
 NOTE

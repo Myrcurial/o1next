@@ -211,6 +211,15 @@ STOCK_KEYS = {0x0048: 0x1B, 0x0050: 0x0D}  # `CMP ESC`, `CMP CR` in the shipped 
 ROM2_KEYS = {bytes([0xFE, 0x0D]): 'RETURN', bytes([0xFE, 0x3A]): "':'"}
 ROM2_RELEASED = bytes([0xFE, 0x1B])        # `CMP ESC`, which ROM 2.0 gives up
 ROM2_WINDOW_MAX = 64                       # the sign-on prompt is 28 bytes of it
+# AND THE SECOND REGION BELOW THE ENTRY (#278, 2026-10-17): IMSG's own slot, at
+# the vendor's own 182 bytes, where ROM 2.0's 72-byte fallback message now lives
+# with 110 bytes of the vendor's FF fill behind it.  The slot keeps its *length*
+# because there is no ORG between IMSG and the tail to absorb a shorter one: a
+# byte moved there would move every routine the CBIOS calls by absolute address
+# (docs/o1-rom-2.0.md 4.2).  The message is the *trigger* the RP2354B watches for,
+# so it is checked by value here -- and its rows, columns and dim runs are
+# `bootscreen-check.sh`'s to check, off the machine's own video planes.
+IMSG_AT, IMSG_LEN, FALLBACK_LEN = 0x019F, 182, 72
 CCP_HEAD = bytes([0xC3, 0x5C, 0xCE])          # JP 0CE5Ch; 0xCE-3 = 0xCB = the CCP page
 BDOS_ENTRY_OFF = 0x0806
 BDOS_ENTRY = bytes([0xC3, 0x11, 0xD3])        # JP 0D311h
@@ -300,39 +309,79 @@ def check_monitor(rom, stock):
             raise Fail("the stock reference holds 0x%02X at 0x%04X, not 0x%02X "
                        "-- it is not the shipped 1.44" % (stock[a], a, was))
 
-    # below the HCBOOT entry: one window, and it is the sign-on prompt
+    # Below the HCBOOT entry: TWO regions, both named -- the sign-on prompt, where
+    # the hook and the boot keys live, and IMSG's own slot, where the fallback
+    # message replaces the vendor's sign-on text.  The slot's diff *fragments*,
+    # because the two messages are both text and share bytes at scattered offsets,
+    # so what may differ is the region -- and what the message *says* is checked
+    # by value, below.
     below = [i for i in diff if i < ROM2_ENTRY]
     if not below:
         raise Fail("nothing below the HCBOOT entry at 0x%04X changed, so the "
                    "sign-on prompt was not touched -- and ROM 2.0 hooks the boot "
                    "screen there (#247)" % ROM2_ENTRY)
+    prompt_diff = [i for i in below if i < IMSG_AT]
+    slot_diff = [i for i in below if i >= IMSG_AT]
+    outside = [i for i in slot_diff if i > IMSG_AT + IMSG_LEN - 1]
+    if outside:
+        raise Fail("the change below the HCBOOT entry at 0x%04X reaches 0x%04X, "
+                   "past IMSG's own slot at 0x%04X-0x%04X -- the sign-on prompt and "
+                   "that slot are the only two places ROM 2.0 may differ, and "
+                   "anything else is a moved anchor (docs/o1-rom-2.0.md 4.2)"
+                   % (ROM2_ENTRY, outside[0], IMSG_AT, IMSG_AT + IMSG_LEN - 1))
+    if not prompt_diff:
+        raise Fail("nothing below IMSG's slot changed, so the sign-on prompt was "
+                   "not touched -- and ROM 2.0 hooks the boot screen there (#247)")
+    if not slot_diff:
+        raise Fail("IMSG's slot at 0x%04X-0x%04X is unchanged -- the fallback "
+                   "message is not in this build (#278)"
+                   % (IMSG_AT, IMSG_AT + IMSG_LEN - 1))
     windows = []
-    for i in below:
+    for i in prompt_diff:
         if windows and i == windows[-1][1] + 1:
             windows[-1][1] = i
         else:
             windows.append([i, i])
     if len(windows) != 1:
-        raise Fail("%d separate windows of change below the HCBOOT entry at "
-                   "0x%04X (%s) -- the sign-on prompt is one, and a second is a "
+        raise Fail("%d separate windows of change in the sign-on prompt (%s) -- "
+                   "the hook and the boot keys are one window, and a second is a "
                    "moved anchor, which is not ROM 2.0 (docs/o1-rom-2.0.md 4.2)"
-                   % (len(windows), ROM2_ENTRY,
+                   % (len(windows),
                       ' '.join('%04x-%04x' % tuple(w) for w in windows[:4])))
     plo, phi = windows[0]
     if phi - plo + 1 > ROM2_WINDOW_MAX:
-        raise Fail("the change below the HCBOOT entry runs 0x%04X-0x%04X, %d bytes "
-                   "-- the sign-on prompt is 28, so this is more than the hook and "
-                   "the boot keys" % (plo, phi, phi - plo + 1))
+        raise Fail("the change in the sign-on prompt runs 0x%04X-0x%04X, %d bytes "
+                   "-- the prompt is 28, so this is more than the hook and the "
+                   "boot keys" % (plo, phi, phi - plo + 1))
     prompt = rom[plo:phi + 1]
     for pair, what in sorted(ROM2_KEYS.items()):
         if pair not in prompt:
             raise Fail("the sign-on prompt at 0x%04X-0x%04X compares no `CMP %s` "
                        "-- ROM 2.0 boots the hard disk on RETURN and the floppies "
-                       "on : and \" (docs/o1-rom-2.0.md 3.3)"
+                       "on : and the double quote (docs/o1-rom-2.0.md 3.3)"
                        % (plo, phi, what))
     if ROM2_RELEASED in prompt:
         raise Fail("the sign-on prompt still compares ESC -- ROM 2.0 releases it, "
                    "and an unclaimed key falls through to the prompt's own JR START")
+
+    # and the message in IMSG's slot, by value
+    msg = rom[IMSG_AT:IMSG_AT + IMSG_LEN]
+    if msg[0] != 0x1A:
+        raise Fail("IMSG's slot does not start with VCLRS -- the fallback has to "
+                   "position itself, because CURS is 0 when the screen code runs "
+                   "(docs/o1-rom-2.0.md 4.9)")
+    for needle in (b'osborne 1 next ', b'press', b'to begi'):
+        if needle not in msg[:FALLBACK_LEN]:
+            raise Fail("the fallback in IMSG's slot does not carry %r -- the "
+                       "animation's own line is the trigger the RP2354B stops on"
+                       % needle)
+    if not msg[FALLBACK_LEN - 1] & 0x80:
+        raise Fail("the fallback's last byte has no bit 7 -- that is the terminator "
+                   "OSTR looks for")
+    if msg[FALLBACK_LEN:] != bytes([0xff]) * (IMSG_LEN - FALLBACK_LEN):
+        raise Fail("the %d bytes behind the fallback are not the vendor's FF fill "
+                   "-- IMSG's slot has to keep its 182-byte length or everything "
+                   "below 0F67h moves (#278)" % (IMSG_LEN - FALLBACK_LEN))
 
     # and the free tail: the monitor's new code, from ENTRY to the guard
     above = [i for i in diff if i >= ROM2_ENTRY]
@@ -341,10 +390,12 @@ def check_monitor(rom, stock):
                    "ROM 2.0 is not in this build" % ROM2_ENTRY)
     mlo, mhi = above[0], above[-1]
     return ("monitor 4096 bytes, ROM 2.0: the stock 1.44 with the sign-on prompt at "
-            "0x%04X-0x%04X changed -- the boot keys and `CALL SCRN` -- and 0x%04X-0x%04X "
-            "in the free tail (%d bytes of code and fill, 0x%04X-0x%04X free to the "
-            "vendor's guard)"
-            % (plo, phi, mlo, mhi, mhi - mlo + 1, ROM2_ENTRY, mhi + 1))
+            "0x%04X-0x%04X changed -- the boot keys and `CALL SCRN` -- IMSG's slot at "
+            "0x%04X-0x%04X carrying the fallback (%d bytes of text and %d of fill), "
+            "and 0x%04X-0x%04X in the free tail (%d bytes of code, 0x%04X-0x%04X free "
+            "to the vendor's guard)"
+            % (plo, phi, IMSG_AT, IMSG_AT + IMSG_LEN - 1, FALLBACK_LEN,
+               IMSG_LEN - FALLBACK_LEN, mlo, mhi, mhi - mlo + 1, ROM2_ENTRY, mhi + 1))
 
 
 def check_stub_copy(monitor, stock):
