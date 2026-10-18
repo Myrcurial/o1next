@@ -19,11 +19,13 @@ libc = "0.2"
 # firmware, so the bridge has to be able to show them.
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# The RP2354B emulator.  Pinned to a *fork* commit on purpose.  picoem is a
-# personal research project whose issue tracker has never had an issue filed and
-# whose CONTRIBUTING.md says the safe path is to fork, so the two decode bugs
-# that stop stock Pico SDK firmware from running live in Myrcurial/picoem --
-# recorded here as tools/emulator-setup/picoem/rp2350-coproc-and-exclusive.patch
+# The RP2354B emulator.  Pinned to a *fork* commit on purpose.  picoem's issue
+# tracker is disabled (the API reports `has_issues: false`) and it refuses pull
+# requests, so upstream contribution is **closed** rather than merely slow --
+# and its CONTRIBUTING.md says the safe path is to fork.  The two decode bugs
+# that stop stock Pico SDK firmware from running therefore live in
+# Myrcurial/picoem, recorded here as
+# tools/emulator-setup/picoem/rp2350-coproc-and-exclusive.patch
 # (see that directory's README.md for what and why).  The commit, the reason and
 # the re-pin procedure are in REQUIREMENTS.md; Cargo.lock records the resolved
 # graph.
