@@ -336,6 +336,7 @@ emulation, and they cost an afternoon between them.
 | Not emulatable | Why | Where it belongs |
 |---|---|---|
 | **Electrical timing** — the Rev B T2 claim (~50 ns PIO response), propagation, bus loading, 74AHCT level shifting, Z80 setup/hold | emulation gives **cycle counts**, not nanoseconds. Neither emulator models a wire | **#29** (Phase 4). The cycle-budget assertion in §7 is the *partial* substitute and must be labelled as one |
+| **The machine's own wait-state generator, and how it composes with the interposer's** | **MAME omits it.** `o1-mainboard-schematic.md` §8 records the wait-state generator on sheet 2/9 (`UC1`, `UC2`, `UD1`–`UD3`) as unmodelled, and `o1-memory-io-map.md` §1 measures what it does: ≈375 ns of wait on non-M1 RAM cycles, 188 ns on the first M1, none on ROM. So the *composition* of the machine's stretch with the interposer's cannot be exercised in the emulator at all | **#29** — and it is hardware-gated **by construction**. It is also the strongest argument for *scheduling* `/WAIT` from the clock phase rather than racing `ADDR_HIT` (**#297**): the one behaviour a race cannot survive is the one the testbed cannot test |
 | **Pin-mux correctness** | `FUNCSEL` is not enforced (P5), so a personality that shares a pad wrongly *passes* | this document, §3.3 — a named **false-negative source** |
 | **A real W25Q, SD card, USB stick, ESP32 radio** | quirks, timing, and radio | #288, #21/#56, #29 |
 | **A card a PC formatted mounts** | needs a card or a faithful model | #288 |
