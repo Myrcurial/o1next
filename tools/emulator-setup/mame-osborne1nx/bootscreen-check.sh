@@ -1,23 +1,26 @@
 #!/bin/sh
-# bootscreen-check.sh -- ROM 2.0's boot screen, drawn in the machine (#247 step 8,
-# turn 4).
+# bootscreen-check.sh -- ROM 2.0's boot screen, drawn in the machine (#247 step 8;
+# rewritten for #278, 2026-10-17).
 #
 # WHY THIS EXISTS
 #   The rest of step 8's harnesses check a door: `romservice-check.sh` drives the
 #   transaction and reads page 1, `softrom-check.sh` reads the window.  None of them
-#   can say the screen is *drawn*, because drawing it is three things in a row that
-#   no one of them owns -- the monitor's sign-on stub asks for the screen's code
-#   with PRESENT(3), copies window page 1 to RAM at 4000h and jumps into it, and the
-#   code blits the frame into the two video planes (docs/o1-rom-2.0.md 4.7).
+#   can say the screen is *drawn*, because drawing it is the monitor's own code --
+#   fill the attribute array bright, print the fallback, return.
 #
 #   So this is the acceptance that reads the *result*: ROM 2.0's monitor in the
-#   window, both flash assets mounted, and the two planes read back off the machine
-#   and compared against `frame.bin` -- the character plane byte for byte, the
-#   attribute plane bit 7 (which is all the array holds).
+#   window, nothing mounted beside it, and the two video planes read back off the
+#   machine and compared against the animation's own two lines and its own
+#   bright/dim runs.
 #
-#   And it is run twice, because one run cannot tell "the code drew it" from "it
-#   happened to be there": with no splash mounted the stub takes its fallback, prints
-#   the stock sign-on, and the frame must **not** be on the screen.
+#   That comparison is the whole point.  The fallback *is* the trigger the RP2354B
+#   watches for -- it plays the animation and stops on the Z80's first video-RAM
+#   write -- so this is the one thing the frame path's retirement must not disturb
+#   (#278; docs/rom-pico-protocol.md 5.1, docs/o1-rom-2.0.md 4.9).
+#
+#   And there is nothing left to mount: the `-frame` and `-bootsplash` slots went
+#   with the frame path, and the screen's code is 26 bytes in the monitor's own
+#   tail.  So the run is the machine, the monitor, and the two planes.
 #
 # USAGE
 #   tools/emulator-setup/mame-osborne1nx/bootscreen-check.sh
@@ -55,27 +58,13 @@ fi
 
 ROMPATH="${O1_ROMPATH:-$REPO/tools/emulator-setup/roms}"
 WORK="${O1_WORK:-/tmp/o1next-bootscreen-check}"
-# The frame is **derived from the animation**, not committed (#247's W5): `frame.bin`
-# was retired on 2026-10-16, and the frame the ROM is served is the one the animation
-# *rests* on.  tools/research/bootanim.py is what says the asset is valid and takes
-# that frame out of it.
-ANIM="$REPO/firmware/rom-service/boot-animation.bin"
-FRAME="$WORK/frame.bin"
-SPLASH="$REPO/firmware/rom-service/screen.bin"
 LUA="$HERE/o1next-bootscreen.lua"
 
 [ -d "$ROMPATH" ] || { echo "bootscreen-check.sh: no such ROM path: $ROMPATH" >&2; exit 1; }
-FRAME_OK=0
-if [ -f "$ANIM" ] && python3 "$REPO/tools/research/bootanim.py" --check "$ANIM" \
-        && python3 "$REPO/tools/research/bootanim.py" --resting -o "$FRAME"; then
-    FRAME_OK=1
-else
-    echo "bootscreen-check.sh: no valid animation at $ANIM" >&2
-    echo "  the frame's own two runs need it; the fallback run below does not." >&2
-fi
-[ -f "$SPLASH" ] || { echo "bootscreen-check.sh: no boot splash at $SPLASH" >&2; exit 1; }
 [ -f "$LUA" ] || { echo "bootscreen-check.sh: no harness at $LUA" >&2; exit 1; }
 
+# The scratch directory first: the monitor build below writes into it, and MAME
+# writes its cfg/ and snap/ into the current directory.
 mkdir -p "$WORK"
 cd "$WORK"
 
@@ -96,12 +85,7 @@ grep -E '^  ok  monitor|^wrote' "$WORK/rom2image.log"
 echo "== the machine =="
 echo "  binary:  $MAME"
 echo "  monitor: $MONITOR"
-if [ "$FRAME_OK" = 1 ]; then
-    echo "  frame:   $FRAME ($(wc -c < "$FRAME" | tr -d ' ') bytes, the animation's resting frame)"
-else
-    echo "  frame:   <none -- no valid animation at $ANIM>"
-fi
-echo "  splash:  $SPLASH ($(wc -c < "$SPLASH" | tr -d ' ') bytes)"
+echo "  assets:  none -- there are none to mount any more (#278)"
 echo
 
 FAIL=0
@@ -109,55 +93,13 @@ verdict() {  # verdict LABEL RESULT
     if [ "$2" = 0 ]; then echo "  PASS  $1"; else echo "  FAIL  $1"; FAIL=1; fi
 }
 
-if [ "$FRAME_OK" = 1 ]; then
-
-# --- the splash: the stub asks, the code runs, the screen is drawn ----------
-echo "== the splash: the frame on the character plane and on the attribute plane"
-O1_FRAME="$FRAME" O1_BOOTSPLASH="$SPLASH" O1_EXPECT=splash \
+# --- the screen: the fallback, read back off the two planes ------------------
+echo "== the screen: the fallback on the character plane, its dim runs on the other"
 SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -softrom "$WORK/rom2.rom" \
-    -frame "$FRAME" -bootsplash "$SPLASH" \
     -video none -sound none -nothrottle -rompath "$ROMPATH" \
-    -autoboot_script "$LUA" -seconds_to_run 30 > "$WORK/screen-splash.log" 2>&1 || true
-grep -E '^  (PASS|FAIL)|^SCREEN:|^  \||^the frame' "$WORK/screen-splash.log" | sed 's/^/  /'
-if grep -q '^SCREEN: PASS' "$WORK/screen-splash.log"; then
-    verdict "the boot screen is on the machine -- monitor, stub, PRESENT(3), the code" 0
-else
-    verdict "the boot screen is on the machine -- monitor, stub, PRESENT(3), the code" 1
-fi
-echo
-
-# --- and without it, so the frame in the planes is the code's doing ----------
-echo "== no splash: the stub's fallback, and the frame is *not* on the screen"
-O1_FRAME="$FRAME" O1_EXPECT=stock \
-SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -softrom "$WORK/rom2.rom" \
-    -frame "$FRAME" \
-    -video none -sound none -nothrottle -rompath "$ROMPATH" \
-    -autoboot_script "$LUA" -seconds_to_run 30 > "$WORK/screen-stock.log" 2>&1 || true
-grep -E '^  (PASS|FAIL)|^SCREEN:|^  \|' "$WORK/screen-stock.log" | sed 's/^/  /'
-if grep -q '^SCREEN: PASS' "$WORK/screen-stock.log"; then
-    verdict "with no splash the frame is not drawn, so the frame above is the code's" 0
-else
-    verdict "with no splash the frame is not drawn, so the frame above is the code's" 1
-fi
-echo
-
-else
-    verdict "the frame's own two runs (no boot frame mounted -- the asset is retired)" 1
-    echo
-fi
-
-# --- the splash and NO frame: the screen code's own fallback (#247's W3) -----
-# This is the run that needs no frame asset, so it works while the frame's is
-# retired: the code runs, PRESENT(1) has nothing to answer with, and the fallback
-# it has already printed is what stays on the screen.
-echo "== the fallback: the screen's own two lines, and its bright/dim runs"
-O1_BOOTSPLASH="$SPLASH" O1_EXPECT=fallback \
-SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -softrom "$WORK/rom2.rom" \
-    -bootsplash "$SPLASH" \
-    -video none -sound none -nothrottle -rompath "$ROMPATH" \
-    -autoboot_script "$LUA" -seconds_to_run 30 > "$WORK/screen-fallback.log" 2>&1 || true
-grep -E '^  (PASS|FAIL)|^SCREEN:|^  \|' "$WORK/screen-fallback.log" | sed 's/^/  /'
-if grep -q '^SCREEN: PASS' "$WORK/screen-fallback.log"; then
+    -autoboot_script "$LUA" -seconds_to_run 30 > "$WORK/screen.log" 2>&1 || true
+grep -E '^  (PASS|FAIL)|^SCREEN:|^  \|' "$WORK/screen.log" | sed 's/^/  /'
+if grep -q '^SCREEN: PASS' "$WORK/screen.log"; then
     verdict "the fallback is the screen's own two lines, at its own rows and runs" 0
 else
     verdict "the fallback is the screen's own two lines, at its own rows and runs" 1
@@ -167,6 +109,6 @@ echo
 if [ "$FAIL" = 0 ]; then
     echo "bootscreen-check.sh: all checks passed"
 else
-    echo "bootscreen-check.sh: FAILED -- see the logs in $WORK" >&2
+    echo "bootscreen-check.sh: FAILED -- see the log in $WORK" >&2
 fi
 exit "$FAIL"

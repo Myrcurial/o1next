@@ -17,14 +17,12 @@ WHY IT EXISTS
   because a frame that fails its own test is a frame the machine cannot draw.  That
   is `--check`, and it is the whole of the ROM's interest.
 
-  **The frame the ROM *does* ask for comes out of it.**  `PRESENT(1)` and
-  `PRESENT(2)` serve "the frame" -- two 4096-byte halves, characters then attributes
-  -- and the separate `firmware/rom-service/frame.bin` that used to be that frame
-  was **retired on 2026-10-16**.  The frame the hardware would serve is the one the
-  animation *rests* on, which is the last frame of a `once` animation (frame 89 of
-  90 here), so `--resting` writes exactly the 8192-byte asset the retired file was
-  -- and `romservice-check.sh`, `bootscreen-check.sh` and `stage.sh` mount that
-  rather than a committed copy that can drift from the animation it came from.
+  **And that is the whole of it now (#278, 2026-10-17).**  `--resting` used to
+  take the frame the ROM was served out of the animation -- the one it rests on, the
+  last frame of a `once` animation -- because the ROM asked for a frame through the
+  door.  The ROM-side frame path retired: the RP2354B is the display, and the
+  monitor draws its own fallback out of its own tail, so nothing is served and
+  nothing is derived.  `--frame N` stays, as the way to look at one frame.
 
 CONTAINER (`tools/bootsplash/README.md`, `docs/rom-pico-protocol.md` 5.1)
 
@@ -47,7 +45,6 @@ CONTAINER (`tools/bootsplash/README.md`, `docs/rom-pico-protocol.md` 5.1)
 Usage:
     tools/research/bootanim.py --check [FILE]        # validate; exit 1 if it is not
     tools/research/bootanim.py --info [FILE]         # the header, and the mode
-    tools/research/bootanim.py --resting -o OUT.bin  # the frame it rests on
     tools/research/bootanim.py --frame N -o OUT.bin  # frame N, 0-based
 
 FILE defaults to firmware/rom-service/boot-animation.bin.  Standard library only.
@@ -156,9 +153,6 @@ def main(argv=None):
                     help="validate the container and every frame; exit 1 if it is not")
     ap.add_argument("--info", action="store_true", help="print the header and the mode")
     ap.add_argument("--frame", type=int, metavar="N", help="write frame N (0-based)")
-    ap.add_argument("--resting", action="store_true",
-                    help="write the frame the animation rests on -- the last one, "
-                         "which is what a `once` animation stops on")
     ap.add_argument("-o", "--out", metavar="OUT.bin", help="where to write a frame")
     args = ap.parse_args(argv)
 
@@ -203,21 +197,20 @@ def main(argv=None):
         print("  pacing     %d fps" % hdr["fps"])
         print("  frames     %d x %d = %d bytes of body" % (hdr["frames"], FRAME, hdr["body"]))
         print("  sum        %04Xh over bytes 0-23" % hdr["sum"])
-        print("  resting    frame %d (0-based)" % (hdr["frames"] - 1))
         for b in bad:
             print("  BAD        " + b, file=sys.stderr)
         return 1 if bad else 0
 
-    if args.frame is None and not args.resting:
-        ap.error("give one of --check, --info, --frame N or --resting")
+    if args.frame is None:
+        ap.error("give one of --check, --info or --frame N")
 
-    n = hdr["frames"] - 1 if args.resting else args.frame
+    n = args.frame
     if not 0 <= n < hdr["frames"]:
         print("bootanim.py: frame %d is not in 0..%d" % (n, hdr["frames"] - 1),
               file=sys.stderr)
         return 1
     if not args.out:
-        ap.error("--frame/--resting need -o OUT.bin")
+        ap.error("--frame needs -o OUT.bin")
     if bad:
         print("bootanim.py: the container is not valid, so its frames are not either",
               file=sys.stderr)

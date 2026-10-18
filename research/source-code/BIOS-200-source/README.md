@@ -54,10 +54,17 @@ shipped bytes): the monitor's code is *in* the bank it is switching away from, s
 the switch has to be taken by code that survives it. What is pushed as its return
 address is therefore the stub in RAM, not the MD-10 BIOS's entry.
 
-As built it is **77 bytes**, `0F67`–`0FB3`, with **72 bytes free** to the vendor's
-own guard.
+As built it is **77 bytes**, `0F67`–`0FB3`.
 
-## The two hunks
+**And since #278 the tail holds the boot screen too**: the frame path's retirement
+left the screen's code at **26 bytes** — fill the attribute array bright, print the
+fallback, return — so it fits the 72 bytes the stub used to occupy, and the monitor's
+new code is `0F67`–`0FCD` (**103 bytes**, **46 free** to the guard, up from 21).
+`tools/research/rom2asm.sh` reports both numbers and checks the code's 26 bytes *by
+value*, because the build's own hex can be damaged silently
+(`docs/rom-13-reconstruction.md` 7).
+
+## The hunks
 
 **1. The boot keys (#247 step 4), and they are two bytes.** The sign-on dispatch
 (`rom144.asm` ~295-309) is three comparisons, and the change is *in place*:
@@ -72,8 +79,26 @@ and `rom2asm.sh` and `rom2image.py` both check them *by value*, so a monitor
 carrying the old map — or a third value — stops the build with the map in the
 message.
 
-**2. `HCBOOT`, in the free tail above `0F67h`.** Everything else below `0F67h` is
-byte-identical to the shipped 1.44.
+**2. `HCBOOT`, in the free tail above `0F67h`.**
+
+**3. The boot screen, in the rest of that tail (#247, #278).** `SCRN` — what the
+sign-on hook calls — fills the attribute array bright, prints the fallback and
+returns. It used to be a stub that asked the interposer for a 4096-byte page of code
+and ran it out of RAM; the frame path's retirement took the frame's trailer checks
+and blits with it and left the trigger.
+
+**4. `IMSG`'s own slot at `019Fh` (#278).** The vendor's 182-byte sign-on message is
+replaced by ROM 2.0's 72-byte fallback — the animation's own two lines, at its own
+rows and columns, with its own bright/dim runs, which is the *trigger* the RP2354B
+watches for — and 110 bytes of the vendor's `FF` fill behind it. **The slot keeps its
+length**, because nothing below `0F67h` may move: the CBIOS calls ROM routines by
+absolute address (`docs/o1-rom-2.0.md` 4.2) and there is no `ORG` between `IMSG` and
+the tail to absorb a shorter one. The 110 bytes are what 4.7's signature and extension
+table will take.
+
+So two regions below `0F67h` differ: the sign-on prompt and `IMSG`'s slot. Everything
+else below `0F67h` is byte-identical to the shipped 1.44, and `rom2asm.sh` and
+`rom2image.py` both measure that.
 
 ## Building it
 
@@ -84,7 +109,9 @@ tools/research/rom2asm.sh -o rom2-monitor.rom
 
 It wants `mame`, `cpmcp`/`cpmrm` and `python3`, the same as
 `rom144-reassemble.sh`, and it takes a few minutes: the assembly runs on an
-emulated Osborne 1. The result then goes into the image with
+emulated Osborne 1. It takes **no `-b` any more**: the screen's code is in the
+monitor's tail, so there is no second artifact to extract (#278). The result goes
+into the image with
 
 ```sh
 tools/research/rom2image.py --monitor /tmp/rom2-monitor.rom -o /tmp/rom2.rom

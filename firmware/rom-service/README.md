@@ -1,23 +1,27 @@
-# rom-service — the boot screen in the RP2354B's flash, and the ROM's window page 1
+# rom-service — the ROM's window, the door, and the boot screen the RP2354B plays
 
 The firmware side of the ROM↔Pico channel: the **ROM service** command class
-(`40–4Fh`) of the mailbox protocol, the two doors it answers on, the **boot
-screen** compiled into the RP2354B's own flash, and the ROM-side assets the
-monitor's stub asks for. The contract is `docs/rom-pico-protocol.md` (#247 step
-8); **#247's W5** is where the interaction itself was regenerated, and "How the
-screen gets drawn" below is the summary.
+(`40–4Fh`) of the mailbox protocol, the two doors it answers on, and the **boot
+screen** compiled into the RP2354B's own flash. The contract is
+`docs/rom-pico-protocol.md` (#247 step 8); **#278** is where the ROM-side frame path
+was retired, and "How the screen gets drawn" below is the summary.
 
 | File | What it is |
 |---|---|
 | `boot-animation.bin` | **the boot screen**: a 32-byte `O1SPLASH` header and then **90 sealed frames** back to back, 8 fps, played once. Each frame is **8192 bytes = two 4096-byte halves**, characters then attributes, each carrying its own `O1NEXT` magic and 16-bit sum at its own `0FF8h`. SHA-256 `0d9fa6c2…42541b` — see "The animation" below |
-| `screen.bin` | the boot screen's **code**: 4096 bytes, the window page the monitor's stub asks for with `PRESENT(3)` and copies to RAM at `4000h`. The code is the first 183 bytes; the rest is the vendor's own `FFh` fill; and the top of the page carries a trailer the code never reads — `O1NEXT`, the digest of the source it came from, and a 16-bit sum. Also **generated and committed** |
 
-**The animation is not generated here, and nothing re-checks it against a source.**
-The tool that drew it is interactive — `tools/bootsplash/` *is* the tool — so there
-is no art file to re-render it from. What is checked is that the file is the format
-it claims to be, and that is checked against the machine's own trailer test.
-`frame.bin`, the two-half boot frame that used to sit here, was **retired on
-2026-10-16** when the boot screen became the animation the RP2354B plays.
+**That is the only asset, and nothing is generated here.** The tool that drew the
+animation is interactive — `tools/bootsplash/` *is* the tool — so there is no art
+file to re-render it from. What is checked is that the file is the format it claims
+to be, and that is checked against the machine's own trailer test
+(`tools/research/bootanim.py --check`). Two assets that used to sit here are gone:
+
+- `frame.bin`, the two-half boot frame, **retired on 2026-10-16** when the boot
+  screen became the animation the RP2354B plays;
+- `screen.bin`, the screen's **code**, which was served to the ROM as a window page
+  and guarded by `tools/research/rom2blob.py --check` — **retired on 2026-10-17
+  (#278)** with the ROM-side frame path, when the code came back into the monitor's
+  own tail where it fits (26 bytes). The tool went with it.
 
 ## The frame, and why it is two halves
 
@@ -29,95 +33,79 @@ halves**, characters then attributes, and **each half validates itself**: the
 trailer *is* the "is a frame there?" query, so missing, erased and corrupt are one
 case.
 
-Regenerate the blob, which needs a build — the vendor's ACT80 is what makes its
-bytes:
-
-```sh
-tools/research/rom2asm.sh -o /tmp/rom2-monitor.rom \
-                          -b firmware/rom-service/screen.bin
-```
-
-`tools/research/rom2blob.py --check` **cannot** rebuild it: CI has no MAME, and no
-amount of Python recomputes the ACT80's output. So its guard is a staleness check
-instead — `screen.bin` records the digest of the source it was extracted from, and
-the check fails when that source has moved on without it. That is the half that
-can be checked anywhere. The other half is `rom2asm.sh`'s own step 7, which checks
-that the blob's records and the assembler's `Program LWA` agree.
-
-`.github/workflows/generated-artifacts.yml` runs both `--check`s on every change to
-either source or either asset.
+**The format did not change when the ROM's path to it did (#278).** The RP2354B is
+what reads a frame now — out of this animation, in its own flash — and the ROM never
+sees one: the Z80's whole role is the trigger, and the trigger is the fallback text
+the monitor's own screen code prints. So the trailer, the two halves and the 9th bit
+are all still exactly what they were; what retired is the ROM asking for a frame
+through the door.
 
 The **9th bit is used**. The old v1.0 frame was all-bright (`FFh` in every attribute
 cell, which is what the array reads back), but the animation carries real **dim
 accents** — between 164 and 1440 cells a frame, depending on where it is — which is
-exactly the case the format was kept for: dim needs no ROM change, because the ROM
-blits the attribute half whenever it validates.
+exactly the case the format was kept for.
 
 Both halves are the *character* half's shape: the trailer's eight bytes sit in cells
-4088–4095, which are row 31, and rows 24–31 are off-screen on the machine.
+4088–4095, which are row 31, and rows 24–31 are off-screen on the O1's 24-row
+display. That is deliberate — a frame's trailer is never visible.
 
 ## The animation
 
-`boot-animation.bin` is the boot screen as a **sequence**: a 32-byte `O1SPLASH` header
-and then 90 sealed frames back to back, 737,312 bytes in all. The header says
-128 × 32, **8 fps**, **flags 0 — `once`**, and carries its own 16-bit sum over bytes
-0–23, so the container validates itself before a frame is read.
-
-The flags byte is two independent bits (bit 0 repeat, bit 1 bounce), so the four
-modes it can express are `once` (0), `loop` (1), ping-pong once (2) and ping-pong
-repeat (3). This asset uses the first, which is what a boot screen wants: the last
-frame is the resting prompt, so the sequence plays through and stays there. The
-container and all four modes are specified in `docs/rom-pico-protocol.md` §5.1.
-
 | | |
 |---|---|
-| exported from | `tools/bootsplash/bootsplash.html`, 2026-10-16 |
-| frames | 90 at 8 fps — 11.25 s, played `once`, resting on the last frame |
-| SHA-256 | `0d9fa6c207517156e6230e8c10e625d1870daa0e4225d563290d0d1edf42541b` |
-| what it plays | the striped `O` mark and its two captions; a full-buffer `O1NEXT` wipe; a clear; the mark rising into place; then `press return to begin`, whose **return** blinks bright and settles |
-| where the ink is | the settled frames stay inside **columns 0–50**, so they fit the 52-column window; the wipe phase runs to the buffer's own edge (column 127), so a 52-column window sees only its left half |
+| container | `tools/bootsplash/README.md`; reader and validator: `tools/research/bootanim.py` |
+| header | 32 bytes: `O1SPLASH`, version, flags, 128 × 32, fps, frames, body length, header sum |
+| flags | bit 0 `LOOP`, bit 1 `PINGPONG` — `once` here, so it plays through and stops on frame 89 |
+| pacing | 8 fps, from the RP2354B's own clock |
+| frames | 90 × 8192 bytes = 737280, plus the 32-byte header |
+| validation | `python3 tools/research/bootanim.py --check` — the container's sum, its geometry and flags, and every frame's own trailer |
 
-**The art text is not the source, and is not wanted as one.** The tool that drew it
-is interactive, so the `.bin` is the artifact of record and nothing in this repo
-rebuilds it. (For the record, it *would* survive a round trip through the art-text
-convention — the wordmark is drawn with block glyphs and the captions are lowercase,
-so no cell holds a glyph in `0x41–0x61` — but that is a fact, not a plan.)
+**The animation is the RP2354B's to draw and the ROM's to *trigger*.** Nothing on the
+ROM side looks at its content, and nothing serves it: the Z80 prints the fallback,
+the RP2354B notices, and the rest is the Pico's.
 
-## How the screen gets drawn (#247's W5)
+## How the screen gets drawn (#247's W5, and #278)
 
 **The RP2354B is the display.** It snoops the Z80's video RAM into a shadow and
 draws the screen itself — the animation included, paced from its own clock and its
 own flash — and it **stops on the Z80's first video-RAM write**, which every boot
-path makes within milliseconds. The Z80's whole role becomes the trigger: the
-monitor's stub asks once and returns, and the guest never has to decide anything.
+path makes within milliseconds. The Z80's whole role is the **trigger**: the monitor
+prints the fallback (its own two lines, at the animation's own rows and columns,
+with its own bright/dim runs) and returns to the sign-on prompt, and the guest never
+has to decide anything.
 
-That is what retires the guest-side machinery for the splash — the 4096-byte blob,
-`PRESENT(3)` as a page, and the two-half frame serving — and it is a *shape change*
-to step 8 rather than a tweak. It is specified in #247 (W5); retiring that machinery
-is that branch's work, not this asset's.
+**And the Z80 draws nothing else (#278).** The monitor used to ask the interposer for
+the screen's *code* (`PRESENT(3)`), copy it to RAM at `4000h` and run it, because 212
+bytes did not fit the 72 the vendor's guard left free. The frame path's retirement
+removed the bulk of that code — the two trailer checks and the two `LDIR` blits were
+most of it — so what is left is **26 bytes of fill, print and return**, and it lives
+in the monitor's own tail: `0F67h`–`0FCDh`, 103 bytes of the tail's 149, **46 free**
+to the guard at `0FFBh` (it was 21). `research/source-code/BIOS-200-source/` is the
+record, and `tools/research/rom2asm.sh` is the build.
 
-## What was retired, and when
+**The message moved into the vendor's own sign-on slot.** `IMSG` at `019Fh` was 182
+bytes of the stock message, and the sign-on dispatch no longer prints it: ROM 2.0's
+72-byte fallback lives there now, with the vendor's `FF` fill behind it, because the
+slot's *length* is what anchors everything below `0F67h` — the CBIOS calls ROM
+routines by absolute address (`docs/o1-rom-2.0.md` §4.2), and there is no `ORG`
+between `IMSG` and the tail to absorb a shorter one. The 110 bytes left over are what
+§4.7's signature and extension table will take.
 
-`frame.bin` — the single 8192-byte frame built by `tools/research/rom2strokes.py
---frame` from `research/boot-screen/o1next-art.txt`, and re-checked byte for byte by
-`--check` in CI — was **removed on 2026-10-16**. The animation supersedes it: W5
-makes the frame asset *the animation the RP2354B plays*, and retires the two-half
-serving with it. The generator and the check went with the asset, so nothing in the
-repo rebuilds a single frame from that art any more.
+## What the ROM service still answers
 
-Two consequences, both deliberate:
+- **`PRESENT(0)`** — the payload (CBIOS + MD-10 BIOS + the hand-over stub), which is
+  where window page 1 already is. **The one content id left**: `1` and `2` (the
+  frame's halves) and `3` (the screen's code) retired with the frame path (#278) and
+  answer `09h`, leaving page 1 alone.
+- **`INFO`** — the version and a flags byte that is now always `00h`: there is no
+  asset slot left to report. It stays in the reply because the reply's *shape* is
+  the protocol's.
+- **`ECHO`**, **`NOP`** and the abandon-a-pending-reply rule — unchanged.
 
-- **`research/boot-screen/` stays.** Its art is no longer the boot screen, but it is
-  still the **site masthead's** source (`site/assets/o1next-logo.png`, via `--logo`),
-  and that is the half of `--check` that remains.
-- **The MAME harnesses derive the frame instead.** Since #247's W5,
-  `romservice-check.sh`, `bootscreen-check.sh` and `stage.sh` take the frame the ROM
-  is *served* out of **this animation** — `tools/research/bootanim.py --resting`, the
-  frame it rests on — so no committed copy can drift from the asset it came from.
-  The same tool's `--check` is the **ROM-side acceptance**: the container's own sum,
-  its declared geometry and flags, and every frame's own trailer, which is the test a
-  machine runs before drawing one. Nothing on the ROM side looks at the animation's
-  content, because the RP2354B is what draws it.
+The ROM asks the interposer for **nothing** at the sign-on now: the payload is
+already in page 1, put there by the softROM itself, so there is nothing to restore.
+The door's remaining clients are the userland one (I/O `0E7h`/`0EBh`, for `MOUNT.COM`
+and the clock publisher) and the web UI's `INFO`.
 
 ## What is not here yet
 
@@ -125,16 +113,7 @@ Two consequences, both deliberate:
   `2800h`/`2801h` for the ROM — *not* `2300h`/`2301h`, which is the floppy's
   track register and the keyboard's row 0; `docs/rom-pico-protocol.md` 2), the
   payload served out of flash
-- ~~`PRESENT(3)` in `softrom_device` and the screen harness~~ — **done.** The device
-  serves the page (`-bootsplash`), and `bootscreen-check.sh` reads the two video
-  planes back off the machine: the frame on both planes with the splash mounted, and
-  the screen code's own fallback with no frame in it (#247's W3). The screen's code
-  is `research/source-code/BIOS-200-source/rom2-screen.asm`, and `screen.bin` is
-  extracted from that build with its own staleness guard (`rom2blob.py --check`).
 - the RP2354B's own video renderer: the shadow VRAM, the frame pacing, and the stop
-  on the Z80's first write — W4 and W5 of #247, which prove it in the emulator first
-- ~~the retirement itself~~ — **done (#247's W5).** The blob is `screen.bin` with its
-  own staleness guard, `PRESENT(3)` serves it as a page, and the frame the ROM is
-  served is **derived** from this animation (`bootanim.py --resting`) rather than
-  committed. What is left is the *hardware* side: the RP2354B playing the animation
-  and pacing it from its own flash, which is the firmware's work, not this emulator's.
+  on the Z80's first write — #277, which is gated on PicoEm (#192) and proves it in
+  the emulator first. What it draws is `boot-animation.bin`, and
+  `tools/research/bootanim.py --check` is the only thing this repo can say about it.

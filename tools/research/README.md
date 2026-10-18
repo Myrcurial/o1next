@@ -312,8 +312,9 @@ scratch programs, "figuring it out" notebooks/scripts.
   the attribute half**, each a window page with **its own `O1NEXT` + 16-bit-sum
   trailer at its own `0FF8h`**, and v1.0's attribute half is all `FFh` (every cell
   bright; the ROM blits it whenever it validates, so dim accents need no ROM
-  change later). `--half chars|attrs` writes one half — the shape the ROM's
-  `PRESENT(1)`/`PRESENT(2)` delivers — and `--verify` validates a frame, or a
+  change later). The shape is still the RP2354B's, which reads a frame out of the
+  animation; what retired with #278 is the *ROM's* path to one. `--half
+  chars|attrs` writes one half, and `--verify` validates a frame, or a
   single half, off the disk with no art and no chargen, which is the whole
   machine-free test. The committed asset used to be
   `firmware/rom-service/frame.bin`; it was **retired on 2026-10-16**, when the boot
@@ -332,22 +333,12 @@ scratch programs, "figuring it out" notebooks/scripts.
   stale — and does the same for the frame. It needs the standard library and files
   in the repo, and nothing else, so
   `.github/workflows/generated-artifacts.yml` runs it.
-- **`rom2blob.py`** — the boot screen's *code* as an artifact (#247 step 8).
-  **`--extract ROM2.HEX -o screen.bin`** takes the records at and above `4000h` out
-  of a ROM 2.0 build, requires them to be contiguous, and writes the 4096-byte
-  window page the monitor's stub asks for with `PRESENT(3)` and copies to RAM at
-  `4000h`. The code is the first 183 bytes, the rest is the vendor's own `FFh` fill,
-  and the top of the page carries a trailer the code never reads: `O1NEXT`, the
-  digest of the source it came from, and a 16-bit sum. **`--lwa`** is the
-  assembler's own `Program LWA`, so a build that lost the blob's tail cannot pass as
-  one that did not.
-  **`--check` is different in kind from every other guard here.** Nothing can
-  recompute the vendor's ACT80's output, and CI has no MAME, so it is a *staleness*
-  check rather than a rebuild: `screen.bin` carries the digest of
-  `rom2-screen.asm` as it stood when the blob was extracted, and the check fails
-  when the source has moved on without it. That is what makes it runnable in
-  `.github/workflows/generated-artifacts.yml`, where the frame's byte comparison
-  needs only Python.
+- ~~**`rom2blob.py`**~~ — **retired 2026-10-17 (#278)**, with the asset it made.
+  It turned the `ORG 4000H` records of a ROM 2.0 build into `screen.bin`, the 4096
+  byte window page the monitor's stub asked for with `PRESENT(3)`; the frame path's
+  retirement left the screen's code at 26 bytes, in the monitor's own tail, where
+  `tools/research/rom2asm.sh` checks it *by value*. The blob, the asset, the tool
+  and its CI step all went together, and `rom2asm.sh` lost its `-b`.
 
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
   **7695-byte image** from the repo's own files and re-checks every anchor the
