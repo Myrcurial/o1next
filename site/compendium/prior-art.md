@@ -315,11 +315,20 @@ new and is the one to read before reusing anything here.**
     the interposer knows from the clock that this cycle is one it owns. A race has
     a statistical margin; a schedule has a guaranteed one.
 
-    The window is genuinely comfortable and the claim is not obviously wrong: a
-    **ROM or I/O cycle gets no machine-inserted wait**, so `ADDR_HIT` early in T1
-    leaves ~1.5 T-states (≈375 ns at 4 MHz) to the falling edge of T2, and the
-    README's "~50 ns" is a 7× margin. But **50 ns is one term in an unmeasured
-    sum** — it is the PIO's response, and the path also contains the 688's
+    The window looks comfortable and the claim is not obviously wrong, but the
+    margin is **inferred, not measured**: `o1-memory-io-map.md` §1 attaches the
+    machine's wait states to **RAM accesses** (≈375 ns for non-M1, 188 ns for the
+    first M1) and says ROM executes with no added delay — and it says nothing at
+    all about **I/O cycles**, which is what the interposer's `30h`–`33h` window
+    actually is. *If* the I/O cycle is also unstretched, `ADDR_HIT` early in T1
+    leaves ~1.5 T-states (≈375 ns at 4 MHz) to the falling edge of T2 against the
+    README's "~50 ns", a 7× margin. **That premise needs checking against the wait
+    generator's own decode on sheet 2/9, not assumed** — it is the number the
+    margin rests on, and this document has form for writing an inference down as a
+    fact.
+
+    And **50 ns is one term in an unmeasured sum** — it is the PIO's response, and
+    the path also contains the 688's
     propagation, whatever converts its 5 V output down to GP23's 3.3 V, the PIO's
     two-cycle input synchroniser, and the OC buffer's turn-on. That sum is the one
     number the live-response path rests on, and it has not been measured.
