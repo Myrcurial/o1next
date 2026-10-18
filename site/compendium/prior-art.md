@@ -11,13 +11,16 @@ socket, with passive capture + active drive + USB/WiFi streaming.
 All claims cited; sources verified 2026-10-08.
 
 **Revised 2026-10-18: the survey was incomplete, and this document said it was
-not.** §1.6 is **picoZ80 / pico6502** — an RP2350B *drop-in Z80/6502 CPU
-replacement* with a cycle-accurate PIO bus interface, 30 releases, and four
-machine families — which was missing entirely, and which is the closest prior art
-to the interposer's central timing claim. Two consequences run through the
-document: §3's blanket advice about level shifting has a counter-example, and
-§2.1's "directly copyable" claim needed a licence check it never had. **§8 is new
-and is the one to read before reusing anything here.**
+not.** Two entries were missing. §1.6 is **picoZ80 / pico6502** — an RP2350B
+*drop-in Z80/6502 CPU replacement* with a cycle-accurate PIO bus interface, 30
+releases and four machine families, and the closest prior art to the interposer's
+central timing claim. §1.7 is **z80_pico** — small, unfinished, and the only
+project here that answers the question the interposer actually has: what to do
+when you must *follow* somebody else's clock. Three consequences run through the
+document: §3's advice on level shifting now has two counter-examples and three
+competing answers, §2.1's "directly copyable" claim needed a licence check it
+never had, and §7 gains both a clocking idea and a wait-state strategy. **§8 is
+new and is the one to read before reusing anything here.**
 
 ---
 
@@ -125,7 +128,56 @@ and is the one to read before reusing anything here.**
   - A per-machine driver framework plus a JSON memory map is the shape our
     `firmware/` personalities are groping toward.
 
-## 2. Prior art: interposers / bus monitors on other vintage machines
+### 1.7 z80_pico (tendai22) — small, unfinished, and the only worked answer to our specific problem
+- URL: https://github.com/tendai22/z80_pico
+- MCU: **RP2040** (Pico). 5 commits, 13 stars, one target machine (SBC8080), no
+  releases, and **no licence file at all** — see §8.
+- Approach: the **third** architecture in this document. Not a replacement and not
+  an interposer — a *host that subjugates the CPU* (the RetroShield shape, §2.3):
+  the Pico generates the Z80 clock (GPOUT0 on GP21), holds the whole machine's
+  64 KB of ROM/RAM in RP2040 SRAM as a C array, emulates an **i8251** on UART0,
+  and **stretches every memory cycle with /WAIT**. The author's own verdict:
+  *"far from elegant design, but I dare to do it for my personal intention."*
+- **What it is worth reading for, and it is the only project here that answers it:**
+  - **Software cannot assert /WAIT in time.** *"Even if RP2040 CPU is fast, it is
+    still hard to issue /WAIT in time to make Z80 surely to start wait state. A
+    half of 74HC74, D-FF takes falling edge of /MREQ to flip its output /Q,
+    directly connecting to /WAIT input of Z80 CPU."* The assertion is
+    **combinational, not programmed** — and `/RFSH` has to gate the D-FF's clock
+    input, or the refresh cycle's /MREQ falling edge is mistaken for a memory
+    cycle. **Every other project in this document dodges this by *generating* the
+    Z80 clock** (§1.6 included). The interposer is the only architecture that must
+    *follow* one, so this is the only worked answer to our version of the problem.
+  - **Releasing /WAIT and the data bus is a hardware problem too.** *"I am glad to
+    adopt a hardware logic (DO buffer and its /OE signal connected to /RD) to
+    handle this issue. No software provision is needed. If we implement it as
+    software, this issue will become much more confusing."* That is the same
+    hazard [`docs/picoem-bridge.md`](https://github.com/Myrcurial/o1next/blob/main/docs/picoem-bridge.md) §4 met from the other side: *"the idle state has
+    to be driven, not left alone."*
+  - **The cost of stretching every cycle, measured.** Z80 clock 3.8 MHz,
+    *"effectively about 2 MHz, with 3 WAIT cycles"*; `ASCIIART.BAS` in MSBASIC took
+    **8 min 23 s**. Three wait states per memory cycle **halves the machine**. This
+    is the number that says the interposer must be **transparent when it is
+    passive** — a design that stretches every cycle is not an interposer, it is a
+    new machine wearing one.
+- **Level shifting**, and it refines §3 rather than repeating it: eight level
+  shifters on the 5 V→3.3 V **input** path and **none** on the 3.3 V→5 V output
+  path — *"3.3 V output can drive 5 V CMOS gate inputs, and we do not have any
+  critical issues, so it is okay."* Shift what you receive; be deliberate about
+  what you drive.
+- **Pin budget**, for comparison with our 595/165 shift fabric and picoZ80's direct
+  mapping (§1.6): 8 bits in + 8 bits out (GPIO0-7 DI, GPIO8-15 DO), with **six
+  buffers/latches** — address high, address low, data in, status, controls, data
+  out — selected onto the input port by a **74HC138 3-to-8 decoder** on GP18-20.
+  The author notes a decoder "can decrease the necessary number of GPIOs"; the real
+  cost is that every bus read becomes a multiplexed *sequence* rather than a
+  parallel sample.
+- Also present: **INTA support** (`M1 && IORQ` → stretch, then put `0xFF`/RST 7 on
+  the data bus), and a `rom2c` ROM-to-C-array tool — the CPU-in-a-jar pattern,
+  which is not ours.
+- Key lesson: **the interesting part of this project is its limitations.** It is
+  the smallest and least finished thing in this document, and it is the only one
+  that says out loud what it costs to get bus timing wrong by a factor of two.
 
 ### 2.1 AtomBusMon (David Banks / hoglet67)
 - URL: https://github.com/hoglet67/AtomBusMon (stardot.org.uk)
@@ -176,6 +228,15 @@ and is the one to read before reusing anything here.**
   from either document's advice — and note that the placement file has no values,
   so "series resistors" is an inference from 45 symmetric designators, not a
   reading.**
+- **A third answer, and it splits the problem in two** (§1.7): z80_pico shifts the
+  5 V→3.3 V **inputs** (8 level shifters) and shifts **nothing** on the 3.3 V→5 V
+  outputs, on the grounds that *"3.3 V output can drive 5 V CMOS gate inputs, and
+  we do not have any critical issues."* So the field's answers are: series
+  resistors everywhere (picoZ80), transceivers everywhere (AtomBusMon), or
+  **shift what you receive and be deliberate about what you drive**. Note the
+  caveat that makes the third one work and is easy to miss: a 74HC input at
+  VCC 5 V has VIH ≈ 3.15 V, so a 3.3 V drive is *just* inside spec — which is not
+  the same as having margin, and is worth measuring on the O1 rather than assuming.
 - Verify whether the Osborne 1's Z80 is NMOS (VIH 2.0 V -> 3.3 V
   drive OK) or CMOS Z84C00 (VIH ~3.5 V -> needs HCT/dual-supply)
   before committing the output stage. [Check against machine photos
@@ -244,6 +305,20 @@ and is the one to read before reusing anything here.**
     directions, **consider bringing Z80 CLK into the interposer** so a PIO can be
     clocked from it — that is the difference between asserting the T2 timing
     claim and being able to measure it.
+5c. **And the wait-state strategy has to be hardware, which is the part picoZ80
+    cannot tell us (§1.7).** Every project in this document that solves bus
+    timing *generates* the Z80 clock, so it controls when a cycle begins. The
+    interposer follows an external clock, so it cannot know when /MREQ is about
+    to fall — and z80_pico's measured conclusion is that this makes a *software*
+    /WAIT assertion impossible: the assertion has to be combinational (a D
+    flip-flop clocked by /MREQ, with /RFSH gating its clock input so refresh is
+    not mistaken for a memory cycle), and the release has to be hardware too (a
+    buffer's /OE tied to /RD, *"no software provision is needed"*). **Design
+    question for Rev B: is `ADDR_HIT`'s 688 comparator plus a PIO fast enough, or
+    is a D-FF on /MREQ required — and does that answer differ between passive and
+    active mode?** Two more numbers from the same source make the stakes plain:
+    three wait states per memory cycle **halved** that machine (3.8 MHz → ~2 MHz
+    effective), and the interposer must not do that at all when it is passive.
 6. Power: USB-powered Pico, common ground, heavy decoupling.
 7. Mechanical: turned-pin headers, minimal profile, early test-fit
    in the O1 case.
@@ -256,12 +331,14 @@ and is the one to read before reusing anything here.**
 This document says things like *"its Z80 adapter BOM and shifter choice are
 directly copyable"* (§2.1). That is a claim about **engineering**, and it silently
 assumed something about **licensing** that had never been checked. It has now been
-checked for two entries, and both need qualifying:
+checked for every entry that could plausibly be reused, and all three need
+qualifying:
 
 | Project | Licence | What it permits |
 |---|---|---|
 | **picoZ80 / pico6502** (§1.6) | firmware **GPL v3**; hardware and docs **CC BY-NC-SA 4.0**; a NOTICE adding attribution, trademark and anti-passing-off terms | **Study it; do not copy it.** GPL v3 is one-way: code taken into o1next would relicense our firmware as GPL v3. CC BY-NC-SA forbids commercial use *and* forces ShareAlike on derivatives, which is incompatible with this repository's **MIT** licence, with a Phase 5 reproduction (#49) and with the deliverable tree (#133–#140) |
 | **AtomBusMon** (§2.1) | **GPL-3.0** | The same direction of problem, one step milder: a *schematic* is a copyrightable work, so "the BOM and shifter choice are directly copyable" is true of the **part numbers** (facts) and false of the **design files** (expression). The turned-pin piggyback idea and the wiki are fair to learn from |
+| **z80_pico** (§1.7) | **none — the repository has no licence file** | **The strictest case, and the one people get wrong.** *"It is on GitHub" is not a licence.* With no licence all rights are reserved; GitHub's terms grant viewing and forking through GitHub's own features, not reuse in our project. The practical answer is the same as picoZ80 — learn from it, copy nothing — arrived at for an entirely different reason |
 
 What that leaves, and it is not nothing:
 
