@@ -21,10 +21,14 @@ the only way to own an `rp2350-emu` instance is to link it. Nothing else in this
 crate is unusual — two dependencies, both of them deliberate:
 
 - `libc`, for `mkfifo(3)`.
-- `rp2350-emu`, **pinned to a commit**. picoem is a personal research project
-  with no triage or PR SLA, so we pin and re-pin deliberately rather than
-  tracking `main`. The commit, the reason and the re-pin procedure are in
-  `REQUIREMENTS.md`.
+- `rp2350-emu`, **pinned to a fork commit**. picoem is a personal research project
+  whose issue tracker is **disabled** (the API reports `has_issues: false`) and
+  which **refuses pull requests** (`CreatePullRequest` returns a permissions
+  error; the REST endpoint returns 404), so upstream contribution is closed
+  rather than merely slow. We pin and re-pin deliberately rather than tracking
+  `main`, and the two decode fixes that stock SDK firmware needs live in a fork —
+  `tools/emulator-setup/picoem/` carries them as a patch, with the measurements.
+  The commit, the reason and the re-pin procedure are in `REQUIREMENTS.md`.
 
 ## Build and run
 
