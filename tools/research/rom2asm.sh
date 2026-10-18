@@ -401,14 +401,20 @@ print('  and IMSG\'s slot at 0x%04X holds the fallback: %d bytes of text and %d 
                                          IMSG_LEN))
 
 # --- and the screen code's own bytes are the ones the source wrote -----------
-# BY VALUE, and that is not belt-and-braces: the emulator's write-back damages hex
-# records silently as well as loudly (docs/rom-13-reconstruction.md 7), and the
-# coverage check below can only see a record that is *missing*, not one whose bytes
-# changed.  The screen code is the thing the machine runs at every sign-on, and it
-# is 26 bytes, so it is worth pinning: the fill (19, byte-identical to the blob's
-# own first 19 before #278), then `LD DE,IMSG` / `CALL OSTR` / `RET`.  `CALL OSTR`
-# is `CD B6 00`, because OSTR is at 00B6h below the entry and cannot move.
-# If the code is ever edited, this constant moves with it -- deliberately.
+# BY VALUE, and here is exactly what that buys.  The emulator's write-back damages
+# the guest's hex records (docs/rom-13-reconstruction.md 7), and **every case
+# anyone has seen is undecodable** -- runs of `C0 DE` where hex digits should be --
+# which acthex reports and the coverage check below refuses.  What neither of them
+# can see is a corruption whose replacement bytes happened to be *valid hex*: it
+# would decode, it would cover the range, and nothing else here would notice.  No
+# such case has been observed, and this check is not here because one has been: it
+# is here because the screen code is what the machine runs at every sign-on, it is
+# 26 bytes, and a wrong byte in it is a wrong machine.
+#
+# The bytes are the fill (19, byte-identical to the blob's own first 19 before
+# #278), then `LD DE,IMSG` / `CALL OSTR` / `RET`.  `CALL OSTR` is `CD B6 00`,
+# because OSTR is at 00B6h below the entry and cannot move.  If the code is ever
+# edited, this constant moves with it -- deliberately.
 SCREEN_AT = 0x0FB4        # right behind HCBOOT, which is 77 bytes from 0F67h
 SCREEN_CODE = bytes.fromhex('d3 03 d3 02 21 00 f0 36 ff 11 01 f0 01 ff 0f ed b0 '
                             'd3 03 11 9f 01 cd b6 00 c9')
@@ -417,10 +423,11 @@ if got != SCREEN_CODE:
     raise SystemExit(
         'rom2asm.sh: the screen code at 0x%04X is not the 26 bytes the source '
         'writes -- the image holds %s.  Either the code changed (then update '
-        'SCREEN_CODE here, in the same commit) or the build is damaged: this is '
-        'the shape the emulator\'s write-back makes when it hits the code instead '
-        'of the FF fill, and it is *silent* (docs/rom-13-reconstruction.md 7, '
-        '#278)' % (SCREEN_AT, got.hex(' ')))
+        'SCREEN_CODE here, in the same commit) or the build is damaged: the '
+        'emulator\'s write-back hits the code when it does not land in the '
+        'FF fill (docs/rom-13-reconstruction.md 7, #278).  The coverage check '
+        'catches a *missing* record; this one catches a *wrong* one.'
+        % (SCREEN_AT, got.hex(' ')))
 print('  and the screen code at 0x%04X-0x%04X is the source\'s own 26 bytes, by '
       'value' % (SCREEN_AT, SCREEN_AT + len(SCREEN_CODE) - 1))
 
