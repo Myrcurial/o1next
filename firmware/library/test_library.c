@@ -59,12 +59,16 @@ static int failures;
 
 /* ------------------------------------------------------------------- the fixture
  *
- * Three media, in precedence order microSD / USB / flash, with the layout
- * `docs/image-library.md` fixes -- plus the files that must NOT appear: a printer
- * PDF, a .txt in floppy/, and a Drive C blob of the wrong size.
+ * Three media, in precedence order USB / microSD / flash, with the layout
+ * `docs/image-library-design.md` fixes -- plus the files that must NOT appear: a
+ * printer PDF, a .txt in floppy/, and two `.img` files of a size no kind allows.
  *
- * The interesting pair is BOOT.IMD, which is on two media at two different sizes,
- * so which copy won is visible in the record rather than inferred.
+ * Two pairs earn their place:
+ *
+ *   - BOOT.IMD is on two media at two different sizes, so which copy won is visible
+ *     in the record rather than inferred;
+ *   - DEMO.IMG is valid on the flash and invalid on the USB stick, so the fallback
+ *     -- a bad copy does not shadow a good one below it -- is a test, not a hope.
  */
 static char      root[512];
 static media_dir flash, sd, usb;
@@ -141,21 +145,26 @@ static void build_fixture(void)
     FIXTURE(tree_dir("usb/floppy") == 0, "usb/floppy/");
     FIXTURE(tree_dir("usb/disk") == 0, "usb/disk/");
 
-    /* the external flash module: always fitted, so it is the floor */
+    /* the external flash module: always fitted, so it is the floor and the guarantee */
     FIXTURE(tree_file("flash/floppy/boot.imd", 102400, "IMD 1.18: ") == 0, "boot.imd");
-    FIXTURE(tree_file("flash/disk/o1next-harddrive.img", 4194304u, NULL) == 0, "the volume");
+    FIXTURE(tree_file("flash/disk/o1next-harddrive.img", 6291456u, NULL) == 0, "the volume");
+    FIXTURE(tree_file("flash/disk/demo.img", LIB_DRIVEC_192K, NULL) == 0, "the valid demo");
     FIXTURE(tree_file("flash/printer/printout.pdf", 2048, "%PDF-1.4") == 0, "the PDF");
 
-    /* the microSD: the same name as the flash copy at a different size, so which
-     * copy won is visible in the record rather than inferred */
+    /* the microSD: the semi-permanent library */
     FIXTURE(tree_file("sd/floppy/boot.imd", 409600, "IMD 1.18: ") == 0, "the SD boot disk");
     FIXTURE(tree_file("sd/floppy/my-floppy.imd", 204800, "IMD 1.18: ") == 0, "my-floppy.imd");
     FIXTURE(tree_file("sd/disk/drivec-192.img", LIB_DRIVEC_192K, NULL) == 0, "the Drive C blob");
     FIXTURE(tree_file("sd/disk/drivec-bad.img", 300000, NULL) == 0, "the wrong-sized blob");
+    FIXTURE(tree_file("sd/disk/broken.img", 400000, NULL) == 0, "the second broken copy");
 
-    /* the USB stick */
+    /* the USB stick: the transient member, so it wins -- and it is where the
+     * fallback gets exercised, because both of its disk/ files are the wrong size
+     * and only one of them has a valid copy further down the list */
     FIXTURE(tree_file("usb/floppy/utility.imd", 102400, "IMD 1.18: ") == 0, "utility.imd");
     FIXTURE(tree_file("usb/floppy/notes.txt", 16, "not an image") == 0, "notes.txt");
+    FIXTURE(tree_file("usb/disk/demo.img", 300000, NULL) == 0, "the bad demo");
+    FIXTURE(tree_file("usb/disk/broken.img", 300000, NULL) == 0, "the first broken copy");
 
     snprintf(path, sizeof path, "%s/flash", root);
     FIXTURE(media_dir_init(&flash, path) == 0, "the flash medium");
@@ -210,8 +219,15 @@ static void test_kinds(void)
           k == LIB_KIND_DRIVEC, "196608 bytes in disk/ is the 192K Drive C blob");
     CHECK(lib_kind_of("disk", "drivec.img", LIB_DRIVEC_384K, &k) == 0 &&
           k == LIB_KIND_DRIVEC, "393216 bytes is the 384K one");
-    CHECK(lib_kind_of("disk", "o1next-harddrive.img", 4194304u, &k) == 0 &&
-          k == LIB_KIND_HARDDISK, "4 MiB in disk/ is a hard-disk volume");
+    CHECK(lib_kind_of("disk", "o1next-harddrive.img", 6291456u, &k) == 0 &&
+          k == LIB_KIND_HARDDISK, "6 MiB in disk/ is a hard-disk volume");
+    CHECK(lib_kind_of("disk", "hd.img", LIB_HARDDISK_MIN, &k) == 0 &&
+          k == LIB_KIND_HARDDISK, "and the floor itself is one");
+    CHECK(lib_kind_of("disk", "hd.img", LIB_HARDDISK_MIN - 1u, &k) == 0 &&
+          k == LIB_KIND_DRIVEC,
+          "just under the floor is in the Drive C band, so it is listed rather than hidden");
+    CHECK(lib_size_valid(LIB_KIND_DRIVEC, LIB_HARDDISK_MIN - 1u) == 0,
+          "... and valid for no kind, which is the explicit gap between the two");
     CHECK(lib_kind_of("disk", "drivec-bad.img", 300000, &k) == 0 && k == LIB_KIND_DRIVEC,
           "300000 bytes is in the Drive C band, so it is still a library entry");
     CHECK(lib_size_valid(k, 300000) == 0,
@@ -225,7 +241,7 @@ static void test_kinds(void)
     CHECK(lib_size_valid(LIB_KIND_DRIVEC, LIB_DRIVEC_192K) == 1, "192K is a valid Drive C size");
     CHECK(lib_size_valid(LIB_KIND_DRIVEC, LIB_DRIVEC_384K) == 1, "384K is a valid Drive C size");
     CHECK(lib_size_valid(LIB_KIND_DRIVEC, LIB_DRIVEC_192K + 1u) == 0, "one byte over is not");
-    CHECK(lib_size_valid(LIB_KIND_HARDDISK, LIB_HARDDISK_MIN) == 1, "1 MiB is the hard-disk floor");
+    CHECK(lib_size_valid(LIB_KIND_HARDDISK, LIB_HARDDISK_MIN) == 1, "the floor is a valid disk size");
     CHECK(lib_size_valid(LIB_KIND_HARDDISK, LIB_HARDDISK_MIN - 1u) == 0, "just under it is not");
 }
 
@@ -275,9 +291,9 @@ static void test_walk_and_merge(void)
     unsigned   n = 0, k;
     int        i;
 
-    CHECK(lib_count(&library) == 6u,
-          "six entries over three media -- 2 flash, 3 SD, 1 USB -- got %u",
-          lib_count(&library));
+    CHECK(lib_count(&library) == 8u,
+          "eight entries over three media -- 1 USB, 4 SD, 3 flash, with two names "
+          "de-duplicated -- got %u", lib_count(&library));
 
     /* the merge: one name, two media, one entry, and the SD copy wins */
     i = find_identity(&library, "BOOT.IMD");
@@ -305,8 +321,8 @@ static void test_walk_and_merge(void)
     CHECK(i >= 0, "o1next-harddrive.img -> O1NEXT-H.IMG");
     if (i >= 0) {
         CHECK(lib_get(&library, (unsigned)i, &rec) == LIB_OK, "and readable");
-        CHECK(rec.kind == LIB_KIND_HARDDISK, "a 4 MiB .img in disk/ is a hard-disk volume");
-        CHECK(rec.size == 4194304u, "of the size the file is");
+        CHECK(rec.kind == LIB_KIND_HARDDISK, "a 6 MiB .img in disk/ is a hard-disk volume");
+        CHECK(rec.size == 6291456u, "of the size the file is");
     }
 
     /* and what must NOT be there */
@@ -331,6 +347,42 @@ static void test_wrong_sized_blob(void)
     CHECK(rec.kind == LIB_KIND_DRIVEC, "its kind is still what the directory says");
     CHECK(lib_mount(&library, (unsigned)i, LIB_DRIVE_C) == LIB_ERR_KIND,
           "and MOUNT refuses it with 05h rather than mounting something broken");
+}
+
+/* The fallback, which is what the precedence order buys: a copy that is invalid for
+ * its kind does not shadow a valid one below it -- so a demo image on a stick that
+ * turns out to be the wrong size lands on the microSD or the flash -- and when *no*
+ * copy is valid the first one still keeps the entry, so the user can see it. */
+static void test_invalid_copy_falls_through(void)
+{
+    lib_record rec;
+    int        i;
+
+    /* DEMO.IMG: 300000 bytes on the USB stick (invalid), 196608 on the flash (valid) */
+    i = find_identity(&library, "DEMO.IMG");
+    CHECK(i >= 0, "DEMO.IMG should be listed");
+    if (i >= 0) {
+        CHECK(lib_get(&library, (unsigned)i, &rec) == LIB_OK, "and readable");
+        CHECK(rec.size == LIB_DRIVEC_192K,
+              "the invalid USB copy fell through to the flash one, so this is the flash's size (%u)",
+              (unsigned)rec.size);
+        CHECK((rec.flags & LIB_FLAG_VALID) != 0, "and the entry is VALID");
+        CHECK(lib_mount(&library, (unsigned)i, LIB_DRIVE_C) == LIB_OK,
+              "so it mounts -- which is the whole point of falling through");
+        lib_unmount(&library, LIB_DRIVE_C);
+    }
+
+    /* BROKEN.IMG: invalid on the USB stick *and* on the microSD, so nothing below it
+     * works and the first one keeps the entry, listed with VALID clear. */
+    i = find_identity(&library, "BROKEN.IMG");
+    CHECK(i >= 0, "BROKEN.IMG should still be listed, because nothing below it is valid");
+    if (i >= 0) {
+        CHECK(lib_get(&library, (unsigned)i, &rec) == LIB_OK, "and readable");
+        CHECK((rec.flags & LIB_FLAG_VALID) == 0, "with VALID clear");
+        CHECK(rec.size == 300000u,
+              "and it is the USB copy -- the highest precedence of the two broken ones (%u)",
+              (unsigned)rec.size);
+    }
 }
 
 static void test_precedence_is_the_order(void)
@@ -710,10 +762,12 @@ int main(int argc, char **argv)
 
     build_fixture();
 
-    /* the precedence order: the removable media first, the always-fitted external
-     * flash last, so the flash is the floor and a card can override a factory image */
-    order[0] = &sd.media;
-    order[1] = &usb.media;
+    /* The precedence order, and it is a decision: the USB stick is the transient
+     * member -- plugging one in with a demo image is how you test something, so it
+     * wins -- the microSD is the semi-permanent library, and the external flash is
+     * always fitted, so it is the floor and the guarantee. */
+    order[0] = &usb.media;
+    order[1] = &sd.media;
     order[2] = &flash.media;
     lib_init(&library, order, 3u);
     CHECK(lib_refresh(&library) == LIB_OK, "the fixture should walk");
@@ -729,6 +783,8 @@ int main(int argc, char **argv)
     test_walk_and_merge();
     step("wrong-sized blob");
     test_wrong_sized_blob();
+    step("invalid copy falls through");
+    test_invalid_copy_falls_through();
     step("precedence");
     test_precedence_is_the_order();
     step("mounts");

@@ -10,10 +10,12 @@
  * Three media, one namespace.  The interposer carries three library media -- the
  * external SPI flash module, one microSD and one USB stick, all FAT32 -- and `lib`
  * merges them (library.h).  The order they are handed to lib_init() *is* the
- * precedence order: the first media to offer a name wins.  The removable media go
- * first and the external flash, which is always fitted, is the floor -- so there
- * is always something to pull from, and a user can still override a factory image
- * by dropping a file of the same name on a card.
+ * precedence order, and it is a decision rather than a default: **USB stick,
+ * microSD, external flash**.  The stick is the transient member -- plugging one in
+ * with a demo image is how you test something, so it wins -- the microSD is the
+ * semi-permanent library, and the external flash is always fitted, so it is the
+ * floor and the guarantee.  And a copy that is invalid for its kind falls through
+ * to the next medium, so a bad file on a stick still lands on something that works.
  *
  * The RP2354B's own in-package 2 MB flash is NOT a medium.  It holds the firmware
  * and its assets -- the boot splash animation -- and nothing here reaches it.

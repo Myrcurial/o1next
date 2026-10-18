@@ -7,6 +7,11 @@ instead of four recollections. The library's *logic* is written and host-tested
 (`firmware/library/`, #283); the media behind the seam are **not** (#285), and
 nothing here has been measured on hardware.
 
+**Revised the same day**, on the maintainer's correction: the precedence order is
+USB stick first (§3) — the stick is the transient member and the flash is the
+guarantee — the merge falls through an *invalid* copy to the next medium (§3), and
+the hard-disk floor is 5 MiB rather than 1 MiB (§4).
+
 Answers **#283** and **#285**. Reads alongside `docs/mailbox-protocol.md` (the
 protocol, and §5.2's KIND and SIZE rules this doc extends),
 `docs/rom-pico-protocol.md` §1 (the second client), `docs/drive-c-design.md` §4.2
@@ -16,11 +21,11 @@ flash).
 
 ## 1. Three media, one namespace
 
-| Medium | What it is | Present |
-|---|---|---|
-| **external SPI flash** | a W25Q-class part, 16–64 MB, **FAT32** | always — it is what makes the machine useful with no card inserted |
-| **microSD** | exactly one, FAT32 | optional |
-| **USB stick** | exactly one, FAT32 | optional |
+| Precedence | Medium | What it is | Present |
+|---|---|---|---|
+| 1 | **USB stick** | exactly one, FAT32 | transient — plugged in to test something |
+| 2 | **microSD** | exactly one, FAT32 | semi-permanent — the library that lives in the machine |
+| 3 | **external SPI flash** | a W25Q-class part, 16–64 MB, FAT32 | always — the floor and the guarantee |
 
 They are **merged into one library**, not presented as three. A file is identified
 by its CP/M 8.3 identity (§5) and de-duplicated across the media, so a name that
@@ -56,25 +61,39 @@ accident.
 
 ## 3. The merge rule
 
-Precedence is the order the media are handed to the library, and **the first medium
-to offer a name owns it**:
+Precedence is the order the media are handed to the library, and it follows what
+each medium *is*:
 
 ```
-microSD  →  USB stick  →  external flash
+USB stick  →  microSD  →  external flash
 ```
 
-So the removable media override, and the external flash — always fitted — is the
-floor. Two consequences, both deliberate:
+The stick is the **transient** member: plugging one in with a demo image is how you
+test something, so it wins. The microSD is the **semi-permanent** library — the one
+that lives in the machine. The external flash is always fitted, so it is the floor
+and the guarantee.
 
-- **There is always something to pull from.** With no card and no stick, the
-  library is whatever the external flash carries, which is where the factory
-  images live.
-- **A user can override a factory image by name.** Dropping `boot.imd` on a card
-  shadows the flash copy of `BOOT.IMD`; the entry is the same one, and the card's
+**And the fallback is per entry, not just per name.** A copy that is *invalid* for
+its kind does not shadow a valid one further down the list: if the demo image on
+the stick turns out to be the wrong size, the entry becomes the microSD's copy, or
+the flash's. Only when *no* copy is valid does the highest-precedence one keep the
+entry — listed with `VALID` clear (§4) so the user can see why nothing will mount.
+
+The price is stated because it is real: an invalid file that has a valid copy below
+it is **not listed at all**. That is the trade — a working disk over a diagnosis —
+and it is the right way round for a machine whose whole point is to boot.
+
+Two more consequences, both deliberate:
+
+- **There is always something to pull from.** With no stick and no card, the
+  library is whatever the external flash carries, which is where the factory images
+  live.
+- **A user can override a factory image by name.** Dropping `boot.imd` on a stick
+  shadows the flash copy of `BOOT.IMD`; the entry is the same one, and the stick's
   bytes are what a personality reads.
 
-It is one line to flip, and it is stated here rather than left to the code so that
-flipping it is a decision and not a discovery.
+It is one line to reorder, and it is stated here rather than left to the code so
+that reordering it is a decision and not a discovery.
 
 A **mount survives a refresh** when its entry is still there: the firmware's state
 outlives the host's (`docs/mailbox-protocol.md` §6), and a CP/M program is reloaded
@@ -86,7 +105,7 @@ from disk every time it runs.
 |---|---|---|---|---|
 | 0 | floppy image | `floppy/` | any (the image's own geometry is its business) | `A:` or `B:` |
 | 1 | Drive C blob | `disk/` | **exactly** 196 608 or 393 216 | slot 2 |
-| 2 | hard-disk volume | `disk/` | 1 MiB and up | slot 2 |
+| 2 | hard-disk volume | `disk/` | 5 MiB and up | slot 2 |
 
 **One directory, two kinds, and the size band separates them.** A Drive C blob's
 length *is* its geometry — 196 608 is the 192K unit and 393 216 the 384K one
@@ -97,8 +116,16 @@ never has to guess and never has to parse anything:
 | Size of a `disk/` `.img` | Kind | Valid |
 |---|---|---|
 | 196 608 or 393 216 | 1 | yes |
-| 1 MiB and up | 2 | yes |
-| anything else | 1 if under 1 MiB, else 2 | **no** |
+| 5 MiB and up | 2 | yes |
+| anything else | 1 if under 5 MiB, else 2 | **no** |
+
+**The floor is 5 MiB, and the band is wide on purpose.** A Drive C blob tops out at
+393 216 bytes; a real hard-disk volume is tens of MiB, so nothing we expect to see
+lands in the 384 KiB – 5 MiB gap, and a file that does is a truncated volume rather
+than a small one. Refusing it in the *menu* is much better than refusing it at the
+controller, which is where a truncated image would otherwise be discovered. The
+number is policy from the maintainer's expectation (2026-10-18), not a hardware
+limit, and it is one line to move (`LIB_HARDDISK_MIN` in `firmware/library/`).
 
 **A wrong-sized file is still listed, with `VALID` clear.** That is
 `docs/mailbox-protocol.md` §5.2's rule and it is the right one: a user who copied

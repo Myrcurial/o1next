@@ -159,17 +159,15 @@ void lib_init(lib *l, const media *const *media, unsigned nmedia)
         l->drive[i] = LIB_DRIVE_NONE;
 }
 
-/* The merge.  The identity is the key: the first medium to offer a name owns it,
- * so a file dropped on a card overrides the factory image of the same name, and
- * the external flash -- always fitted -- is what is left when nothing else is. */
-static int already_have(const lib *l, const char *identity)
+/* The merge key: the identity.  Returns the entry's index, or -1. */
+static int find_entry(const lib *l, const char *identity)
 {
     unsigned i;
 
     for (i = 0; i < l->count; i++)
         if (memcmp(l->entry[i].rec.name, identity, LIB_NAME_LEN) == 0)
-            return 1;
-    return 0;
+            return (int)i;
+    return -1;
 }
 
 static void detach(lib *l, unsigned index)
@@ -217,6 +215,7 @@ int lib_refresh(lib *l)
                 lib_entry  *slot;
                 char        identity[LIB_NAME_LEN];
                 uint8_t     kind;
+                int         existing;
 
                 memset(&e, 0, sizeof e);
                 if (md->ops->list(md->ctx, lib_dir_name[dir], index, &e) != MEDIA_OK)
@@ -224,12 +223,27 @@ int lib_refresh(lib *l)
                 if (lib_kind_of(lib_dir_name[dir], e.name, e.size, &kind) != 0)
                     continue;                    /* not a library file at all */
                 lib_identity(e.name, identity);
-                if (already_have(l, identity))
-                    continue;                    /* a higher-precedence medium owns it */
-                if (l->count >= LIB_MAX_ENTRIES)
-                    break;                       /* the RAM cap: stop, do not overflow */
 
-                slot = &l->entry[l->count];
+                /* The merge, and the fallback that goes with it.  A copy that is
+                 * *invalid* for its kind does not shadow a valid one further down
+                 * the precedence list: a bad file on a transient USB stick falls
+                 * through the microSD to the flash guarantee.  If no copy is valid,
+                 * the first one keeps the entry and is listed with VALID clear, so
+                 * the user can still see why nothing will mount (section 5.2). */
+                slot = NULL;
+                existing = find_entry(l, identity);
+                if (existing >= 0) {
+                    if ((l->entry[existing].rec.flags & LIB_FLAG_VALID) != 0 ||
+                        !lib_size_valid(kind, e.size))
+                        continue;
+                    slot = &l->entry[existing];
+                } else {
+                    if (l->count >= LIB_MAX_ENTRIES)
+                        break;                   /* the RAM cap: stop, do not overflow */
+                    slot = &l->entry[l->count];
+                    l->count++;
+                }
+
                 memset(slot, 0, sizeof *slot);
                 memcpy(slot->rec.name, identity, LIB_NAME_LEN);
                 slot->rec.kind  = kind;
@@ -239,7 +253,6 @@ int lib_refresh(lib *l)
                 slot->dir       = (uint8_t)dir;
                 memcpy(slot->file, e.name, MEDIA_NAME_MAX - 1u);
                 slot->file[MEDIA_NAME_MAX - 1u] = '\0';
-                l->count++;
             }
         }
     }

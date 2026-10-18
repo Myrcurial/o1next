@@ -26,14 +26,17 @@ Three media, one namespace. `docs/image-library-design.md` is the record:
 | Directory | Kinds | Mounts |
 |---|---|---|
 | `floppy/` | `.imd`, `.hfe` → `KIND` 0 | `A:` or `B:` |
-| `disk/` | `.img` → `KIND` 1 (Drive C blob, by exact size) or `KIND` 2 (hard-disk volume, 1 MiB and up) | slot 2, the storage personality |
+| `disk/` | `.img` → `KIND` 1 (Drive C blob, by exact size) or `KIND` 2 (hard-disk volume, 5 MiB and up) | slot 2, the storage personality |
 | `printer/` | **none** — output, listed by the web UI (#182) | never |
 
-The three media are the **external SPI flash module** (FAT32, always fitted, so it
-is the floor) and **one microSD and one USB stick**. They are merged into one
-library, de-duplicated on the 8.3 identity, with the precedence order deciding
-which copy wins — so there is always something to pull from, and a user can still
-override a factory image by name.
+The three media are **one USB stick** (transient — plugged in to test something, so
+it wins), **one microSD** (the semi-permanent library) and the **external SPI flash
+module** (FAT32, always fitted, so it is the floor and the guarantee) — in that
+precedence order. They are merged into one library, de-duplicated on the 8.3
+identity, and a copy that is **invalid for its kind falls through to the next
+medium**, so a demo image on a stick that turns out to be the wrong size still lands
+on the microSD or on the flash. Only when no copy is valid does the first one keep
+the entry, listed with `VALID` clear.
 
 The RP2354B's **in-package 2 MB flash is not a medium**: it holds the firmware and
 its assets (the boot splash animation).
