@@ -62,8 +62,24 @@ if [ -e "$SRC/src/devices/machine/acb4000_host_adapter.cpp" ]; then
     # that already has the device is a tree that is already patched.
     echo "==> $SRC already has the osborne1nx machine; not patching again"
 else
-    echo "==> patching $SRC"
+    echo "==> patching $SRC (osborne1nx)"
     (cd "$SRC" && patch -p1 --forward < "$PATCH")
+fi
+
+# The second patch adds the picoem-backed machine: the same hardware, with the
+# card's window answered by a real RP2354B firmware instead of by the C++ card
+# (#192, docs/emulation-testbed.md section 5, Gate A).  It is separate because it
+# is a separate unit of work with its own acceptance --
+# picoem-guest-check.sh -- and because a tree that wants only the card should not
+# have to take it.
+LINK_PATCH="$HERE/picoem-link.patch"
+if [ -f "$LINK_PATCH" ]; then
+    if [ -e "$SRC/src/devices/machine/picoem_link.cpp" ]; then
+        echo "==> $SRC already has the picoem-backed machine; not patching again"
+    else
+        echo "==> patching $SRC (osborne1nxp, the picoem-backed machine)"
+        (cd "$SRC" && patch -p1 --forward < "$LINK_PATCH")
+    fi
 fi
 
 if [ "$BUILD" = 1 ]; then

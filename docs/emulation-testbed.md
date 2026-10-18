@@ -1,10 +1,12 @@
 # The emulation testbed — MAME, picoem, and the RP2354B firmware (#192)
 
-**Status: the loop exists and does not close.** A real RP2354B firmware binary
-runs in `picoem`; `osborne1nx`'s I/O cycles reach its pins; its answer comes back
-into the MAME **log** — and not into the guest. This document is the single place
-that says what the testbed is, what is missing from it, who owns each missing
-piece, and what "done" means for each one.
+**Status: the loop closes.** A real RP2354B firmware binary runs in `picoem`;
+`osborne1nx`'s I/O cycles reach its pins; and **the guest reads the answer** —
+`picoem-guest-check.sh` runs a Z80 `OUT`/`IN` pair in the card's window and
+asserts the byte the firmware drove, read back out of the guest's own memory
+(12 PASS / 0 FAIL). This document is the single place that says what the testbed
+is, what is missing from it, who owns each missing piece, and what "done" means
+for each one.
 
 It is also the **gap register** for both emulators. Two lists existed before this
 document and neither was complete: `docs/picoem-bridge.md` §5 has the picoem
@@ -32,11 +34,11 @@ Two emulators model two halves of one board, and one wire joins them:
 
 ```mermaid
 flowchart LR
-    subgraph MAME["osborne1nx (MAME 0.289 + osborne1nx.patch)"]
+    subgraph MAME["osborne1nx / osborne1nxp (MAME 0.289 + the patch)"]
         Z80[Z80 / ROM / video / floppy]
-        CARD["acb4000_host_adapter_device<br/>(C++ stand-in)"]
+        CARD["acb4000_host_adapter_device<br/>(C++ stand-in, the oracle)"]
         SOFT["softrom_device<br/>(the ROM window, from a file)"]
-        LINK["picoem_link_device<br/><b>does not exist yet</b>"]
+        LINK["picoem_link_device<br/><b>Gate A, landed</b>"]
     end
     subgraph PICOEM["picoem-bridge (Rust, owns one Emulator)"]
         CHIP["rp2350-emu<br/>the RP2354B"]
@@ -44,10 +46,15 @@ flowchart LR
     end
     Z80 --> CARD
     Z80 --> SOFT
-    Z80 -.->|"the read tap returns nothing"| LINK
+    Z80 -->|"IN returns the firmware's byte"| LINK
     LINK <-->|"24-byte frames over a FIFO pair"| CHIP
     CHIP --- FW
 ```
+
+The window has **one owner at a time**, and that is a machine in MAME rather than
+a switch: `osborne1nx` hands `30h`–`33h` to the C++ card, and `osborne1nxp` hands
+it to `picoem_link_device`. Two machines is how MAME says "the same hardware,
+wired differently", and it means the card's own acceptance is untouched.
 
 The wire is built and it passes: `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`
 reports **7 PASS / 0 FAIL**, driving `W30=A5, R30, W31=5A, R31` and getting the
@@ -56,13 +63,19 @@ work, and §2 of it is the measurement that the channel is a **FIFO pair, not a
 socket** (MAME's Lua preloads exactly four modules and `3rdparty/` has no
 luasocket).
 
-**What makes it a demonstration rather than a testbed** is one sentence from
-`o1next-picoem.lua`'s own header: *the read tap does not return the firmware's
-byte to the guest*. MAME's Lua read taps can, and a read tap that returns data
-**segfaults once the guest polls in a tight loop** — measured on 0.289
-(`tools/research/acb4000.lua`, GOTCHAS). So the answer is logged, and optionally
-scribbled into a guest scratch byte, and the Z80's own `IN` still returns the
-card device's byte. The loop is open on the side that matters.
+**And the loop closes.** `picoem-guest-check.sh` reports **12 PASS / 0 FAIL**: it
+pokes an 11-byte routine into the guest's RAM, sets the PC, and the Z80 runs
+
+```
+DI / LD A,A5h / OUT (30h),A / IN A,(30h) / LD (4020h),A / HALT
+```
+
+against the firmware — then reads `4020h` back **through the guest's own program
+space**. Nothing on the harness side can fake that: a device that returned the
+wrong byte, or nothing, fails. It runs the routine on three ports, because a
+device that forgot to reconstruct the 8-bit port from MAME's window-relative
+offset would pass on `30h` alone and be wrong everywhere else — which is exactly
+what happened, and how it was caught.
 
 ## 2. The four things that are not real
 
@@ -73,7 +86,7 @@ distinction decides the plan. In order of how real they are:
 |---|---|---|
 | **Real** | The firmware's own contracts and logic — the image library, the mailbox engine, the media layer over FatFS | host-tested, in CI (#283, #285) |
 | **Real** | The RP2354B's **bus** half in picoem — core, FPU, GPIO/CP0, SIO, PIO, XIP flash, clock tree, NVIC | it works; `osborne1nx`'s cycles reach the pins and the answer comes back |
-| **Real but unclosed** | The wire | it carries the bytes; the guest cannot read them (§1) |
+| **Real, and closed** | The wire | the guest reads the bytes: `picoem-guest-check.sh`, 12 PASS / 0 FAIL (§1) |
 | **Not real** | The MAME-side stand-ins: `acb4000_host_adapter_device` is a C++ re-implementation of the ACB-4000, and `softrom_device` answers the ROM door out of a file | both are *good* — the card was read out of the driver and four handshake bugs were found against it — but they are not the firmware |
 | **Not real, and named as such** | The storage **transports**. `#285` delivered FatFS, the seam and three real FAT volumes; the SPI flash, microSD and USB devices behind `blockdev.h` do not exist, in emulation or on a board | this is the "fake storage" of the last few sessions, and §4.3 decides what to do about it |
 
@@ -178,10 +191,10 @@ measured or read from a source.
 
 | # | Gap | Cost | Size (est.) | Blocked on |
 |---|---|---|---|---|
-| **M1** | **The guest cannot read the firmware's answer.** The Lua read tap returns nothing, because a data-returning Lua read tap segfaults once the guest polls tight (measured, 0.289) | the loop is a demonstration, not a testbed | **small** — a C++ device in the patch that owns the FIFO and returns `r.data` from `read()`; two existing devices are the template | nothing. **Can land now** |
+| **M1** | ~~The guest cannot read the firmware's answer~~ | — | — | **LANDED (Gate A)** — `picoem_link_device` plus the `osborne1nxp` machine, `picoem-guest-check.sh` 12 PASS / 0 FAIL |
 | **M2** | **Memory cycles are refused.** The frame carries `addr` but v1 does not drive the address bus (`status` 2) | the ROM window and the Drive C mapping are memory-mapped, so #179 and the ROM door need this | medium | M3, and the personality that needs it |
-| **M3** | **One byte per cycle.** `MODE SELECT`, the CDB and the data phase need a burst or a window | a real SCSI transfer cannot be modelled | small–medium — the frame's `addr` and `cycles` fields are the seam | M1 |
-| **M4** | **No staged test machine.** `stage.sh` copies the binary, ROMs and launcher into one directory; the picoem-backed machine has no such stage | "boot the emulated interposer and play" is a hand-built command line | small | M1 |
+| **M3** | **One byte per cycle.** `MODE SELECT`, the CDB and the data phase need a burst or a window | a real SCSI transfer cannot be modelled | small–medium — the frame's `addr` and `cycles` fields are the seam | M1, which has landed |
+| **M4** | **No staged test machine.** `stage.sh` copies the binary, ROMs and launcher into one directory; the picoem-backed machine has no such stage | "boot the emulated interposer and play" is a hand-built command line | small | #295 |
 
 ### 4.2 picoem-side — a fork, because there is no tracker
 
@@ -220,14 +233,24 @@ Six gates, in dependency order, each with a checkable definition of done.
 
 ### Gate A — close the loop (MAME-side; no upstream dependency)
 
-Land **M1** (and **M3** while the file is open).
+**Landed and measured.** `picoem_link_device`
+(`tools/emulator-setup/mame-osborne1nx/picoem-link.patch`) owns the FIFO pair and
+returns the firmware's byte from its `read()`; the new `osborne1nxp` machine hands
+it the window, so the C++ card keeps its own machine and its own acceptance.
 
-- **Done when:** the *guest* reads the firmware's byte. A Z80 `IN` in the card's
-  window returns the byte a prior `OUT` latched, asserted by a script that reads
-  the CPU's own result — not by Lua synthesising the I/O as `picoem-check.sh`
-  does today.
-- **Why first:** it needs nothing from picoem, and it is the prerequisite for
-  Gates C–E.
+- **Done when:** the *guest* reads the firmware's byte. `picoem-guest-check.sh`
+  does exactly that — **12 PASS / 0 FAIL** — with the Z80 running its own `OUT`/`IN`
+  and the result read back through the guest's program space.
+- **Two measurements worth keeping**, because both cost time:
+  - MAME hands an address-map handler the offset **relative to the window**, not
+    the 8-bit port: a guest `OUT (31h),A` in a `map(30h,33h)` window arrives as
+    offset 1. The firmware decodes the full port, so the device reconstructs it
+    from the window base — and the check runs three ports, because a device that
+    forgot would pass on `30h` alone. That is exactly what happened.
+  - The machine has to be registered in `src/mame/mame.lst`, or MAME answers
+    *"Unknown system 'osborne1nxp'"* with no hint as to why.
+- **M3 is still open** (#292): one byte per cycle cannot model a real SCSI
+  transfer. It belongs with the first personality that needs it.
 
 ### Gate B — the picoem patch set (fork; small, and the criterion is a file)
 
@@ -358,8 +381,12 @@ tools/picoem-bridge/target/release/picoem-bridge \
     --bootrom "$HOME/Documents/O1NEXT/picoem-286/roms/rp2350/bootrom-combined.bin" \
     --self-test
 
-# 4. the whole loop -- needs a *patched* osborne1nx (apply.sh builds one)
+# 4. the whole loop, driven from Lua -- needs a *patched* osborne1nx
 tools/emulator-setup/mame-osborne1nx/picoem-check.sh
+
+# 5. the whole loop, driven by the GUEST -- needs the second patch applied, and
+#    gives you the osborne1nxp machine
+tools/emulator-setup/mame-osborne1nx/picoem-guest-check.sh
 ```
 
 `--self-test` is the one to reach for first: it boots the firmware, drives one

@@ -15,11 +15,15 @@ picoem: R 31      firmware drove 5A  hb=1 -- OE DRV  (guest saw FF)
 
 One command proves it: `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`.
 
-**This is one half of a loop, and the loop does not close yet.** What the loop is,
-what is missing from it (the guest cannot read the firmware's answer), the gap
-register for *both* emulators and the plan for closing them are
+**This is one half of a loop, and the loop now closes.** What the loop is, what is
+still missing from it (memory cycles, and a burst frame), the gap register for
+*both* emulators and the plan for closing them are
 **`docs/emulation-testbed.md`** — that document owns the loop; this one owns the
-wire.
+wire. The closing half is `picoem_link_device` and the `osborne1nxp` machine
+(`picoem-link.patch`), whose acceptance is
+`tools/emulator-setup/mame-osborne1nx/picoem-guest-check.sh`: the Z80's own
+`OUT`/`IN` in the card's window, answered by a real firmware, read back out of
+guest memory.
 
 **And it took six workarounds to get there**, every one of them a gap in picoem
 rather than in the firmware. §5 is the list, and it is the most valuable part of
