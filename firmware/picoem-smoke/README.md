@@ -41,25 +41,43 @@ Two host tools, both pinned in `REQUIREMENTS.md`:
 The board is our own (`board/o1next_interposer.h`): the bare RP2354B, 2 MB of
 in-package flash, 48 GPIO, no module and no invented LED pin.
 
-## The six switches, and they are all about picoem
+## The three switches that are left, and they are all about picoem
 
-`CMakeLists.txt` carries a long comment for each. In short — **picoem cannot run
-a stock Pico SDK binary**, and each of these is a documented gap rather than a
-preference:
+**It used to be six.** Three of them are **retired** — the fixes are in
+`tools/emulator-setup/picoem/`, and this firmware now uses the fast path the
+interposer will ship rather than a workaround:
+
+| retired | why it is gone |
+|---|---|
+| `PICO_USE_GPIO_COPROCESSOR=0` | picoem's CP0 table read `opc1` as the bank instead of the operation **and had no MCRR family at all**, so `gpio_put()` and `gpio_set_dir()` were silent NOPs. **The big one.** Fixed, and measured — see below. |
+| `PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL` | the claim path runs `next_striped_spin_lock_num()`, which uses `ldaexb`/`strexb`, and picoem mis-decoded `ldaexb` as an `LDRD` into `{Rt, pc}`. Fixed. |
+| `PICO_TIME_DEFAULT_ALARM_POOL_DISABLED` | the SDK's own way of saying the same thing |
+
+What is left, and why it is a *different* gap:
 
 | define | why |
 |---|---|
-| `PICO_USE_GPIO_COPROCESSOR=0` | picoem's CP0 encoding table does not match SDK 2.3.1's, so every `gpio_set_dir` is a silent NOP. **The big one.** |
 | `PICO_RUNTIME_SKIP_INIT_BOOTROM_RESET` | calls the ROM's `reset` function, which the bootrom would have set up |
 | `PICO_RUNTIME_SKIP_INIT_PER_CORE_BOOTROM_RESET` | the same, per core |
 | `PICO_RUNTIME_SKIP_INIT_BOOTROM_LOCKING_ENABLE` | polls `0x400E0828`, which only the bootrom ever sets — **spins forever** |
-| `PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL` | the claim path uses `ldaexb`, which picoem **mis-decodes as an `LDRD` into `{r2, pc}`** |
-| `PICO_TIME_DEFAULT_ALARM_POOL_DISABLED` | the SDK's own way of saying the same thing |
 
-**None of these is what the interposer will ship.** On real silicon the
-coprocessor path is the fast one and the bootrom has run. They are here so that
-the bridge can prove itself today, and `docs/picoem-bridge.md` §5 lists what
-picoem would have to fix to make them unnecessary.
+All three are the **bootrom boot path**, which does not complete in picoem (its
+own `test_flash_boot_blinky` is `#[ignore]`d for the same reason). That gap has no
+known size, and it is deliberately **not** on the critical path: `Entry::Image` is
+a legitimate route for a chip with no boot2.
+
+**The measurement for the retirement** (`--self-test`, no MAME needed):
+
+```
+with the switches:   settled -> pc=0x1000024a  sio_oe=0x07000000   echo ok  heartbeat ok  => PASS
+without them:        settled -> pc=0x10000260  sio_oe=0x07000000   echo ok  heartbeat ok  => PASS
+```
+
+`sio_oe` being non-zero is the whole point of the first row: those bits are set by
+`gpio_set_dir`, which goes through CP0 — the path that used to drop them.
+
+`docs/picoem-bridge.md` §5 lists what picoem would still have to fix;
+`docs/emulation-testbed.md` is the register for both emulators.
 
 ## Testing it
 

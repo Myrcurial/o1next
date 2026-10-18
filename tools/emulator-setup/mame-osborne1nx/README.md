@@ -17,6 +17,7 @@ device, on hardware, is the RP2354B firmware's personality (#179, #192).
 |---|---|
 | `osborne1nx.patch` | the change, as a `git apply` / `patch -p1` diff against MAME 0.289 |
 | `apply.sh` | apply it to a source tree, optionally build the subtarget, optionally run the probe |
+| `picoem-link.patch` | the **second** patch (#192, Gate A): the `osborne1nxp` machine and the `picoem_link_device` that answers the card's window out of a real RP2354B firmware. Separate from the first because it is a separate unit of work with its own acceptance — and a tree that only wants the card need not take it |
 | `o1next-probe.lua` | the headless check: the I/O decode, and the card's presence probe |
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
@@ -35,6 +36,8 @@ device, on hardware, is the RP2354B firmware's personality (#179, #192).
 | `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
 | `o1next-picoem.lua` | **the picoem bridge's MAME half** (#286) — the card window's taps, and the 24-byte frame that carries each cycle to a real RP2354B firmware running inside picoem and back. A pair of FIFOs, not a socket: MAME's Lua has no socket library, and `docs/picoem-bridge.md` §2 has the measurement |
 | `picoem-check.sh` | **the bridge's acceptance** (#286) — a firmware binary built from this tree running inside picoem, `osborne1nx`'s bus cycles reaching its GPIO, and the answers coming back into the machine. Seven checks, and the firmware's own PC and cycle count are two of them |
+| `o1next-picoem-guest.lua` | **the guest harness** (#192, Gate A) — pokes an 11-byte Z80 routine (`DI / LD A,A5h / OUT (30h),A / IN A,(30h) / LD (4020h),A / HALT`) into the guest's RAM and lets *the guest* run the I/O, then reads the result back through the guest's own program space. Unlike the Lua tap above, nothing here can fake the answer |
+| `picoem-guest-check.sh` | **Gate A's acceptance** (#192) — the loop closed: the Z80's own `OUT`/`IN` reaches a real RP2354B firmware through `osborne1nxp`'s `picoem_link_device`, and the byte comes back into guest memory. Twelve checks over three ports, and the three-port part is load-bearing (see below) |
 
 The patch touches seven files:
 

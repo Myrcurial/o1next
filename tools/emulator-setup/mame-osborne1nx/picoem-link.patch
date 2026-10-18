@@ -1,0 +1,720 @@
+--- a/scripts/src/machine.lua
++++ b/scripts/src/machine.lua
+@@ -28,9 +28,13 @@
+ 	MAME_DIR .. "src/devices/machine/ram.cpp",
+ 	MAME_DIR .. "src/devices/machine/ram.h",
+ 	MAME_DIR .. "src/devices/machine/legscsi.cpp",
++	MAME_DIR .. "src/devices/machine/picoem_link.cpp",
++	MAME_DIR .. "src/devices/machine/picoem_link.h",
+ 	MAME_DIR .. "src/devices/machine/legscsi.h",
+ 	MAME_DIR .. "src/devices/machine/sdlc.cpp",
+ 	MAME_DIR .. "src/devices/machine/sdlc.h",
++	MAME_DIR .. "src/devices/machine/softrom.cpp",
++	MAME_DIR .. "src/devices/machine/softrom.h",
+ 	MAME_DIR .. "src/devices/machine/terminal.cpp",
+ 	MAME_DIR .. "src/devices/machine/terminal.h",
+ 	MAME_DIR .. "src/devices/machine/timer.cpp",
+--- a/src/mame/mame.lst
++++ b/src/mame/mame.lst
+@@ -36523,7 +36523,8 @@
+ 
+ @source:osborne/osborne1.cpp
+ osborne1
+-osborne1ng
++osborne1nx
++osborne1nxp
+ osborne1nv
+ osborne1sp
+ 
+--- a/src/mame/osborne/osborne1.cpp
++++ b/src/mame/osborne/osborne1.cpp
+@@ -107,6 +107,8 @@
+ #include "machine/6821pia.h"
+ #include "machine/6850acia.h"
+ #include "machine/acb4000_host_adapter.h"
++#include "machine/picoem_link.h"
++#include "machine/softrom.h"
+ #include "machine/wd_fdc.h"
+ 
+ #include "sound/spkrdev.h"
+@@ -313,25 +315,54 @@
+ // The emulated interposer: a stock Osborne-1 whose Z80 sits behind a card that
+ // decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
+ // answer on 30h-33h -- the ports its driver demands and the stock machine
+-// cannot reach (docs/osborne1ng-machine.md, docs/acb4000-host-adapter.md 2).
+-class osborne1ng_state : public osborne1_state
++// cannot reach (docs/osborne1nx-machine.md, docs/acb4000-host-adapter.md 2).
++class osborne1nx_state : public osborne1_state
+ {
+ public:
+-	osborne1ng_state(const machine_config &mconfig, device_type type, const char *tag) :
++	osborne1nx_state(const machine_config &mconfig, device_type type, const char *tag) :
+ 		osborne1_state(mconfig, type, tag),
+-		m_acb4000(*this, "acb4000")
++		m_acb4000(*this, "acb4000"),
++		m_softrom(*this, "softrom")
+ 	{
+ 	}
+ 
+-	void osborne1ng(machine_config &config);
++	void osborne1nx(machine_config &config);
+ 
+ private:
+-	void osborne1ng_io(address_map &map) ATTR_COLD;
++	void osborne1nx_mem(address_map &map) ATTR_COLD;
++	void osborne1nx_io(address_map &map) ATTR_COLD;
+ 
++	u8 bank2_peripherals_r(offs_t offset);
++	void bank2_peripherals_w(offs_t offset, u8 data);
++
+ 	required_device<acb4000_host_adapter_device> m_acb4000;
++	required_device<softrom_device> m_softrom;
+ };
+ 
+ 
++// The picoem-backed interposer: the *same* machine, with the card's window
++// answered by a real RP2354B firmware running in picoem instead of by the C++
++// acb4000_host_adapter_device.  It is a separate machine rather than a switch
++// because the window can only have one owner, and a machine per configuration is
++// how MAME says that (docs/emulation-testbed.md section 5, Gate A).
++class osborne1nxp_state : public osborne1nx_state
++{
++public:
++	osborne1nxp_state(const machine_config &mconfig, device_type type, const char *tag) :
++		osborne1nx_state(mconfig, type, tag),
++		m_picoem(*this, "picoem")
++	{
++	}
++
++	void osborne1nxp(machine_config &config);
++
++private:
++	void osborne1nxp_io(address_map &map) ATTR_COLD;
++
++	required_device<picoem_link_device> m_picoem;
++};
++
++
+ u8 osborne1_state::bank2_peripherals_r(offs_t offset)
+ {
+ 	// Since each peripheral only checks two bits, many addresses will
+@@ -826,9 +857,84 @@
+ 	osborne1_mem(map);
+ 
+ 	m_rom_view[0](0x2000, 0x2fff).mirror(0x1000).rw(FUNC(osborne1sp_state::bank2_peripherals_r), FUNC(osborne1sp_state::bank2_peripherals_w));
++}
++
++
++void osborne1nx_state::osborne1nx_mem(address_map &map)
++{
++	osborne1_mem(map);
++
++	// The interposer's softROM owns the whole ROM window: page 0 (0000-0fff) is
++	// the monitor and page 1 (1000-1fff) is the payload -- and only the payload,
++	// now that the frame and screen-code slots have retired with the ROM-side
++	// frame path (#278) (docs/o1-rom-2.0.md 4.1b, docs/rom-pico-protocol.md 4).
++	// The mainboard never decoded A12, so the
++	// stock machine reads its 4 KB twice across this one entry; the softROM
++	// decodes it, and with no image mounted it falls back to the machine's own
++	// ROM region.
++	m_rom_view[0](0x0000, 0x1fff).r(m_softrom, FUNC(softrom_device::read)).unmapw();
++
++	// Bank 2's memory-mapped I/O, with the interposer's own registers on top --
++	// the same range the stock machine maps, re-added the way osborne1sp re-adds
++	// it, because the onboard selects are sloppy and the door has to be ANDed
++	// with them (see DOOR_BASE).
++	m_rom_view[0](0x2000, 0x2fff).mirror(0x1000).rw(FUNC(osborne1nx_state::bank2_peripherals_r), FUNC(osborne1nx_state::bank2_peripherals_w));
+ }
+ 
+ 
++// The ROM service's door lives at DOOR_BASE, and *which* address that is is a
++// measurement rather than a preference.
++//
++// The protocol proposed 2300h/2301h (docs/rom-pico-protocol.md 2, 7 item 1), on
++// the grounds that o1-memory-io-map.md 7 calls 2300-23FF the largest clean
++// block.  It is not clean, and the reason is in this driver: the onboard selects
++// check only two address bits, so 2300h/2301h are also the floppy controller's
++// command/status and track registers and the keyboard's row 0 -- measured, and
++// recorded in docs/o1-mainboard-schematic.md 7a ("0x2301 is keyboard *and*
++// floppy", from tools/o1_mame_probe.lua's C9 report).  A reply register ANDed
++// with the FDC's track register -- 0x00 at the sign-on -- reads "not ready" for
++// ever, and a request written to 2300h is a floppy command.
++//
++// 2800h is inside the block o1-memory-io-map.md 7 recommends (2300-28FF) and is
++// the part of it nothing selects: no device mask matches A11 set with A8/A9/A10
++// clear, so the stock decode reads 0xFF there and the door answers alone.  The
++// rest of that region is not free either -- 2400h-27FF is the SCREEN-PAC's own
++// decode, presence bit included (2400h, bit 2 LOW = fitted), which the video
++// personality needs.
++//
++// The protocol is base-relative, so this is the whole of the correction: one
++// constant here, one in the ROM's client code, and the docs.
++static constexpr offs_t DOOR_BASE = 0x2800;   // bank 2: the request, then the reply
++
++u8 osborne1nx_state::bank2_peripherals_r(offs_t offset)
++{
++	// The bus fight is modelled rather than assumed away: the interposer's
++	// registers are ANDed with whatever else this address selects, exactly as
++	// the stock machine ANDs its own colliding devices.  At DOOR_BASE that is
++	// nothing, which is the point of choosing it -- and the same code is what
++	// would show the corruption if the door were moved back onto a device.
++	u8 data = osborne1_state::bank2_peripherals_r(offset);
++
++	offs_t const a = offset + 0x2000;
++	if ((a == DOOR_BASE) || (a == DOOR_BASE + 1))
++		data &= m_softrom->door_read(int(a - DOOR_BASE));
++
++	return data;
++}
++
++void osborne1nx_state::bank2_peripherals_w(offs_t offset, u8 data)
++{
++	// only the request register takes writes; the reply register is read-only
++	if ((offset + 0x2000) == DOOR_BASE)
++	{
++		m_softrom->door_write(0, data);
++		return;
++	}
++
++	osborne1_state::bank2_peripherals_w(offset, data);
++}
++
++
+ void osborne1_state::osborne1_op(address_map &map)
+ {
+ 	map(0x0000, 0xffff).r(FUNC(osborne1_state::opcode_r));
+@@ -855,7 +961,7 @@
+ }
+ 
+ 
+-void osborne1ng_state::osborne1ng_io(address_map &map)
++void osborne1nx_state::osborne1nx_io(address_map &map)
+ {
+ 	map.unmap_value_high();
+ 
+@@ -865,11 +971,25 @@
+ 	// the 2-bit alias and put the card's window on top of it: 30h-33h is the
+ 	// one place where the card, not the mainboard, owns the bus.
+ 	map.global_mask(0xff);
+-	map(0x00, 0x03).mirror(0xfc).w(FUNC(osborne1ng_state::bankswitch_w));
++	map(0x00, 0x03).mirror(0xfc).w(FUNC(osborne1nx_state::bankswitch_w));
+ 	map(0x30, 0x33).rw(m_acb4000, FUNC(acb4000_host_adapter_device::read), FUNC(acb4000_host_adapter_device::write));
+ }
+ 
+ 
++void osborne1nxp_state::osborne1nxp_io(address_map &map)
++{
++	map.unmap_value_high();
++
++	// Identical to osborne1nx_io -- the mainboard's 2-bit alias survives
++	// untouched -- except that the window belongs to the *firmware* rather than
++	// to the C++ card.  The port passed to the device is the full 8-bit address,
++	// which is what the firmware's own register decode expects.
++	map.global_mask(0xff);
++	map(0x00, 0x03).mirror(0xfc).w(FUNC(osborne1nxp_state::bankswitch_w));
++	map(0x30, 0x33).rw(m_picoem, FUNC(picoem_link_device::read), FUNC(picoem_link_device::write));
++}
++
++
+ static INPUT_PORTS_START( osborne1 )
+ 	PORT_START("ROW0")
+ 	PORT_BIT(0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_BACKSLASH)                             PORT_CHAR('[') PORT_CHAR(']')
+@@ -1105,13 +1225,14 @@
+ }
+ 
+ 
+-void osborne1ng_state::osborne1ng(machine_config &config)
++void osborne1nx_state::osborne1nx(machine_config &config)
+ {
+ 	osborne1_base(config);
+ 
+-	m_maincpu->set_addrmap(AS_IO, &osborne1ng_state::osborne1ng_io);
++	m_maincpu->set_addrmap(AS_PROGRAM, &osborne1nx_state::osborne1nx_mem);
++	m_maincpu->set_addrmap(AS_IO, &osborne1nx_state::osborne1nx_io);
+ 
+-	m_screen->set_screen_update(FUNC(osborne1ng_state::screen_update));
++	m_screen->set_screen_update(FUNC(osborne1nx_state::screen_update));
+ 	m_screen->set_raw(MAIN_CLOCK / 2, 512, 0, 52 * 8, 260, 0, 24 * 10);
+ 	m_screen->screen_vblank().set(m_pia1, FUNC(pia6821_device::ca1_w));
+ 	m_screen->set_palette("palette");
+@@ -1123,9 +1244,34 @@
+ 
+ 	ACB4000_HOST_ADAPTER(config, m_acb4000);
+ 	m_acb4000->set_scsi_port("scsi");
++
++	// the interposer's own ROM: the window is served from an image file, and
++	// with none mounted it is the machine's own 1.44 -- so the machine boots
++	// the stock ROM (docs/o1-rom-2.0.md 4.1b)
++	SOFTROM(config, m_softrom);
++	m_softrom->set_monitor_region("maincpu");
++
++	// Page 1 of the window is the payload, and it is the only thing the window
++	// serves there: the frame and the screen-code slots retired with the ROM-side
++	// frame path (#278), so there is nothing else to mount and nothing else for
++	// the door's `PRESENT` to select.
+ }
+ 
+ 
++void osborne1nxp_state::osborne1nxp(machine_config &config)
++{
++	osborne1nx(config);
++
++	// The same machine, and the only difference is who owns 30h-33h: the
++	// firmware in picoem rather than the C++ card.  The card stays configured
++	// (and its SCSI bus stays valid) -- it is simply not reachable from the I/O
++	// map, which is what makes this machine's trace comparable with the other's.
++	m_maincpu->set_addrmap(AS_IO, &osborne1nxp_state::osborne1nxp_io);
++
++	PICOEM_LINK(config, m_picoem);
++}
++
++
+ ROM_START( osborne1 )
+ 	ROM_DEFAULT_BIOS("ver144")
+ 	ROM_SYSTEM_BIOS( 0, "vera",   "BIOS version A" )
+@@ -1157,9 +1303,9 @@
+ 
+ #define rom_osborne1sp rom_osborne1
+ 
+-// osborne1ng runs the 1.44 ROM and nothing else: it is the emulated interposer
++// osborne1nx runs the 1.44 ROM and nothing else: it is the emulated interposer
+ // machine, and the MD-10's software is what it exists to run.
+-ROM_START( osborne1ng )
++ROM_START( osborne1nx )
+ 	ROM_REGION( 0x1000, "maincpu", 0 )
+ 	ROM_LOAD( "3a10082-00rev-e.ud11",    0x0000, 0x1000, CRC(c0596b14) SHA1(ee6a9cc9be3ddc5949d3379351c1d58a175ce9ac) )
+ 
+@@ -1167,6 +1313,14 @@
+ 	ROM_LOAD( "7a3007-00.ud15", 0x0000, 0x800, CRC(6c1eab0d) SHA1(b04459d377a70abc9155a5486003cb795342c801) )
+ ROM_END
+ 
++ROM_START( osborne1nxp )
++	ROM_REGION( 0x1000, "maincpu", 0 )
++	ROM_LOAD( "3a10082-00rev-e.ud11",    0x0000, 0x1000, CRC(c0596b14) SHA1(ee6a9cc9be3ddc5949d3379351c1d58a175ce9ac) )
++
++	ROM_REGION( 0x800, "chargen", 0 )
++	ROM_LOAD( "7a3007-00.ud15", 0x0000, 0x800, CRC(6c1eab0d) SHA1(b04459d377a70abc9155a5486003cb795342c801) )
++ROM_END
++
+ ROM_START( osborne1nv )
+ 	ROM_REGION(0x1000, "maincpu", 0)
+ 	ROM_LOAD( "monrom-rev1.51-12.ud11", 0x0000, 0x1000, CRC(298da402) SHA1(7fedd070936ccfe98f96d6e0ac71689666da79cb) )
+@@ -1185,4 +1339,5 @@
+ COMP( 1981, osborne1,   0,        0,      osborne1,   osborne1,   osborne1_state,   empty_init, "Osborne",       "Osborne-1",                 MACHINE_SUPPORTS_SAVE )
+ COMP( 1983, osborne1sp, osborne1, 0,      osborne1sp, osborne1,   osborne1sp_state, empty_init, "Osborne",       "Osborne-1 with SCREEN-PAC", MACHINE_SUPPORTS_SAVE )
+ COMP( 1984, osborne1nv, osborne1, 0,      osborne1nv, osborne1nv, osborne1nv_state, empty_init, "Osborne/Nuevo", "Osborne-1 (Nuevo Video)",   MACHINE_SUPPORTS_SAVE )
+-COMP( 1981, osborne1ng, osborne1, 0,      osborne1ng, osborne1,   osborne1ng_state, empty_init, "Osborne",       "Osborne-1 (emulated interposer)", MACHINE_SUPPORTS_SAVE )
++COMP( 1981, osborne1nx, osborne1, 0,      osborne1nx, osborne1,   osborne1nx_state, empty_init, "Osborne",       "Osborne-1 (emulated interposer)", MACHINE_SUPPORTS_SAVE )
++COMP( 1981, osborne1nxp, osborne1nx, 0,   osborne1nxp, osborne1,  osborne1nxp_state, empty_init, "Osborne",      "Osborne-1 (emulated interposer, picoem-backed)", MACHINE_SUPPORTS_SAVE )
+--- /dev/null
++++ b/src/devices/machine/picoem_link.h
+@@ -0,0 +1,81 @@
++// license:BSD-3-Clause
++// copyright-holders:James Arlen
++/***************************************************************************
++
++    picoem_link -- the card's window, answered by a real RP2354B firmware
++
++    See docs/emulation-testbed.md section 5 (Gate A) and docs/picoem-bridge.md
++    for the wire.  This device is the MAME half of it: it owns the FIFO pair,
++    sends a 24-byte frame for each I/O access in the window, blocks for the
++    reply, and returns the byte the firmware drove.
++
++    WHY A DEVICE AND NOT A LUA TAP
++        A Lua read tap cannot return data to the guest: it segfaults once the
++        guest polls in a tight loop (measured on MAME 0.289,
++        tools/research/acb4000.lua GOTCHAS).  A device can, and *blocking* is
++        what the card needs -- the Z80's cycle has to be answered before it
++        continues, which a frame-quantised socket would not give.
++
++    WHY THE CHIP IS NOT IN THIS PROCESS
++        The bridge owns the emulated RP2354B, because `Bus::gpio_external_mask`
++        is a plain u32 rather than an atomic, so stepping the chip and driving
++        its pins have to be the same thread.  This device is the other end of a
++        pipe, and the pipe is a pair of FIFOs because MAME's Lua has no socket
++        library and a C++ socket would be a second patch to the same tree.
++
++    THE HAZARD, STATED
++        A blocking read on a FIFO never returns if the peer dies.  The bridge
++        holds both ends open for the life of the run, so a MAME that exits frees
++        the bridge, but a bridge that exits leaves MAME blocked until it is
++        killed.  `tools/emulator-setup/mame-osborne1nx/picoem-check.sh` kills
++        both ends on every exit path.
++
++***************************************************************************/
++#ifndef MAME_MACHINE_PICOEM_LINK_H
++#define MAME_MACHINE_PICOEM_LINK_H
++
++#pragma once
++
++class picoem_link_device : public device_t
++{
++public:
++	picoem_link_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++
++	u8 read(offs_t offset);
++	void write(offs_t offset, u8 data);
++
++protected:
++	virtual void device_start() override ATTR_COLD;
++	virtual void device_stop() override ATTR_COLD;
++
++private:
++	static constexpr unsigned FRAME_LEN = 24;
++	static constexpr u8 OP_HELLO     = 0;
++	static constexpr u8 OP_BUS_WRITE = 1;
++	static constexpr u8 OP_BUS_READ  = 2;
++	static constexpr u8 STATUS_OK    = 0;
++
++	// MAME hands an address-map handler the offset *relative to the entry's
++	// start*, measured: a guest `OUT (31h),A` in a `map(30h,33h)` window arrives
++	// as offset 1.  The firmware decodes the full 8-bit port -- that is the whole
++	// point of the machine -- so the base has to be put back.  The card device in
++	// `osborne1nx` hides this with `offset & 0x03`, which is a no-op either way.
++	static constexpr u8 WINDOW_BASE = 0x30;
++
++	bool open_channel();
++	bool transact(u8 op, u8 port, u8 data, u8 &reply_data, u8 &hb, u8 &flags);
++	void report(char const *what, u8 port, u8 data, u8 reply_data, u8 hb, u8 flags);
++	void warn_dead();
++
++	int  m_fd_out = -1;         // requests: MAME -> bridge
++	int  m_fd_in = -1;          // replies:  bridge -> MAME
++	bool m_dead = false;
++	bool m_warned = false;
++	u16  m_seq = 0;
++	u32  m_last_pc = 0;
++	u32  m_last_cycles = 0;
++};
++
++DECLARE_DEVICE_TYPE(PICOEM_LINK, picoem_link_device)
++
++#endif // MAME_MACHINE_PICOEM_LINK_H
+--- /dev/null
++++ b/src/devices/machine/picoem_link.cpp
+@@ -0,0 +1,325 @@
++// license:BSD-3-Clause
++// copyright-holders:James Arlen
++/***************************************************************************
++
++    picoem_link -- the card's window, answered by a real RP2354B firmware
++
++    The frame format is the contract in docs/picoem-bridge.md section 3.
++    `tools/picoem-bridge/src/frame.rs` is the reference copy and the Lua copy is
++    `tools/emulator-setup/mame-osborne1nx/o1next-picoem.lua`; the Rust tests pin
++    the layout, so if this file disagrees with them, this file is wrong.
++
++    Request (MAME -> bridge), 24 bytes, little-endian:
++        0  4  magic "O1B1"
++        4  1  op: 0 HELLO, 1 BUS_WRITE, 2 BUS_READ
++        5  1  flags: bit0 0 = I/O cycle, 1 = memory cycle
++        6  1  port
++        7  1  data -- the byte the Z80 drove
++        8  2  addr (memory cycles; 0 here)
++       10  2  seq, echoed back
++       12  4  cycles for this transaction; 0 = the bridge's default
++       16  4  reserved
++       20  2  checksum = sum of bytes 0..19
++       22  2  reserved
++
++    Reply (bridge -> MAME):
++        0  4  magic
++        4  1  status: 0 OK, 1 no firmware running, 2 bad request
++        5  1  data -- the byte the chip drove on GP0-GP7
++        6  1  hb   -- GP26 edges; 1 = the firmware handled the transaction
++        7  1  flags
++        8  2  addr echo
++       10  2  seq echo
++       12  4  pc -- the firmware's PC after the transaction
++       16  4  cycles -- the emulated chip's total cycle count
++       20  2  checksum
++       22  2  reserved
++
++    `pc` and `cycles` are in *every* reply rather than in a HELLO exchange only,
++    because "the firmware is running" is the first thing to go wrong and the
++    hardest thing to see from this side -- and because the cycle count is what a
++    personality's cycle budget is asserted against
++    (docs/emulation-testbed.md section 7).
++
++***************************************************************************/
++
++#include "emu.h"
++#include "picoem_link.h"
++
++#include <cerrno>
++#include <cstdlib>
++#include <cstring>
++
++#include <fcntl.h>
++#include <unistd.h>
++
++DEFINE_DEVICE_TYPE(PICOEM_LINK, picoem_link_device, "picoem_link", "picoem link (the card's window, from a real RP2354B firmware)")
++
++
++namespace {
++
++char const MAGIC[4] = { 'O', '1', 'B', '1' };
++
++void put_u16(u8 *p, u16 v) { p[0] = u8(v); p[1] = u8(v >> 8); }
++void put_u32(u8 *p, u32 v) { p[0] = u8(v); p[1] = u8(v >> 8); p[2] = u8(v >> 16); p[3] = u8(v >> 24); }
++
++u16 get_u16(u8 const *p) { return u16(p[0]) | (u16(p[1]) << 8); }
++u32 get_u32(u8 const *p) { return u32(p[0]) | (u32(p[1]) << 8) | (u32(p[2]) << 16) | (u32(p[3]) << 24); }
++
++u16 frame_checksum(u8 const *p, unsigned len)
++{
++	u16 t = 0;
++	for (unsigned i = 0; i < len; i++)
++		t = u16(t + p[i]);
++	return t;
++}
++
++// A FIFO read or write can return short, and a signal can interrupt it.  Loop
++// until the whole frame has moved or the channel is genuinely gone.
++bool write_all(int fd, u8 const *p, unsigned len)
++{
++	unsigned done = 0;
++	while (done < len)
++	{
++		ssize_t n = ::write(fd, p + done, len - done);
++		if (0 > n)
++		{
++			if (EINTR == errno)
++				continue;
++			return false;
++		}
++		done += unsigned(n);
++	}
++	return true;
++}
++
++bool read_all(int fd, u8 *p, unsigned len)
++{
++	unsigned done = 0;
++	while (done < len)
++	{
++		ssize_t n = ::read(fd, p + done, len - done);
++		if (0 > n)
++		{
++			if (EINTR == errno)
++				continue;
++			return false;
++		}
++		if (0 == n)
++			return false; // the peer closed
++		done += unsigned(n);
++	}
++	return true;
++}
++
++} // anonymous namespace
++
++
++picoem_link_device::picoem_link_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock) :
++	device_t(mconfig, PICOEM_LINK, tag, owner, clock)
++{
++}
++
++
++void picoem_link_device::device_start()
++{
++	if (!open_channel())
++	{
++		m_dead = true;
++		return;
++	}
++
++	// HELLO is not decoration: "the firmware is running" is the first thing that
++	// goes wrong, and from this side it looks identical to a firmware that is
++	// running and answering nothing.
++	u8 data = 0, hb = 0, flags = 0;
++	if (!transact(OP_HELLO, 0, 0, data, hb, flags))
++	{
++		osd_printf_error("picoem: HELLO failed -- the bridge is there and the firmware is not answering\n");
++		m_dead = true;
++		return;
++	}
++
++	osd_printf_info("picoem: HELLO  status 00  firmware pc=%08X cycles=%d\n",
++			m_last_pc, m_last_cycles);
++}
++
++
++void picoem_link_device::device_stop()
++{
++	if (0 <= m_fd_out)
++	{
++		::close(m_fd_out);
++		m_fd_out = -1;
++	}
++	if (0 <= m_fd_in)
++	{
++		::close(m_fd_in);
++		m_fd_in = -1;
++	}
++}
++
++
++bool picoem_link_device::open_channel()
++{
++	char const *in_path  = std::getenv("O1_PICOEM_IN");
++	char const *out_path = std::getenv("O1_PICOEM_OUT");
++	if (!in_path)
++		in_path = "/tmp/o1next-picoem/in";
++	if (!out_path)
++		out_path = "/tmp/o1next-picoem/out";
++
++	// O_RDWR on a FIFO does not block on open, which is what makes a FIFO a
++	// usable byte stream here with no open-order deadlock.  The Lua end opens
++	// the same two paths with "r+b" for the same reason.
++	m_fd_out = ::open(in_path, O_RDWR);
++	if (0 > m_fd_out)
++	{
++		osd_printf_error("picoem: NO BRIDGE -- %s could not be opened (%s)\n",
++				in_path, std::strerror(errno));
++		osd_printf_error("picoem: start tools/picoem-bridge first (see docs/emulation-testbed.md)\n");
++		return false;
++	}
++
++	m_fd_in = ::open(out_path, O_RDWR);
++	if (0 > m_fd_in)
++	{
++		osd_printf_error("picoem: NO BRIDGE -- %s could not be opened (%s)\n",
++				out_path, std::strerror(errno));
++		::close(m_fd_out);
++		m_fd_out = -1;
++		return false;
++	}
++
++	osd_printf_info("picoem: channel %s -> %s\n", in_path, out_path);
++	return true;
++}
++
++
++bool picoem_link_device::transact(u8 op, u8 port, u8 data, u8 &reply_data, u8 &hb, u8 &flags)
++{
++	if (m_dead)
++		return false;
++
++	m_seq++;
++
++	u8 req[FRAME_LEN];
++	std::memcpy(req, MAGIC, 4);
++	req[4] = op;
++	req[5] = 0;                 // flags: 0 = an I/O cycle
++	req[6] = port;
++	req[7] = data;
++	put_u16(&req[8], 0);        // addr: memory cycles only
++	put_u16(&req[10], m_seq);
++	put_u32(&req[12], 0);       // cycles: the bridge's default
++	put_u32(&req[16], 0);       // reserved
++	put_u16(&req[20], frame_checksum(req, 20));
++	put_u16(&req[22], 0);
++
++	if (!write_all(m_fd_out, req, FRAME_LEN))
++	{
++		osd_printf_error("picoem: the channel died writing a request\n");
++		m_dead = true;
++		return false;
++	}
++
++	u8 rep[FRAME_LEN];
++	if (!read_all(m_fd_in, rep, FRAME_LEN))
++	{
++		osd_printf_error("picoem: the channel died waiting for a reply\n");
++		m_dead = true;
++		return false;
++	}
++
++	// The transport is a byte stream with no message boundaries, so a reader
++	// that has drifted has to be able to *see* that it has.
++	if (std::memcmp(rep, MAGIC, 4) != 0)
++	{
++		osd_printf_error("picoem: bad magic in the reply -- the stream has drifted\n");
++		m_dead = true;
++		return false;
++	}
++	if (get_u16(&rep[20]) != frame_checksum(rep, 20))
++	{
++		osd_printf_error("picoem: bad checksum in the reply -- the stream has drifted\n");
++		m_dead = true;
++		return false;
++	}
++	if (get_u16(&rep[10]) != m_seq)
++	{
++		osd_printf_error("picoem: reply seq %u, expected %u\n", get_u16(&rep[10]), m_seq);
++		m_dead = true;
++		return false;
++	}
++	if (rep[4] != STATUS_OK)
++	{
++		osd_printf_error("picoem: status %02X -- the bridge refused the transaction\n", rep[4]);
++		return false;
++	}
++
++	reply_data = rep[5];
++	hb = rep[6];
++	flags = rep[7];
++	m_last_pc = get_u32(&rep[12]);
++	m_last_cycles = get_u32(&rep[16]);
++	return true;
++}
++
++
++void picoem_link_device::report(char const *what, u8 port, u8 data, u8 reply_data, u8 hb, u8 flags)
++{
++	if ('W' == what[0])
++		osd_printf_info("picoem: W %02X <- %02X  firmware drove %02X  hb=%u %s%s%s  pc=%08X cycles=%d\n",
++				port, data, reply_data,
++				hb,
++				(flags & 0x01) ? "HB " : "-- ",
++				(flags & 0x02) ? "OE " : "-- ",
++				(flags & 0x04) ? "DRV" : "---",
++				m_last_pc, m_last_cycles);
++	else
++		osd_printf_info("picoem: R %02X      firmware drove %02X  hb=%u %s%s%s  (guest read %02X)  pc=%08X cycles=%d\n",
++				port, reply_data,
++				hb,
++				(flags & 0x01) ? "HB " : "-- ",
++				(flags & 0x02) ? "OE " : "-- ",
++				(flags & 0x04) ? "DRV" : "---",
++				reply_data,
++				m_last_pc, m_last_cycles);
++}
++
++
++void picoem_link_device::warn_dead()
++{
++	if (!m_warned)
++	{
++		osd_printf_error("picoem: the link is down -- accesses in the window answer 0xFF\n");
++		m_warned = true;
++	}
++}
++
++
++u8 picoem_link_device::read(offs_t offset)
++{
++	u8 const port = u8(WINDOW_BASE + (offset & 0x03));
++	u8 data = 0, hb = 0, flags = 0;
++	if (!transact(OP_BUS_READ, port, 0, data, hb, flags))
++	{
++		warn_dead();
++		return 0xff;
++	}
++	report("R", port, 0, data, hb, flags);
++	return data;
++}
++
++
++void picoem_link_device::write(offs_t offset, u8 data)
++{
++	u8 const port = u8(WINDOW_BASE + (offset & 0x03));
++	u8 reply_data = 0, hb = 0, flags = 0;
++	if (!transact(OP_BUS_WRITE, port, data, reply_data, hb, flags))
++	{
++		warn_dead();
++		return;
++	}
++	report("W", port, data, reply_data, hb, flags);
++}

@@ -15,6 +15,11 @@ Serves #191; unblocks #178's `peek` and is the emulated half of the personality
 blocker), `docs/acb4000-firmware.md` (the controller) and
 `docs/harddisk-decision.md` §5 (the three layers).
 
+**This machine is one half of the emulation testbed.** `docs/emulation-testbed.md`
+owns the loop between it and the RP2354B firmware running in picoem, the gap
+register for both emulators, and the plan for closing each gap; this document owns
+the machine.
+
 The patch, the apply script and the two probes live in
 `tools/emulator-setup/mame-osborne1nx/`.
 
