@@ -449,7 +449,7 @@ see [`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o
 **Every connector on an Osborne 1 is on the FRONT of the machine** — there is
 nothing to plug into at the back. That is not a detail: it is why fitting a
 period peripheral meant unclipping the keyboard, which docks to seal that same
-face (the O1A design note in [`hardware/o1next/`](https://github.com/Myrcurial/o1next/blob/main/hardware/o1next/)), and it is why every standalone
+face (the O1A design note in [`hardware/next-integrated/`](https://github.com/Myrcurial/o1next/blob/main/hardware/next-integrated/)), and it is why every standalone
 device in this project attaches at the front (#47, #56, #84).
 
 - **P3** — IEEE-488, 26-pin edge (pins 25/26 unused)

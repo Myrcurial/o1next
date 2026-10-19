@@ -291,7 +291,7 @@ new and is the one to read before reusing anything here.**
 5. Active drive: WAIT-stretch and clock-gating hooks (BusRaider
    model) — being able to stop the clock is a superpower.
 5b. **The target clock is already in the design, so the prior art settles a
-    question Rev B had already answered (§1.6).** `hardware/interposer/revb/README.md`
+    question Rev B had already answered (§1.6).** `hardware/interposer-upgrade/revb/README.md`
     allocates **GP21 = CLK, "direct — PIO timing reference"** — and the machine's
     clock is a *mainboard* signal, 15.9744 MHz ÷ 4 through the UD3 LS161 counter
     (`o1-memory-io-map.md` §1), not the Z80's own oscillator. So the interposer is

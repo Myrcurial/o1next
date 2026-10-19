@@ -33,11 +33,13 @@ mainboard, and the SFF board grafts the same capability in. **There is one ROM
 2.00** — one image, one layout — and it runs on either.
 
 That also settles a documentation question that would otherwise duplicate this
-whole document: **OEM board + interposer ≡ LFF board + interposer**, because the
-LFF board is a faithful recreation of *just* the OEM board with the Dual Density
-upgrade built in (`hardware/o1next/o1next-lff/README.md`). There is no separate "LFF
-path" to design for — one interposer brief covers both, and "the stock machine" in
-this document means the mainboard-plus-interposer combination.
+whole document: there is **one host brief**, because the interposer's ROM window
+does not care which OEM-faithful mainboard it is plugged into — an existing OEM
+board, or any faithful 1:1 recreation of one with the Dual Density upgrade built
+in. (Such a recreation is *possible* if a chassis ever needs restoring; it is not
+in the set, and it has no directory — see *Not boards* in `hardware/README.md`.)
+So "the stock machine" in this document means the mainboard-plus-interposer
+combination, and there is no second path to design for.
 
 **OZROM 1E is the pattern, not the feature set.** Per the direction recorded on
 #83, and the measured shortcomings in `docs/ozrom-1e.md`:
@@ -298,8 +300,8 @@ socket bridge gives it the window itself, so it presents the ROM in firmware.
 
 | | |
 |---|---|
-| The host | **OEM board + interposer**, **LFF reproduction + interposer**, or the **SFF board**, where the interposer is built in as one unit. There is no third case and no part in the socket |
-| The LFF board on its own | Keeps a socket that takes a standard 1.44 ROM, so it is a stock machine and the restoration path boots stock. That is the *stock* part — not ROM 2.00 |
+| The host | **OEM board + interposer**, or the **`next-integrated` board**, where the interposer is built in as one unit. There is no third case and no part in the socket |
+| A mainboard on its own | Keeps a socket that takes a standard 1.44 ROM, so a stock machine boots stock. That is the *stock* part — not ROM 2.00 |
 | Window | the monitor stays at `0000–0FFF`; the rest of the ROM page is not one contiguous block (§2.2), and **where the payload goes is open** |
 | Banks | the intended *content* split is 4 × 4 KB (system image 2, MD-10 BIOS 1, diagnostics + spare 1). The content plan stands; **what selects a bank, and where it is presented, is open** |
 
@@ -338,8 +340,8 @@ the socket, with `A12`/`A13` and the latch strobe coming from outside it … the
 for a board with no interposer"*, and nominated a write to **`2300h`** as the
 latch. That is withdrawn:
 
-- there is no board with no interposer — the SFF has one built in, and the OEM and
-  LFF boards take one;
+- there is no board with no interposer — the `next-integrated` board has one built
+  in, and an OEM board takes one;
 - there is no physical part, so there is nothing for `A12`/`A13` to address;
 - `2300h` was chosen as a *latch* address; with no latch it is a candidate register
   address and nothing more.
@@ -982,7 +984,7 @@ with it.
 | 2 | Warm boot, when there are no system tracks | **Already solved by the machine.** The CBIOS's `WBOOT` calls ROM vector 1; ROM 2.0 points it at `SYSLD`. No CBIOS change, no new mechanism (§4.5) |
 | 3 | Does the CCP need to be relocatable? | **No — pin it.** `MSIZE = 59`, `CCP = CB00h`, `BDOS = D300h`, `BIOS = E100h`, all as the vendor shipped them. `MOVCPM`/`SYSGEN` are disk-build tools for a disk build; a ROM build wants the layout fixed so the ROM's copy loop can be two `LDIR`s with literal addresses. It also keeps the CBIOS's `ROMCDE` arithmetic valid, which *requires* `BIOS & 0FFh == 00h` |
 | 4 | Keep floppy support, or drop it? | **Keep it.** The ROM carries the vendor's CBIOS unchanged, so a real disk still boots. The diskless case is handled at `SELDSK` by returning a **null DPH** when no media is present, which is documented CP/M behaviour (the BDOS then reports `Bdos Err on X: Select` for that drive) rather than a hang in the FDC retry loop. Deleting the drivers would save ROM space we do not need to save — the CBIOS is 2048 bytes either way, and it is already written |
-| 5 | Which socket/part on the replica? | **The ROM socket, and on a real machine no part in it.** The LFF board keeps a socket that takes a standard 1.44 ROM, so it is a stock machine on its own; with the interposer fitted, a daughterboard takes the socket and the **Pico serves the ROM**, so ROM 2.00 needs no new part and is updatable in flash. A **27128/2764 is only for a board with no interposer** — and there is no such board, so there is no larger part at all, not in any form. Every host (OEM + interposer, LFF + interposer, SFF) has the softROM. Because OEM board + interposer ≡ LFF board + interposer, there is one host to design for and one to test on |
+| 5 | Which socket/part on the replica? | **The ROM socket, and on a real machine no part in it.** An OEM-faithful mainboard keeps a socket that takes a standard 1.44 ROM, so it is a stock machine on its own; with the interposer fitted, a daughterboard takes the socket and the **Pico serves the ROM**, so ROM 2.00 needs no new part and is updatable in flash. A **27128/2764 is only for a board with no interposer** — and there is no such board, so there is no larger part at all, not in any form. Every host (OEM + interposer, and the `next-integrated` board) has the softROM, so there is one host to design for and one to test on |
 | 6 | What can we borrow from OZROM's memory map? | The **shape**, not the contents: a documented table and map, a documented version, a column switch, a memory test. Its specific choices — video RAM at `FC00–FFFF`, keyboard redefinition, IEEE-488 removed — are the ones #83 rules out. `docs/ozrom-1e.md` §5–§8 has the detail |
 
 

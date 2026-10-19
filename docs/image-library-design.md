@@ -20,7 +20,7 @@ Answers **#283** and **#285**. Reads alongside `docs/mailbox-protocol.md` (the
 protocol, and §5.2's KIND and SIZE rules this doc extends),
 `docs/rom-pico-protocol.md` §1 (the second client), `docs/drive-c-design.md` §4.2
 (why a Drive C blob's length *is* its geometry), `docs/harddisk-decision.md` §7
-(the sparse volume blob) and `hardware/interposer/README.md` (the onboard library
+(the sparse volume blob) and `hardware/interposer-upgrade/README.md` (the onboard library
 flash).
 
 ## 1. Three media, one namespace
@@ -247,7 +247,7 @@ under a second.
   and why a mounted blob needs no re-install.
 - `docs/harddisk-decision.md` §7 — the sparse volume blob, the fill byte, and the
   geometry the volume carries.
-- `hardware/interposer/README.md` — the onboard library flash decision (W25Q-class,
-  16–64 MB, SPI NOR); `hardware/interposer/revb/README.md` — GP40–43 SPI to the SD,
+- `hardware/interposer-upgrade/README.md` — the onboard library flash decision (W25Q-class,
+  16–64 MB, SPI NOR); `hardware/interposer-upgrade/revb/README.md` — GP40–43 SPI to the SD,
   GP44 `/CS_FLASH`.
 - `firmware/library/` — the implementation and its host tests (#283).

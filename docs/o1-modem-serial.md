@@ -90,7 +90,7 @@ Read/write it via the CP/M `IOBYTE` function, same as the serial port.
   #5) rather than from P1. The **severable external** module is the reverse
   case — it exists because the port carries power at all. Its current budget
   is deliberately deferred until a board exists: see
-  `hardware/wifi-modem-module/README.md` §Power.
+  `hardware/wifi-comm-pac/README.md` §Power.
 - **MSB (pin 4) is open-collector** and **MCB (pin 8) low suppresses output** —
   together these are the modem's "hook"/enable handshake. RI (pin 9) falling
   edge sets the ring flag; the ESP32 can drive it to signal an incoming

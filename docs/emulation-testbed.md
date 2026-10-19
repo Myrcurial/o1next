@@ -14,7 +14,7 @@ gaps, `docs/mame-emulation.md` §7 has MAME's open items, and several of the
 statements in both are stale relative to the code. §4 is the one list.
 
 > **Vocabulary:** `Rev B` in this document is the **interposer's** Rev B — the
-> `O1NEXT Upgrade`'s production revision (`hardware/interposer/revb/README.md`),
+> `O1NEXT Upgrade`'s production revision (`hardware/interposer-upgrade/revb/README.md`),
 > not a ROM revision and not another board's. See `hardware/README.md`.
 
 **The child documents, and the relationship.** This document owns the *loop*, the

@@ -8,7 +8,7 @@ logical design is waiting on a measurement any more; what is left is a layout an
 firmware (§7).
 
 Tracks: #84 (the device), #6 (the protocol). Sibling of
-`hardware/usb-keyboard-adapter/` and `hardware/wifi-modem-module/` — a period
+`hardware/keyboard-adapter/` and `hardware/wifi-comm-pac/` — a period
 device reproduced on modern parts, hanging off a port, reversible.
 
 ## 1. What we are building
@@ -85,7 +85,7 @@ the mapping for the lines this design actually touches.
 
 ### 2.2 Power
 
-The EXMON precedent (`hardware/drive-c/README.md`) takes power from **P5**, the
+The EXMON precedent (`hardware/drive-c-repro/README.md`) takes power from **P5**, the
 10-pin video connector, through a **passive shunt** — a Sullins
 MP-0100-10-DS-4 edge connector and a Hyko K688-DI sync combiner — and uses
 **+12 V**.
@@ -449,7 +449,7 @@ and confirmed the hardware is a single design for both machines.
   the open-collector drivers.
 - `docs/interposer-survey.md` §5 — NODISKEMU and cbmSD, the IEEE-488 state
   machines to port.
-- `hardware/drive-c/README.md` — the device's place in the project, and the EXMON
+- `hardware/drive-c-repro/README.md` — the device's place in the project, and the EXMON
   shunt precedent.
 
 

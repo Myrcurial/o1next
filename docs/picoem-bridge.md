@@ -32,7 +32,7 @@ it can, every personality the interposer is for (#179, #277) is being written
 against a chip that behaves differently from the real one in specific ways.
 
 > **Vocabulary:** `Rev B` in this document is the **interposer's** Rev B — the
-> `O1NEXT Upgrade`'s production revision (`hardware/interposer/revb/README.md`),
+> `O1NEXT Upgrade`'s production revision (`hardware/interposer-upgrade/revb/README.md`),
 > not a ROM revision and not another board's. See `hardware/README.md`.
 
 **Two of them are fixed** (2026-10-18): #5 (`ldaexb`) and #7 (the CP0 table, which
