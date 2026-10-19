@@ -136,12 +136,18 @@ def parse_site() -> list:
     return rows
 
 
+def home_path(home: str) -> str:
+    """The backticked path in a Home cell, relative to `hardware/`."""
+    m = re.search(r"`([^`]+)`", home)
+    return m.group(1) if m else ""
+
+
 def home_failure(what: str, home: str, need_issue: bool) -> str:
     """A board/part home must be a directory, or say why it is not."""
-    path = re.search(r"`([^`]+)`", home)
-    if path:
-        if not (REPO / path.group(1)).is_dir():
-            return f"{what}: home {path.group(1)} is not a directory"
+    rel = home_path(home)
+    if rel:
+        if not (REPO / "hardware" / rel).is_dir():
+            return f"{what}: home {rel} is not a directory under hardware/"
         return ""
     if "no directory" not in home.lower():
         return (f"{what}: home is neither a path nor 'no directory yet' + the "
@@ -168,7 +174,7 @@ def check() -> list:
         if fail:
             failures.append(fail)
         elif (REPO / f"hardware/{b['shortform']}").is_dir():
-            want = f"`hardware/{b['shortform']}/`"
+            want = f"`{b['shortform']}/`"
             if b["home"] != want:
                 failures.append(f"{b['shortform']}: home {b['home']} is not the "
                                 f"board's own folder {want}")
@@ -181,6 +187,12 @@ def check() -> list:
             elif not re.search(r"#\d+", b["state"]):
                 failures.append(f"{b['shortform']}: no schematic listed, and no "
                                 f"issue is named to make one")
+
+    # -- an informational row still says where it would live ----------------
+    for o in [o for o in others if o["shortform"] in ("\u2014", "-")]:
+        fail = home_failure(o["board"], o["home"], need_issue=False)
+        if fail:
+            failures.append(fail)
 
     # -- the parts of the one unit -----------------------------------------
     parts = parse_parts()
@@ -218,11 +230,11 @@ def check() -> list:
                             f"tools/check_schematics.py")
 
     # -- no stray folders: every folder under hardware/ is a home ----------
-    homes = {b["home"].strip("`") for b in boards + others}
+    homes = {home_path(b["home"]) for b in boards + others}
     for d in sorted(p for p in (REPO / "hardware").iterdir() if p.is_dir()):
-        if f"{d.relative_to(REPO)}/" not in homes:
-            failures.append(f"hardware/{d.name}/ is not a board's home — a "
-                            f"board is named once, in the register")
+        if f"{d.name}/" not in homes:
+            failures.append(f"hardware/{d.name}/ is not a home — a board is "
+                            f"named once, in the register")
 
     # -- the site presents the same set, in the same order, at the same URLs
     site = parse_site()
