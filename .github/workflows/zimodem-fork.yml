@@ -1,0 +1,45 @@
+name: zimodem-fork check
+
+# The modem's O1-specific core -- the rate table, the 6850 frame decoder and the
+# double-sided buffer -- is host-testable C with no board, no SDK and no ESP32
+# core: plain C99 plus stdio, so the whole thing is a seconds-long compile and
+# run.  Same shape as the library, rom-service and acb4000-scsi jobs.
+#
+# What it buys: the rate table's *discrimination* (650 is not 600, and a
+# measurement between them must refuse rather than guess), the 6850 control-byte
+# decode against the four values The Portable Companion #7 prints, and the
+# pacer's carry -- a buffer that drifts is a buffer that breaks a file transfer
+# three days later.  All three are checked here rather than on a machine with a
+# screwdriver in it.
+#
+# It is also the only check that runs without the Arduino toolchain, which is why
+# it is separate from any future build job: the arithmetic is testable today, and
+# the firmware that will use it is not built here.
+
+on:
+  push:
+    paths:
+      - 'firmware/zimodem-fork/**'
+      - '.github/workflows/zimodem-fork.yml'
+  pull_request:
+    paths:
+      - 'firmware/zimodem-fork/**'
+      - '.github/workflows/zimodem-fork.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: modem core host tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Host tests (the rate table, the 6850 frame, the double-sided buffer)
+        run: firmware/zimodem-fork/o1modem/run_tests.sh -v
+
+      - name: shellcheck the test runner
+        run: shellcheck -S warning firmware/zimodem-fork/o1modem/run_tests.sh
