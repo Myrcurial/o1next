@@ -122,6 +122,12 @@ No install needed: `sips` and `qlmanage` (`tools/o1art.py`), plus `dd`, `cmp`,
 
 ## Not installed yet (tracked)
 
+- **Arduino CLI + the `esp32` core 2.0.17** for `firmware/zimodem-fork/` —
+  **#317**. `firmware/zimodem-fork/` is an Arduino sketch built for **ESP32-S2**,
+  and neither `arduino-cli` nor the core is on this machine. The version pin
+  matters — upstream builds against **2.0.17** — and the target, the feature
+  switches and the pin map are in `firmware/zimodem-fork/BUILD.md`. This row moves
+  into §Required, and into `bootstrap.sh --check`, when it is installed.
 - **Ruby + Jekyll** for `site/` — **#106**. macOS's `/usr/bin/ruby` is too old
   for current Jekyll, and `site/` has no `Gemfile` yet, so that issue is partly
   *writing* the manifest rather than only resolving it.
