@@ -21,6 +21,7 @@
 //! serves frames until `--frames N` have been answered or the peer goes away.
 
 mod chip;
+mod fabric;
 mod fifo;
 mod frame;
 

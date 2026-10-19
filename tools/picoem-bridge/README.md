@@ -78,3 +78,31 @@ through MAME: **one quantum**, at every phase length from 64 to 20 000.
 
 `src/chip.rs` carries the finding — what the crate exposes, what it does not, and
 why the process owns the chip instead of MAME holding a handle to it.
+
+## The board, in code (#304)
+
+`src/fabric.rs` is the **interposer's glue logic**, because the bridge is the only
+thing in the loop that can step the chip and react to its own pin toggles inside a
+cycle — which is what a shift fabric is clocked by. It is pure logic over pin levels,
+so the whole board is unit-tested by `cargo test` with no picoem, no firmware and no
+MAME:
+
+| | |
+|---|---|
+| `Sr595` | serial in, parallel out — the firmware programs the comparator's match value. Shift on `SR_SCK`, publish on `SR_RCK`, and `/OE_ADDR` modelled because forgetting it silently produces a window nobody asked for |
+| `cmp688` | the identity comparator: `A8–15` against the 595's outputs, combinational, driving `ADDR_HIT` |
+| `Sr165` | parallel in, serial out — the address snapshot the firmware reads back. Transparent while `/PL` is asserted, captured on its release, MSB first |
+| `Board` | the pins: one `observe(chip_out)` per emulated step, one `stimulus()` out |
+
+**It is not in picoem, and that is deliberate.** picoem *is* the chip; the 595 and the
+165 are the *board*. This fork is permanent (its tracker is disabled and its PRs are
+refused), so every line added there would be ours forever — and this road adds none.
+
+**The widths are parameters** (`FABRIC_BITS`, `MATCH_BITS`) because
+`hardware/interposer/revb/` has a README and **no schematic**; the *parts'* behaviour
+is modelled from the datasheets, and when the schematic lands one constant moves.
+
+**And it has already earned its keep**: see `hardware/interposer/revb/README.md`,
+"What the 688 can and cannot select" — the comparator watches `A8–15`, and on a Z80 I/O
+cycle that is the accumulator (or `B`), not the port. #303 is the decision that
+follows from it.
