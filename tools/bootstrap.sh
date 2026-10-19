@@ -87,6 +87,10 @@ BREW="$(command -v brew 2>/dev/null || true)"
 BREW_PREFIX=""
 [ -n "$BREW" ] && BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
 
+# Where arduino-cli and the cores keep their tools.  Overridable, because
+# ARDUINO_DIRECTORY is how arduino-cli itself lets a host move it.
+ARDUINO_DIR="${ARDUINO_DIR:-${ARDUINO_DIRECTORY:-$HOME/Library/Arduino15}}"
+
 # Rosetta is what decides whether a carried-over Intel binary is a tool or a
 # corpse.  `arch -x86_64` on a universal system binary is the honest probe:
 # `sysctl.proc_translated` only describes the process asking.
@@ -96,11 +100,12 @@ arch -x86_64 /usr/bin/true >/dev/null 2>&1 && HAVE_ROSETTA=yes
 have()     { command -v "$1" >/dev/null 2>&1; }
 which_of() { command -v "$1" 2>/dev/null || true; }
 
-# A command that resolves but cannot execute: an Intel-only Mach-O binary on a
-# host with no Rosetta.  Prints the offending path if so, nothing otherwise.
-unrunnable() {
+# The same test for a path that is not on PATH.  The Arduino toolchain keeps its
+# helpers under the data directory rather than in $PATH, so `which_of` cannot see
+# them -- and they are where the Intel-only binaries actually live.
+unrunnable_path() {
     local p t
-    p="$(which_of "$1")"
+    p="$1"
     [ -n "$p" ] && [ -e "$p" ] || return 1
     t="$(file -b "$p" 2>/dev/null || true)"
     case "$t" in
@@ -112,6 +117,12 @@ unrunnable() {
     esac
     [ "$HAVE_ROSETTA" = yes ] && return 1
     printf '%s' "$p"
+}
+
+# A command that resolves but cannot execute: an Intel-only Mach-O binary on a
+# host with no Rosetta.  Prints the offending path if so, nothing otherwise.
+unrunnable() {
+    unrunnable_path "$(which_of "$1")"
 }
 
 # -------------------------------------------------------------- results -----
@@ -144,7 +155,7 @@ check_host() {
 # Every row of REQUIREMENTS.md §Required, in that order.  A row is ok when the
 # tool resolves *and* runs; DEAD when it resolves to something that cannot.
 check_required() {
-    local p kicad pyfonts armgcc libc
+    local p kicad pyfonts armgcc libc x86 cand
     local heading="${1:-required (REQUIREMENTS.md)}"
 
     rule "$heading"
@@ -262,6 +273,28 @@ check_required() {
         ok_row 'esp32 core' 'esp32:esp32 2.0.17'
     else
         miss_row 'esp32 core' 'arduino-cli core install esp32:esp32@2.0.17'
+    fi
+
+    # Installed is not the same as *usable*, and this is the check that makes the
+    # difference cheap.  Every compiler in the esp32 2.0.17 core is native arm64,
+    # but four helper binaries are Intel-only Mach-O -- `ctags` (arduino-cli's own
+    # builtin), `esptool`, `mklittlefs` and `mkspiffs` -- so on a host with no
+    # Rosetta a sketch build dies *inside a prebuild hook* with "Bad CPU type in
+    # executable".  That reads like a source error and is not one; it cost an hour
+    # on 2026-10-19.  Two of the four are needed to compile, the other two only to
+    # make filesystem images.
+    x86=""
+    for cand in "$ARDUINO_DIR"/packages/builtin/tools/ctags/*/ctags \
+                "$ARDUINO_DIR"/packages/esp32/tools/esptool_py/*/esptool; do
+        [ -e "$cand" ] || continue
+        if [ -n "$(unrunnable_path "$cand")" ]; then
+            x86="${x86:+$x86, }${cand##*/}"
+        fi
+    done
+    if [ -n "$x86" ]; then
+        dead_row 'arduino tools' "$x86 Intel-only and no Rosetta — sudo softwareupdate --install-rosetta --agree-to-license"
+    elif have arduino-cli; then
+        ok_row 'arduino tools' 'ctags and esptool run'
     fi
 
     if have cpmls && have cpmcp && have mkfs.cpm; then
