@@ -65,8 +65,8 @@ RP2040 has thirty GPIOs), so every SIO write *and* read drops bits 30 and 31. Re
 So the firmware shifts its window in and picoem never sees the latch — `--fabric-test`
 counts all 8 `SR_SCK` edges and reports `0 latch(es)`, and the diagnostic names the mask
 rather than leaving it to be inferred. The fix is **one line** in picoem (the mask, for the
-RP2350 path), and because that pin lives in the fork's patch series it means a new patch
-and a re-pin. `docs/emulation-testbed.md` §4.2 **P9** has the measurement.
+48-GPIO part's SIO), and because that pin lives in the fork's patch series it means a new
+patch and a re-pin. `docs/emulation-testbed.md` §4.2 **P9** has the measurement.
 
 ## Not here
 
