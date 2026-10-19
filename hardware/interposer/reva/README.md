@@ -1,4 +1,9 @@
-# reva/ — Rev A engineering sample: active interposer (KiCad)
+# reva/ — the interposer's Rev A engineering sample: active interposer (KiCad)
+
+**Board:** the **O1NEXT Upgrade**, Rev A — see the register in
+[`../../README.md`](../../README.md). Rev A is the **engineering sample** of the
+one interposer board (`Rev 0` → `Rev A` → `Rev B`); it is not a product separate
+from Rev B.
 
 The board that replaces the Rev 0 probe concept (see `../rev0/` —
 superseded, kept for the decision record): parts-acquisition time for a
@@ -75,8 +80,9 @@ T-states).
 needs /MREQ, /IORQ, /RD, /WR, /M1 direct to PIO plus the data 245 on
 fast OE. The address-decode problem is solved **without** direct
 address pins: 74AHCT688 window comparator (595-programmable) + /WAIT
-cycle stretching. Rev A and Rev B are separate products sharing the
-595/165/244/245 fabric.
+cycle stretching. **Rev B is the production revision of this same
+board, not a second product** (#259), and it keeps the whole Rev A
+instrument: the 595/165/244/245 fabric and `/BUSRQ` mastering.
 
 ## Known placeholders (fix during KiCad capture review)
 

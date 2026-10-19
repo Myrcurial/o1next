@@ -1,4 +1,12 @@
-# drive-c — a Drive C reproduction (IEEE-488)
+# drive-c — the O1NEXT Drive C Repro (IEEE-488)
+
+**Board:** the **O1NEXT Drive C Repro** — the project's **fourth deliverable**.
+See the register in [`../README.md`](../README.md). Signal interface via the
+IEEE-488 port, power via the video shunt plug. The PCB mounts an RP2354B, a
+12 V→5 V/3.3 V buck, a microSD slot, a USB-A port for USB drive sticks, the
+EX MON composite-video conversion (and the composite port), an aux power port for
+the USB Keyboard Adapter, and a USB-C port for programming or powering it when
+not connected to the computer.
 
 **A Drive C, rebuilt on modern parts.** Standalone: no interposer, no Z80 socket,
 no reverse-engineering of an undocumented controller. It attaches to interfaces

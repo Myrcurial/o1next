@@ -1,5 +1,9 @@
 # o1next — O1NEXT (modern-parts Osborne 1 reproduction)
 
+**Boards here:** the **O1NEXT Integrated** (the SFF board — *no directory yet*;
+#49 makes it) and the **LFF board** (`o1next-lff/`, **won't build**). The board
+register is [`../README.md`](../README.md).
+
 A new PCB built from currently-available components that runs the actual
 Osborne 1 ROMs and (nearly) all original software — with a Cherry MX
 mechanical keyboard, the interposer's floppy/modem/printer/storage
@@ -39,8 +43,20 @@ AHCT to the original NMOS part).
 
 ## Two boards, one machine
 
-The project builds **two boards** here. They share the power design, and only one
-of them becomes the O1NEXT.
+The project builds **two boards** here, and they share the power design. Only one
+of them becomes the O1NEXT: the **SFF board — the `O1NEXT Integrated`** — which
+has **no directory yet** (#49 makes it). The other, the **LFF board**
+(`o1next-lff/`), **will not be built** (maintainer, 2026-10-19): its stub is kept
+for the record, because it is the restoration path and not the O1NEXT.
+
+**And the two are the interposer's endpoints, not a third vocabulary.** The
+interposer (**`O1NEXT Upgrade`**, `../interposer/`) is the **precursor of the SFF
+board**: it carries the same capability on a board that plugs into a real
+machine, and the SFF designs that capability in as firmware instead of stacking
+it on. So the SFF can replace the interposer and the interposer cannot replace
+the SFF. The LFF board sits *under* the interposer exactly as an OEM board does —
+**LFF + interposer ≡ OEM + interposer** — which is why it has no ROM path and no
+test matrix of its own.
 
 **And they share one ROM.** ROM 2.00 (#83) is a single image with a single layout,
 and it runs on all three paths — OEM board + interposer, LFF board + interposer,
@@ -52,7 +68,9 @@ Density built in), so **LFF + interposer ≡ OEM + interposer** and there is no
 separate LFF ROM path to build or test. See `../interposer/README.md` (*Tap
 points*) and `docs/o1-rom-2.0.md`.
 
-1. **LFF board — the 1:1 mainboard replacement.** Drops into an
+1. **LFF board — the 1:1 mainboard replacement — *won't build* (maintainer,
+   2026-10-19).** The stub idea is kept for the record; nothing is being
+   fabricated. Drops into an
    otherwise-stock **OCC1 or OCC1A** chassis (the two share an
    architecture, so one board covers both). **As true to the original
    as possible**: a faithful reproduction of the stock machine,
@@ -67,7 +85,8 @@ points*) and `docs/o1-rom-2.0.md`.
    floppy connectors) and only **four mounting screws** constrain
    layout. **This is the restoration path, not the O1NEXT.**
 
-2. **SFF board — the integrated board.** **Not a 1:1 swap, and it does
+2. **SFF board — the integrated board, the `O1NEXT Integrated`** (no directory
+   yet; #49 makes it). **Not a 1:1 swap, and it does
    not try to be**: it can go into a real chassis **or** into any other
    design, up to the end user, with nothing constrained by a 1982
    footprint. The interposer's capability set (video, storage, modem,

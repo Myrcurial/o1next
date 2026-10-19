@@ -1,10 +1,15 @@
-# interposer — Z80 bus interposer (core board)
+# interposer — the O1NEXT Upgrade (Z80 bus interposer)
 
+**Board:** the **O1NEXT Upgrade** — see the register in [`../README.md`](../README.md).
 The centerpiece of the project: a board that sits between the Osborne 1's
-Z80 and its socket, carrying an RP2354B.
+Z80 and its socket, carrying an RP2354B. It **can act as any one of the first
+three boards** (USB Keyboard Adapter, WiFi COMM PAC, Drive C Repro) and offers
+every personality; it is also the **precursor of the O1NEXT Integrated board**,
+which designs the same capability in as firmware instead of stacking it on.
 
 Tracks: #11 (Phase 1 hardware design), #12 (electrical/mechanical
-interface spec), #13 (Rev A schematic + PCB), #15 (Rev B SMD).
+interface spec), #83 (ROM 2.00), **#259** (one board — it absorbs #13 and #15),
+#297 (CLK), #303 (the address path), #304 (the fabric model).
 
 ## Personalities hosted (firmware, Phase 2 #16)
 
@@ -95,7 +100,8 @@ Two ways to deliver the WiFi modem (#21/#56) from the interposer:
 
 Current leaning: **(b)** — one modem firmware codebase across both
 devices, SSH capability, and cleaner real-time behavior. Confirm
-before Rev A schematic (#13).
+before the Rev A engineering sample is captured. (#13's "Rev A
+production" board is absorbed by #259 — there is one board.)
 
 ## Onboard storage: built-in diskette library
 
@@ -113,7 +119,18 @@ with no card or stick inserted (and the O1NEXT can boot
 - Leaning: **A** — a handful of SOIC-8 flash chips' worth of library is
   effectively free. Exact sizing settled with #20's image format.
 
-## Mechanical / revision plan (revised 2026-10-09)
+## Mechanical / revision plan (revised 2026-10-19: one board, three revisions)
+
+**One board, three revisions — `Rev 0` → `Rev A` → `Rev B`.** The letters are
+this board's own, and in `hardware/` they always mean this board (see the
+vocabulary note in [`../README.md`](../README.md)). **Rev B is the production
+revision, not a second product** — the split #13/#15 described is what **#259**
+collapsed, and #259 is the issue that produces Rev B's schematic.
+
+**SMD, not through-hole.** #13's old title read "through-hole, socketed" and it
+was read as a claim about the board. It was not: the **Z80 socket** is
+through-hole and socketed, the **board** is surface-mount. Rev A is almost all
+SMD (2-off), and Rev B is SMD wherever a part allows it.
 
 - **Rev 0 "test probe"** — **superseded** (kept in `rev0/` for the
   decision record, incl. the '165 snapshot front end that Rev A
@@ -128,11 +145,12 @@ with no card or stick inserted (and the O1NEXT can boot
   hardware** — memory R/W, ROM dumping (incl. the CoPower-88 monitor
   ROM, resolving research-gaps #4 by direct read), code injection +
   execute. See `reva/README.md`.
-- Rev A production (#13): incorporates ES errata.
-- **Rev B (#15) — a separate product, not a revision:** Rev A is the
-  mastering/debug instrument; Rev B is the **live-cycle personality
-  engine**. Full RP2354B pin allocation in `revb/README.md`. The
-  enabling decisions:
+- **Rev B — the production revision of this same board** (absorbs #13 and #15;
+  see **#259**). Not a second product: it is the Rev A instrument *plus* the
+  live-cycle personality engine. `/BUSRQ` mastering is kept, the 595/165 fabric
+  carries over wholesale, and the new parts are the 74AHCT688 window comparator
+  and the `/WAIT` stretch. Full RP2354B pin allocation in `revb/README.md`;
+  **Rev B has no schematic yet**. The enabling decisions:
   - **Zero direct address pins:** a 74AHCT688 window comparator
     (595-programmable match) + **/WAIT cycle stretching** — the
     period-correct slow-peripheral mechanism — replaces 16 direct

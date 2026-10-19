@@ -1,4 +1,17 @@
-# usb-keyboard-adapter — RP2040 USB-HID → P4 adapter
+# usb-keyboard-adapter — the O1NEXT USB Keyboard Adapter (USB-HID → P4)
+
+**Board:** the **O1NEXT USB Keyboard Adapter** — the project's **second
+deliverable**. See the register in [`../README.md`](../README.md).
+
+**Its shape, in the maintainer's words (2026-10-19):** a purpose-built adapter
+with a **USB-A** port for an external USB keyboard, a **P4** connector mapping
+the 8×8 native matrix, a **USB-C** port for programming or powering the adapter,
+and a power lead that comes from one of (a) a small passive adapter on the MODEM
+9-pin port, (b) a front-panel power port on the `O1NEXT WiFi COMM PAC`, or (c) a
+front-panel power port on the `O1NEXT Drive C Repro`. The PCB mounts the 12 V→5 V
+buck for the 5 V signalling and the 3.3 V the RP-series part needs — **RP2040 or
+the B part is a project-wide decision taken elsewhere** (#47), and the reference
+design below currently says RP2040.
 
 **A USB port on the Osborne 1 you can jam a normal USB HID keyboard into
 and have it work.** Standalone, always-on upgrade: no interposer, no

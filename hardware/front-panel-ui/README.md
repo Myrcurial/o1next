@@ -1,4 +1,10 @@
-# front-panel-ui — faceplate & UI pod
+# front-panel-ui — the O1NEXT Upgrade's interface pod (faceplate & UI pod)
+
+**Not a board of its own:** this is the **interface pod of the `O1NEXT Upgrade`**
+(the interposer), reached over a ribbon cable. See the register in
+[`../README.md`](../README.md). The maintainer's board description places the pod
+inside the interposer, so it is a sub-board of the Upgrade and not a separate
+product.
 
 COMM-PAC-style faceplate covering one floppy storage pocket, providing
 local physical UI for the interposer without opening the case.

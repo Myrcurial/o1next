@@ -1,4 +1,10 @@
-# floppy-adapter — switchable Gotek/physical-drive daughter card
+# floppy-adapter — the O1NEXT Floppy Adapter (switchable Gotek/physical-drive daughter card)
+
+**Board:** the **O1NEXT Floppy Adapter** — the project's **first deliverable**,
+and the only processor-less board in the set. See the register in
+[`../README.md`](../README.md). Its revisions are the **Floppy Adapter's** Rev A /
+Rev B, which is an unrelated board to the interposer's Rev A / Rev B — so the
+letters are always qualified.
 
 A daughter card that mounts over the mainboard / double-density board
 floppy connector and makes **three drives available, two active**: both
@@ -20,7 +26,7 @@ interposer personality) and #30 (G2 multi-format support). Prior art
 archived by PR #50. Full design in
 [`docs/floppy-adapter-design.md`](../../docs/floppy-adapter-design.md);
 its seven open questions were **settled 2026-10-10** (§8 there) and the
-**Rev A schematic is captured** (below).
+**Floppy Adapter's Rev A schematic is captured** (below).
 
 ## Design
 
