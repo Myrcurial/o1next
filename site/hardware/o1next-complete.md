@@ -46,7 +46,7 @@ One board, and it is the whole foundation:
 
 A 1:1 replacement for an OCC1/OCC1A mainboard — the *restoration* path — is
 **possible** if a chassis ever needs restoring, but it is **not planned and not
-built** (2026-10-19), and it has no page here. See *Not boards* in
+built** (2026-10-19), and it has no page here. See *Hardware that is not a board* in
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 The board shares the **USB-C PD power architecture** with the machine, including

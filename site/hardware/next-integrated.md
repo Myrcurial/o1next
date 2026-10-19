@@ -19,7 +19,7 @@ does, designed in as firmware rather than plugged in.
 chassis **or** into any other design — up to the end user. Nothing about it is
 constrained by a 1982 footprint. (A 1:1 mainboard replacement, which *would* be
 constrained that way, is possible if a chassis ever needs restoring and is not
-planned — see *Not boards* in the register.)
+planned — see *Hardware that is not a board* in the register.)
 
 **The [O1NEXT]({{ '/hardware/o1next-complete/' | relative_url }}) is this board with
 the rest of the machine wrapped around it.**
