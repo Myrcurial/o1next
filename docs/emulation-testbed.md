@@ -233,6 +233,7 @@ measured or read from a source.
 | **P6** | **No device behind any peripheral.** No microSD, no W25Q, no USB stick; SPI has loopback only | the transports cannot be exercised | medium (NOR + microSD) / **large** (USB MSC, and no controller model exists) | P5 |
 | **P7** | **The bootrom boot path does not complete** — `___step4_init_rcp_seeds`'s `rcp_iequal` mismatch; upstream's own `test_flash_boot_blinky` is `#[ignore]`d for it | nothing boots through the mask ROM; the bridge starts at the image's vector table | **unknown** — CP7 ancillary-state parity with silicon | open, and **not on the critical path** |
 | **P8** | **No HSTX**, so no display output | #277 (the RP2354B as the display) is gated on it | medium | open, and also a design question (#264) |
+| **P9** | **The SIO's pin mask is thirty bits, so GP30 and GP31 are unreachable.** picoem re-uses the **RP2040's** SIO — `crates/rp2040-emu/src/bus/sio.rs`: `PIN_MASK = 0x3FFF_FFFF` — and an RP2040 has thirty GPIOs, so every SIO write *and* read masks bits 30 and 31 away. `rp2350-emu` inherits the constant | **Rev B's `SR_RCK` is GP30 and `/OE_ADDR` is GP31 — two of the five fabric pins.** Measured 2026-10-19 (#304): the firmware shifts a match value in, the bridge counts its 8 `SR_SCK` edges, and sees **0 latches**, because the pin that latches is not there to be seen. Any personality touching GP30/31 is untestable, and it fails as a *zero*, which looks like a firmware bug | **one line** — the mask, for the 48-GPIO part's SIO | open, found by #304 |
 
 ### 4.3 The storage question, decided
 
@@ -414,6 +415,13 @@ picoem's step quantum (`DEFAULT_STEP_QUANTUM`), because `Emulator::run` runs who
 quanta — so no answer can be measured more finely, and a declared budget below 64
 could never be met. The check refuses a budget its own phase cannot exceed, for the
 same reason: a bound that cannot be broken is not an assertion.
+
+**The fabric's cost is measured too, and it is not small.** With `--fabric-test` (#304),
+a firmware that reads a **24-bit** address out of the 165 and answers takes **14 976
+emulated cycles** — 234 quanta — from taking the cycle to putting the answer on the bus,
+with `/WAIT` asserted at 64. That is ~7× the `ACB4000_CYCLE_BUDGET` the personality
+declares, which is the number **#303** has to weigh: a snapshot per I/O cycle is a real
+cost, and it is now a measurement rather than a worry.
 
 ## 8. Running it
 

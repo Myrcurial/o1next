@@ -73,6 +73,7 @@ pub enum Entry {
 
 use rp2350_emu::{Config, Emulator, EmulatorError};
 
+use crate::fabric::Board;
 use crate::frame;
 
 /// The Rev B pin map (hardware/interposer/revb/README.md), in one place.
@@ -88,22 +89,17 @@ pub const PIN_HB: u8 = 26;
 const CTRL_MASK: u32 = 0x0000_0F00; // GP8-GP11
 const DATA_MASK: u32 = 0x0000_00FF; // GP0-GP7
 
-/// How often the heartbeat is sampled *after* the firmware has answered.
+/// One emulated step, in cycles.
 ///
-/// **The resolution of this measurement is picoem's step quantum, not one
-/// cycle.** `Emulator::run(n)` runs whole quanta -- `DEFAULT_STEP_QUANTUM` is
-/// **64 cycles** ("each `Emulator::step()` advances the system by exactly this
-/// many virtual cycles", `crates/rp2350-emu/src/lib.rs`), and a run rounds *up*
-/// to the next boundary. So the finest honest statement is "the firmware answered
-/// within one quantum", and `--cycles 20000` really advances 20 032. Everything
-/// here is therefore counted in quanta, and reported in cycles because that is
-/// what the frame carries.
-///
-/// Before the answer, the step is one quantum -- the finest there is. After it,
-/// the time no longer matters, so the step coarsens to this many cycles (sixteen
-/// quanta) and the rest of a 20 000-cycle phase costs a sixteenth as much
-/// sampling.
-pub const SAMPLE: u64 = 1024;
+/// **One quantum**, and there is no coarser option that still works: picoem's
+/// `Emulator::run` runs whole quanta (`DEFAULT_STEP_QUANTUM` = 64 cycles), and every
+/// step here is also the fabric's sampling interval. The heartbeat wants the finest
+/// step to time an answer, and the 595/165 want every level the firmware makes — a
+/// clock *is* a level, so a level held for one quantum is the fastest the board model
+/// can see. That is the design rule `fabric.rs` documents for the firmware: hold each
+/// fabric level for at least one quantum (2.3 MHz at 150 MHz, inside the 74AHCT
+/// parts' own limits).
+pub const STEP: u64 = 64;
 
 /// What one bus transaction observed.
 #[derive(Debug, Clone, Copy)]
@@ -117,8 +113,7 @@ pub struct Tx {
     pub pc: u32,
     pub cycles: u64,
     /// **How long the firmware took to answer**: the cycles from the strobe
-    /// going low to the first GP26 edge, which the firmware raises after it has
-    /// read the bus and driven its answer. `None` means it never answered.
+    /// going low to the first heartbeat edge. `None` means it never answered.
     ///
     /// This is the number §7's cycle budget is about (`docs/emulation-testbed.md`
     /// §7, `docs/picoem-bridge.md` §4). It is what makes "the firmware answered
@@ -126,11 +121,21 @@ pub struct Tx {
     /// thing as the phase's length: a phase that runs 20 000 cycles after an
     /// answer that took 64 measures 20 000 and 64 respectively.
     ///
-    /// **Its resolution is one quantum — 64 cycles** (see [`SAMPLE`]), so it is
+    /// **Its resolution is one quantum — 64 cycles** (see [`STEP`]), so it is
     /// always a multiple of 64 and the smallest value it can report is 64. That
     /// is not a limitation of this code: `Emulator::run` runs whole quanta, so
     /// nothing in this loop can observe a bus cycle more finely than that.
     pub answer: Option<u64>,
+    /// The cycles to the **last** heartbeat edge.
+    ///
+    /// For a firmware that only says "handled" (one toggle) this equals `answer`.
+    /// For a *personality* it does not, and the difference is the interesting
+    /// number: a personality asserts `/WAIT` when it takes the cycle and releases
+    /// it when the answer is on the bus (`hardware/interposer/revb/README.md`), so
+    /// `answer` is the time to *notice* and `last` is the time to *answer* — and
+    /// `last - answer` is what the cycle costs, which is the number a 165 snapshot
+    /// has to be judged against (#303).
+    pub last: Option<u64>,
 }
 
 /// The chip's merged output word: what SIO and the PIO blocks are driving.
@@ -142,6 +147,24 @@ struct Out {
 pub struct Chip {
     emu: Emulator,
     cycles_per_phase: u64,
+    /// The interposer's board: the 595, the 688 and the 165 (#304).
+    ///
+    /// It is here rather than in MAME or picoem because the bridge is the only thing
+    /// that can step the chip and react to its own pin toggles *inside* a cycle, which
+    /// is what a shift fabric is clocked by. See `fabric.rs` for the whole argument.
+    board: Board,
+    /// What the *bus* is driving on the chip's pins, kept apart from the board's own
+    /// lines so the two can be laid over each other on every step.
+    bus_mask: u32,
+    bus_value: u32,
+    /// Which pin is the firmware's liveness signal.
+    ///
+    /// GP26 for the smoke firmware, which borrows a fabric pin to toggle once per
+    /// handled cycle (`firmware/picoem-smoke/smoke.c`). A *personality* has a better
+    /// answer and the board already has the line: **`/WAIT`** — asserted when it takes
+    /// the cycle, released when the answer is on the bus. So this is a parameter
+    /// rather than a constant, and `--hb-pin 22` is what a personality wants.
+    hb_pin: u8,
 }
 
 /// The image's own vector table: initial SP in word 0, reset vector in word 1.
@@ -226,7 +249,20 @@ impl Chip {
             arm[0].regs.xpsr = 1 << 24; // Thumb bit
         }
 
-        Chip { emu, cycles_per_phase }
+        Chip {
+            emu,
+            cycles_per_phase,
+            board: Board::new(),
+            bus_mask: 0,
+            bus_value: 0,
+            hb_pin: PIN_HB,
+        }
+    }
+
+    /// Where the firmware's liveness signal is (`--hb-pin`). See the field's comment:
+    /// a personality uses `/WAIT` (GP22) rather than a borrowed fabric pin.
+    pub fn set_heartbeat_pin(&mut self, pin: u8) {
+        self.hb_pin = pin;
     }
 
     /// A one-line snapshot of the core: PC, SP, and the fault state. The fault
@@ -294,7 +330,7 @@ impl Chip {
     /// On Rev B the same job is done by the board's pull-ups.
     pub fn settle(&mut self, cycles: u64) -> Result<(), EmulatorError> {
         self.idle();
-        self.emu.run(cycles)?;
+        self.run_idle(cycles)?;
         Ok(())
     }
 
@@ -325,19 +361,26 @@ impl Chip {
     /// A whole Z80 I/O write: drive the byte with /IORQ and /WR low, sample the
     /// chip's answer *while the strobe is still open* -- which is when a real
     /// Z80 samples it -- then end the cycle and let the firmware go back to idle.
-    pub fn bus_write(&mut self, data: u8, cycles: u64) -> Result<Tx, EmulatorError> {
+    ///
+    /// `address` is what the *machine* is driving, and the board needs it: the 165's
+    /// parallel inputs carry it, and the 688 compares its high byte. For an I/O cycle
+    /// only A0-A7 is real (the port) — see `fabric.rs` for why the high half of the
+    /// Z80's I/O address bus is the accumulator and not part of the port.
+    pub fn bus_write(&mut self, address: u16, data: u8, cycles: u64) -> Result<Tx, EmulatorError> {
         let cycles = self.phase(cycles);
+        self.board.set_cycle(address, data, false);
 
         // Phase A: the Z80 owns the data bus; the chip answers on its own pins.
-        self.set_ext(CTRL_MASK | DATA_MASK, ctrl(1, 0, 1, 0) | (data as u32));
-        let (hb, answer) = self.run_watching_heartbeat(cycles)?;
-        let tx = self.observe(hb, answer);
+        self.set_bus(CTRL_MASK | DATA_MASK, ctrl(1, 0, 1, 0) | (data as u32));
+        let (hb, answer, last) = self.run_phase(cycles)?;
+        let tx = self.observe(hb, answer, last);
 
         // Phase B: /WR rises, the Z80 stops driving, and the data pins go back
         // to the chip. This is the turnaround a real 74AHCT245 does, and it is
-        // what lets the firmware leave its hold loop and re-arm.
-        self.set_ext(CTRL_MASK, ctrl(1, 1, 1, 1));
-        self.emu.run(cycles)?;
+        // what lets the firmware leave its hold loop and re-arm -- and it is where a
+        // firmware programs the 595, which is why the board keeps watching.
+        self.set_bus(CTRL_MASK, ctrl(1, 1, 1, 1));
+        self.run_idle(cycles)?;
 
         Ok(tx)
     }
@@ -345,15 +388,16 @@ impl Chip {
     /// A whole Z80 I/O read: /IORQ and /RD low, the chip driving the data bus,
     /// and the answer sampled while the strobe is open. The data pins are
     /// deliberately *not* masked here -- the chip owns them.
-    pub fn bus_read(&mut self, cycles: u64) -> Result<Tx, EmulatorError> {
+    pub fn bus_read(&mut self, address: u16, cycles: u64) -> Result<Tx, EmulatorError> {
         let cycles = self.phase(cycles);
+        self.board.set_cycle(address, 0, false);
 
-        self.set_ext(CTRL_MASK, ctrl(1, 0, 0, 1));
-        let (hb, answer) = self.run_watching_heartbeat(cycles)?;
-        let tx = self.observe(hb, answer);
+        self.set_bus(CTRL_MASK, ctrl(1, 0, 0, 1));
+        let (hb, answer, last) = self.run_phase(cycles)?;
+        let tx = self.observe(hb, answer, last);
 
-        self.set_ext(CTRL_MASK, ctrl(1, 1, 1, 1));
-        self.emu.run(cycles)?;
+        self.set_bus(CTRL_MASK, ctrl(1, 1, 1, 1));
+        self.run_idle(cycles)?;
 
         Ok(tx)
     }
@@ -362,7 +406,7 @@ impl Chip {
     /// the chip. This is the state the firmware must see whenever there is no
     /// cycle, including before the first one.
     pub fn idle(&mut self) {
-        self.set_ext(CTRL_MASK, ctrl(1, 1, 1, 1));
+        self.set_bus(CTRL_MASK, ctrl(1, 1, 1, 1));
         self.emu.bus.set_gpio_external_in_hi(0, 0);
     }
 
@@ -380,11 +424,11 @@ impl Chip {
     /// found it already inside its /WR hold loop and reported no heartbeat. A
     /// probe that changes the thing it is measuring is not a probe.
     pub fn probe_stimulus(&mut self, data: u8) -> u32 {
-        self.set_ext(CTRL_MASK | DATA_MASK, ctrl(1, 1, 1, 1) | (data as u32));
-        let _ = self.emu.run(64);
+        self.set_bus(CTRL_MASK | DATA_MASK, ctrl(1, 1, 1, 1) | (data as u32));
+        let _ = self.run_idle(STEP);
         let seen = self.emu.mmio_read32(0xD000_0004);
         self.idle();
-        let _ = self.emu.run(64);
+        let _ = self.run_idle(STEP);
         seen
     }
 
@@ -392,56 +436,100 @@ impl Chip {
         if requested == 0 { self.cycles_per_phase } else { requested }
     }
 
-    fn set_ext(&mut self, mask: u32, value: u32) {
-        self.emu.bus.gpio_external_mask = mask;
-        self.emu.bus.gpio_external_in.store(value, Ordering::Relaxed);
+    /// Lay the bus and the board's own lines over the chip's pins.
+    ///
+    /// Two contributions, and they never overlap: the *bus* (the data pins, while the
+    /// Z80 owns them, and the four strobes) and the *board* (`ADDR_HIT` from the 688,
+    /// `SR_MISO` from the 165). The board's half is recomputed every step because the
+    /// 165 shifts as the firmware clocks it.
+    fn apply_ext(&mut self) {
+        let (bmask, bvalue) = self.board.stimulus();
+        self.emu.bus.gpio_external_mask = self.bus_mask | bmask;
+        self.emu
+            .bus
+            .gpio_external_in
+            .store(self.bus_value | bvalue, Ordering::Relaxed);
     }
 
-    /// Run `cycles` with a bus cycle open, sampling the heartbeat as we go, and
-    /// return `(edges, first edge at)`.
+    /// What the bus is driving. `mask == 0` is an idle bus.
+    fn set_bus(&mut self, mask: u32, value: u32) {
+        self.bus_mask = mask;
+        self.bus_value = value;
+        self.apply_ext();
+    }
+
+    /// One step: run a quantum, then let the board watch the chip's pins.
     ///
-    /// The heartbeat is the liveness signal *and* the answer-time signal, so
-    /// sampling only at the ends of a phase would lose both: an even number of
-    /// toggles reads as none, and the moment the firmware answered would be
-    /// rounded to the whole phase. The phase is therefore run in [`SAMPLE`]-cycle
-    /// chunks and the level compared between them -- which is what turns "the
-    /// firmware handled it" into "the firmware handled it in 928 cycles".
+    /// The observation is what makes this a *board* rather than a pin poking: a 595
+    /// clock or a 165 load is a level the firmware holds, and this is where the model
+    /// sees it. `STEP` is one quantum, so no level the firmware can hold is missed.
+    fn step(&mut self) -> Result<(), EmulatorError> {
+        self.emu.run(STEP)?;
+        let out = self.merged_out();
+        self.board.observe(out.lo);
+        self.apply_ext();
+        Ok(())
+    }
+
+    /// A phase with the bus driving a cycle: step and time the answer.
     ///
-    /// The offset is measured from the emulator's own cycle counter, so it is a
-    /// multiple of the step quantum and **is** the answer time rather than a bound
-    /// on it: the step before the answer is one quantum, which is as fine as this
-    /// loop can go (see [`SAMPLE`]).
-    fn run_watching_heartbeat(&mut self, cycles: u64) -> Result<(u8, Option<u64>), EmulatorError> {
+    /// Returns `(heartbeat edges, cycles to the first edge)` — the answer time
+    /// `Tx::answer` and the cycle budget's number (`docs/emulation-testbed.md` §7).
+    fn run_phase(&mut self, cycles: u64) -> Result<(u8, Option<u64>, Option<u64>), EmulatorError> {
         let start = self.emu.cycles();
         let mut edges = 0u8;
         let mut first = None;
+        let mut last = None;
         let mut prev = self.hb_level();
         while self.emu.cycles() - start < cycles {
-            // One quantum at a time until the firmware answers -- that is the
-            // measurement -- and then sixteen, because after the edge the cycle
-            // count is bookkeeping rather than the answer. The asymmetry is the
-            // point: before the edge, the count *is* the number; after it, it is
-            // only there to catch a second edge.
-            let step = if first.is_none() { 1 } else { SAMPLE };
-            self.emu.run(step)?;
+            self.step()?;
             let done = self.emu.cycles() - start;
             let now = self.hb_level();
             if now != prev {
                 if first.is_none() {
                     first = Some(done);
                 }
+                last = Some(done);
                 edges = edges.saturating_add(1);
                 prev = now;
             }
         }
-        Ok((edges, first))
+        Ok((edges, first, last))
+    }
+
+    /// A phase with the bus idle — the firmware's own time.
+    ///
+    /// The board still watches, and that is not a detail: **this is when a firmware
+    /// programs the 595.** A bridge that only watched during a cycle would never see
+    /// the window being set, and the failure would look like a firmware that cannot
+    /// program the fabric.
+    fn run_idle(&mut self, cycles: u64) -> Result<(), EmulatorError> {
+        let start = self.emu.cycles();
+        while self.emu.cycles() - start < cycles {
+            self.step()?;
+        }
+        Ok(())
+    }
+
+    /// The board, for a check that wants its counters — `sck_edges` against the edges
+    /// the firmware made is how the pacing rule is proved rather than assumed.
+    pub fn board(&self) -> &Board {
+        &self.board
+    }
+
+    /// The SIO output-enable register — which pins the chip is actually driving.
+    ///
+    /// Exposed for a check that has to tell "the firmware never set the direction" from
+    /// "picoem cannot see the pin at all", which are the same zero and different fixes.
+    pub fn sio_oe(&self) -> u32 {
+        self.emu.bus.sio.gpio_oe
     }
 
     fn hb_level(&self) -> bool {
-        (self.emu.gpio_read_all() >> PIN_HB) & 1 != 0
+        (self.emu.gpio_read_all() >> self.hb_pin) & 1 != 0
     }
 
-    fn observe(&self, hb: u8, answer: Option<u64>) -> Tx {
+    fn observe(&self, hb: u8, answer: Option<u64>, last: Option<u64>) -> Tx {
         let out = self.merged_out();
         let mut flags = 0u8;
         if self.hb_level() {
@@ -460,6 +548,7 @@ impl Chip {
             pc: self.pc(),
             cycles: self.cycles(),
             answer,
+            last,
         }
     }
 
