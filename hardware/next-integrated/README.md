@@ -74,7 +74,7 @@ inserted; removable media remains the bulk store.
 **There is no 1:1 restoration board in the set.** A faithful OCC1/OCC1A
 recreation, with the Z80 left socketed so the interposer stays the upgrade path,
 is *possible* if a chassis ever needs restoring — but it is **discarded as a
-deliverable** and has no directory. See *Not boards* in
+deliverable** and has no directory. See *Hardware that is not a board* in
 [`../README.md`](../README.md).
 
 ## I/O complement (settled 2026-10-11)

@@ -37,7 +37,8 @@ whole document: there is **one host brief**, because the interposer's ROM window
 does not care which OEM-faithful mainboard it is plugged into — an existing OEM
 board, or any faithful 1:1 recreation of one with the Dual Density upgrade built
 in. (Such a recreation is *possible* if a chassis ever needs restoring; it is not
-in the set, and it has no directory — see *Not boards* in `hardware/README.md`.)
+in the set, and it has no directory — see *Hardware that is not a board* in
+`hardware/README.md`.)
 So "the stock machine" in this document means the mainboard-plus-interposer
 combination, and there is no second path to design for.
 
