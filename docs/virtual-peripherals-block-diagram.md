@@ -57,10 +57,10 @@ address lines past `A11` do not matter, because the bank is which 4 KB the firmw
 presents. No new part, no programmer, updatable in flash. A physical 27128 is only
 for a board with no interposer. The SFF board grafts the same capability in.
 
-**One host to design for.** An existing **OEM board + interposer** is equivalent to
-an **LFF board + interposer**, because the LFF board is a faithful recreation of
-*just* the OEM board with the Dual Density upgrade built in. Nothing in this
-document needs a separate LFF case.
+**One host to design for.** An existing **OEM board + interposer** is the
+reference, and any faithful 1:1 recreation of *just* the OEM board with the Dual
+Density upgrade built in would be equivalent to it — so nothing in this document
+needs a second host, and no second case.
 
 **Level shifting note (#11):** the host Z80A is NMOS (confirmed, date
 8408). NMOS outputs are TTL-ish; NMOS inputs have ~2.0–2.4 V high

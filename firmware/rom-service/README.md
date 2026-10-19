@@ -166,6 +166,6 @@ and the clock publisher) and the web UI's `INFO`.
   (`docs/emulation-testbed.md`, Gate D).
 - **The board's door decode.** Which bank-2 cycles reach `2800h`/`2801h` and which
   I/O cycles reach `0E7h`/`0EBh` is the PIO bus tap and the personality work
-  (#17, #179); the pin map is `hardware/interposer/revb/README.md`. The module is
+  (#17, #179); the pin map is `hardware/interposer-upgrade/revb/README.md`. The module is
   door-agnostic — it is reached through `mb_extension`, which does not know a door
   exists — so both doors are a decode question and not a class question.

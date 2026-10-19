@@ -3,7 +3,7 @@
 Fork of [Zimodem](https://github.com/bozimmerman/Zimodem) targeting the
 ESP32 build, extended with the O1-specific features. One codebase serves
 both the severable modem module and (leaning) the interposer-onboard
-ESP32 (`hardware/wifi-modem-module/`, `hardware/interposer/`).
+ESP32 (`hardware/wifi-comm-pac/`, `hardware/interposer-upgrade/`).
 
 Tracks: #21, #56. **The fork is not started yet** — stock ESP32 Zimodem
 covers telnet in the interim (see `software/README.md` no-new-code
@@ -29,7 +29,7 @@ Kermit, XMODEM, etc.), ESP32 extras (SD shell, FTP, SLIP/PPP).
 ## O1-specific integration
 
 - MODEM (P1) port is TTL with a **bipolar RXD input** — module hardware
-  handles levels (`hardware/wifi-modem-module/`); firmware just needs
+  handles levels (`hardware/wifi-comm-pac/`); firmware just needs
   the right UART inversion/idle settings — validate on real hardware.
 - Management endpoint bridged to the interposer web UI
   (`../web-ui/`) when onboard.

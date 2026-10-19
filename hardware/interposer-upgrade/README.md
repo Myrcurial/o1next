@@ -1,15 +1,28 @@
-# interposer — the O1NEXT Upgrade (Z80 bus interposer)
+# interposer-upgrade — the O1NEXT Upgrade (Z80 bus interposer)
 
-**Board:** the **O1NEXT Upgrade** — see the register in [`../README.md`](../README.md).
-The centerpiece of the project: a board that sits between the Osborne 1's
-Z80 and its socket, carrying an RP2354B. It **can act as any one of the first
-three boards** (USB Keyboard Adapter, WiFi COMM PAC, Drive C Repro) and offers
-every personality; it is also the **precursor of the O1NEXT Integrated board**,
-which designs the same capability in as firmware instead of stacking it on.
+**Board:** `interposer-upgrade` — the **O1NEXT Upgrade** — see the register in
+[`../README.md`](../README.md). The centerpiece of the project: a board that sits
+between the Osborne 1's Z80 and its socket, carrying an RP2354B. It **can act as
+any one of the first three boards** (`keyboard-adapter`, `wifi-comm-pac`,
+`drive-c-repro`) and offers every personality; it is also the **precursor of the
+`next-integrated` board**, which designs the same capability in as firmware
+instead of stacking it on.
 
 Tracks: #11 (Phase 1 hardware design), #12 (electrical/mechanical
 interface spec), #83 (ROM 2.00), **#259** (one board — it absorbs #13 and #15),
 #297 (CLK), #303 (the address path), #304 (the fabric model).
+
+## One unit, four parts
+
+This is **one delivery in four parts** (maintainer, 2026-10-19). Only the first
+has a KiCad project today:
+
+| Part | Home |
+|---|---|
+| **the interposer board itself** — `Rev 0` → `Rev A` → `Rev B` | this directory (`rev0/`, `reva/`, `revb/`) |
+| **the UI pod** — the ribbon-cabled faceplate (#14) | `ui-pod/` |
+| **the ROM socket tap** — the UD11 daughterboard the Pico serves the window through (tap 2 below) | *no directory yet* — the signal list is #12's |
+| **the character ROM socket tap** — UA15, the font (tap 3 below) | *no directory yet* |
 
 ## Personalities hosted (firmware, Phase 2 #16)
 
@@ -50,10 +63,11 @@ part at all** — not a 27128, not a 2764, not in any form — because there is 
 without an interposer to design one for.
 
 **The host board does not matter, and that is worth stating once:** an existing
-**OEM board + interposer** is the same thing as an **LFF board + interposer**,
-because the LFF board is a faithful recreation of *just* the OEM board with the
-Dual Density upgrade built in (`../o1next/o1next-lff/README.md`). So there is no
-separate LFF path to design, document or test for — one brief covers both.
+**OEM board + interposer** is the reference host, and any faithful 1:1 recreation
+of *just* the OEM board with the Dual Density upgrade built in would be
+equivalent to it. So there is one brief, one ROM image and one test matrix. (An
+LFF 1:1 board is *possible* if a chassis ever needs restoring, but it is not in
+the set — see *Not boards* in [`../README.md`](../README.md).)
 
 ## Electrical definition (settled decisions)
 
@@ -75,7 +89,7 @@ separate LFF path to design, document or test for — one brief covers both.
   where the MCU is USB-powered and the flash is fed from the machine's rail:
   the library could not be filled. Filling the onboard library, then installing
   the board, is the intended bench sequence. The SFF board carries the same
-  requirement (`../o1next/README.md`).
+  requirement (`../next-integrated/README.md`).
 - **Modes:** passive-tap vs active-drive switching; mode jumpers.
 - **Stacking:** must coexist with SCREEN-PAC and CoPower-88 interposers
   on the fully-loaded machine; pass-through height matters.
@@ -93,7 +107,7 @@ Two ways to deliver the WiFi modem (#21/#56) from the interposer:
   fencing needed).
 - **(b) Onboard ESP32 adjacent to the RP2354B:** the interposer
   carries the same ESP32 module as the severable modem
-  (`../wifi-modem-module/`), running the Zimodem fork with SSH +
+  (`../wifi-comm-pac/`), running the Zimodem fork with SSH +
   baud buffering; the RP2354B just bridges ACIA traffic to it. More
   BOM, but SSH works today, the modem firmware is shared with the
   severable module, and RP2354B timing stays clean.
@@ -165,9 +179,9 @@ SMD (2-off), and Rev B is SMD wherever a part allows it.
     reserved for front-panel OLED/encoder/expansion.
   - The Rev A 595/165 fabric carries over wholesale and remains the
     pressure-relief valve for any slow line.
-- Ribbon-cable header to the front-panel UI pod (`../front-panel-ui/`),
+- Ribbon-cable header to the UI pod (`ui-pod/`),
   which also carries the second-keyboard USB-A path (see
-  `../front-panel-ui/`).
+  `ui-pod/README.md`).
 - Two socket lead-sets beyond the Z80 seat, both now first-class rather than
   optional: **UD11** (main ROM, via a DIP-down/ribbon-up daughterboard — the Pico
   serves the window) and **UA15** (char-gen, font capture). Pinout confirmations:

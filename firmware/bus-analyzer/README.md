@@ -4,7 +4,7 @@ Cycle-accurate capture of address/data/control traffic from the
 interposer, streamed over USB (and WiFi when idle bandwidth allows).
 Hardware equivalent of emulator machine-state introspection.
 
-Tracks: #17 (Phase 2 #16). Hardware: `hardware/interposer/`.
+Tracks: #17 (Phase 2 #16). Hardware: `hardware/interposer-upgrade/`.
 
 ## Definition
 

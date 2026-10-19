@@ -1,7 +1,7 @@
 ---
 layout: page
-title: O1NEXT Upgrade
-subtitle: The core board, and the panel it talks to
+title: interposer-upgrade
+subtitle: O1NEXT Upgrade — the core board and its panel, one unit in four parts
 ---
 
 **Status:** the interposer's Rev A engineering-sample schematic generated, ready
@@ -9,8 +9,16 @@ for KiCad capture review and routing. Rev B is a pin map with **no schematic yet
 (#259). **No board built.**
 Tracks **#11** (Phase 1), **#12** (interface spec), **#83** (ROM 2.00), **#259**
 (one board — it absorbs #13 and #15), #297, #303, #304, and **#14** (the pod).
-Source: `hardware/interposer/`, `hardware/front-panel-ui/`. Board register:
+Source: `hardware/interposer-upgrade/`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
+
+## One unit, four parts
+
+This is **one delivery in four parts**: the **interposer board** itself
+(`Rev 0` → `Rev A` → `Rev B`), the **UI pod** below, the **ROM socket tap** (the
+UD11 daughterboard the Pico serves the window through) and the **character ROM
+socket tap** (UA15). Only the board has a KiCad project today; the two taps have
+no directory yet and their signal lists are #12's.
 
 ## What it is
 
@@ -20,13 +28,13 @@ The centrepiece: a board that sits **between the Z80 and its socket**, carrying 
 "virtual peripheral" idea possible.
 
 It is also the **precursor of the [O1NEXT Integrated]({{
-'/hardware/sff-integrated/' | relative_url }}) board**: the SFF designs the same
+'/hardware/next-integrated/' | relative_url }}) board**: the SFF designs the same
 capability in as firmware instead of stacking it on, so the SFF can replace the
 interposer and the interposer cannot replace the SFF. And it **can act as any one
 of the three standalone boards** — the [USB Keyboard Adapter]({{
-'/hardware/keyboard-interface/' | relative_url }}), the [WiFi COMM PAC]({{
-'/hardware/external-modem/' | relative_url }}) and the [Drive C Repro]({{
-'/hardware/drive-c/' | relative_url }}) — so if you have it you don't need them.
+'/hardware/keyboard-adapter/' | relative_url }}), the [WiFi COMM PAC]({{
+'/hardware/wifi-comm-pac/' | relative_url }}) and the [Drive C Repro]({{
+'/hardware/drive-c-repro/' | relative_url }}) — so if you have it you don't need them.
 
 ## What it hosts
 
@@ -75,7 +83,7 @@ what **#259** collapsed, and Rev B keeps everything Rev A had.
 
 ## The control pod
 
-A ribbon cable to the front-panel pod (`hardware/front-panel-ui/`) carries
+A ribbon cable to the front-panel pod (`hardware/interposer-upgrade/ui-pod/`) carries
 **SD/USB storage, HDMI out, an OLED, FlashFloppy-style controls, a modem LED
 bank**, and a **second-keyboard USB-A path**. The pod is part of this board, not a
 board of its own.

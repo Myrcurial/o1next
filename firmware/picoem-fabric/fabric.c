@@ -44,7 +44,7 @@
 
 /* ---------------------------------------------------------------- the pin map
  *
- * Rev B, hardware/interposer/revb/README.md.  Everything here is bank 0, which is the
+ * Rev B, hardware/interposer-upgrade/revb/README.md.  Everything here is bank 0, which is the
  * bank picoem models on the SIO side -- GP32-47 cannot be driven or observed in the
  * emulator at all (firmware/picoem-smoke/smoke.c has that finding).
  */

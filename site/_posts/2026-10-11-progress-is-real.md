@@ -54,4 +54,4 @@ And we're getting getting started.
 
 # Next?
 
-We're going to finish the research and see if we can get engineering samples of the three external devices done in the next month (if not faster) -- that's the [USB Keyboard input adapter](https://myrcurial.github.io/o1next/hardware/keyboard-interface/), the [WiFi COMM PAC](https://myrcurial.github.io/o1next/hardware/external-modem/), and the [Drive C Reproduction](https://myrcurial.github.io/o1next/hardware/drive-c/). 
+We're going to finish the research and see if we can get engineering samples of the three external devices done in the next month (if not faster) -- that's the [USB Keyboard input adapter](https://myrcurial.github.io/o1next/hardware/keyboard-adapter/), the [WiFi COMM PAC](https://myrcurial.github.io/o1next/hardware/wifi-comm-pac/), and the [Drive C Reproduction](https://myrcurial.github.io/o1next/hardware/drive-c-repro/). 

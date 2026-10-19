@@ -2,11 +2,11 @@
 
 One RP2040 firmware shared by three consumers:
 
-1. **Standalone USB keyboard adapter** (`hardware/usb-keyboard-adapter/`,
+1. **Standalone USB keyboard adapter** (`hardware/keyboard-adapter/`,
    #47) — the everyday always-on upgrade.
 2. **Interposer KVM console** (`../kvm-console/`, #45) — browser
    keystrokes injected into the matrix.
-3. **Front-panel second USB-A port** (`hardware/front-panel-ui/`, #14) —
+3. **Front-panel second USB-A port** (`hardware/interposer-upgrade/ui-pod/`, #14) —
    optional second keyboard; original keyboard stays live.
 
 ## Definition

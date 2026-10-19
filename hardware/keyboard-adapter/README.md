@@ -1,7 +1,8 @@
-# usb-keyboard-adapter — the O1NEXT USB Keyboard Adapter (USB-HID → P4)
+# keyboard-adapter — the O1NEXT USB Keyboard Adapter (USB-HID → P4)
 
-**Board:** the **O1NEXT USB Keyboard Adapter** — the project's **second
-deliverable**. See the register in [`../README.md`](../README.md).
+**Board:** `keyboard-adapter` — the **O1NEXT USB Keyboard Adapter** — the
+project's **second deliverable**. See the register in
+[`../README.md`](../README.md).
 
 **Its shape, in the maintainer's words (2026-10-19):** a purpose-built adapter
 with a **USB-A** port for an external USB keyboard, a **P4** connector mapping
@@ -53,7 +54,7 @@ Tracks: #47 (split out of #45). Target: PCBway build.
   — so a **9-pin passthrough from this adapter to the modem port** takes power
   from there. That removes the J6 bridge from variant A entirely, on the same
   documented-and-reversible principle the WiFi modem module already uses: it
-  powers itself off that pin (`../wifi-modem-module/README.md`). One PCB should
+  powers itself off that pin (`../wifi-comm-pac/README.md`). One PCB should
   serve all three variants via the power-source jumper — variant C is variant A's
   rail, sourced from a different connector.
 

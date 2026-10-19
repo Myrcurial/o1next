@@ -129,7 +129,7 @@ host-tested pure logic.
   need a board, and they are the follow-up sub-issue of #285. The seam they plug into
   is `blockdev.h`, and the three slots are already there.
 - **The board** — the PIO bus tap and the door decode are the personality work
-  (#17, #179); the pin map is `hardware/interposer/revb/README.md`.
+  (#17, #179); the pin map is `hardware/interposer-upgrade/revb/README.md`.
 - **The ROM service** — `PRESENT`/`INFO` on both doors is
   `firmware/rom-service/` (#284), built and host-tested; it registers through
   `mb_extension`, so this engine does not grow a payload it does not own.

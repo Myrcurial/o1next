@@ -4,7 +4,7 @@
  * Every other board header in the Pico SDK describes a module.  The interposer
  * carries the bare B part on a custom PCB, so this file says what that part is
  * and nothing else -- there is no board LED, no default UART, I2C or SPI pin,
- * because hardware/interposer/revb/README.md allocates all 48 GPIO itself and a
+ * because hardware/interposer-upgrade/revb/README.md allocates all 48 GPIO itself and a
  * "default pin" here would be a pin that is really something else.
  *
  * Two things are worth stating rather than leaving to the SDK's defaults:
@@ -35,7 +35,7 @@ pico_board_cmake_set(PICO_PLATFORM, rp2350)
 
 // --- GPIO ---
 // 48 GPIO: the B package.  Left at the SDK default (0 = B part); see the header
-// comment.  hardware/interposer/revb/README.md is the allocation.
+// comment.  hardware/interposer-upgrade/revb/README.md is the allocation.
 
 // --- FLASH ---
 // 2 MB in-package flash (RP2354B).  This is the firmware store, not a library

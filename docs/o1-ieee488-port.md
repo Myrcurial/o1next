@@ -354,7 +354,7 @@ both modes, which is a constraint `docs/drive-c-design.md` §2.3 now carries.
   present in stock ROMs, destroyed in OZROM 1E (`docs/o1-rom-variants.md`).
 - **The pinout is solved** (§6) — it was in the archive all along, in the
   Technical Manual extract, and the ROM's comment block corroborates it. So
-  `hardware/drive-c/` can be laid out against a documented connector rather than
+  `hardware/drive-c-repro/` can be laid out against a documented connector rather than
   a measured one, and the one remaining electrical unknown on P3 is loading, not
   mapping.
 

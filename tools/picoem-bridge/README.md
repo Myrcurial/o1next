@@ -101,10 +101,10 @@ MAME:
 refused), so every line added there would be ours forever — and this road adds none.
 
 **The widths are parameters** (`FABRIC_BITS`, `MATCH_BITS`) because
-`hardware/interposer/revb/` has a README and **no schematic**; the *parts'* behaviour
+`hardware/interposer-upgrade/revb/` has a README and **no schematic**; the *parts'* behaviour
 is modelled from the datasheets, and when the schematic lands one constant moves.
 
-**And it has already earned its keep**: see `hardware/interposer/revb/README.md`,
+**And it has already earned its keep**: see `hardware/interposer-upgrade/revb/README.md`,
 "What the 688 can and cannot select" — the comparator watches `A8–15`, and on a Z80 I/O
 cycle that is the accumulator (or `B`), not the port. #303 is the decision that
 follows from it.

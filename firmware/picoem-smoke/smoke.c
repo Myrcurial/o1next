@@ -19,7 +19,7 @@
  *   bridge counts edges, so "the firmware saw the cycle" is a number in the
  *   reply frame and not an inference.
  *
- * THE PINS ARE THE REV B PIN MAP (hardware/interposer/revb/README.md)
+ * THE PINS ARE THE REV B PIN MAP (hardware/interposer-upgrade/revb/README.md)
  *
  *   GP0-GP7   D0-D7        data bus, via the 74AHCT245
  *   GP8       /MREQ        input, active low

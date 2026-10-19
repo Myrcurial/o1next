@@ -15,7 +15,7 @@ Tracks: #45 (split: standalone keyboard hardware is #47).
   pokes into the O1's keyboard scan.
 - The physical keyboard remains live at all times; KVM input is an
   additional concurrent source, same rule as the front-panel second
-  USB port (`hardware/front-panel-ui/`).
+  USB port (`hardware/interposer-upgrade/ui-pod/`).
 
 ## Deliverables
 

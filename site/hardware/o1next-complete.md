@@ -1,13 +1,17 @@
 ---
 layout: page
-title: O1NEXT Complete (the machine)
-subtitle: The whole machine, case included
+title: o1next-complete
+subtitle: O1NEXT Complete — the whole machine, case included
 ---
 
 **Status:** concept render exists. Tracks **#49** and **#52** (Phase 5), plus
 **#125** (the Osborne 3 history) and **#128** (the specification). Source:
-`hardware/o1next/`, `docs/design/`. Board register:
+`hardware/next-integrated/` (the board inside it), `docs/design/`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
+
+**It is not a board.** `O1NEXT Complete` is the `next-integrated` board with the
+rest of the machine wrapped around it, so it has no row in the board register and
+no folder of its own.
 
 ## What it is
 
@@ -20,18 +24,21 @@ the end user *everything* that would have been possible in the olden days, wrapp
 in a way that makes it awesome. The machine that was an absolute fantasy in 1985
 and is do-able by a hobbyist today.
 
-## Two boards, one machine
+## The board inside it
 
-There are two boards in this part of the project, and only one of them is the
-O1NEXT's foundation:
+One board, and it is the whole foundation:
 
-| Board | What it is | Is it the O1NEXT? |
-|---|---|---|
-| [LFF board]({{ '/hardware/lff-replacement/' | relative_url }}) | A **1:1 mainboard replacement** for a real **OCC1 or OCC1A** chassis — same footprint, same connectors, same mounting holes, Z80 left socketed so the interposer stays the upgrade path | **No** — this is the *restoration path*, and it **won't build** (2026-10-19) |
-| [SFF board]({{ '/hardware/sff-integrated/' | relative_url }}) | A **fully integrated board**: the interposer's personalities designed in as firmware. **Not a 1:1 swap, and it does not try to be** — it can go in a real chassis or into any other design, up to the end user | **Yes** — this is what the O1NEXT is built on |
+| Board | What it is |
+|---|---|
+| [`next-integrated`]({{ '/hardware/next-integrated/' | relative_url }}) | A **fully integrated board**: the interposer's personalities designed in as firmware. **Not a 1:1 swap, and it does not try to be** — it can go in a real chassis or into any other design, up to the end user |
 
-The two boards share the **USB-C PD power architecture**, with the optional 4S
-18650 path.
+A 1:1 replacement for an OCC1/OCC1A mainboard — the *restoration* path — is
+**possible** if a chassis ever needs restoring, but it is **not planned and not
+built** (2026-10-19), and it has no page here. See *Not boards* in
+[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
+
+The board shares the **USB-C PD power architecture** with the machine, including
+the optional 4S 18650 path.
 
 ## The machine
 
@@ -48,9 +55,9 @@ power.
   both boards.
 - **The display is settled: HDMI.** An **8" 1024×768 panel** inside and an
   **external HDMI port** — the RP2354B drives it directly, and those panels are
-  readily available. **The SFF board carries no composite driver circuitry at
-  all**, so the discrete analogue chain the LFF board reproduces is simply not
-  here.
+  readily available. **The `next-integrated` board carries no composite driver
+  circuitry at all**, so the discrete analogue chain an OEM mainboard has is
+  simply not here.
 
 ## The reference designs
 
@@ -113,8 +120,6 @@ licensing and the 16-line display.)*
 
 - A **power board spec** — USB-C PD trigger, 5 V and 12 V regulators, and the
   optional 4S battery path.
-- An **LFF board-outline drawing** against the OCC1/OCC1A chassis mounting holes
-  (L-shaped, four screws).
 - An **O1NEXT concept design and renders**, with enclosure dimensions, the LCD and
   keyboard selection, and a print-feasibility check against the 250 mm limit.
 - An **Osborne 3 design brief** — the four commitments above, plus the panel and
@@ -126,7 +131,7 @@ licensing and the 16-line display.)*
 - **#24 / #44** — the video personality and the character ROM. The *output* is
   settled (HDMI); the personality itself is still #24's work.
 - **#47** — the O1NEXT's keyboard is a Cherry-MX implementation of the same matrix,
-  so the [USB keyboard interface]({{ '/hardware/keyboard-interface/' |
+  so the [USB keyboard interface]({{ '/hardware/keyboard-adapter/' |
   relative_url }}) and the built-in keyboard share their work.
 - **#125** — the Osborne 3: the four commitments above, and the open-publishing
   plan.

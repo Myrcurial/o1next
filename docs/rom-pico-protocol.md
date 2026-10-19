@@ -16,7 +16,7 @@ Answers **#247 step 8**. Reads alongside `docs/mailbox-protocol.md` (the
 §7, and `docs/virtual-peripherals-block-diagram.md` §2–§3.
 
 > **Vocabulary:** `Rev B` in this document is the **interposer's** Rev B — the
-> `O1NEXT Upgrade`'s production revision (`hardware/interposer/revb/README.md`).
+> `O1NEXT Upgrade`'s production revision (`hardware/interposer-upgrade/revb/README.md`).
 > The `rev B` of the *Osborne ROM* is a different thing entirely
 > (`docs/o1-rom-read-from-machine.md`); the register is `hardware/README.md`.
 
