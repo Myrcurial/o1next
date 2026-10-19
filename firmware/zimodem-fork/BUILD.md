@@ -33,22 +33,42 @@ with libssh2 vendored at `zimodem/src/libssh2/`.
 ```sh
 git clone git@github.com:Myrcurial/Zimodem.git
 cd Zimodem
-arduino-cli compile --fqbn 'esp32:esp32:esp32s2:PartitionScheme=huge_app' zimodem
-arduino-cli upload  --fqbn 'esp32:esp32:esp32s2:PartitionScheme=huge_app' -p /dev/cu.usbmodem* zimodem
+
+tools/build-o1next.sh                 # compile, merge into one image, verify
+tools/flash-o1next.sh --console 20    # flash it, reset into it, watch it boot
 ```
 
-`esp32:esp32:esp32s2` is the plain S2 Dev Module, and **`PartitionScheme=huge_app`
-is not optional in practice.** The default scheme allows 1.25 MB of application and
-this build uses **1,016,642 bytes of it — 77%**, which leaves no room for the panel
-state machine (#322), the SSH key store (#321) or the audio. `huge_app` is 3 MB with
-**no OTA**, and this board has no OTA path — it is flashed over USB. The same binary
-then sits at **32%**.
+Those two commands are the whole recipe. `build-o1next.sh` never needs a flag, and
+`flash-o1next.sh` finds the board itself. **Neither needs a button.**
+
+### The partition scheme, and why it is `min_spiffs`
+
+**Two 1.875 MB application slots.** The app is **53%** of a slot, so there is room
+for the panel state machine (#322), the SSH key store (#321) and the audio — and,
+because there are two slots, for the firmware to **update itself over OTA** rather
+than being re-flashed through the ROM's download mode at all (#334).
+
+That last part is the reason for the change. `huge_app` gave 3 MB in a single slot
+and no second one, which is the wrong trade for a device that gets power-cycled
+constantly and will be updated often.
 
 | scheme | application | this build |
 |---|---|---|
-| `default` | 1.25 MB | **77%** — too tight to grow into |
-| **`huge_app`** | **3 MB, no OTA** | **32%** |
-| `no_ota` | 2 MB | ~48% |
+| `default` | 1.25 MB × 2 | ~89% — too tight to grow into |
+| `no_ota` | 2 MB × 1 | ~55%, and no second slot |
+| `huge_app` | 3 MB × 1 | 32%, and no second slot |
+| **`min_spiffs`** | **1.875 MB × 2** | **53%** |
+
+The build refuses to pass **90%** of the application partition, so this is checked
+rather than remembered.
+
+### The board's console is its USB port
+
+`CDCOnBoot=cdc` is in the FQBN, so the debug stream goes to the **native USB CDC**
+as well as to UART0 — both, not either, because a board that does bring UART0 out
+still wants it. This is not a convenience: the module's UART0 (GPIO43/44) is not
+brought out to a connector and the board has no UART bridge, so without it there is
+**no console at all** (#334).
 
 If the fitted module is a PSRAM part, add `PSRAM=enabled`. The N4 has none and does
 not need it.
@@ -114,15 +134,23 @@ The profile also carries the feature switches for a board with no SD card:
 require it; `INCLUDE_CBMMODEM` off. `INCLUDE_SSH` stays on — it is the point of the
 S2.
 
-**It builds.** Verified 2026-10-19 on Cortexiphan, with
-`esp32:esp32:esp32s2:PartitionScheme=huge_app`:
+**It builds, and it runs on hardware.** The board it was first brought up on is an
+`ESP32-S2FNR2` (rev v1.0) — **4 MB embedded flash and 2 MB embedded PSRAM**, which
+is the same silicon family as the `MINI-2U-N4R2` this build targets. It reports:
 
 ```
-Sketch uses 1016642 bytes (32%) of program storage space. Maximum is 3145728 bytes.
-Global variables use 50812 bytes (15%) of dynamic memory, leaving 276868 bytes for local variables. Maximum is 327680 bytes.
+Zimodem 4.0.3 firmware starting initialization
+SPIFFS Formatted.
+Using BPS 1200, RXD 16, TXD 15
+Baud 1200, Deque constant now: 4
+Config changed.
+Resetting...
+Init complete.
 ```
 
-And the branch is **taken** — which a successful build alone does not prove. Appending
+**`RXD 16, TXD 15` is the firmware reporting this pin map back at us** — the check
+that the profile is compiled in and *active*, not merely present. And the branch is
+**taken**, which a successful build alone does not prove either: appending
 `#error PROBE` to `o1next.h` fails the build with that text in the log, so the
 `#elif defined(O1NEXT_BOARD)` branch is the one compiled and upstream's *"standard
 ESP32 4 & 8MB boards"* fallback is not. `o1next.h` is **in** the build, not merely
@@ -152,10 +180,36 @@ and produces a board that does not boot, so it fails the build here instead.
 
 It also refuses to build past **90% of the application partition**, because there is
 no OTA path on this board and the panel (#322), the SSH key store (#321) and the
-audio are all still to come. It sits at **32%** today.
+audio are all still to come. It sits at **53%** today.
 
 `SHA256SUMS` and `BUILD-INFO.txt` are written beside the image: the git ref, the
 arduino-cli version, the core version, the four offsets, and the checksums.
+
+### Flashing, and what the hardware taught us
+
+`tools/flash-o1next.sh` flashes and resets into the application, and **every one of
+its behaviours was corrected by a real board** rather than reasoned out:
+
+- **esptool's own reset works here**, and the warning it prints — *"esptool.py can
+  not exit the download mode over USB. To run the app, reset the chip manually."* —
+  is a generic USB-CDC one that does not apply. **No button is needed**, to enter
+  download mode or to leave it.
+- The **RTC_CNTL `SW_SYS_RST` write** (`0x3f408000` bit 31 — what `esp_restart()`
+  does) **does not work on this board**: the write lands and the port drops, so it
+  looks like a reset, but the chip comes back in download mode. `GPIO0` reads
+  **high** (`GPIO_IN = 0x3c060001`), so it is not the strap — the board's auto-reset
+  circuit holds GPIO0 low while the port is open, and only esptool's own sequence
+  releases it. **Our own PCB is the case where this trick may be needed**, so it
+  stays documented in the script rather than deleted.
+- The flash is **retried**, because resetting *running* firmware into download mode
+  changes the USB device and esptool's handle dies with it. Attempt one fails;
+  attempt two finds the chip already in download mode. The script says so out loud
+  rather than looking like a flake.
+- The **console reader re-opens** across a reset, for the same reason — a reader
+  that opens once misses every boot banner it was run to catch. Measured, twice.
+- The console **waits for the host** once before its first line. Without that the
+  banner goes into the void, because the host is re-enumerating during the reset;
+  the first read of a booted board returned **zero bytes**.
 
 ### The same script runs in CI
 
