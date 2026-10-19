@@ -88,6 +88,40 @@ Two things worth knowing without opening it:
   line. Most of ours are `-1`: the panel and the handshake are on the AW9523B's I²C
   channels, not on GPIO.
 
+### The board profile
+
+The pins are implemented in the fork as **`zimodem/o1next.h`** — one file, selected
+by `O1NEXT_BOARD`, which `zimodem.ino` defines for this fork. Upstream has no S2
+profile: its chain covers the C3 and the S3 and then falls through to *"standard
+ESP32 4 & 8MB boards"*, whose pins are not ours. The diff to upstream's
+`zimodem.ino` is **eight added lines and no modified ones** — a modification notice
+(Apache-2.0 §4(b)), the define, and the two-line branch — so a future merge from
+upstream stays a merge.
+
+The profile also carries the feature switches for a board with no SD card:
+`INCLUDE_SD_SHELL` off, and with it `INCLUDE_HOSTCM` and `INCLUDE_COMET64`, which
+require it; `INCLUDE_CBMMODEM` off. `INCLUDE_SSH` stays on — it is the point of the
+S2.
+
+**It has not been compiled yet** — see below.
+
+### Rosetta, and why the build needs it
+
+**This machine cannot build an Arduino ESP32 sketch without Rosetta.** Every
+compiler in the esp32 2.0.17 core is native arm64 — `xtensa-esp32s2-elf-gcc` is
+`Mach-O 64-bit executable arm64` — but **four helper binaries are Intel-only
+Mach-O**: `ctags` (arduino-cli's *own* builtin tool), `esptool`, `mklittlefs` and
+`mkspiffs`. So a sketch build dies *inside a prebuild hook* with
+`Bad CPU type in executable`, which reads like a source error and is not one.
+
+```sh
+sudo softwareupdate --install-rosetta --agree-to-license
+```
+
+`tools/bootstrap.sh --check` probes the two a compile actually needs and reports
+them `DEAD` with that command, so the diagnosis is one line rather than an hour.
+`REQUIREMENTS.md` §Required carries the row.
+
 ## Where the O1-specific core is
 
 The parts that are *ours* — the rate table, the 6850 frame decoder and the
