@@ -15,10 +15,25 @@ Tracks: #21, #56. Work list: #317–#326.
 | Forked from | upstream **`a534e512`** — `master`, 2026-10-06 |
 | Licence | **Apache-2.0** (upstream's), retained as-is |
 
-**The code lives in the fork.** This directory carries the pin, the licence
-obligations, the build recipe and the reason for every choice — not a copy of
-upstream's source. Each unit of work is a branch and a PR in the fork, and
-[`BUILD.md`](BUILD.md) is how it is built.
+### Where the code lives — and why it is in two places
+
+| | |
+|---|---|
+| **The fork** (`Myrcurial/Zimodem`) | upstream's baseline, and the **Arduino integration** — the sketch, the `#define` block, the pin map. Upstream's files stay Apache-2.0. |
+| **This directory** (`o1modem/`) | the **O1-specific core** — the rate table (#319), the 6850 frame decoder (#319) and the double-sided buffer (#318). Plain C99, no Arduino, no SDK, **host-tested** by [`o1modem/run_tests.sh`](o1modem/run_tests.sh) in CI. |
+
+The split is deliberate, and it is three arguments rather than one:
+
+- **CI gates it.** `o1next` has the workflows; a fork does not. The arithmetic is
+  the part most likely to be wrong and the part that can be proven with no board,
+  so it lives where it is proven.
+- **No SDK to test it.** The core needs a C compiler and nothing else — the same
+  shape as `firmware/library/`, `firmware/rom-service/` and
+  `firmware/acb4000-scsi/`.
+- **Licence clarity.** Our new code stays **MIT** (#298) in our repo; the fork
+  carries it as Apache-2.0 with the modification notices §4(b) requires.
+
+[`BUILD.md`](BUILD.md) is how the fork is built.
 
 ## Why a fork, and not an upstream PR (#317)
 

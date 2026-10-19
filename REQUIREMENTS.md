@@ -36,6 +36,7 @@ them goes stale on every other one.
 | poppler | `brew install poppler` | `schematic_render.sh`, `schematic_atlas.sh`, `ocr_pdf.sh` — `pdftoppm`, `pdfinfo`, `pdfimages`, `pdftotext` |
 | `tesseract` | `brew install tesseract` | `tools/ocr_pdf.sh` |
 | `mame` | `brew install mame` | `tools/check_o1_map.sh`, `tools/research/*.lua`; the ROMs are in-repo (`tools/emulator-setup/roms/`) |
+| `arduino-cli` + the `esp32` core **2.0.17** | `brew install arduino-cli`, then `arduino-cli core install esp32:esp32@2.0.17` | `firmware/zimodem-fork/` — the Zimodem fork's **ESP32-S2** build. The **version pin matters**: upstream builds against 2.0.17. The target, the feature switches and the pin map are in `firmware/zimodem-fork/BUILD.md`. Installed 2026-10-19 (#317) |
 | `cpmtools` + `libdsk` | `brew install cpmtools` | `cpmls`/`cpmcp`/`mkfs.cpm`; the Drive C blob round trip |
 | `z80dasm` | `brew install z80dasm` | the disassemblies under `research/*/disasm/` |
 | `z80asm` | `brew install z80asm` | **writing** ROM code — a `HCBOOT` body, a ROM 2.0 build (#83). Installed 2026-10-13. **It does not assemble `rom144.asm` as it stands**: that source uses the Osborne/ACT assembler's own syntax — equates written `NAME = expr`, and the macros `LK`, `STO`, `LDK`, `JZ`, `JRZ`, `CMP`, `MSG`, `ECHO`, `DC`, `PROC` plus the `*SET`/`*[n]` directives. Measured, `z80asm -o out.bin rom144.asm` stops on the first equate and writes a **0-byte** output. **Corrected 2026-10-13: that makes `z80asm` the wrong tool for the ROM source — it is not a blocker on it.** `rom144.asm` is an ACT job, and the vendor's own assembler is in the local archive (`ACT80.COM`, SORCIM 3.0 and 3.2), so there is nothing to port and nothing to hunt for; the reassembly is tracked on #203 and in `docs/o1-rom-source.md`. `z80asm` stays what it is: the tool for **writing** new code, which is what #83's `HCBOOT` body and a ROM 2.0 build need. |
@@ -122,12 +123,6 @@ No install needed: `sips` and `qlmanage` (`tools/o1art.py`), plus `dd`, `cmp`,
 
 ## Not installed yet (tracked)
 
-- **Arduino CLI + the `esp32` core 2.0.17** for `firmware/zimodem-fork/` —
-  **#317**. `firmware/zimodem-fork/` is an Arduino sketch built for **ESP32-S2**,
-  and neither `arduino-cli` nor the core is on this machine. The version pin
-  matters — upstream builds against **2.0.17** — and the target, the feature
-  switches and the pin map are in `firmware/zimodem-fork/BUILD.md`. This row moves
-  into §Required, and into `bootstrap.sh --check`, when it is installed.
 - **Ruby + Jekyll** for `site/` — **#106**. macOS's `/usr/bin/ruby` is too old
   for current Jekyll, and `site/` has no `Gemfile` yet, so that issue is partly
   *writing* the manifest rather than only resolving it.

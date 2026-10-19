@@ -246,6 +246,24 @@ check_required() {
         add_formula mame
     fi
 
+    if have arduino-cli; then
+        ok_row arduino-cli "$(which_of arduino-cli) — $(arduino-cli version 2>/dev/null | head -1)"
+    else
+        miss_row arduino-cli 'brew install arduino-cli'
+        add_formula arduino-cli
+    fi
+
+    # The ESP32 core is not a Homebrew formula, so it is its own row: an
+    # arduino-cli without esp32:esp32@2.0.17 cannot build the Zimodem fork at
+    # all, and "the tool resolves" would have said ok.  The version pin matters
+    # (upstream builds against 2.0.17) -- firmware/zimodem-fork/BUILD.md.
+    if have arduino-cli && arduino-cli core list 2>/dev/null \
+       | awk '$1 == "esp32:esp32" && $2 == "2.0.17" { found = 1 } END { exit(found ? 0 : 1) }'; then
+        ok_row 'esp32 core' 'esp32:esp32 2.0.17'
+    else
+        miss_row 'esp32 core' 'arduino-cli core install esp32:esp32@2.0.17'
+    fi
+
     if have cpmls && have cpmcp && have mkfs.cpm; then
         ok_row cpmtools "$(which_of cpmls) — cpmls, cpmcp, mkfs.cpm (remember -T raw)"
     else
