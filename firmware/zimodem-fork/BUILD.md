@@ -5,8 +5,11 @@ The recipe for `Myrcurial/Zimodem@o1next`. Upstream documents an Arduino-IDE bui
 app space). This is the same toolchain driven from the command line, aimed at the
 **S2** and at **our** board's pin map.
 
-**The toolchain is not on this machine.** It is recorded in `REQUIREMENTS.md`
-§"Not installed yet" as an ask — do not hand-roll around it.
+**Installed on Cortexiphan, 2026-10-19** (#317) — `arduino-cli` plus the
+`esp32:esp32@2.0.17` core. `REQUIREMENTS.md` §Required carries the row, and
+`tools/bootstrap.sh --check` probes both the tool and the core's *version*, so a
+host with the wrong core says `MISSING` rather than `ok`. On a host that lacks
+them:
 
 ## Toolchain
 
@@ -89,6 +92,17 @@ RP2354B link instead of the machine's ACIA (#323).
 
 A `DEFAULT_PIN_*` of `-1` means "not fitted" — that is how upstream disables a
 line. Prefer it to inventing a pin.
+
+## Where the O1-specific core is
+
+The parts that are *ours* — the rate table, the 6850 frame decoder and the
+double-sided buffer — are **not** in the fork's tree. They are in
+[`o1modem/`](o1modem/), plain C99 with no Arduino headers, host-tested by
+`o1modem/run_tests.sh` in CI, and MIT like the rest of this repository.
+
+The fork consumes them: the sketch includes the headers, and the Arduino-side glue
+is the fork's own. That split is why the arithmetic is proven before the toolchain
+is needed at all — the fork's README has the full argument.
 
 ## Modifying upstream files
 
