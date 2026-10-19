@@ -33,14 +33,25 @@ with libssh2 vendored at `zimodem/src/libssh2/`.
 ```sh
 git clone git@github.com:Myrcurial/Zimodem.git
 cd Zimodem
-arduino-cli compile --fqbn esp32:esp32:esp32s2 zimodem
-arduino-cli upload  --fqbn esp32:esp32:esp32s2 -p /dev/cu.usbmodem* zimodem
+arduino-cli compile --fqbn 'esp32:esp32:esp32s2:PartitionScheme=huge_app' zimodem
+arduino-cli upload  --fqbn 'esp32:esp32:esp32s2:PartitionScheme=huge_app' -p /dev/cu.usbmodem* zimodem
 ```
 
-`esp32:esp32:esp32s2` is the plain S2 Dev Module. If the fitted module has
-different flash or PSRAM, add the matching `--board-options`: a PSRAM-bearing part
-wants `PSRAM=enabled`, and 8 MB of flash wants
-`FlashSize=8M,PartitionScheme=default_8MB` so libssh2 plus the whole AT set fit.
+`esp32:esp32:esp32s2` is the plain S2 Dev Module, and **`PartitionScheme=huge_app`
+is not optional in practice.** The default scheme allows 1.25 MB of application and
+this build uses **1,016,642 bytes of it — 77%**, which leaves no room for the panel
+state machine (#322), the SSH key store (#321) or the audio. `huge_app` is 3 MB with
+**no OTA**, and this board has no OTA path — it is flashed over USB. The same binary
+then sits at **32%**.
+
+| scheme | application | this build |
+|---|---|---|
+| `default` | 1.25 MB | **77%** — too tight to grow into |
+| **`huge_app`** | **3 MB, no OTA** | **32%** |
+| `no_ota` | 2 MB | ~48% |
+
+If the fitted module is a PSRAM part, add `PSRAM=enabled`. The N4 has none and does
+not need it.
 
 ## Configuration: what to set for our board
 
@@ -103,7 +114,19 @@ The profile also carries the feature switches for a board with no SD card:
 require it; `INCLUDE_CBMMODEM` off. `INCLUDE_SSH` stays on — it is the point of the
 S2.
 
-**It has not been compiled yet** — see below.
+**It builds.** Verified 2026-10-19 on Cortexiphan, with
+`esp32:esp32:esp32s2:PartitionScheme=huge_app`:
+
+```
+Sketch uses 1016642 bytes (32%) of program storage space. Maximum is 3145728 bytes.
+Global variables use 50812 bytes (15%) of dynamic memory, leaving 276868 bytes for local variables. Maximum is 327680 bytes.
+```
+
+And the branch is **taken** — which a successful build alone does not prove. Appending
+`#error PROBE` to `o1next.h` fails the build with that text in the log, so the
+`#elif defined(O1NEXT_BOARD)` branch is the one compiled and upstream's *"standard
+ESP32 4 & 8MB boards"* fallback is not. `o1next.h` is **in** the build, not merely
+beside it.
 
 ### Rosetta, and why the build needs it
 
@@ -121,6 +144,9 @@ sudo softwareupdate --install-rosetta --agree-to-license
 `tools/bootstrap.sh --check` probes the two a compile actually needs and reports
 them `DEAD` with that command, so the diagnosis is one line rather than an hour.
 `REQUIREMENTS.md` §Required carries the row.
+
+**Installed on Cortexiphan 2026-10-19** (#330), and the check now reads
+`ok  arduino tools  ctags and esptool run`.
 
 ## Where the O1-specific core is
 
