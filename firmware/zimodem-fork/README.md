@@ -100,15 +100,17 @@ is how that is done — the C64 Ultimate pattern.
 6. **Role B** (#323) — the console becomes a `Stream`, so one codebase serves the
    standalone module (UART to the machine's ACIA) and the interposer/SFF (UART to
    the RP2354B, which serves the ACIA window).
-7. **The USB console** (#334) — the board's other console, the one on its USB-C
-   port, gains a command handler: `status`, `reboot`, `bootloader` and `update`.
-   `bootloader` is the one that matters for hardware — it puts the chip in the
-   ROM's download mode with **no button**, which is what a board with no auto-reset
-   circuit (ours) needs to be flashable at all — and `update` is the one that makes
-   the second slot real: the application image arrives on that console, is verified
-   in the inactive slot, and the board reboots into it. Distinct from item 6: that
-   is the *modem's* serial console, this is the host's, and the two never share a
-   byte.
+7. **The USB console, and the network behind it** (#334) — the board's other console,
+   the one on its USB-C port, gains a command handler: `status`, `reboot`,
+   `bootloader`, `update`, `update-at-boot` and `wifi`. `bootloader` is the one that
+   matters for hardware — it puts the chip in the ROM's download mode with **no
+   button**, which is what a board with no auto-reset circuit (ours) needs to be
+   flashable at all. `update` is the one that makes the second slot real: the
+   application image arrives — down that console, or over **WiFi** from a URL — is
+   verified in the inactive slot, and the board reboots into it. And `update-at-boot`
+   arms **one** fetch for the next boot, which is an update with no cable at all.
+   Distinct from item 6: that is the *modem's* serial console, this is the host's, and
+   the two never share a byte.
 
 ## Kept from upstream
 
