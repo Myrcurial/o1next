@@ -1,13 +1,16 @@
-# front-panel-ui — the O1NEXT Upgrade's interface pod (faceplate & UI pod)
+# ui-pod — the UI pod of `interposer-upgrade`
 
-**Not a board of its own:** this is the **interface pod of the `O1NEXT Upgrade`**
-(the interposer), reached over a ribbon cable. See the register in
-[`../README.md`](../README.md). The maintainer's board description places the pod
-inside the interposer, so it is a sub-board of the Upgrade and not a separate
-product.
+**Part 2 of 4 of `interposer-upgrade`.** The unit is the interposer board, this
+pod, the UD11 ROM socket tap and the UA15 char-gen socket tap; the register is
+[`../../README.md`](../../README.md) and the unit's own README is
+[`../README.md`](../README.md).
 
-COMM-PAC-style faceplate covering one floppy storage pocket, providing
-local physical UI for the interposer without opening the case.
+**Not a board of its own** — it is reached over a ribbon cable and is mostly
+connectors, a display and LEDs. The maintainer's board description places the pod
+inside the interposer, so it is a part of the Upgrade, not a separate product.
+
+A COMM-PAC-style faceplate covering one floppy storage pocket, providing local
+physical UI for the interposer without opening the case.
 
 Tracks: #14.
 
@@ -16,7 +19,7 @@ Tracks: #14.
 - SD card / USB stick socket (disk-image library media)
 - **Second USB-A port: keyboard input via the interposer** — a USB HID
   keyboard plugged in here is injected into the O1's keyboard matrix by
-  the interposer (reusing the `../usb-keyboard-adapter/` RP2040 matrix
+  the interposer (reusing the `../../keyboard-adapter/` RP2040 matrix
   firmware, #45/#47). The **original keyboard stays plugged in and fully
   functional**; the USB keyboard is an optional second input that just
   works, both live simultaneously.
@@ -24,7 +27,7 @@ Tracks: #14.
 - Small OLED status display
 - Rotary encoder or 5-way d-pad (FlashFloppy-style menu UI)
 - Hayes/USR-style LED bank: CTS/RTS/TX/RX/RING etc. (modem personality)
-- Ribbon cable back to the interposer (`../interposer/`)
+- Ribbon cable back to the interposer board (`../`)
 
 ## Constraints
 

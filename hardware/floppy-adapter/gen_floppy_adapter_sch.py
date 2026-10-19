@@ -3,7 +3,7 @@
 KiCad 7 schematic for issue #62.
 
 Structural schematic for routing, in the same spirit as
-../interposer/reva/gen_reva_sch.py: symbols are placed and pins are tied to
+../interposer-upgrade/reva/gen_reva_sch.py: symbols are placed and pins are tied to
 nets by labels, so the pin/relay mapping can be edited without re-routing.
 
 NOTE ON GEOMETRY: KiCad stores symbol pin coordinates with Y up, but the

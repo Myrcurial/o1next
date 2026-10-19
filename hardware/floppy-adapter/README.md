@@ -1,10 +1,10 @@
 # floppy-adapter — the O1NEXT Floppy Adapter (switchable Gotek/physical-drive daughter card)
 
-**Board:** the **O1NEXT Floppy Adapter** — the project's **first deliverable**,
-and the only processor-less board in the set. See the register in
-[`../README.md`](../README.md). Its revisions are the **Floppy Adapter's** Rev A /
-Rev B, which is an unrelated board to the interposer's Rev A / Rev B — so the
-letters are always qualified.
+**Board:** `floppy-adapter` — the **O1NEXT Floppy Adapter** — the project's
+**first deliverable**, and the only processor-less board in the set. See the
+register in [`../README.md`](../README.md). Its revisions are the **Floppy
+Adapter's** Rev A / Rev B, which is an unrelated board to the interposer's Rev A /
+Rev B — so the letters are always qualified.
 
 A daughter card that mounts over the mainboard / double-density board
 floppy connector and makes **three drives available, two active**: both

@@ -1,5 +1,28 @@
 # o1next
 
+> Rebuilding, upgrading, and eventually recreating the Osborne 1 — research,
+> hardware, and the story of how this project began.
+
+## The boards
+
+**The shortform is the board's name** — its folder, its site URL and its board id
+in `tools/check_schematics.py`. The register, with the state of each one, is
+[`hardware/README.md`](hardware/README.md).
+
+| Shortform | Board | Where |
+|---|---|---|
+| `floppy-adapter` | O1NEXT Floppy Adapter | [`hardware/floppy-adapter/`](hardware/floppy-adapter/) |
+| `keyboard-adapter` | O1NEXT USB Keyboard Adapter | [`hardware/keyboard-adapter/`](hardware/keyboard-adapter/) |
+| `wifi-comm-pac` | O1NEXT WiFi COMM PAC | [`hardware/wifi-comm-pac/`](hardware/wifi-comm-pac/) |
+| `drive-c-repro` | O1NEXT Drive C Repro | [`hardware/drive-c-repro/`](hardware/drive-c-repro/) |
+| `interposer-upgrade` | O1NEXT Upgrade — one unit in four parts | [`hardware/interposer-upgrade/`](hardware/interposer-upgrade/) |
+| `next-integrated` | O1NEXT Integrated — the SFF board | [`hardware/next-integrated/`](hardware/next-integrated/) |
+
+`O1NEXT Complete` (the machine) is the `next-integrated` board with a case, a
+screen, a battery pack and a keyboard — not a board, so not a row. An LFF 1:1
+mainboard is *possible* if a chassis ever needs restoring, and is not planned.
+
+
 A general-purpose Z80 bus interposer for the Osborne 1, built around the
 RP2354B, plus the research and
 reverse-engineering work it enables — and, downstream, a modern-parts
@@ -18,7 +41,7 @@ socket, connected to an RP2354B, makes the machine both **observable** and
 | **Peripheral synthesizer** (active) | Emulates period hardware on the same decode: RT-60A real-time clock, SCREEN-PAC 80/104-column video, IEEE-488 "Drive C" ramdisk/storage, CoPower-88 mailbox | `firmware/*` #18–#24 |
 | **CPU emulation shim** | Virtual CoPower-88 (8088), so original SWP software runs on machines without the (rare) physical board | `firmware/copower88-shim/` #23 |
 | **Floppy interposer** | Gotek/FlashFloppy analogue: interrupts the Shugart bus and mounts `.IMD`/`.HFE` images to either drive bay, or to "Drive C" as a persistent RAM disk | `firmware/floppy-emulator/` #20 |
-| **WiFi modem** | Hayes-compatible AT command set + telnet, presented through the O1's memory-mapped 6850 ACIA registers so period comm programs work unchanged | `hardware/wifi-modem-module/` #21, #56 |
+| **WiFi modem** | Hayes-compatible AT command set + telnet, presented through the O1's memory-mapped 6850 ACIA registers so period comm programs work unchanged | `hardware/wifi-comm-pac/` #21, #56 |
 | **Virtual printer** | Centronics-mode capture on the IEEE-488 port rendered to PDF, emulating a period 9-pin Epson MX-80 | `firmware/virtual-printer/` #19 |
 
 The image library and the printer's PDFs are served by a C64 Ultimate-style
@@ -36,13 +59,13 @@ modern capability to the machine. **At least three standalone peripherals** do i
 with no interposer, no BIOS change, and nothing cut:
 
 - **USB keyboard adapter (#47)** — RP2040 board on the P4 keyboard connector:
-  plug in any USB HID keyboard, no other mods. `hardware/usb-keyboard-adapter/`
+  plug in any USB HID keyboard, no other mods. `hardware/keyboard-adapter/`
 - **Severable WiFi modem (#56, #21)** — ESP32 Zimodem fork (telnet + SSH) that
   hangs off the MODEM (P1) port, powers itself from the port, and needs no case
-  opened. `hardware/wifi-modem-module/`
+  opened. `hardware/wifi-comm-pac/`
 - **Standalone Drive C reproduction (#84)** — RP2040 + flash on the IEEE-488 port
   (P3), powered from the P5 video connector, reproducing the machine's own RAM
-  disk. `hardware/drive-c/`
+  disk. `hardware/drive-c-repro/`
 
 Each attaches to a port the machine already exposes, and each is reversible. The
 USB keyboard adapter doubles as the matrix-injection firmware for the
@@ -54,7 +77,7 @@ bridging J6 inside the machine. But the **MODEM port (P1, DE-9 pin 7) carries th
 same +12 V through the same R21, and it is reachable without opening anything** —
 so a **9-pin passthrough from the keyboard adapter to the modem port** can take
 power from there instead. Nobody has to crack the case. Both loads share R21; the
-current budget is deferred to `hardware/wifi-modem-module/README.md`.
+current budget is deferred to `hardware/wifi-comm-pac/README.md`.
 
 Downstream of all of it:
 
@@ -64,7 +87,7 @@ Downstream of all of it:
   **SFF board**, fully integrated and deliberately *not* a 1:1 swap. **The O1NEXT is
   the SFF board with the rest of the machine wrapped around it** — a ~8 cm thick
   portable in O1A blue/grey with an 8" 1024×768 HDMI panel and USB-C PD / 18650
-  power; the C64 Ultimate "Crystal" idea applied to an Osborne. `hardware/o1next/`
+  power; the C64 Ultimate "Crystal" idea applied to an Osborne. `hardware/next-integrated/`
 - **Osborne-side software** — MOUNT.COM (#27), FATCOPY (#51), the CoPower-88
   driver (#26) and an updated boot disk (#28): `software/README.md`.
 
