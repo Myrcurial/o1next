@@ -58,6 +58,6 @@ work and a known-good test suite — these personalities are pure win.
   and the interposer's onboard ESP32. **The variant is not yet chosen** — C3, C5
   (dual band) or S3/S3A (SSH headroom) — and the decision needs the modem's own
   requirements written down first; see #21, #56 and
-  `hardware/interposer/README.md`.
+  `hardware/interposer-upgrade/README.md`.
 - **Level shifting** is a hardware concern (74AHCT/HCT) — firmware
   assumes clean 3.3 V logic at the RP2354B pins.

@@ -16,7 +16,7 @@ shape of the firmware is the shape the personality will keep. **GP26 toggles onc
 per handled cycle** — the liveness signal the bridge counts, so "the firmware saw
 the cycle" is a number in the reply frame rather than an inference.
 
-The pins are the Rev B map (`hardware/interposer/revb/README.md`): GP0–7 data,
+The pins are the Rev B map (`hardware/interposer-upgrade/revb/README.md`): GP0–7 data,
 GP8–11 the control strobes, GP24 `DATA_OE`, GP25 `DATA_DIR`. **GP26 is the
 heartbeat and it is borrowed** from the 595/165 shift fabric — see the header
 comment in `smoke.c` for why it is not the Rev B map's spare GP37.

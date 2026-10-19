@@ -8,7 +8,7 @@
  * What this proves, and what it does not
  * --------------------------------------
  * Three volumes are made in a temp root -- 64 MB for the external flash, 64 MB for
- * the microSD, 16 MB for the USB stick, which are the parts `hardware/interposer/`
+ * the microSD, 16 MB for the USB stick, which are the parts `hardware/interposer-upgrade/`
  * names -- formatted with `f_mkfs`, populated through the `media.h` seam, and then
  * handed to **the same suite the directory fixture gets** (`suite_media`).  So the
  * claim "the library cannot tell them apart" is run rather than argued.
@@ -63,7 +63,7 @@ static int failures;
         }                                                              \
     } while (0)
 
-/* The three volumes, sized like the parts `hardware/interposer/README.md` names:
+/* The three volumes, sized like the parts `hardware/interposer-upgrade/README.md` names:
  * the external flash module is 16-64 MB and the cards are what a user has. */
 #define FLASH_SECTORS (64u * 1024u * 1024u / BLOCKDEV_SECTOR)
 #define SD_SECTORS    (64u * 1024u * 1024u / BLOCKDEV_SECTOR)

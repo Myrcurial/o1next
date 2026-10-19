@@ -2,7 +2,7 @@
 
 Emulates the SCREEN-PAC 80/104-column video personality and provides
 modern video out — **HDMI**, via the RP2354B's HSTX block, with the
-connector on `hardware/front-panel-ui/`.
+connector on `hardware/interposer-upgrade/ui-pod/`.
 
 Tracks: #24; char-gen ROM context in #44.
 
@@ -13,7 +13,7 @@ GP12–19 on the RP2354B, so a resistor DAC would need the same range and the tw
 mutually exclusive.
 
 The same decision now applies across the project — the SFF board carries **HDMI
-only** and no composite circuitry at all (`hardware/o1next/README.md`). The display
+only** and no composite circuitry at all (`hardware/next-integrated/README.md`). The display
 *character* (white, green or amber — see "Monitor character") is a rendering choice in the
 personality's configuration rather than a hardware one; see "Monitor character"
 below.
