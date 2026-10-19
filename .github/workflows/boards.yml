@@ -1,0 +1,47 @@
+name: board register
+
+# #308: `Rev A` / `Rev B` / `Rev 0` named four unrelated things in this tree, and
+# the boards were named three different ways in three different places --
+# hardware/README.md's folder list, site/hardware/index.md's table, and
+# tools/check_schematics.py's board list.  None was derivable from another, and
+# the site is what the world reads.
+#
+# hardware/README.md's register is now the single table, and this job is the
+# check that it stays single.  It needs no kicad-cli: it reads the board *list*
+# from tools/check_schematics.py, not the netlists, so the schematic-coverage
+# half (every .kicad_sch belongs to a checked board) fails here in seconds
+# rather than after a KiCad install.
+
+on:
+  push:
+    paths:
+      - 'hardware/**'
+      - 'site/hardware/**'
+      - 'tools/check_boards.py'
+      - 'tools/check_schematics.py'
+      - '.github/workflows/boards.yml'
+  pull_request:
+    paths:
+      - 'hardware/**'
+      - 'site/hardware/**'
+      - 'tools/check_boards.py'
+      - 'tools/check_schematics.py'
+      - '.github/workflows/boards.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    name: register, netlist checker and site agree
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: The board register is the single table
+        run: python3 tools/check_boards.py -v

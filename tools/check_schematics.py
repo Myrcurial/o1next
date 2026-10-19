@@ -162,6 +162,23 @@ def parse_sheet(path: Path):
     return placed, labels
 
 
+def sheet_names(path: Path) -> list:
+    """The root sheet's child-sheet names, in the order they are drawn.
+
+    For a hierarchical *skeleton* -- one with sheets and design notes but no
+    components yet -- the decomposition IS the design, so it is the invariant
+    worth asserting (the same hand-transcribed-table-then-check-it pattern the
+    pinout tables below use).
+    """
+    root = sexpr(path.read_text(errors="replace"))
+    names = []
+    for node in _kids(root, "sheet"):
+        for prop in _kids(node, "property"):
+            if len(prop) > 2 and prop[1] == "Sheetname":
+                names.append(prop[2])
+    return names
+
+
 def find_overlaps(placed):
     """Symbol bodies that overlap -- always a drawing bug, usually a short."""
     hits = []
@@ -360,11 +377,12 @@ class Board:
     def __init__(self, name, sch, gen, erc_allowance, exact_nets=None,
                  contains_nets=None, excludes_nets=None, pin_nets=None,
                  passthrough=None, pinout=None, unused_pins=None,
-                 allow_overlaps=0, allow_label_collisions=0):
+                 allow_overlaps=0, allow_label_collisions=0, sheets=None):
         self.name = name
         self.sch = REPO / sch
         self.gen = gen
         self.erc_allowance = erc_allowance
+        self.sheets = sheets or []
         self.exact_nets = exact_nets or {}
         self.contains_nets = contains_nets or {}
         self.excludes_nets = excludes_nets or {}
@@ -403,6 +421,13 @@ def check_board(cli: str, board: Board, tmp: Path, verbose: bool):
 
     placed, labels = parse_sheet(board.sch)
     notes.append(f"{len(placed)} symbols, {len(labels)} labels")
+
+    # -- the sheet decomposition (a skeleton's only real content) -----------
+    if board.sheets:
+        got = sheet_names(board.sch)
+        if got != board.sheets:
+            failures.append(f"the sheet decomposition is wrong: the root sheet "
+                            f"has {got}, expected {board.sheets}")
 
     # -- sheet geometry -----------------------------------------------------
     hits = find_overlaps(placed)
@@ -592,7 +617,22 @@ REV0 = Board(
     passthrough=[("J1", "J2", range(1, 41), set())],
 )
 
-BOARDS = [FLOPPY, REVA, REV0]
+# o1next-LFF, the 1:1 mainboard replacement (#49).  A block-level skeleton: the
+# sheets and their design notes are the whole design so far, so the invariant
+# asserted here is the decomposition itself (the root sheet's `Sheetname` set)
+# rather than a netlist with no components in it.  The board is recorded as
+# "won't build" (maintainer, 2026-10-19) and the skeleton stays covered anyway,
+# because hardware/README.md's register lists it and this tool has to agree with
+# that list -- tools/check_boards.py is the check that they do.
+LFF = Board(
+    name="lff",
+    sch="hardware/o1next/o1next-lff/o1next-lff.kicad_sch",
+    gen="hardware/o1next/o1next-lff/gen_lff_sch.py",
+    erc_allowance={},
+    sheets=["cpu_mem", "video", "floppy", "io", "keyboard", "power", "clock"],
+)
+
+BOARDS = [FLOPPY, LFF, REVA, REV0]
 
 
 def check_reference_tables() -> list:
