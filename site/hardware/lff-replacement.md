@@ -1,11 +1,13 @@
 ---
 layout: page
-title: LFF replacement board
+title: LFF board (won't build)
 subtitle: A 1:1 mainboard for an OCC1 or OCC1A chassis
 ---
 
-**Status:** block-level KiCad skeleton generated. Concept.
-Tracks **#49** (Phase 5). Source: `hardware/o1next/o1next-lff/`.
+**Status:** block-level KiCad skeleton generated. **Won't build** — decided by the
+maintainer on 2026-10-19; the stub is kept for the record. Concept.
+Tracks **#49** (Phase 5). Source: `hardware/o1next/o1next-lff/`. Board register:
+[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
 

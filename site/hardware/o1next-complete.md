@@ -1,12 +1,13 @@
 ---
 layout: page
-title: Complete O1NEXT
+title: O1NEXT Complete (the machine)
 subtitle: The whole machine, case included
 ---
 
 **Status:** concept render exists. Tracks **#49** and **#52** (Phase 5), plus
 **#125** (the Osborne 3 history) and **#128** (the specification). Source:
-`hardware/o1next/`, `docs/design/`.
+`hardware/o1next/`, `docs/design/`. Board register:
+[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
 
@@ -26,7 +27,7 @@ O1NEXT's foundation:
 
 | Board | What it is | Is it the O1NEXT? |
 |---|---|---|
-| [LFF board]({{ '/hardware/lff-replacement/' | relative_url }}) | A **1:1 mainboard replacement** for a real **OCC1 or OCC1A** chassis — same footprint, same connectors, same mounting holes, Z80 left socketed so the interposer stays the upgrade path | **No** — this is the *restoration path* |
+| [LFF board]({{ '/hardware/lff-replacement/' | relative_url }}) | A **1:1 mainboard replacement** for a real **OCC1 or OCC1A** chassis — same footprint, same connectors, same mounting holes, Z80 left socketed so the interposer stays the upgrade path | **No** — this is the *restoration path*, and it **won't build** (2026-10-19) |
 | [SFF board]({{ '/hardware/sff-integrated/' | relative_url }}) | A **fully integrated board**: the interposer's personalities designed in as firmware. **Not a 1:1 swap, and it does not try to be** — it can go in a real chassis or into any other design, up to the end user | **Yes** — this is what the O1NEXT is built on |
 
 The two boards share the **USB-C PD power architecture**, with the optional 4S

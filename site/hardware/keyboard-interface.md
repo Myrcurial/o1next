@@ -1,11 +1,13 @@
 ---
 layout: page
-title: USB keyboard interface
+title: O1NEXT USB Keyboard Adapter
 subtitle: A modern USB keyboard on the Osborne 1's own keyboard connector
 ---
 
 **Status:** reference design defined; spec validation pending.
 Tracks **#47** (split out of #45). Source: `hardware/usb-keyboard-adapter/`.
+Board register:
+[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
 
