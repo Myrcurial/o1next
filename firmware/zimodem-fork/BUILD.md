@@ -110,7 +110,7 @@ o1next>
 | `status` | version and build time, MAC, the pins in use, what GPIO0 reads right now, the running slot and the slot an update would go to, uptime, heap |
 | `reboot` | `esp_restart()` — back into the application |
 | `bootloader` | the ROM's download mode, with **no button** (below) |
-| `update` | the hook for the OTA path; nothing is received yet (#334, item 2) |
+| `update <bytes>` | receive an application image of that many bytes into the inactive slot, verify it, and reboot into it (below) |
 | `help` | the list, and the note that this is not the modem's port |
 
 `tools/console-o1next.py` is the writing half of `tools/read-console.py`:
@@ -167,6 +167,86 @@ The evidence, on the board:
   point of the command, and it is the loop our PCB will need.
 - `status` while the chip is in the ROM's stub → silence, which is what a dead
   application looks like from here.
+
+#### `update` — the firmware updates itself
+
+The second slot has existed since the partition scheme changed to `min_spiffs` and
+nothing used it. `update` uses it: the application image arrives on this console,
+goes into the **inactive** slot, is verified there, otadata is pointed at it, and
+the board reboots into it. No cable moved, no button, no download mode — and
+`bootloader` above is what is still there if the new image does not come up.
+
+**The artifact is the application `.bin`** (`zimodem.ino.bin`, 1,052,992 bytes) and
+never the merged image: an OTA must not write the bootloader and the partition
+table, because they are what is doing the writing. The fork's CI already uploads
+it, so it is one step from a release asset.
+
+```sh
+tools/update-o1next.py '/dev/cu.usbmodem*' build/o1next-s2/zimodem.ino.bin
+```
+
+##### The protocol, and why it is one ack byte per chunk
+
+The USB CDC's receive queue is **256 bytes deep** (`USBCDC.cpp` — the default in
+`setRxBufferSize`), and a flash write stalls the console's loop for tens of
+milliseconds while a 4 KB sector is erased. A sender that pushes a megabyte as fast
+as the port takes it overruns that queue, and an overflowed queue **drops bytes
+silently**. So the sender waits for one byte per chunk and is never more than one
+chunk ahead; while the flash is being written the sender is idle and the queue is
+empty. The acknowledgement *is* the progress — `.` per chunk, and nothing else is
+printed during a transfer — and a chunk is one flash sector, 4096 bytes.
+
+```
+ready: send 1052992 bytes in 4096-byte chunks, one ack byte each
+   32/258 chunks, 131072 of 1052992 bytes, 3.0 s
+   ...
+   258/258 chunks, 1052992 of 1052992 bytes, 24.4 s
+1052992 bytes in 258 chunks, verifying
+update ok: written, verified, and otadata now points at it
+```
+
+1,052,992 bytes in **24.4 s**, about 43 KB/s, measured 2026-10-19 — and then the
+board is running the new image, which `status` reports as the other slot with a new
+build time. Both directions were measured, app0 → app1 and back.
+
+##### A failed transfer is not a brick
+
+`Update.end()` verifies the image before it touches otadata, so every failure ends
+with the running slot still running, and the console says so:
+
+| what went wrong | what the board said |
+|---|---|
+| truncated image (600,000 of 1,052,992 bytes) | `update failed: Could Not Activate The Firmware -- the running slot is untouched` |
+| the sender died mid-chunk | `update failed: 0 of 4096 bytes of a chunk arrived in 5000 ms` |
+| `update`, `update abc`, `update 0`, `update 99999999` | each refused in its own sentence, naming the inactive slot and its size |
+
+After the truncated image, `status` still read `running app0, built 17:56:57` with
+an unbroken uptime. That is the property the whole thing rests on.
+
+##### Two things learned by doing it
+
+- **A bare CR was being swallowed by the console.** "A terminator after a terminator
+  is the second half of a CRLF" also swallows a bare CR, so pressing Enter after a
+  command printed nothing — and `update-o1next.py` asks for a prompt by sending
+  exactly that. It now swallows a terminator only when it is the *other* one from
+  the one that ended the line: CRLF is one line, two Enters are two lines.
+- **The board erases the inactive slot before it says ready.** `esp_ota_begin()`
+  erases the whole partition, and 1.875 MB of flash takes seconds, so the sender
+  waits for the word `ready` and not for a newline: the echo of the command is a
+  line too, and it arrives first.
+
+**And a property worth keeping:** an OTA keeps what a full-chip flash throws away.
+SPIFFS survives it, so the modem's stored config and phonebook do — visible as the
+absence of `SPIFFS Formatted.` in the boot banner after an update.
+
+##### Still open: the same thing over WiFi
+
+`update` takes a byte count, so the cable is still the wire. Taking a URL instead —
+`WiFiClient` streaming into the same verified write path — is what makes the cable
+unnecessary, and it reuses this slot handling, this verification and these failure
+semantics. It needs an SSID and a password to test against, which is why it is a
+separate step rather than a hopeful one.
+
 
 #### Two things the console does that look like bugs
 
