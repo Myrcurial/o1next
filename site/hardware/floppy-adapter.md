@@ -1,7 +1,7 @@
 ---
 layout: page
-title: O1NEXT Floppy Adapter
-subtitle: A switchable Gotek / physical-drive daughter card
+title: floppy-adapter
+subtitle: O1NEXT Floppy Adapter — a switchable Gotek / physical-drive daughter card
 ---
 
 **Status:** design settled; **the Floppy Adapter's Rev A schematic captured**,
@@ -58,5 +58,5 @@ trusting a prior adapter's transcription.
 
 - Footprint and routing review, then fabrication.
 - The front-panel switch wiring, which is also the point at which this card and
-  the [control pod]({{ '/hardware/interposer/' | relative_url }}) have to agree on
+  the [control pod]({{ '/hardware/interposer-upgrade/' | relative_url }}) have to agree on
   a physical interface.

@@ -164,6 +164,11 @@ deliberately not a 1:1 swap, and it is the one that is the O1NEXT proper: the
 interposer's capabilities grafted in rather than stacked on, an 8-inch panel,
 turbo, the lot.
 
+> *(Added 2026-10-19: the 1:1 mainboard replacement is **not planned**. It was
+> sketched — the LFF board, L-shaped with four screws — and then dropped as a
+> deliverable, so the physical O1NEXT is one board, the SFF. The board register is
+> `hardware/README.md`.)*
+
 Which means the honest split looks like this:
 
 | | `osborne1nx` in MAME | physical O1NEXT |

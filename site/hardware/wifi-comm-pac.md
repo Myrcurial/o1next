@@ -1,12 +1,12 @@
 ---
 layout: page
-title: O1NEXT WiFi COMM PAC
-subtitle: A Hayes-compatible modem that plugs into the machine's own MODEM port
+title: wifi-comm-pac
+subtitle: O1NEXT WiFi COMM PAC — a Hayes-compatible modem on the machine's own MODEM port
 ---
 
 **Status:** concept; the P1 pinout and levels are documented.
 Tracks **#56** (an extension of **#21**); the physical interface is #57.
-Source: `hardware/wifi-modem-module/`. Board register:
+Source: `hardware/wifi-comm-pac/`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
@@ -54,4 +54,4 @@ as original kit rather than a modern dongle.
   close enough to need the answer. The expected resolution is cheap — a bulk
   capacitor absorbs the WiFi transmit transients, and R21 only has to supply the
   average. R21 is shared with the [USB keyboard interface]({{
-  '/hardware/keyboard-interface/' | relative_url }}).
+  '/hardware/keyboard-adapter/' | relative_url }}).

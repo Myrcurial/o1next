@@ -1,24 +1,25 @@
 ---
 layout: page
-title: O1NEXT Integrated (the SFF board)
-subtitle: One board, no interposer, the whole machine
+title: next-integrated
+subtitle: O1NEXT Integrated — the SFF board: one board, no interposer, the whole machine
 ---
 
-**Status:** concept. **No directory in the tree yet** — #49 makes it.
-Tracks **#49** (Phase 5). Source: `hardware/o1next/`. Board register:
+**Status:** concept; the directory exists and the spec is in it. **No schematic
+yet** — #49 is the issue that produces one.
+Tracks **#49** (Phase 5). Source: `hardware/next-integrated/`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
 
 The **SFF board** — the foundation of the O1NEXT. A **fully integrated
-board**: everything the [interposer]({{ '/hardware/interposer/' | relative_url }})
+board**: everything the [interposer]({{ '/hardware/interposer-upgrade/' | relative_url }})
 does, designed in as firmware rather than plugged in.
 
-**It is not a 1:1 swap, and it does not try to be.** The
-[LFF board]({{ '/hardware/lff-replacement/' | relative_url }}) is the board that
-drops into a real chassis. This one can go into a real chassis **or** into any
-other design — up to the end user. Nothing about it is constrained by a 1982
-footprint.
+**It is not a 1:1 swap, and it does not try to be.** This board can go into a real
+chassis **or** into any other design — up to the end user. Nothing about it is
+constrained by a 1982 footprint. (A 1:1 mainboard replacement, which *would* be
+constrained that way, is possible if a chassis ever needs restoring and is not
+planned — see *Not boards* in the register.)
 
 **The [O1NEXT]({{ '/hardware/o1next-complete/' | relative_url }}) is this board with
 the rest of the machine wrapped around it.**
@@ -27,11 +28,12 @@ the rest of the machine wrapped around it.**
 
 Because they answer different questions:
 
-- The **LFF board** preserves a machine. It is the repair and restoration path,
-  and it keeps the interposer as the upgrade.
-- The **SFF board** is the *new* machine. It can be smaller, cheaper, and faster
-  than an Osborne 1 with an interposer in it, and it does not need a 40-year-old
-  CPU socket to work.
+- The **[interposer]({{ '/hardware/interposer-upgrade/' | relative_url }})** is
+  the *precursor*: the same capability on a board that plugs into a real machine,
+  and it keeps the upgrade path open for anyone who wants it.
+- This board is the *new* machine. It can be smaller, cheaper, and faster than an
+  Osborne 1 with an interposer in it, and it does not need a 40-year-old CPU
+  socket to work.
 
 ## What it adds over the original
 
@@ -62,8 +64,8 @@ The two USB-A ports are fixed function on purpose — neither is a general-purpo
 host, so neither needs a hub, a driver stack or a negotiation story.
 
 **No composite.** The board carries none of the analogue driver circuitry, so
-there is no composite output to offer at all — that discrete chain is the
-[LFF board]({{ '/hardware/lff-replacement/' | relative_url }})'s job.
+there is no composite output to offer at all — that discrete chain is an OEM
+mainboard's job.
 
 **No MODEM port (P1).** P1 is a TTL tap onto the same 6850 ACIA the RS-232 port
 uses, and the modem is a firmware personality now — so the physical port has
@@ -82,5 +84,5 @@ if period software cannot tell it apart from an Osborne 1, it is finished.
 ## Still to do
 
 Everything, past the concept. The block diagram comes first, then connector
-placement for the complement above — and unlike the LFF board, there is **no
-footprint to inherit**: the end user decides what this board goes into.
+placement for the complement above — and there is **no footprint to inherit**:
+the end user decides what this board goes into.

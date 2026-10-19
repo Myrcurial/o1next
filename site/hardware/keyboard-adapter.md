@@ -1,11 +1,11 @@
 ---
 layout: page
-title: O1NEXT USB Keyboard Adapter
-subtitle: A modern USB keyboard on the Osborne 1's own keyboard connector
+title: keyboard-adapter
+subtitle: O1NEXT USB Keyboard Adapter — a modern USB keyboard on the Osborne 1's own connector
 ---
 
 **Status:** reference design defined; spec validation pending.
-Tracks **#47** (split out of #45). Source: `hardware/usb-keyboard-adapter/`.
+Tracks **#47** (split out of #45). Source: `hardware/keyboard-adapter/`.
 Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
@@ -44,7 +44,7 @@ There are three ways to feed it, and the third is the one to use:
 
 One PCB serves all three through a power-source jumper. Both loads share R21 if
 the WiFi modem is also fitted — see [External WiFi modem]({{
-'/hardware/external-modem/' | relative_url }}).
+'/hardware/wifi-comm-pac/' | relative_url }}).
 
 ## Still to confirm on a real machine
 
