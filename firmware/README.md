@@ -2,8 +2,8 @@
 
 Firmware deliverables for the o1next project, one folder per
 component. Three target platforms: **RP2354B** (the
-interposer), **ESP32** (WiFi modem, shared between the severable module
-and the interposer-onboard option), and **RP2040** (keyboard matrix
+interposer), **ESP32-S2** (WiFi modem, shared between the severable module
+and the interposer/SFF onboard option), and **RP2040** (keyboard matrix
 injection, shared between the standalone adapter and the KVM/second-
 keyboard path).
 
@@ -24,7 +24,7 @@ See `software/` for code that runs on the Osborne itself (CP/M) and
 | `kvm-console/` | RP2354B + RP2040 | Web KVM: video snoop (reuses screenpac-video) + keyboard matrix injection (reuses keyboard-matrix) | #45 | Medium (composition) |
 | `copower88-shim/` | RP2354B | Virtual CoPower-88: 8088 emulation + host mailbox protocol so SWP software runs without the physical board | #23, #3-#5 | Hardest; sequence last |
 | `web-ui/` | RP2354B | C64 Ultimate-style HTTP interface: image library, modem, printer PDFs, status, control | #16, #27 | Medium |
-| `zimodem-fork/` | ESP32 | Zimodem fork: Hayes/telnet baseline + SSH + double-sided baud-rate buffer | #21, #56 | Medium (fork-and-extend) |
+| `zimodem-fork/` | ESP32-S2 | Zimodem fork — **`Myrcurial/Zimodem@o1next`**, forked from upstream `a534e512`: Hayes/telnet baseline + SSH + the double-sided baud-rate buffer, O1-side rate detection, and the "feel" rate | #21, #56, #317–#326 | Medium (fork-and-extend) — **the fork is up, the work list is #317–#326, nothing is built yet** |
 | `keyboard-matrix/` | RP2040 | TinyUSB HID host → 8×8 matrix injection; shared by the standalone adapter, KVM, and front-panel USB port | #47, #45, #14 | Easy-medium |
 | `rom-ident/` | RP2354B (host-testable) | Identify the fitted ROM at boot by CRC32 (table generated from `docs/o1-rom-variants.md`) and gate the personalities on it: refuses Drive C / printer under OZROM 1E, degrades video to a warning | #86 | Gate + table done and tested; the socket read needs a board |
 | `rom-service/` | RP2354B | The ROM↔interposer channel: the **ROM-service** command class (`PRESENT`, `INFO`) on **two doors** — userland I/O `0E7h`/`0EBh`, and the ROM's own bank-2 pair `2800h`/`2801h` (**not** `2300h`/`2301h`, which is the floppy's track register and the keyboard's row 0) — and the boot screen in the RP2354B's own flash: `boot-animation.bin`, the animation the **RP2354B plays itself** | #247, #277, #278, #284 | Easy-medium — the class is **built and host-tested** (`run_tests.sh`, CI) on the engine in `firmware/library/`; the contract is `docs/rom-pico-protocol.md`, and the renderer that draws the animation is #277's. The animation is not generated in-repo, and `bootanim.py --check` is its format check. The ROM-side frame path — `PRESENT(1)`/`(2)`/`(3)`, and the committed `frame.bin` and `screen.bin` — was retired 2026-10-16/17 (#278) |
@@ -55,9 +55,12 @@ work and a known-good test suite — these personalities are pure win.
   them. (Corrected 2026-10-15: this section named the module's radio part, which
   is a module we no longer fit.)
 - **One modem codebase:** the ESP32 Zimodem fork serves both the severable module
-  and the interposer's onboard ESP32. **The variant is not yet chosen** — C3, C5
-  (dual band) or S3/S3A (SSH headroom) — and the decision needs the modem's own
-  requirements written down first; see #21, #56 and
-  `hardware/interposer-upgrade/README.md`.
+  and the interposer/SFF onboard ESP32. **The part is chosen: ESP32-S2** (#317,
+  2026-10-19) — it is the variant whose auto-baud pulse counter is **20-bit**
+  (floor ≈ 76 baud), where the C3 and S3 are **12-bit** (floor ≈ 9600) and cannot
+  see the machine's 300/1200/2400 at all. **One codebase, two roles:** the
+  machine's own ACIA in role A, the RP2354B's served ACIA window in role B
+  (#323) — and role B is the same arrangement for the interposer and the SFF. See
+  #21, #56 and `hardware/interposer-upgrade/README.md`.
 - **Level shifting** is a hardware concern (74AHCT/HCT) — firmware
   assumes clean 3.3 V logic at the RP2354B pins.
