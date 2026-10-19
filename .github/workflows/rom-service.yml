@@ -1,0 +1,64 @@
+name: rom-service check
+
+# The ROM service -- the ROM's own class of the mailbox protocol -- is
+# host-testable C with no board and no SDK: the class, the engine it plugs into and
+# the payload it presents are plain C99 plus stdio, so the whole thing is a
+# seconds-long compile and run.  Same shape as the library and rom-ident jobs.
+#
+# What it buys: the door's transaction, the result codes, the retired content ids
+# and the payload the module hands page 1 are replayed through a host-side client,
+# so a change to any of them fails here rather than in a MAME session three days
+# later.  It is also the harness the emulator's softrom_device is retired against
+# (docs/emulation-testbed.md, Gate D) -- the checks romservice-check.sh makes are
+# the ones this suite makes, on the host.
+#
+# The payload is not a fixture: the job assembles it from the repo's own archive
+# with tools/research/rom2image.py, the same command romservice-check.sh runs for
+# the emulator's -softrom image.  So the archive files are triggers too -- a
+# changed shipped disk is a changed payload.
+
+on:
+  push:
+    paths:
+      - 'firmware/rom-service/**'
+      - 'firmware/library/mailbox.[ch]'
+      - 'firmware/library/library.[ch]'
+      - 'firmware/library/media.h'
+      - 'tools/research/rom2image.py'
+      - 'tools/research/imdinfo.py'
+      - 'tools/cpmfs.py'
+      - 'research/roms/**'
+      - 'research/shipped-software/**'
+      - 'research/adaptec/**'
+      - '.github/workflows/rom-service.yml'
+  pull_request:
+    paths:
+      - 'firmware/rom-service/**'
+      - 'firmware/library/mailbox.[ch]'
+      - 'firmware/library/library.[ch]'
+      - 'firmware/library/media.h'
+      - 'tools/research/rom2image.py'
+      - 'tools/research/imdinfo.py'
+      - 'tools/cpmfs.py'
+      - 'research/roms/**'
+      - 'research/shipped-software/**'
+      - 'research/adaptec/**'
+      - '.github/workflows/rom-service.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: ROM service host tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Host tests (the class, both doors, and the payload rom2image.py builds)
+        run: firmware/rom-service/run_tests.sh -v
+
+      - name: shellcheck the test runner
+        run: shellcheck -S warning firmware/rom-service/run_tests.sh
