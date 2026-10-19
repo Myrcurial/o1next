@@ -32,9 +32,9 @@ its folder, and its page here.
 
 - [`o1next-complete`]({{ '/hardware/o1next-complete/' | relative_url }}) — **the
   machine**, and **hardware**: chassis CAD, print STLs and an assembly BOM for
-  [`next-integrated`]({{ '/hardware/next-integrated/' | relative_url }}), plus the
-  machine's own **QMK-compatible keyboard PCB** in the Osborne 1 layout. It is not
-  a board, so it is not a row above — it has its own folder and page.
+  [`next-integrated`]({{ '/hardware/next-integrated/' | relative_url }}), with its
+  own QMK / Cherry-MX keyboard incidental to it. Not a board, so not a row above —
+  it has its own folder and page.
 - **An LFF (large form factor) 1:1 mainboard** — a faithful OCC1/OCC1A
   replacement, with the Z80 left socketed so the interposer stays the upgrade path.
   It is **possible** if a chassis ever needs restoring, and it is **not planned,

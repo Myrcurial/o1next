@@ -20,8 +20,8 @@ in `tools/check_schematics.py`. The register, with the state of each one, is
 
 `O1NEXT Complete` (the machine) is the `next-integrated` board with a case, a
 screen, a battery pack and a keyboard — **hardware, but not a board**: chassis CAD,
-print STLs, an assembly BOM, and the machine's own QMK-compatible keyboard PCB
-(`hardware/o1next-complete/`). An LFF 1:1 mainboard is *possible* if a chassis ever
+print STLs, an assembly BOM and its own QMK / Cherry-MX keyboard, all in
+`hardware/o1next-complete/`. An LFF 1:1 mainboard is *possible* if a chassis ever
 needs restoring, and is not planned.
 
 

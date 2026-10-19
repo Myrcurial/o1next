@@ -22,8 +22,14 @@ because it is CAD and a BOM, not a PCB.
 | **Chassis CAD** | the render and outline, `docs/design/o1next-lunchbox-concept.*` (#53) |
 | **Print STLs** | the printable chassis and keyboard-mounting parts, *to produce* (#52) |
 | **Assembly BOM** | board, 8" panel, 18650 pack, keyboard, fasteners — *to produce* (#52) |
-| **The keyboard PCB** | a **custom USB keyboard, QMK-compatible, in the Osborne 1 layout** |
 | **The board inside it** | [`next-integrated`]({{ '/hardware/next-integrated/' | relative_url }}) |
+
+The machine's **keyboard is incidental to the design**, not a board of its own: a
+custom USB keyboard — **QMK-compatible**, **Cherry MX**, in the **Osborne 1
+layout** — so the machine keeps the O1's layout, keycaps and "keyboard seals the
+unit" geometry. It shares its 8×8 matrix work with the [USB keyboard interface]({{
+'/hardware/keyboard-adapter/' | relative_url }}) (#47), and it is part of this
+machine's CAD work (#52) rather than a folder of its own.
 
 ## What it is
 
