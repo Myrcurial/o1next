@@ -111,6 +111,9 @@ o1next>
 | `reboot` | `esp_restart()` — back into the application |
 | `bootloader` | the ROM's download mode, with **no button** (below) |
 | `update <bytes>` | receive an application image of that many bytes into the inactive slot, verify it, and reboot into it (below) |
+| `update <url>` | fetch that image over HTTP instead: the board does the work, the network carries it (below) |
+| `update-at-boot <url>` | arm **one** fetch for the next boot, so an update needs no cable at all; `off` cancels |
+| `wifi` / `wifi <ssid> <password>` | report the network, or join one and save it (2.4 GHz only — that is the radio) |
 | `help` | the list, and the note that this is not the modem's port |
 
 `tools/console-o1next.py` is the writing half of `tools/read-console.py`:
@@ -239,45 +242,116 @@ an unbroken uptime. That is the property the whole thing rests on.
 SPIFFS survives it, so the modem's stored config and phonebook do — visible as the
 absence of `SPIFFS Formatted.` in the boot banner after an update.
 
-##### Still open: the same thing over WiFi
+##### The same thing over WiFi — done, and the lab it talks to
 
-`update` takes a byte count, so the cable is still the wire. Taking a URL instead —
-`WiFiClient` streaming into the same verified write path — is what makes the cable
-unnecessary, and it reuses this slot handling, this verification and these failure
-semantics.
+`update` also takes a URL, and that is the half that needs no cable: the board does
+the fetching, the network carries it, and nothing is sent down the console.
 
-**The server half exists and is tested.** `tools/ota-server-o1next.py` serves the
-application image, stdlib only, with the properties the firmware will need from it:
-`Content-Length` always (so `Update.begin(size)` can refuse an image that cannot fit
-*before* a byte is written), the whole file on one GET, a 404 for anything else, a
-single range for debugging by hand, and a log line per transfer with the bytes and
-the rate in it.
-
-```sh
-tools/ota-server-o1next.py build/o1next-s2/zimodem.ino.bin
+```
+o1next> update http://192.168.2.1:8080/zimodem.ino.bin
+update: GET http://192.168.2.1:8080/zimodem.ino.bin
+        1060384 bytes in 8798 ms
+update ok: written, verified, and otadata now points at it
 ```
 
-Two things this machine imposes, both measured rather than assumed, and either one
-would otherwise look like a broken board:
+1,060,384 bytes in **8.8 s** — about 222 KB/s at the listener — and the board is
+running `app1` afterwards. The three failure modes are the console path's, because
+both feeders end in the same `o1nextOtaFinish()`: a 404 answers *"the server answered
+404, not 200 -- nothing was written"*, an unreachable host *"could not reach"*, and a
+truncated image *"Could Not Activate The Firmware -- the running slot is untouched"*.
+After each of them `status` still read the same slot and the same build time.
 
-- **The application firewall drops incoming connections to it.** Loopback serves
-  fine; the interface address *hangs* — curl exit 28, nothing in any log. The
+**What the server has to send, and why the listener is built for it: a
+`Content-Length`.** `Update.begin(size)` wants the size before a byte is written — it
+is what refuses an image that cannot fit the slot — so a chunked answer is refused
+rather than guessed at. Plain `http://` only: there is no trust store on this board,
+and an update over an unverified connection is not a thing to do quietly.
+
+###### `wifi`, and the one upstream change the console needed
+
+```
+o1next> wifi o1next <password>
+wifi: joining "o1next"
+      connected: ip 192.168.2.2, gw 192.168.2.1, rssi -45 dBm, channel 6
+      saved -- it will rejoin this network on the next boot
+```
+
+The modem's own `AT*SSID`/`AT*PASS` already do this, over the O1 side — but the O1
+side needs a machine on the other end of it, and a board on a bench has none. So the
+console does it too, and saves through the **same config file**
+(`commandMode.reSaveConfig()`), which is why that one declaration moved from private
+to public in `zcommand.h`. The alternative was a second file of our own, and two
+places that can hold an SSID is how a board ends up on the wrong network.
+
+**`update-at-boot <url>` is what makes "no cable" reachable.** Arm it while the
+console is attached, then power the board from anything and it updates itself:
+
+```
+update-at-boot: armed for "http://192.168.2.1:8080/zimodem.ino.bin"
+        the next boot fetches it once, over the network, with nothing
+        plugged in -- and `update-at-boot off` cancels it
+```
+
+Measured with nothing attached to the board: the listener logged the board's fetch,
+the board came up on the other slot with the new build time, and `update-at-boot`
+then said `nothing armed`. The URL is cleared **only after a fetch that verified**,
+and before the reboot — so a board that cannot reach the network keeps the
+instruction and tries again next boot, and one that succeeds does not loop.
+
+###### The harness: HTTP, telnet and SSH
+
+The modem's job is telnet and SSH, and the OTA's is HTTP, so the fixture is all
+three, from one command, with one log and the peer address on every line:
+
+```sh
+tools/harness-o1next.py build/o1next-s2/zimodem.ino.bin
+```
+
+| | |
+|---|---|
+| **HTTP :8080** | the image (for `update <url>`) and `/hello.txt` |
+| **telnet :2323** | BBS-shaped: IAC negotiation, banner, echo, `quit`. This is what the modem dials |
+| **SSH :2222** | the system's `sshd`, as this user, with a key of its own in `~/.o1next-harness-ssh` — nothing in `~/.ssh` is touched |
+
+`tools/ota-server-o1next.py` remains the same HTTP listener without the other two: a
+quiet log is worth something when the thing being watched is a 1 MB transfer.
+
+**The SSH listener needs no sudo and no new dependency** — `sshd` runs on a high port
+as an ordinary user (measured) — at the price of **key auth only**, since a non-root
+sshd cannot read the shadow file. That is the right price here: key auth is #321's
+work, and it is written down as a limit rather than discovered later.
+
+All three are verified from the Mac: the image, `/hello.txt` and a 404 over the **AP
+interface** (where the firewall matters), telnet negotiated and echoed and hung up on
+`quit`, and ssh running a command with the harness key.
+
+###### Two things this machine imposes, and one it does not
+
+- **The application firewall drops incoming connections to a listener.** Loopback
+  serves fine; the interface address *hangs* — curl exit 28, nothing in any log. The
   firewall is on with *"automatically allow built-in signed software"* enabled, so
   serving with **`/usr/bin/python3`** (Apple-signed, 3.9.6) works where the Homebrew
   `python3` does not: same file, same port, 200 against a timeout. The other fix
   needs sudo (`socketfilterfw --add/--unblockapp`) and is not needed.
 - **The board can only join a 2.4 GHz network.** The ESP32-S2 is a 2.4 GHz part —
   [`hardware/wifi-comm-pac/pinmap.md`](../../hardware/wifi-comm-pac/pinmap.md) is
-  where the module and its antenna live — so whatever provides the access point has
-  to be on a 2.4 GHz channel.
+  where the module and its antenna live. `status` and `wifi` report the channel, so
+  this is checked rather than assumed: the bring-up board joined on **channel 6**.
+- **The Mac as an access point is `Internet Sharing`**, and it works: `bridge100` at
+  `192.168.2.1/24`, the board at `192.168.2.2`, and the machine's own path untouched
+  (its default route stayed on `en0`). On macOS 27 the old
+  `com.apple.nat.plist`/`launchctl kickstart` recipe does not apply — the daemon is
+  `InternetSharing`, its config is `com.apple.InternetSharing.default.plist`, and the
+  UI is what writes it.
 
-What is still missing is the firmware half, and it is missing on purpose: it cannot
-be tested without a network for the board to join, and an untested network path is
-how afternoons get spent. When there is one, the work is `update <url>`: a GET with
-`WiFiClient`, the body streamed in 4 KB chunks into `Update.write()`, and the console
-free to print progress — because over TCP nothing has to *be* the acknowledgement
-channel, which is the one part of the console path that will not be reused.
+###### Still open: driving the modem's own telnet
 
+The harness has a telnet server, and nothing on the board can dial it yet. The
+modem's command interface is on the **O1 side** (UART1), and this board has no
+machine on the other end of it, so `ATDT` cannot be typed at anything. `ZStream` is a
+`ZMode` but not a `Stream`-parameterised one, so the fix is #323's shape — the
+console as a `Stream` — rather than a switch to flip. That, and #321's key auth
+against the harness's sshd, are what the fixture is waiting for.
 
 #### Two things the console does that look like bugs
 
@@ -348,17 +422,21 @@ by `O1NEXT_BOARD`, which `zimodem.ino` defines for this fork. Upstream has no S2
 profile: its chain covers the C3 and the S3 and then falls through to *"standard
 ESP32 4 & 8MB boards"*, whose pins are not ours.
 
-**The diff to upstream's `zimodem.ino` is 53 added lines and 2 modified**, measured
-against upstream `a534e51` with `git diff --numstat`. (An earlier version of this
-paragraph said *"eight added lines and no modified ones"*, and both halves of that
-were wrong by the time #334 landed — the notice and the CDC half of `debugPrintf`
-are lines too, and the two fixed arrays are upstream lines that changed.) The added
-ones are a modification notice (Apache-2.0 §4(b)), the define, the two-line branch,
-the CDC half of `debugPrintf`, the notice above the two fixed arrays, and the
-console's one call from `loop()`. The two modified are the `pinSupport[]` and
-`pinCache[]` declarations, which gained their padding in #334. The fork's own files
-— `o1next.h`, `o1next_console.h`, `o1next_console.ino` — are new, so they cost a
-future merge from upstream nothing.
+**The diff to upstream is 53 added lines and 2 modified in `zimodem.ino`**, plus **13
+added and 1 modified in `zcommand.h`** — measured against upstream `a534e51` with
+`git diff --numstat`. (An earlier version of this paragraph said *"eight added lines
+and no modified ones"*, and both halves of that were wrong by the time #334 landed —
+the notice and the CDC half of `debugPrintf` are lines too, and the two fixed arrays
+are upstream lines that changed.) In `zimodem.ino` the added ones are a modification
+notice (Apache-2.0 §4(b)), the define, the two-line branch, the CDC half of
+`debugPrintf`, the notice above the two fixed arrays, and the console's one call from
+`loop()`; the two modified are the `pinSupport[]` and `pinCache[]` declarations, which
+gained their padding in #334. In `zcommand.h` the one modified line is
+`reSaveConfig()`, moved from private to public with a notice saying why: it is the
+only thing that writes the config file, and the console is a second front end to that
+config, on the USB port rather than the O1 side. The fork's own files — `o1next.h`,
+`o1next_console.h`, `o1next_console.ino` — are new, so they cost a future merge from
+upstream nothing.
 
 The profile also carries the feature switches for a board with no SD card:
 `INCLUDE_SD_SHELL` off, and with it `INCLUDE_HOSTCM` and `INCLUDE_COMET64`, which
