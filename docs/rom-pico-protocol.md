@@ -15,6 +15,11 @@ Answers **#247 step 8**. Reads alongside `docs/mailbox-protocol.md` (the
 `docs/o1-rom-2.0.md` §4.1b, §4.6, §4.9 and §8, `docs/o1-memory-io-map.md` §4 and
 §7, and `docs/virtual-peripherals-block-diagram.md` §2–§3.
 
+> **Vocabulary:** `Rev B` in this document is the **interposer's** Rev B — the
+> `O1NEXT Upgrade`'s production revision (`hardware/interposer/revb/README.md`).
+> The `rev B` of the *Osborne ROM* is a different thing entirely
+> (`docs/o1-rom-read-from-machine.md`); the register is `hardware/README.md`.
+
 ## 1. What this is, and what it is not
 
 The **ROM's** way to ask the Pico for something. `docs/mailbox-protocol.md`

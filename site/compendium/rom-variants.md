@@ -9,6 +9,10 @@ draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`.
 hold are identified by CRC32 and cross-referenced against MAME; the open
 questions at the end are the work that remains.
 
+> **Vocabulary:** `rev B` here is the **Osborne 1's monitor ROM** (9/12/81) — a
+> 1979-era ROM part, **not a board revision**. Board revisions belong to the
+> boards; see [[`hardware/README.md`](https://github.com/Myrcurial/o1next/blob/main/hardware/README.md)](../hardware/README.md).
+
 The machine has two ROM sockets in play:
 
 | Socket | Package | Size | Role |

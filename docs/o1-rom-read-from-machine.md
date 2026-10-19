@@ -8,6 +8,11 @@ like so the answer is unambiguous.
 
 Nothing here writes to a diskette. Every route below is read-only on the media.
 
+> **Vocabulary:** `rev B` in this document is the **Osborne 1's monitor ROM**
+> (9/12/81, the `OCCROM0B` lineage) — it is **not a board revision**. Board
+> revisions in this project belong to the boards; the register and the naming rule
+> are in [`hardware/README.md`](../hardware/README.md).
+
 ## 1. First, the free answer: read the *upper* line of the sign-on
 
 The sign-on has two lines and **they are framed by different video escapes** —

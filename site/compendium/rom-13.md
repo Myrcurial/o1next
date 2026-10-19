@@ -10,6 +10,10 @@ the ROM is **reconstructible but not yet certified**, and the blocker is a
 *missing assembler*, not the source. Everything needed to finish it is in this
 repo or named below.
 
+> **Vocabulary:** `rev B` here is the **Osborne 1's monitor ROM** (9/12/81) — a
+> 1979-era ROM part, **not a board revision**. Board revisions belong to the
+> boards; see [[`hardware/README.md`](https://github.com/Myrcurial/o1next/blob/main/hardware/README.md)](../hardware/README.md).
+
 MAME carries BIOS A, 1.2, 1.2.1 and 1.3 as `NO_DUMP` placeholders, so
 `mame osborne1 -bios ver13` cannot run. We hold the 1.3 **source disk** —
 [`research/source-code/OSROM13.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OSROM13.IMD), whose own comment reads
