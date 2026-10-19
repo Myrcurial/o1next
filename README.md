@@ -15,12 +15,14 @@ in `tools/check_schematics.py`. The register, with the state of each one, is
 | `keyboard-adapter` | O1NEXT USB Keyboard Adapter | [`hardware/keyboard-adapter/`](hardware/keyboard-adapter/) |
 | `wifi-comm-pac` | O1NEXT WiFi COMM PAC | [`hardware/wifi-comm-pac/`](hardware/wifi-comm-pac/) |
 | `drive-c-repro` | O1NEXT Drive C Repro | [`hardware/drive-c-repro/`](hardware/drive-c-repro/) |
-| `interposer-upgrade` | O1NEXT Upgrade — one unit in four parts | [`hardware/interposer-upgrade/`](hardware/interposer-upgrade/) |
+| `interposer-upgrade` | O1NEXT Upgrade — one board in four snap-off sections | [`hardware/interposer-upgrade/`](hardware/interposer-upgrade/) |
 | `next-integrated` | O1NEXT Integrated — the SFF board | [`hardware/next-integrated/`](hardware/next-integrated/) |
 
 `O1NEXT Complete` (the machine) is the `next-integrated` board with a case, a
-screen, a battery pack and a keyboard — not a board, so not a row. An LFF 1:1
-mainboard is *possible* if a chassis ever needs restoring, and is not planned.
+screen, a battery pack and a keyboard — **hardware, but not a board**: chassis CAD,
+print STLs, an assembly BOM, and the machine's own QMK-compatible keyboard PCB
+(`hardware/o1next-complete/`). An LFF 1:1 mainboard is *possible* if a chassis ever
+needs restoring, and is not planned.
 
 
 A general-purpose Z80 bus interposer for the Osborne 1, built around the
