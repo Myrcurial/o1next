@@ -202,7 +202,7 @@ static inline void gpio_set_dir(uint gpio, bool out) { gpioc_bit_oe_put(gpio, ou
 and picoem had **no CP0 MCRR dispatch at all**. So the two most-used GPIO calls in
 any firmware were silent NOPs, and re-deriving the MCR/MRC table alone would have
 left them that way. Both fixes are now in
-`tools/emulator-setup/picoem/rp2350-coproc-and-exclusive.patch` — see §4.2 and
+`tools/emulator-setup/picoem/rp2350-correctness.patch` — see §4.2 and
 that directory's README.
 
 ## 4. The gap register
@@ -233,7 +233,7 @@ measured or read from a source.
 | **P6** | **No device behind any peripheral.** No microSD, no W25Q, no USB stick; SPI has loopback only | the transports cannot be exercised | medium (NOR + microSD) / **large** (USB MSC, and no controller model exists) | P5 |
 | **P7** | **The bootrom boot path does not complete** — `___step4_init_rcp_seeds`'s `rcp_iequal` mismatch; upstream's own `test_flash_boot_blinky` is `#[ignore]`d for it | nothing boots through the mask ROM; the bridge starts at the image's vector table | **unknown** — CP7 ancillary-state parity with silicon | open, and **not on the critical path** |
 | **P8** | **No HSTX**, so no display output | #277 (the RP2354B as the display) is gated on it | medium | open, and also a design question (#264) |
-| **P9** | **The SIO's pin mask is thirty bits, so GP30 and GP31 are unreachable.** picoem re-uses the **RP2040's** SIO — `crates/rp2040-emu/src/bus/sio.rs`: `PIN_MASK = 0x3FFF_FFFF` — and an RP2040 has thirty GPIOs, so every SIO write *and* read masks bits 30 and 31 away. `rp2350-emu` inherits the constant | **Rev B's `SR_RCK` is GP30 and `/OE_ADDR` is GP31 — two of the five fabric pins.** Measured 2026-10-19 (#304): the firmware shifts a match value in, the bridge counts its 8 `SR_SCK` edges, and sees **0 latches**, because the pin that latches is not there to be seen. Any personality touching GP30/31 is untestable, and it fails as a *zero*, which looks like a firmware bug | **one line** — the mask, for the 48-GPIO part's SIO | open, found by #304 |
+| **P9** | ~~**The SIO's pin mask is thirty bits, so GP30 and GP31 are unreachable.**~~ **FIXED 2026-10-19.** picoem's own SIO modelled bank 0 as 30 pins — `PIN_MASK = 0x3FFF_FFFF` and ten `pin >= 30` guards in `sio/mod.rs`, **and the same guard in `cp0_bit_op`** — while the crate models the 48-GPIO part everywhere else (`read_all_gpio` returns a 48-bit mask). Bank 0 is **32** pins. The second site is the lesson: it is the path `gpio_set_dir` takes, so fixing only `sio/mod.rs` changed nothing measurable | **Rev B's `SR_RCK` is GP30 and `/OE_ADDR` is GP31 — two of the five fabric pins.** Measured (#304): the firmware shifted a match value in, the bridge counted all 8 `SR_SCK` edges and **0 latches**, because the pin that latches was not there to be seen. It fails as a *zero*, which reads like a firmware bug | — | **FIXED** — `rp2350-correctness.patch` commits 2–3, on `Myrcurial/picoem` `aebfd93`; `cargo test -p rp2350-emu` **3675 passed, 0 failed**, and the bridge's `--fabric-test` is 8 of 8 |
 
 ### 4.3 The storage question, decided
 

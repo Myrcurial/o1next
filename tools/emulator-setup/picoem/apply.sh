@@ -43,7 +43,7 @@ done
 [ -f "$SRC/crates/rp2350-emu/src/core/coprocessor.rs" ] || {
     echo "apply.sh: $SRC does not look like a picoem checkout" >&2; exit 1; }
 
-PATCH="$HERE/rp2350-coproc-and-exclusive.patch"
+PATCH="$HERE/rp2350-correctness.patch"
 [ -f "$PATCH" ] || { echo "apply.sh: no patch at $PATCH" >&2; exit 1; }
 
 # Already applied?  The series' first hunk adds the Cp0Reg enum; if it is there,

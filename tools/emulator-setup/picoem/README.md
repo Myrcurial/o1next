@@ -38,18 +38,44 @@ courtesy, not a dependency.
 
 | File | What it is |
 |---|---|
-| `rp2350-coproc-and-exclusive.patch` | the series, as a diff against `8e20a82` |
+| `rp2350-correctness.patch` | the series, as a diff against `8e20a82` — two commits |
 | `apply.sh` | apply it to a picoem checkout, optionally build and test |
 
 ## The series
 
-One commit, `a014aea`, two independent correctness bugs — both found by running a
-**stock Pico SDK 2.3.1 binary** on the emulator and watching it not work.
+Three commits, and the third is worth reading before the first two: the *same* 30-pin
+assumption turned out to be in **two places**, and fixing only the first changed nothing
+measurable. Bugs 1 and 2 were found by running a **stock Pico SDK 2.3.1 binary** on the
+emulator and watching it not work; bug 3 by driving a real firmware against the
+interposer's **shift fabric** — and then re-running it after the first fix, which is the
+only reason the second site was found.
 
 | # | Bug | Why it cost real time |
 |---|---|---|
 | 1 | **`LDAEX`/`LDAEXB`/`LDAEXH` and `STLEX`/`STLEXB`/`STLEXH` were not decoded.** | They did not fail as unknown instructions. `LDAEXB`'s `hw1` low nibble is `0xF`, so the `LDRD`/`STRD` fall-through read `Rt2 = 15` and executed `LDRD {Rt, pc}` — the core loaded **its own PC out of the lock byte it was reading**. Measured: PC `0x1000041e` → `0x00000000`, then the mask ROM's vector table executed two bytes at a time until a precise BusFault escalated to HardFault. The SDK's `hw_claim_or_assert` → `next_striped_spin_lock_num()` path uses exactly this pair, so **any** firmware that claims a hardware resource — an alarm, a PIO block, a DMA channel — went through it. |
 | 2 | **CP0 (GPIOC)'s MCR/MRC table was transposed, and the MCRR family was not decoded at all.** | The table read `opc1` as the bank and `(CRn, CRm)` as a pin; the SDK puts the **operation** in `opc1` and the **register** in `CRm`. A transposed decode is self-consistent, which is why it survived: `put`/`put_all` worked by accident and every `set`, `clr` and `xor` was dropped as a silent NOP. And with no MCRR dispatch, `gpio_put(gpio, value)` (`mcrr p0, #4, gpio, value, c0`) and `gpio_set_dir(gpio, out)` (`mcrr p0, #4, gpio, out, c4`) — the two most-used GPIO calls in any firmware — were silent NOPs. The symptom, *"the firmware runs, reaches its main loop, drives nothing"*, reads exactly like a firmware bug. |
+
+| 3 | **The SIO's bank 0 was 30 pins, not 32.** `PIN_MASK` was `0x3FFF_FFFF` and ten `if pin >= 30` guards dropped GP30 and GP31 on every write and read them back as zero — while the crate models the 48-GPIO part everywhere else (`Emulator::read_all_gpio` returns a 48-bit physical mask), and the B part's bank 0 is **32** pins. | **GP30 is the interposer's `SR_RCK` and GP31 is `/OE_ADDR`** — two of the five shift-fabric pins. A firmware that shifted a match value into the '595 and latched it appeared to have done **neither**: the bridge counted all 8 of its `SR_SCK` edges and **0 latches**. It fails as a *zero*, which reads like a firmware bug, and that is where the #304 session looked first. |
+
+**The second site is the lesson, and it is why the third commit exists.** `sio/mod.rs`'s
+mask was not the whole bug: `cp0_bit_op` bounds-checked `pin >= 30` as well, and *that* is
+the path `gpio_set_dir(gpio, out)` takes — the SDK emits `gpioc_bit_oe_put`, not the
+masked form. So the first fix was **measurably a no-op**, and the only reason the second
+site was found is that the bridge's fabric test was re-run rather than assumed fixed. No
+test above pin 29 existed, which is how a deliberate 30-pin assumption survived being
+tested.
+
+The 30-pin width was **not an oversight** — two tests asserted it by name
+(`gpio_bit_out_masked_at_or_above_30`, `gpio_bit_oe_masked_at_or_above_30`). They are
+renamed to `…_real_at_30_and_31_masked_at_or_above_32` and now assert the *positive*
+case, because GP30 and GP31 working **is** what the change is for. The two coprocessor
+tests that masked their expectations with `0x3FFF_FFFF` did so incidentally and no
+longer do, and the width now lives in one constant (`BANK0_PINS`) that `PIN_MASK` and
+the guards share.
+
+**What it does not fix:** bank 1 (GPIO32–47) is still unmodelled — this SIO has no
+`GPIO_HI_*` registers at all. That is a separate gap (`docs/emulation-testbed.md` §4.2
+**P4**), and it is why a firmware cannot yet drive or observe GP32–47.
 
 Both tables are now taken from the SDK's own `hardware/gpio_coproc.h` and
 **measured**: every form was assembled with the Arm GNU toolchain 15.3
