@@ -437,6 +437,14 @@ was found by running something and reading the result.
   the bus.
 - **Memory cycles.** Refused by design (§3). The ROM window and the Drive C
   mapping are memory-mapped, so #179 needs this.
+- **The address to the firmware.** The frame carries `port` and `addr` and the bridge
+  knows both, but nothing drives them to the chip: the personality sees the data bus
+  and the four strobes only, so it cannot tell *which register* a cycle is for. On
+  Rev B the low bits are reachable only through the 165 snapshot chain — the 688 gives
+  `ADDR_HIT` for a *window*, not a register (`docs/emulation-testbed.md` §4.1, M5).
+  **#303** is the board decision; **#304** is this bridge modelling the 595/165 as
+  pin-clocked state machines, which is a different mechanism from the one-round-trip
+  bus cycle above.
 - **The guest reading the answer.** The reply is logged and can be written to a
   guest scratch byte (`O1_PICOEM_SCRATCH`), but the Z80's own `IN` still returns
   the card device's byte, not the firmware's — the read tap deliberately returns
