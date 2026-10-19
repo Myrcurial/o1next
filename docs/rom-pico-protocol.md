@@ -2,12 +2,13 @@
 
 **Status: design — a proposal.** The ROM side of #247 is built and measured
 (steps 1–7: the banked window, `HCBOOT`, the hand-over, the 11-drive driver). The
-screen's *mechanism* is measured in the machine. **The firmware side does not
-exist**, and this is the contract it is written against — except for the door
-itself, which the *emulated* interposer now implements (`softrom_device`'s
-selector and transaction, `romservice-check.sh`) so that the ROM's screen code
-can be written and proved against it. See §2 for the address, which the machine
-corrected, and §7 item 1 for what is left open.
+screen's *mechanism* is measured in the machine. **The firmware class is now written
+and host-tested** (`firmware/rom-service/`, #284), and this is the contract it is
+written against — while the *emulated* interposer still answers the door with
+`softrom_device`'s C++ stand-in (`romservice-check.sh`), so that the ROM's screen
+code can be written and proved against it and the firmware diffed against the
+stand-in (`docs/emulation-testbed.md`, Gate D). See §2 for the address, which the
+machine corrected, and §7 item 1 for what is left open.
 
 Answers **#247 step 8**. Reads alongside `docs/mailbox-protocol.md` (the
 *host*↔firmware channel, #155 — this is a different client of the same firmware),

@@ -6,6 +6,52 @@ screen** compiled into the RP2354B's own flash. The contract is
 `docs/rom-pico-protocol.md` (#247 step 8); **#278** is where the ROM-side frame path
 was retired, and "How the screen gets drawn" below is the summary.
 
+The **C module is written (#284)**: `rom_service.c`/`.h`, host-tested and in CI, on
+top of the engine in `firmware/library/`. What is still missing from this folder is
+the **RP2354B's own video renderer** (#277), which needs PicoEm and a board.
+
+## The module
+
+| File | What it is |
+|---|---|
+| `rom_service.h` / `rom_service.c` | the `40–4Fh` class — `PRESENT` and `INFO` as an `mb_extension`, the payload as a port, the two doors named from `mailbox.h` |
+| `test_rom_service.c` | the host suite: the door's transaction, the retired ids, the payload, and both doors |
+| `run_tests.sh` | assembles the payload with `tools/research/rom2image.py`, then runs the suite |
+| `boot-animation.bin` | the boot screen (below) — the one asset, and not generated here |
+
+```sh
+firmware/rom-service/run_tests.sh -v
+```
+
+No board, no SDK: one C compiler and python3. CI runs it
+(`.github/workflows/rom-service.yml`).
+
+**The payload is a port, not an asset.** The 3599 bytes page 1 holds are handed in
+(`rom_payload`: a pointer and a length) the way `media.h` hands the library a
+medium; on the board that pointer is into the RP2354B's own **XIP flash**, where a
+pointer *is* the read. The suite hands in the bytes `tools/research/rom2image.py`
+assembles from the repo's own archive, so it proves the module serves *the* payload
+rather than a fixture that happens to fit. A module handed no payload answers `06h`
+rather than pretending to present one.
+
+**The suite is `romservice-check.sh`'s acceptance, on the host.** The checks the
+emulator's `softrom_device` passes today are the ones this class has to pass when it
+replaces it (`docs/emulation-testbed.md`, Gate D): the ECHO presence probe, `INFO`,
+`NOP`, an unknown opcode, the abandon rule, `PRESENT(0)` answering `OK` with `1`,
+`2` and `3` answering `09h` and leaving page 1 alone, and a transaction on one door
+not disturbing the other. Two checks are the C module's own, because the stand-in
+had no reason to make them: that no payload is `06h`, and that the request register
+is write-only — reading it must not consume a reply.
+
+**And the ROM's own client no longer drives the door at all (#278).** The 26-byte
+screen code is the bright fill, the fallback print and the return — the Z80's role is
+the *trigger*, and `PRESENT`/`INFO` now serve the userland client (`MOUNT.COM`, the
+clock publisher) and the web UI. So "driving the ROM's own client against the
+module" **is** the door's acceptance, and that is what this suite runs; there is no
+separate ROM-side transaction left to replay.
+
+## The asset
+
 | File | What it is |
 |---|---|
 | `boot-animation.bin` | **the boot screen**: a 32-byte `O1SPLASH` header and then **90 sealed frames** back to back, 8 fps, played once. Each frame is **8192 bytes = two 4096-byte halves**, characters then attributes, each carrying its own `O1NEXT` magic and 16-bit sum at its own `0FF8h`. SHA-256 `0d9fa6c2…42541b` — see "The animation" below |
@@ -109,11 +155,17 @@ and the clock publisher) and the web UI's `INFO`.
 
 ## What is not here yet
 
-- the C module: `PRESENT`, the two doors (`0E7h`/`0EBh` for userland, bank-2
-  `2800h`/`2801h` for the ROM — *not* `2300h`/`2301h`, which is the floppy's
-  track register and the keyboard's row 0; `docs/rom-pico-protocol.md` 2), the
-  payload served out of flash
-- the RP2354B's own video renderer: the shadow VRAM, the frame pacing, and the stop
-  on the Z80's first write — #277, which is gated on PicoEm (#192) and proves it in
-  the emulator first. What it draws is `boot-animation.bin`, and
+- **The RP2354B's own video renderer**: the shadow VRAM, the frame pacing, and the
+  stop on the Z80's first write — #277, which is gated on PicoEm (#192) and proves it
+  in the emulator first. What it draws is `boot-animation.bin`, and
   `tools/research/bootanim.py --check` is the only thing this repo can say about it.
+- **The wiring that retires the stand-in.** The class is built and tested, but the
+  emulator still answers the ROM's door with `softrom_device`'s C++ implementation:
+  making the *firmware* answer it in picoem is the bridge's work (#286, #292), and
+  `softrom_device` stays as the fallback and the oracle until then
+  (`docs/emulation-testbed.md`, Gate D).
+- **The board's door decode.** Which bank-2 cycles reach `2800h`/`2801h` and which
+  I/O cycles reach `0E7h`/`0EBh` is the PIO bus tap and the personality work
+  (#17, #179); the pin map is `hardware/interposer/revb/README.md`. The module is
+  door-agnostic — it is reached through `mb_extension`, which does not know a door
+  exists — so both doors are a decode question and not a class question.

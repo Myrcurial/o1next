@@ -130,9 +130,9 @@ host-tested pure logic.
   is `blockdev.h`, and the three slots are already there.
 - **The board** — the PIO bus tap and the door decode are the personality work
   (#17, #179); the pin map is `hardware/interposer/revb/README.md`.
-- **The ROM service** — `PRESENT`/`INFO` on the ROM's own door is **#284**; it
-  registers through `mb_extension`, so this engine does not grow a payload it does
-  not own.
+- **The ROM service** — `PRESENT`/`INFO` on both doors is
+  `firmware/rom-service/` (#284), built and host-tested; it registers through
+  `mb_extension`, so this engine does not grow a payload it does not own.
 - **The clock** (#18) — the same route, when it exists. `FF_FS_NORTC 1` in
   `ffconf.h` is the one line that turns file timestamps on when it does.
 - **A card reader's opinion.** Everything here is FatFS reading volumes FatFS wrote.
