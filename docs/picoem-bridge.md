@@ -444,11 +444,12 @@ was found by running something and reading the result.
   `ADDR_HIT` for a *window*, not a register (`docs/emulation-testbed.md` §4.1, M5).
   **#303** is the board decision; **#304** is this bridge modelling the 595/165 as
   pin-clocked state machines, which is a different mechanism from the one-round-trip
-  bus cycle above. **The board's half is modelled and tested** (`src/fabric.rs`: the
-  595, the 688, the 165 and the pin-level `Board`), and modelling it corrected the pin
-  map — see `hardware/interposer/revb/README.md`, "What the 688 can and cannot select".
-  What is still missing is the *stepping* that feeds it the chip's pins, and the
-  firmware that drives it.
+  bus cycle above. **That is now built** (`src/fabric.rs` for the board, and `chip.rs`
+  steps a quantum at a time so the board sees every level the firmware makes), and
+  `firmware/picoem-fabric/` drives it: `--fabric-test` gets two registers, two answers,
+  and measures a 24-bit snapshot at **14 976 cycles**. It is **blocked on one line of
+  picoem** — its SIO is the RP2040's, whose 30-bit `PIN_MASK` hides GP30/GP31, i.e.
+  `SR_RCK` and `/OE_ADDR` (`docs/emulation-testbed.md` §4.2 P9).
 - **The guest reading the answer.** The reply is logged and can be written to a
   guest scratch byte (`O1_PICOEM_SCRATCH`), but the Z80's own `IN` still returns
   the card device's byte, not the firmware's — the read tap deliberately returns

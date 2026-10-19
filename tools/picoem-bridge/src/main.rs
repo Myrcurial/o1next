@@ -147,6 +147,11 @@ struct Args {
     /// transaction's answer is asserted against it and the process exits non-zero
     /// if any is outside (`docs/emulation-testbed.md` §7).
     assert_cycles: Option<u64>,
+    /// Which pin the firmware's liveness signal is on (`--hb-pin`). GP26 is the
+    /// smoke firmware's borrowed pin; a personality uses `/WAIT`, GP22.
+    hb_pin: Option<u8>,
+    /// The fabric's acceptance with no MAME (`--fabric-test`, #304).
+    fabric_test: bool,
 }
 
 const USAGE: &str = "\
@@ -170,8 +175,15 @@ picoem-bridge -- run an RP2354B firmware image in picoem and answer MAME's bus c
   --frames N        answer N requests and exit (default: until the peer goes away)
   --log FILE        also write the transaction log here
   --self-test       no FIFOs, no MAME: boot the firmware, drive one write cycle
-                    and one read cycle, print what the chip drove, and exit 0
-                    only if the round trip worked
+                    and one read cycle, print what the chip drove and how long it
+                    took, and exit 0 only if the round trip worked
+  --fabric-test     no FIFOs, no MAME: the shift fabric's acceptance (#304).  Boots a
+                    firmware that programs the 595 and reads the 165, then drives two
+                    cycles at two different registers and requires two different
+                    answers -- because the 688's window cannot tell them apart.
+  --hb-pin N        which pin the firmware's liveness signal is on (default 26, the
+                    smoke firmware's borrowed fabric pin).  A *personality* uses
+                    /WAIT:  --hb-pin 22
   --via-bootrom     start the core at the mask ROM's reset vector instead of at
                     the image's.  This does NOT work at the pinned picoem commit
                     (its bootrom path is broken -- src/chip.rs has the
@@ -237,6 +249,12 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
     ));
 
     let mut chip = Chip::new(&bootrom, &flash, args.cycles, args.entry);
+    if let Some(pin) = args.hb_pin {
+        chip.set_heartbeat_pin(pin);
+        log.line(&format!(
+            "picoem-bridge: the liveness signal is GP{pin} (--hb-pin)"
+        ));
+    }
     log.line(&format!(
         "picoem-bridge: entry {} (see src/chip.rs for why the bootrom is not the default)",
         match args.entry {
@@ -260,6 +278,10 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
 
     if args.self_test {
         return self_test(&mut chip, &mut log, args.assert_cycles);
+    }
+
+    if args.fabric_test {
+        return fabric_test(&mut chip, &mut log, args.cycles);
     }
 
     if args.trace_fault {
@@ -349,7 +371,7 @@ fn self_test(
 
     let mut latency = Latency::default();
 
-    let tx = chip.bus_write(wrote, 0)?;
+    let tx = chip.bus_write(0x30, wrote, 0)?;
     latency.record(tx.answer, assert_cycles);
     log.line(&format!(
         "self-test: write {:02X} -> chip drove {:02X}  hb={} ans={} flags={:02X} pc={:#010x}",
@@ -361,7 +383,7 @@ fn self_test(
         tx.pc
     ));
 
-    let rx = chip.bus_read(0)?;
+    let rx = chip.bus_read(0x30, 0)?;
     latency.record(rx.answer, assert_cycles);
     log.line(&format!(
         "self-test: read      -> chip drove {:02X}  hb={} ans={} flags={:02X} pc={:#010x}",
@@ -388,6 +410,209 @@ fn self_test(
     } else {
         ExitCode::FAILURE
     })
+}
+
+/// The window the fabric firmware programs: page zero, which is every I/O port's high
+/// byte. It cannot distinguish registers — that is the finding, not an oversight
+/// (`fabric.rs`).
+const FABRIC_MATCH: u32 = 0x00;
+
+/// The phase `--fabric-test` uses at minimum.
+///
+/// A 24-bit snapshot at one quantum per level is 48 quanta before any loop overhead, so
+/// a fabric answer is hundreds of quanta; 200 000 cycles is 3 125 of them, which is
+/// comfortable and still runs in a second.
+const FABRIC_PHASE: u64 = 200_000;
+
+/// The fabric's acceptance, with no MAME, no FIFOs and no board (#304).
+///
+/// The firmware programs its window into the 595 and then, for every cycle it takes,
+/// reads the address out of the 165 and drives the **port** back. So this drives two
+/// cycles at two different registers and requires two different answers — which is the
+/// whole point, because the 688's window cannot tell them apart.
+///
+/// Three things are proved, and each is a way this can be wrong:
+///
+///   1. the firmware **reached the fabric at all** — a window was shifted in *and*
+///      latched, and `/OE_ADDR` was asserted. A firmware that forgets either gets a
+///      window of zero and a comparator watching the pull-downs;
+///   2. the **165 hands over the address** — the two answers differ and they are the two
+///      ports, so the register decode is real rather than the 688's page;
+///   3. the **pacing rule holds** — each fabric level must be held for at least one
+///      quantum, and the bridge's own edge count is the proof: a level it went past too
+///      fast is a level it never saw.
+fn fabric_test(
+    chip: &mut Chip,
+    log: &mut Log,
+    phase: u64,
+) -> Result<ExitCode, Box<dyn std::error::Error>> {
+    if !chip.firmware_running() {
+        log.line(&format!(
+            "fabric-test: FAILED -- pc={:#010x} is not in the firmware; the bootrom is \
+             still running, or the image did not boot",
+            chip.pc()
+        ));
+        return Ok(ExitCode::FAILURE);
+    }
+
+    let phase = phase.max(FABRIC_PHASE);
+    log.line(&format!(
+        "fabric-test: phase {phase} cycles ({})",
+        if phase == FABRIC_PHASE { "the fabric's floor" } else { "as given" }
+    ));
+
+    let mut fails = 0u32;
+
+    // A fabric pin picoem cannot see is the failure that costs an afternoon, so it is
+    // named rather than left to be inferred from a zero. picoem re-uses the **RP2040's**
+    // SIO, whose `PIN_MASK` is `0x3FFF_FFFF` -- thirty bits, because an RP2040 has
+    // thirty GPIOs -- so GP30 and GP31 are masked off on every SIO write *and* read.
+    // Rev B's `SR_RCK` is GP30 and `/OE_ADDR` is GP31: two of the five fabric pins,
+    // invisible. `docs/emulation-testbed.md` §4.2.
+    let oe = chip.sio_oe();
+    let hidden: Vec<u8> = [
+        fabric::PIN_SR_SCK,
+        fabric::PIN_SR_LOAD,
+        fabric::PIN_SR_MOSI,
+        fabric::PIN_SR_RCK,
+        fabric::PIN_OE_ADDR,
+    ]
+    .into_iter()
+    .filter(|p| (oe >> p) & 1 == 0)
+    .collect();
+    if !hidden.is_empty() {
+        log.line(&format!(
+            "fabric-test: NOTE -- the chip is not driving GP{hidden:?}"
+        ));
+        if hidden.contains(&30) || hidden.contains(&31) {
+            log.line(
+                "fabric-test:       ... and that is picoem, not the firmware. Its SIO is the \
+                 RP2040's, whose PIN_MASK is 0x3FFF_FFFF (thirty bits), so GP30 and GP31 are \
+                 unreachable through every SIO path. Rev B's SR_RCK is GP30 and /OE_ADDR is \
+                 GP31. See docs/emulation-testbed.md section 4.2.",
+            );
+        }
+    }
+
+    // 1. Did the firmware reach the fabric? The settle has run, so whatever it
+    // programmed during startup is already in the model.
+    let (programmed, latches, edges_at_boot) = {
+        let b = chip.board();
+        (b.match_reg.outputs(), b.latches, b.sck_edges)
+    };
+    log.line(&format!(
+        "fabric-test: the 595 holds {programmed:#04X} after {latches} latch(es) and \
+         {edges_at_boot} SR_SCK edge(s) of startup"
+    ));
+    // The *value* check is vacuous on its own -- page zero is both what the firmware
+    // wants and what a shift register full of zeros holds -- which is exactly why the
+    // latch is the check that matters here: a firmware that shifts and never latches has
+    // a comparator watching the pull-downs, and nothing else would say so.
+    verdict(
+        log,
+        &mut fails,
+        latches > 0,
+        "the firmware shifted a match value in and latched it",
+    );
+    verdict(
+        log,
+        &mut fails,
+        programmed == FABRIC_MATCH,
+        &format!("and the window is the page it asked for ({FABRIC_MATCH:#04X})"),
+    );
+
+    // 2. Two registers, two answers. Reads, because a *read* is when the chip
+    // legitimately drives the data bus -- on a write the Z80 owns it and a personality
+    // that drove back would be a bus conflict on hardware.
+    let mut answers: Vec<u8> = Vec::new();
+    let mut taken = 0u64;
+    for port in [0x30u8, 0x31] {
+        let tx = chip.bus_read(u16::from(port), phase)?;
+        log.line(&format!(
+            "fabric-test: read port {port:02X} -> chip drove {:02X}  hb={} ans={} rel={}",
+            tx.data,
+            tx.hb,
+            ans(tx.answer),
+            ans(tx.last)
+        ));
+        if tx.hb >= 1 && tx.flags & frame::REPLY_DRIVEN != 0 {
+            taken += 1;
+        }
+        answers.push(tx.data);
+        verdict(
+            log,
+            &mut fails,
+            tx.hb >= 1,
+            &format!("the firmware took the cycle at port {port:02X}"),
+        );
+        verdict(
+            log,
+            &mut fails,
+            tx.flags & frame::REPLY_DRIVEN != 0,
+            &format!("and drove an answer at port {port:02X}"),
+        );
+    }
+    verdict(
+        log,
+        &mut fails,
+        answers == vec![0x30u8, 0x31u8],
+        &format!(
+            "the two registers came back as the two ports ({:02X}, {:02X}) -- the 165 is \
+             doing the work, not the 688",
+            answers[0], answers[1]
+        ),
+    );
+
+    // 3. The pacing rule, proved by the bridge's own count rather than asserted.
+    let edges = chip.board().sck_edges;
+    let floor = u64::from(fabric::FABRIC_BITS) * taken;
+    log.line(&format!(
+        "fabric-test: {edges} SR_SCK edges seen; {floor} is the floor for {taken} answered \
+         cycle(s) at {} bits each",
+        fabric::FABRIC_BITS
+    ));
+    verdict(
+        log,
+        &mut fails,
+        edges >= floor,
+        "every fabric level the firmware made was seen -- none was held for less than a quantum",
+    );
+
+    if fails == 0 {
+        log.line("fabric-test: PASS -- the window, the snapshot and the pacing");
+    } else {
+        log.line(&format!("fabric-test: FAILED -- {fails} check(s)"));
+    }
+
+    // What the board is left holding. This is the line to read when a check above
+    // fails: it tells "the firmware never shifted anything" from "it shifted and did
+    // not latch" from "it shifted, latched, and the address was the wrong one".
+    {
+        let b = chip.board();
+        log.line(&format!(
+            "fabric-test: the board holds address {:#06X} ({}), the 165 captured {:#08X}, \
+             presents {:#08X} and has clocked {} bit(s) out, and the 595's shift register \
+             holds {:#04X} against {:#04X} published",
+            b.address(),
+            if b.is_memory() { "memory" } else { "I/O" },
+            b.chain.captured(),
+            b.chain.value(),
+            b.chain.shifted(),
+            b.match_reg.shifted(),
+            b.match_reg.outputs()
+        ));
+    }
+
+    Ok(if fails == 0 { ExitCode::SUCCESS } else { ExitCode::FAILURE })
+}
+
+/// One check, reported in the same shape as `picoem-check.sh` so a reader of either
+/// recognises it.
+fn verdict(log: &mut Log, fails: &mut u32, ok: bool, what: &str) {
+    log.line(&format!("  {}  {}", if ok { "PASS" } else { "FAIL" }, what));
+    if !ok {
+        *fails += 1;
+    }
 }
 
 /// The MAME half: serve frames off the FIFOs until the peer stops asking.
@@ -506,10 +731,15 @@ fn handle(chip: &mut Chip, req: &Request, log: &mut Log) -> (Reply, Option<u64>)
         return (Reply::status_only(ST_BAD_REQUEST, req.seq), None);
     }
 
+    // The board needs the address. A0-A7 is the port, and the high half of a Z80 I/O
+    // cycle is the accumulator (or `B`) -- data-dependent, and the reason the 688
+    // cannot select a port (`fabric.rs`). So the port *is* the address here, and the
+    // frame not carrying A8-A15 on an I/O cycle costs nothing.
+    let address = u16::from(req.port);
     let tx = if req.op == frame::OP_BUS_WRITE {
-        chip.bus_write(req.data, req.cycles as u64)
+        chip.bus_write(address, req.data, req.cycles as u64)
     } else {
-        chip.bus_read(req.cycles as u64)
+        chip.bus_read(address, req.cycles as u64)
     };
 
     let tx = match tx {
@@ -521,7 +751,7 @@ fn handle(chip: &mut Chip, req: &Request, log: &mut Log) -> (Reply, Option<u64>)
     };
 
     log.line(&format!(
-        "picoem-bridge: seq {:<4} {:<5} port {:02X} {:>9} -> chip drove {:02X}  hb={} ans={} {}{}{}",
+        "picoem-bridge: seq {:<4} {:<5} port {:02X} {:>9} -> chip drove {:02X}  hb={} ans={} rel={} {}{}{}",
         req.seq,
         if req.op == frame::OP_BUS_WRITE { "WRITE" } else { "READ" },
         req.port,
@@ -532,7 +762,8 @@ fn handle(chip: &mut Chip, req: &Request, log: &mut Log) -> (Reply, Option<u64>)
         },
         tx.data,
         tx.hb,
-        tx.answer.map_or("--".to_string(), |a| a.to_string()),
+        ans(tx.answer),
+        ans(tx.last),
         if tx.flags & frame::REPLY_DATA_OE != 0 { "OE " } else { "-- " },
         if tx.flags & frame::REPLY_DRIVEN != 0 { "DRV " } else { "--- " },
         if tx.flags & frame::REPLY_HEARTBEAT != 0 { "HB" } else { "--" },
@@ -591,6 +822,8 @@ fn parse_args() -> Result<Option<Args>, Box<dyn std::error::Error>> {
     let mut entry = chip::Entry::Image;
     let mut trace_fault = false;
     let mut assert_cycles = None;
+    let mut hb_pin = None;
+    let mut fabric_test = false;
 
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
@@ -603,6 +836,8 @@ fn parse_args() -> Result<Option<Args>, Box<dyn std::error::Error>> {
             "--assert-cycles" => {
                 assert_cycles = Some(next_value(&mut it, "--assert-cycles")?.parse()?)
             }
+            "--hb-pin" => hb_pin = Some(next_value(&mut it, "--hb-pin")?.parse()?),
+            "--fabric-test" => fabric_test = true,
             "--settle" => settle = next_value(&mut it, "--settle")?.parse()?,
             "--frames" => frames = Some(next_value(&mut it, "--frames")?.parse()?),
             "--log" => log = Some(PathBuf::from(next_value(&mut it, "--log")?)),
@@ -636,6 +871,8 @@ fn parse_args() -> Result<Option<Args>, Box<dyn std::error::Error>> {
         entry,
         trace_fault,
         assert_cycles,
+        hb_pin,
+        fabric_test,
     }))
 }
 

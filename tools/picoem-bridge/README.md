@@ -54,6 +54,8 @@ SDK and no firmware.
 | flag | what it is for |
 |---|---|
 | `--self-test` | boot the firmware, drive one write and one read, print what the chip drove **and how long it took**, exit 0 only if the round trip worked |
+| `--fabric-test` | the **shift fabric's** acceptance with no MAME (#304): boot a firmware that programs the 595 and reads the 165, drive two cycles at two registers, and require two different answers — because the 688's window cannot tell them apart. Also checks the pacing: the bridge's own `SR_SCK` edge count against the floor a 24-bit snapshot must produce |
+| `--hb-pin N` | which pin the firmware's liveness signal is on (default 26, the smoke firmware's borrowed fabric pin). A *personality* uses `/WAIT`: `--hb-pin 22` |
 | `--assert-cycles N` | the cycle budget the personality declares: every transaction's answer time is asserted against `N`, and the process exits non-zero if any is outside (#293, `docs/emulation-testbed.md` §7) |
 | `--trace-fault` | one instruction per step until the core latches a fault; prints the faulting PC, the fault registers and the last 24 PCs |
 | `--via-bootrom` | the path that does not work yet (picoem's bootrom boot is broken at the pinned commit), kept testable |
