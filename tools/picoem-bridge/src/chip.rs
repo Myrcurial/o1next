@@ -88,6 +88,23 @@ pub const PIN_HB: u8 = 26;
 const CTRL_MASK: u32 = 0x0000_0F00; // GP8-GP11
 const DATA_MASK: u32 = 0x0000_00FF; // GP0-GP7
 
+/// How often the heartbeat is sampled *after* the firmware has answered.
+///
+/// **The resolution of this measurement is picoem's step quantum, not one
+/// cycle.** `Emulator::run(n)` runs whole quanta -- `DEFAULT_STEP_QUANTUM` is
+/// **64 cycles** ("each `Emulator::step()` advances the system by exactly this
+/// many virtual cycles", `crates/rp2350-emu/src/lib.rs`), and a run rounds *up*
+/// to the next boundary. So the finest honest statement is "the firmware answered
+/// within one quantum", and `--cycles 20000` really advances 20 032. Everything
+/// here is therefore counted in quanta, and reported in cycles because that is
+/// what the frame carries.
+///
+/// Before the answer, the step is one quantum -- the finest there is. After it,
+/// the time no longer matters, so the step coarsens to this many cycles (sixteen
+/// quanta) and the rest of a 20 000-cycle phase costs a sixteenth as much
+/// sampling.
+pub const SAMPLE: u64 = 1024;
+
 /// What one bus transaction observed.
 #[derive(Debug, Clone, Copy)]
 pub struct Tx {
@@ -99,6 +116,21 @@ pub struct Tx {
     pub flags: u8,
     pub pc: u32,
     pub cycles: u64,
+    /// **How long the firmware took to answer**: the cycles from the strobe
+    /// going low to the first GP26 edge, which the firmware raises after it has
+    /// read the bus and driven its answer. `None` means it never answered.
+    ///
+    /// This is the number §7's cycle budget is about (`docs/emulation-testbed.md`
+    /// §7, `docs/picoem-bridge.md` §4). It is what makes "the firmware answered
+    /// within N cycles" an assertion instead of a hope, and it is *not* the same
+    /// thing as the phase's length: a phase that runs 20 000 cycles after an
+    /// answer that took 64 measures 20 000 and 64 respectively.
+    ///
+    /// **Its resolution is one quantum — 64 cycles** (see [`SAMPLE`]), so it is
+    /// always a multiple of 64 and the smallest value it can report is 64. That
+    /// is not a limitation of this code: `Emulator::run` runs whole quanta, so
+    /// nothing in this loop can observe a bus cycle more finely than that.
+    pub answer: Option<u64>,
 }
 
 /// The chip's merged output word: what SIO and the PIO blocks are driving.
@@ -298,8 +330,8 @@ impl Chip {
 
         // Phase A: the Z80 owns the data bus; the chip answers on its own pins.
         self.set_ext(CTRL_MASK | DATA_MASK, ctrl(1, 0, 1, 0) | (data as u32));
-        let hb = self.run_counting_heartbeat(cycles)?;
-        let tx = self.observe(hb);
+        let (hb, answer) = self.run_watching_heartbeat(cycles)?;
+        let tx = self.observe(hb, answer);
 
         // Phase B: /WR rises, the Z80 stops driving, and the data pins go back
         // to the chip. This is the turnaround a real 74AHCT245 does, and it is
@@ -317,8 +349,8 @@ impl Chip {
         let cycles = self.phase(cycles);
 
         self.set_ext(CTRL_MASK, ctrl(1, 0, 0, 1));
-        let hb = self.run_counting_heartbeat(cycles)?;
-        let tx = self.observe(hb);
+        let (hb, answer) = self.run_watching_heartbeat(cycles)?;
+        let tx = self.observe(hb, answer);
 
         self.set_ext(CTRL_MASK, ctrl(1, 1, 1, 1));
         self.emu.run(cycles)?;
@@ -365,35 +397,51 @@ impl Chip {
         self.emu.bus.gpio_external_in.store(value, Ordering::Relaxed);
     }
 
-    /// Run `cycles`, sampling GP37 as we go, and return the number of edges.
+    /// Run `cycles` with a bus cycle open, sampling the heartbeat as we go, and
+    /// return `(edges, first edge at)`.
     ///
-    /// The heartbeat is the liveness signal, and sampling it only at the ends
-    /// of a phase would miss an even number of toggles. The phase is therefore
-    /// run in chunks and the level compared between them.
-    fn run_counting_heartbeat(&mut self, cycles: u64) -> Result<u8, EmulatorError> {
-        const CHUNKS: u64 = 32;
-        let chunk = (cycles / CHUNKS).max(1);
-        let mut remaining = cycles;
+    /// The heartbeat is the liveness signal *and* the answer-time signal, so
+    /// sampling only at the ends of a phase would lose both: an even number of
+    /// toggles reads as none, and the moment the firmware answered would be
+    /// rounded to the whole phase. The phase is therefore run in [`SAMPLE`]-cycle
+    /// chunks and the level compared between them -- which is what turns "the
+    /// firmware handled it" into "the firmware handled it in 928 cycles".
+    ///
+    /// The offset is measured from the emulator's own cycle counter, so it is a
+    /// multiple of the step quantum and **is** the answer time rather than a bound
+    /// on it: the step before the answer is one quantum, which is as fine as this
+    /// loop can go (see [`SAMPLE`]).
+    fn run_watching_heartbeat(&mut self, cycles: u64) -> Result<(u8, Option<u64>), EmulatorError> {
+        let start = self.emu.cycles();
         let mut edges = 0u8;
+        let mut first = None;
         let mut prev = self.hb_level();
-        while remaining > 0 {
-            let n = chunk.min(remaining);
-            self.emu.run(n)?;
-            remaining -= n;
+        while self.emu.cycles() - start < cycles {
+            // One quantum at a time until the firmware answers -- that is the
+            // measurement -- and then sixteen, because after the edge the cycle
+            // count is bookkeeping rather than the answer. The asymmetry is the
+            // point: before the edge, the count *is* the number; after it, it is
+            // only there to catch a second edge.
+            let step = if first.is_none() { 1 } else { SAMPLE };
+            self.emu.run(step)?;
+            let done = self.emu.cycles() - start;
             let now = self.hb_level();
             if now != prev {
+                if first.is_none() {
+                    first = Some(done);
+                }
                 edges = edges.saturating_add(1);
                 prev = now;
             }
         }
-        Ok(edges)
+        Ok((edges, first))
     }
 
     fn hb_level(&self) -> bool {
         (self.emu.gpio_read_all() >> PIN_HB) & 1 != 0
     }
 
-    fn observe(&self, hb: u8) -> Tx {
+    fn observe(&self, hb: u8, answer: Option<u64>) -> Tx {
         let out = self.merged_out();
         let mut flags = 0u8;
         if self.hb_level() {
@@ -411,6 +459,7 @@ impl Chip {
             flags,
             pc: self.pc(),
             cycles: self.cycles(),
+            answer,
         }
     }
 

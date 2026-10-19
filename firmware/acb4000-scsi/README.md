@@ -72,6 +72,27 @@ whose transfer length the manual does not pin (`WRITE`/`READ BUFFER`, the
 diagnostics) — those accept the command and return status rather than inventing a
 length.
 
+## The cycle budget (#293)
+
+`acb4000.h` declares **`ACB4000_CYCLE_BUDGET`** — the cycles this personality
+undertakes to answer a bus cycle in. It is the one number in that header that is not
+the controller's: it is the emulation loop's contract (`docs/emulation-testbed.md`
+§7). The bridge reports every transaction's answer time (`ans=`), asserts it against
+this number (`--assert-cycles`), and `picoem-check.sh` reads the number *out of this
+header* rather than repeating it, so the declaration and the assertion cannot drift.
+
+**The emulator's resolution is one quantum — 64 cycles** (picoem's
+`DEFAULT_STEP_QUANTUM`; `Emulator::run` runs whole quanta), so 64 is the smallest
+answer that can be measured and a budget below it could never be met. Measured
+2026-10-19 through the smoke firmware: one quantum, in `--self-test` and through
+MAME, at every phase length from 64 to 20 000.
+
+2048 is 32 quanta, and both ends of that are deliberate: an order of magnitude above
+the floor, because this personality decodes a CDB and moves a block rather than
+echoing a byte; and an order of magnitude inside the bridge's phase (`--cycles`,
+default 20 000), because a bound the phase cannot exceed is not a bound. One line to
+move when this personality's own firmware has a measurement rather than an argument.
+
 ## What is *not* built
 
 - **The end-to-end acceptance.** `HARD.COM` reads LBA 5 for eleven blocks and
@@ -90,6 +111,7 @@ length.
 - [x] SCSI target module (CDB decode, phases, geometry, fill byte)
 - [x] Host-adapter shim with the `md10` and `reference` profiles
 - [x] Host test suite + CI
+- [x] The cycle budget declared, and asserted by the loop (`--assert-cycles`) — #293
 - [ ] Volume blob format definition + tooling note (`tools/`) — #180
 - [ ] Bring-up log against the period MD-10 software (`HARD.COM` + the `.SPR`
       overlays) — blocked on an MD-10 system image

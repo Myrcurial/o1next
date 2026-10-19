@@ -180,6 +180,33 @@ Two mistakes cost real time here, and both are now in the code as comments:
    bus and the answer was gone — `data 00`, `flags 00`, on a firmware that was
    working perfectly.
 
+### The answer time, and the one-quantum floor (#293)
+
+Since #293 each transaction also reports **how long the firmware took to answer**:
+`Tx::answer` is the cycles from the strobe going low to the first heartbeat edge,
+which the firmware raises after it has read the bus and driven its answer. It is
+logged as `ans=` on every transaction line, summarised at the end of a run, and
+asserted against the cycle budget the personality declares
+(`--assert-cycles`; `docs/emulation-testbed.md` §7).
+
+**The resolution is picoem's step quantum, not one cycle.** `DEFAULT_STEP_QUANTUM`
+is **64 cycles** — *"each `Emulator::step()` advances the system by exactly this
+many virtual cycles"*, `crates/rp2350-emu/src/lib.rs` — and `Emulator::run(n)` runs
+whole quanta, rounding *up*. Two consequences worth writing down, because both look
+like bugs:
+
+- **64 is the smallest answer that can be measured.** A finer number is not
+  available from this loop at any effort, so `ans` is always a multiple of 64 and
+  `ans=64` means "one quantum or less", not "exactly 64 cycles".
+- **A phase is quantised.** `--cycles 20000` advances 20 032 cycles, because
+  20 000 is not a multiple of 64. The heartbeat is therefore sampled one quantum at
+  a time until the answer arrives and every 1024 cycles after it, so the resolution
+  costs nothing on the long tail of a phase.
+
+Measured 2026-10-19, through the smoke firmware, in `--self-test` and through MAME:
+**a write and a read each answered in one quantum**, at every phase length from 64
+to 20 000 cycles.
+
 ## 5. The picoem gaps — the real finding
 
 **A stock Pico SDK binary did not run in picoem at the pinned commit.** It was not
@@ -378,17 +405,25 @@ misbehaves:
 
 ## 7. What is measured, what is guesswork, and what is not done
 
-**Measured** — `picoem-check.sh` passes seven checks, and each of §5's seven gaps
+**Measured** — `picoem-check.sh` passes eight checks, and each of §5's seven gaps
 was found by running something and reading the result.
 
 **Guesswork, and it should not be quoted as fact:**
 
-- The **cycles per phase** (20000) are generous rather than derived. The firmware
+- ~~The **cycles per phase** (20000) are generous rather than derived. The firmware
   is a polled loop, so the number only has to exceed one loop iteration; nobody
-  has measured the emulator's worst-case latency to answer.
-- **The `hb` edge count** samples GP26 every 1/32 of a phase. A firmware that
-  toggled twice inside one sample would be counted once. For this firmware the
-  count is exactly one per cycle, which is the point of it.
+  has measured the emulator's worst-case latency to answer.~~ **Measured
+  2026-10-19 (#293): the firmware answers a bus cycle in one quantum — 64 cycles.**
+  What is *not* measured is a real personality's latency, and that is why the phase
+  stays at 20 000: a SCSI target decodes a CDB and moves a block rather than echoing
+  a byte. The number that keeps this from being a guess is now the personality's own
+  declaration (`ACB4000_CYCLE_BUDGET`) and the assertion that reads it
+  (`--assert-cycles`, `docs/emulation-testbed.md` §7), so a personality that needs
+  more says so in one line and a run that exceeds it fails.
+- **The `hb` edge count** samples GP26 one quantum at a time until the firmware
+  answers, and every 1024 cycles after it. A firmware that toggled twice inside one
+  post-answer sample would be counted once. For this firmware the count is exactly
+  one per cycle, which is the point of it.
 - **The 40 M-cycle settle** is likewise generous. It is 0.2 s of wall clock, so
   it costs nothing, and nobody has found the true minimum.
 - **The Rev B timing claim** — that the 688's combinational `ADDR_HIT` plus a
@@ -414,25 +449,3 @@ was found by running something and reading the result.
 - **#277** (the RP2354B as the display) is unblocked by this bridge in principle
   and untouched in fact: the animation is played out of the RP2354B's flash, and
   the bridge has no HSTX and no display path.
-
-
-`Chip::bus_write` / `bus_read` drive the Rev B control strobes as external
-stimulus and read the chip's answer from `merged_out()`:
-
-- **write** — phase A: `/IORQ` and `/WR` low, the data pins masked to the Z80's
-  byte. Phase B: every strobe released, the data pins handed back to the chip.
-- **read** — `/IORQ` and `/RD` low, data pins *not* masked (the chip owns them).
-
-Two mistakes cost real time here, and both are now in the code as comments:
-
-1. **The idle state has to be *driven*, not left alone.** An undriven pin reads 0
-   in picoem exactly as it does on a board with no pull-up, and 0 is *asserted*
-   for `/MREQ`, `/IORQ`, `/RD` and `/WR` — every one of them active low. A bridge
-   that leaves the pins floating presents the firmware with a write cycle that
-   never ends, and the firmware sits in its `/WR` release loop forever. Measured:
-   PC 0x100002d8, no fault, no bus activity — which looks exactly like a firmware
-   bug and is not. On Rev B the board's pull-ups do this job.
-2. **Sample the answer while the strobe is open**, not after it closes. A first
-   version ran phase B first and then read: the firmware had already released the
-   bus and the answer was gone — `data 00`, `flags 00`, on a firmware that was
-   working perfectly.

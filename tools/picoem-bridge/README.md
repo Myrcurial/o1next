@@ -53,11 +53,28 @@ SDK and no firmware.
 
 | flag | what it is for |
 |---|---|
-| `--self-test` | boot the firmware, drive one write and one read, print what the chip drove, exit 0 only if the round trip worked |
+| `--self-test` | boot the firmware, drive one write and one read, print what the chip drove **and how long it took**, exit 0 only if the round trip worked |
+| `--assert-cycles N` | the cycle budget the personality declares: every transaction's answer time is asserted against `N`, and the process exits non-zero if any is outside (#293, `docs/emulation-testbed.md` §7) |
 | `--trace-fault` | one instruction per step until the core latches a fault; prints the faulting PC, the fault registers and the last 24 PCs |
 | `--via-bootrom` | the path that does not work yet (picoem's bootrom boot is broken at the pinned commit), kept testable |
 | `--frames N` | answer N requests and exit |
 | `RUST_LOG=debug` | picoem's own diagnostics; `warn` is the default and already shows every unmodelled MMIO access |
+
+## The cycle budget (#293)
+
+Every transaction reports **how long the firmware took to answer** — the cycles from
+the strobe going low to the first heartbeat edge. It is logged as `ans=` on each
+transaction line, printed by `--self-test`, and summarised (min, max, mean) at the
+end of a run; `--assert-cycles N` turns the declared budget into an exit code. That
+is the second half of `docs/emulation-testbed.md` §7's definition of
+emulation-complete, and the number itself is the personality's
+(`ACB4000_CYCLE_BUDGET` in `firmware/acb4000-scsi/acb4000.h`).
+
+**The resolution is picoem's, not this code's.** `Emulator::run` runs whole quanta
+and `DEFAULT_STEP_QUANTUM` is **64 cycles**, so 64 is the smallest answer that can be
+measured at all — and `--cycles 20000` really advances 20 032, because the phase is
+quantised too. Measured 2026-10-19 through the smoke firmware, in `--self-test` and
+through MAME: **one quantum**, at every phase length from 64 to 20 000.
 
 `src/chip.rs` carries the finding — what the crate exposes, what it does not, and
 why the process owns the chip instead of MAME holding a handle to it.
