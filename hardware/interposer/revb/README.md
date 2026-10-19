@@ -22,6 +22,29 @@ Live response does **not** require direct address pins:
   GPIO; /WAIT stretching is the period-correct mechanism slow
   peripherals always used.
 
+## What the 688 can and cannot select (measured 2026-10-19, #303/#304)
+
+The paragraph above says windows are firmware-relocatable, so "every personality's
+port base is soft". Modelled in `tools/picoem-bridge/src/fabric.rs` and tested there,
+that is true for **memory** windows and misleading for **I/O ports**:
+
+- The 688 compares `A8–15`, so a window is a **256-byte page**, not a range — a
+  programmed `30h` hits `3000h` and `30FFh` alike.
+- On a Z80 **I/O** cycle the high half of the address bus is *not* the port: for
+  `OUT (n),A` it is the **accumulator**, and for `OUT (C),r` and the block moves it is
+  `B`. So a comparator on `A8–15` cannot select a port at all — it selects a page of
+  memory, and the hit *moves with the data*.
+- A register-selected personality is therefore **`/IORQ` plus a 165 snapshot per I/O
+  cycle**, with the 688 doing the memory windows (the ROM window, Drive C, the bank-2
+  door at `2800h`). The ACB-4000 is four registers at base `30h`
+  (`docs/acb4000-host-adapter.md` §1), and every personality with a port block is the
+  same shape.
+
+That is not a defect in the mechanism — it is what the mechanism is *for*, and it is
+why the 165 chain exists at all. But it is the difference between a personality that
+costs one combinational line per cycle and one that costs a 24-bit snapshot, and it is
+what **#303** has to decide.
+
 ## RP2354B pin map (48 GPIO)
 
 | Pins | Function | Notes |
