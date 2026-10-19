@@ -325,24 +325,44 @@ All three are verified from the Mac: the image, `/hello.txt` and a 404 over the 
 interface** (where the firewall matters), telnet negotiated and echoed and hung up on
 `quit`, and ssh running a command with the harness key.
 
-###### Two things this machine imposes, and one it does not
+###### Three things this machine imposes, and what they actually are
 
-- **The application firewall drops incoming connections to a listener.** Loopback
-  serves fine; the interface address *hangs* — curl exit 28, nothing in any log. The
-  firewall is on with *"automatically allow built-in signed software"* enabled, so
-  serving with **`/usr/bin/python3`** (Apple-signed, 3.9.6) works where the Homebrew
-  `python3` does not: same file, same port, 200 against a timeout. The other fix
-  needs sudo (`socketfilterfw --add/--unblockapp`) and is not needed.
+- **The application firewall *asks*, and an unanswered question looks exactly like a
+  block.** The first time a new binary accepts an incoming connection, macOS puts up
+  *"Do you want the application … to accept incoming network connections?"* — and until
+  somebody answers it (and if it is denied) connections to that port **hang**, with
+  nothing in any log: loopback serves, the interface address times out (curl exit 28),
+  and neither end has anything to say about it. Built-in signed binaries are exempt,
+  which is why `/usr/bin/python3` worked while the Homebrew `python3` sat there.
+  **This was written down wrong the first time**: nothing was *blocked*, a prompt was
+  *unanswered* because nobody was at the machine, and the fix was one click. After it,
+  the Homebrew python3 serves the same file on the same port — measured, 200 and
+  1,060,384 bytes over the AP interface. `socketfilterfw --listapps` shows who has been
+  allowed, and both listeners now print the hint at startup so a silent hang has a name.
 - **The board can only join a 2.4 GHz network.** The ESP32-S2 is a 2.4 GHz part —
   [`hardware/wifi-comm-pac/pinmap.md`](../../hardware/wifi-comm-pac/pinmap.md) is
-  where the module and its antenna live. `status` and `wifi` report the channel, so
-  this is checked rather than assumed: the bring-up board joined on **channel 6**.
-- **The Mac as an access point is `Internet Sharing`**, and it works: `bridge100` at
-  `192.168.2.1/24`, the board at `192.168.2.2`, and the machine's own path untouched
-  (its default route stayed on `en0`). On macOS 27 the old
-  `com.apple.nat.plist`/`launchctl kickstart` recipe does not apply — the daemon is
-  `InternetSharing`, its config is `com.apple.InternetSharing.default.plist`, and the
-  UI is what writes it.
+  where the module and its antenna live. The firmware reports the channel it actually
+  associated on, so this is checked rather than assumed: the bring-up board joined on
+  **channel 6**.
+- **The Mac as an access point is `Internet Sharing`, and the switch is the operator's,
+  not the agent's.** It works — `bridge100` at `192.168.2.1/24`, the board at
+  `192.168.2.2`, the machine's own route untouched on `en0` — but turning it on or off
+  needs a person: the daemon runs as root (signalling it is *"Operation not permitted"*),
+  its config is root-owned, there is no launchd job to kickstart on macOS 27,
+  `networksetup` has nothing for it, and the `internetSharing` App Intent only helps if
+  somebody builds a Shortcut from it. So the state is **readable** and the change has to
+  be **asked for**: `ifconfig bridge100`, `pgrep InternetSharing`, and
+  `/Library/Preferences/SystemConfiguration/com.apple.nat.plist` — `NAT/Enabled`,
+  `NAT/PrimaryInterface/Device` = `en0`, `NAT/SharingDevices` = `[en1]`.
+  **That file is not a handle.** On the day it was written it said
+  `AirPort/NetworkName` was `Cortexiphan` and `AirPort/Channel` was `0`, while the AP
+  was broadcasting `o1next` on channel 6 — so it is the UI's leftovers, not the live
+  configuration.
+- **The lab's network, for whoever comes next**: SSID `o1next`, password
+  `felsenstein`, 2.4 GHz channel 6, the Mac at `192.168.2.1`, the board at
+  `192.168.2.2`. It is a *soft* AP that exists only while Internet Sharing is on, which
+  is why writing the password down costs nothing — and why a board that "rejoins by
+  itself" only does so while somebody has the sharing switched on.
 
 ###### Still open: driving the modem's own telnet
 
