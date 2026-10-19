@@ -219,6 +219,7 @@ measured or read from a source.
 | **M2** | **Memory cycles are refused.** The frame carries `addr` but v1 does not drive the address bus (`status` 2) | the ROM window and the Drive C mapping are memory-mapped, so #179 and the ROM door need this | medium | M3, and the personality that needs it |
 | **M3** | **One byte per cycle.** `MODE SELECT`, the CDB and the data phase need a burst or a window | a real SCSI transfer cannot be modelled | small–medium — the frame's `addr` and `cycles` fields are the seam | M1, which has landed |
 | **M4** | **No staged test machine.** `stage.sh` copies the binary, ROMs and launcher into one directory; the picoem-backed machine has no such stage | "boot the emulated interposer and play" is a hand-built command line | small | #295 |
+| **M5** | **The address never reaches the firmware.** The frame carries `port` and `addr`, and the *bridge* knows both — but the personality sees only the data bus and the four strobes, so it cannot tell **which register** a cycle is for. On Rev B the low bits are reachable only through the **165 snapshot chain**: the 688 gives `ADDR_HIT` for a *window* (`30h`–`33h`), not for a register | **no register-selected personality can be written at all** — #179 is base `30h`, four registers (`docs/acb4000-host-adapter.md` §1), and every personality with a port block is the same shape | **the board decides it, and it is not free**: 48 of 48 GPIO are allocated and `GP12–19` is HSTX. Three fits, and the trade is in #303 | **#303** (the decision) then **#304** (the model) |
 
 ### 4.2 picoem-side — a fork, because there is no tracker
 
@@ -320,6 +321,15 @@ guest against MAME's `acb4000_host_adapter_device`.
 - **Why #179 first:** it is the only personality with a complete reference
   implementation, a booting system, and a host-tested firmware module already
   written.
+
+**And it is gated on M5, which is a board question rather than an emulation one.** The
+ACB-4000 is register-selected, so "the same guest reaches the same outcome" cannot be
+reached until the firmware can tell *which register* a cycle is for — and today it
+cannot (§4.1, M5). **#303** decides how the board tells it (2–4 bits of register select
+on the spare pins, a parallel slice, or the 165 snapshot); **#304** models that decision
+in the bridge so that firmware written against it runs on the board unchanged. Writing
+the personality before #303 lands is the one thing this testbed exists to prevent: code
+that runs in the emulator and not on the board.
 
 ### Gate D — retire the stand-ins, one at a time
 
