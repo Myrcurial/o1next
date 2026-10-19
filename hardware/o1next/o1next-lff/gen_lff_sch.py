@@ -7,6 +7,7 @@ import uuid, datetime, os
 
 def uid(): return str(uuid.uuid4())
 TODAY = str(datetime.date.today())
+PROJECT = 'o1next-lff'
 
 SHEETS = [
     ('cpu_mem',   'CPU + SRAM + ROM: Z84C00 (socketed DIP-40 for interposer upgrade path), 64KB SRAM (replaces 16x 4116 DRAM + refresh logic), 27C128/Flash BIOS, address decode, bank switching (bank 1 RAM / bank 2 IO+video) per docs/o1-memory-io-map.md'),
@@ -21,14 +22,18 @@ SHEETS = [
 def child_sch(name, note):
     lines = note.split(': ', 1)
     text = '\n'.join('  (text "' + l + '" (at 30 ' + str(40 + i*7.62) + ' 0) (effects (font (size 2 2))) (uuid "' + uid() + '"))' for i, l in enumerate([lines[0]] + [lines[1][j:j+110] for j in range(0, len(lines[1]), 110)]))
+    # A KiCad 7 *child* sheet carries no sheet_instances: the page numbers live
+    # in the parent's per-sheet `instances` block.  Emitting one here (KiCad 6
+    # style) makes kicad-cli refuse the whole hierarchy -- "Failed to load
+    # schematic", with nothing naming the file at fault.
     return ('(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")\n'
         f'  (uuid "{uid()}")\n  (paper "A4")\n'
         f'  (title_block (title "o1next-LFF: {name}") (date "{TODAY}") (rev "0.0-block"))\n'
-        '  (lib_symbols)\n' + text + '\n'
-        '  (sheet_instances (path "/" (page "1")))\n)\n')
+        '  (lib_symbols)\n' + text + '\n)\n')
 
+root_uuid = uid()
 root = ['(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
-        f'  (uuid "{uid()}")', '  (paper "A2")',
+        f'  (uuid "{root_uuid}")', '  (paper "A2")',
         f'  (title_block (title "o1next-LFF 1:1 mainboard replacement") (date "{TODAY}") (rev "0.0-block") (comment 1 "Faithful reproduction: socketed DIP-40 Z80; interposer is the upgrade path. L-shaped board, 4 mounting bosses, stock port locations."))',
         '  (lib_symbols)']
 x, y, page = 40, 40, 2
@@ -36,12 +41,24 @@ for i, (name, note) in enumerate(SHEETS):
     root.append(f'''  (sheet (at {x} {y}) (size 140 50) (fields_autoplaced yes) (stroke (width 0.1524) (type solid)) (fill (color 0 0 0 0.0000)) (uuid "{uid()}")
     (property "Sheetname" "{name}" (at {x} {y-2} 0) (effects (font (size 1.27 1.27)) (justify left bottom)))
     (property "Sheetfile" "{name}.kicad_sch" (at {x} {y+52} 0) (effects (font (size 1.27 1.27)) (justify left top)))
+    (instances
+      (project "{PROJECT}"
+        (path "/{root_uuid}"
+          (page "{page}")
+        )
+      )
+    )
   )''')
     with open(os.path.join(os.path.dirname(__file__), f'{name}.kicad_sch'), 'w') as f:
         f.write(child_sch(name, note))
     y += 62
+    page += 1
     if i == 3: x, y = 210, 40
-root.append('  (sheet_instances (path "/" (page "1")' + ''.join(f' (path "/{uid()[:8]}" (page "{page+i}"))' for i in range(len(SHEETS))) + '))')
+# The root's own sheet_instances lists the root page only; each child's page
+# number lives in that child's `instances` block above.  The KiCad 6 shape --
+# every path in the root, keyed on a random UUID that matches no sheet -- is
+# what made kicad-cli refuse to load the file at all.
+root.append('  (sheet_instances (path "/" (page "1")))')
 root.append(')')
 with open(os.path.join(os.path.dirname(__file__), 'o1next-lff.kicad_sch'), 'w') as f:
     f.write('\n'.join(root) + '\n')
