@@ -9,10 +9,14 @@
 #      byte it latched, and the reply frame carries it back.
 #   3. The result is visible in the MAME-side log -- the echoed byte and the
 #      heartbeat the firmware toggles once per cycle it handles.
+#   4. **The firmware answered inside the cycle budget the personality declares**
+#      (#293).  Every transaction's answer time is in the bridge's log as `ans=`,
+#      and the worst of them is asserted against ACB4000_CYCLE_BUDGET in
+#      firmware/acb4000-scsi/acb4000.h.  `docs/emulation-testbed.md` section 7.
 #
-#   Two of the three are in the MAME log; the first is in the bridge's, and this
-#   script requires both, because "the firmware never answered" and "the firmware
-#   never started" look identical from one side alone.
+#   Items 1 and 4 are in the bridge's log and 2 and 3 in the MAME log; this script
+#   requires both, because "the firmware never answered" and "the firmware never
+#   started" look identical from one side alone.
 #
 # USAGE
 #   tools/emulator-setup/mame-osborne1nx/picoem-check.sh
@@ -29,6 +33,9 @@
 #                  $HOME/Documents/O1NEXT/picoem.
 #   O1_PICOEM_BRIDGE   the bridge binary
 #   O1_PICOEM_DRIVE    the I/O accesses to make (default "W30=A5,R30,W31=5A,R31")
+#   O1_PICOEM_CYCLES   the bridge's phase length (default 20000).  It must exceed
+#                  the declared budget, or the budget cannot be tested at all --
+#                  nothing answers later than the phase's own end.
 #
 #   It does NOT build the firmware: that needs the Pico SDK and the Arm GNU
 #   Toolchain, and a check that silently pulls 200 MB is not a check.  It says
@@ -98,6 +105,31 @@ if [ ! -x "$BRIDGE" ]; then
     exit 1
 fi
 
+# --------------------------------------------------------------- the budget ----
+# The personality declares it (#293, docs/emulation-testbed.md section 7), so it
+# is read out of the personality's own header rather than repeated here: a budget
+# in two places is a budget that drifts.  `sed` rather than a compiler because this
+# is a shell script, and a missing declaration is a hard error rather than a
+# default -- a default would be the one number nobody chose.
+BUDGET=$(sed -n 's/^#define[[:space:]]\{1,\}ACB4000_CYCLE_BUDGET[[:space:]]\{1,\}\([0-9]\{1,\}\)u*[[:space:]]*$/\1/p' \
+             "$REPO/firmware/acb4000-scsi/acb4000.h")
+if [ -z "$BUDGET" ]; then
+    echo "picoem-check.sh: firmware/acb4000-scsi/acb4000.h declares no ACB4000_CYCLE_BUDGET" >&2
+    echo "  The personality's declaration is what this check asserts against -- see that" >&2
+    echo "  header, and docs/emulation-testbed.md section 7." >&2
+    exit 1
+fi
+
+# The phase has to be longer than the budget, or the assertion is vacuous: the
+# firmware cannot answer later than the phase's end, so a budget larger than the
+# phase could never be exceeded.
+PHASE="${O1_PICOEM_CYCLES:-20000}"
+if [ "$PHASE" -le "$BUDGET" ]; then
+    echo "picoem-check.sh: the phase ($PHASE cycles) does not exceed the declared budget" >&2
+    echo "  ($BUDGET cycles), so the budget assertion cannot fail.  Raise O1_PICOEM_CYCLES." >&2
+    exit 1
+fi
+
 mkdir -p "$WORK"
 cd "$WORK"
 
@@ -107,12 +139,13 @@ MAME_LOG="$WORK/mame.log"
 BRIDGE_LOG="$WORK/bridge.log"
 rm -f "$IN_FIFO" "$OUT_FIFO" "$MAME_LOG" "$BRIDGE_LOG"
 
-echo "picoem bridge -- the acceptance (#286)"
+echo "picoem bridge -- the acceptance (#286, #293)"
 echo "  binary:   $MAME"
 echo "  firmware: $FW"
 echo "  bootrom:  $BOOTROM"
 echo "  bridge:   $BRIDGE"
 echo "  drive:    $DRIVE"
+echo "  budget:   $BUDGET cycles (ACB4000_CYCLE_BUDGET), phase $PHASE"
 echo "  work:     $WORK"
 echo
 
@@ -120,6 +153,7 @@ echo
 # exit path.  `--frames` gives it a way to finish on its own as well.
 "$BRIDGE" --flash "$FW" --bootrom "$BOOTROM" \
     --in "$IN_FIFO" --out "$OUT_FIFO" --frames 12 \
+    --cycles "$PHASE" --assert-cycles "$BUDGET" \
     > "$BRIDGE_LOG" 2>&1 &
 BRIDGE_PID=$!
 trap 'kill "$BRIDGE_PID" 2>/dev/null || true; wait "$BRIDGE_PID" 2>/dev/null || true' EXIT INT TERM
@@ -179,6 +213,26 @@ want 'W 31 <- 5A  firmware drove 5A' "$MAME_LOG" \
      "the register takes a second value -- it is not a stuck pin"
 want 'picoem-bridge: seq' "$BRIDGE_LOG" \
      "the bridge logged the transactions it answered"
+
+# --- the cycle budget (#293) ---------------------------------------------------
+# `--assert-cycles` covers a run that finishes on its own; this script kills the
+# bridge, so the assertion that always applies is the one over the log.  Every
+# transaction reports the cycles the firmware took to answer (`ans=`), and the
+# worst of them is the number the declared budget is about
+# (docs/emulation-testbed.md section 7).
+worst=$(grep -oE 'ans=[0-9]+' "$BRIDGE_LOG" | sed 's/ans=//' | sort -n | tail -1)
+if [ -z "$worst" ]; then
+    echo "  FAIL  the bridge reported no answer time (ans=) at all -- the firmware never answered"
+    fail=1
+else
+    echo "  (worst answer: $worst cycles, declared budget $BUDGET)"
+    if [ "$worst" -le "$BUDGET" ]; then
+        echo "  PASS  every transaction answered inside the declared budget ($BUDGET cycles)"
+    else
+        echo "  FAIL  a transaction answered in $worst cycles, outside the budget of $BUDGET"
+        fail=1
+    fi
+fi
 
 echo
 if [ "$fail" -eq 0 ]; then

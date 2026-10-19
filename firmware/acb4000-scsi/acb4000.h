@@ -48,6 +48,34 @@
 #define ACB4000_SENSE_LEN       4u      /* the controller returns four sense bytes */
 #define ACB4000_STAGING         2048u   /* the controller's own RAM buffer is 1 KiB */
 
+/* ------------------------------------------------------------------ the budget
+ *
+ * The cycle budget this personality declares. It is the one number in this file
+ * that is not the controller's: it is the *loop's* contract.
+ *
+ * `docs/emulation-testbed.md` section 7 defines emulation-completeness partly as
+ * *"the firmware's reported cycle count is inside the budget the personality
+ * declares"*, and `docs/picoem-bridge.md` section 4 is the mechanism -- the bridge
+ * reports, per transaction, the cycles the firmware took to answer (`ans=`) and
+ * asserts them against this number (`--assert-cycles`).
+ *
+ * **The emulator's resolution is one quantum: 64 cycles.** picoem's
+ * `DEFAULT_STEP_QUANTUM` is 64 and `Emulator::run` runs whole quanta, so 64 is the
+ * smallest answer that can be measured at all and a budget below it could never be
+ * met. Measured 2026-10-19 (#293), through the smoke firmware: a write and a read
+ * each answered in **one quantum -- 64 cycles** -- in `--self-test` and through
+ * MAME, at every phase length from 64 to 20 000.
+ *
+ * **2048 is 32 quanta, and both ends of that are deliberate.** It is an order of
+ * magnitude above the simplest firmware's floor, because this personality decodes
+ * a CDB and moves a block rather than echoing a byte; and it is an order of
+ * magnitude *inside* the phase the bridge runs (`--cycles`, default 20 000),
+ * because a budget larger than the phase would be vacuous -- nothing can answer
+ * later than the phase's own end, so the assertion would never fire. One line to
+ * move when the personality's own firmware has a number rather than an argument.
+ */
+#define ACB4000_CYCLE_BUDGET 2048u
+
 /* The completion status byte (manual 5.5).  Bits 0, 4, 5, 6 and 7 are always
  * zero; the three that mean anything are these. */
 #define ACB4000_ST_GOOD         0x00u

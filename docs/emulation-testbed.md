@@ -360,6 +360,7 @@ emulation, and they cost an afternoon between them.
 | Not emulatable | Why | Where it belongs |
 |---|---|---|
 | **Electrical timing** — the Rev B T2 claim (~50 ns PIO response), propagation, bus loading, 74AHCT level shifting, Z80 setup/hold | emulation gives **cycle counts**, not nanoseconds. Neither emulator models a wire | **#29** (Phase 4). The cycle-budget assertion in §7 is the *partial* substitute and must be labelled as one |
+| **Bus-cycle timing finer than one quantum** | `Emulator::run` runs whole quanta (`DEFAULT_STEP_QUANTUM`, **64 cycles**), so a firmware that answers in 20 cycles and one that answers in 60 measure the same: one quantum. Measured 2026-10-19 (#293) — see §7 | this document, §7 — the budget is a **bound**, and the floor of the bound is 64 cycles. A budget below that can never be met, which is why the personality's declared number is checked against it |
 | **The machine's own wait-state generator, and how it composes with the interposer's** | **MAME omits it.** `o1-mainboard-schematic.md` §8 records the wait-state generator on sheet 2/9 (`UC1`, `UC2`, `UD1`–`UD3`) as unmodelled, and `o1-memory-io-map.md` §1 measures what it does: ≈375 ns of wait on non-M1 RAM cycles, 188 ns on the first M1, none on ROM. So the *composition* of the machine's stretch with the interposer's cannot be exercised in the emulator at all | **#29** — and it is hardware-gated **by construction**. It is also the strongest argument for *scheduling* `/WAIT` from the clock phase rather than racing `ADDR_HIT` (**#297**): the one behaviour a race cannot survive is the one the testbed cannot test |
 | **Pin-mux correctness** | `FUNCSEL` is not enforced (P5), so a personality that shares a pad wrongly *passes* | this document, §3.3 — a named **false-negative source** |
 | **A real W25Q, SD card, USB stick, ESP32 radio** | quirks, timing, and radio | #288, #21/#56, #29 |
@@ -389,6 +390,20 @@ Three things make that worth writing down:
   neither can picoem — but a cycle budget *is* measurable, so "the firmware
   answered within N emulated cycles" is a real assertion, and "the firmware meets
   T2 on silicon" is not, and stays in #29.
+
+**The second half is built (#293).** The bridge reports, per transaction, the cycles
+the firmware took to answer (`ans=`), summarises the worst case at the end of a run,
+and asserts it against the number the personality declares: `--assert-cycles`, which
+`picoem-check.sh` reads out of `ACB4000_CYCLE_BUDGET` in
+`firmware/acb4000-scsi/acb4000.h` rather than repeating it. Measured 2026-10-19, the
+smoke firmware answers in **one quantum — 64 cycles**, in `--self-test` and through
+MAME, at every phase length from 64 to 20 000.
+
+**And 64 cycles is a floor rather than a speed.** The resolution of the whole loop is
+picoem's step quantum (`DEFAULT_STEP_QUANTUM`), because `Emulator::run` runs whole
+quanta — so no answer can be measured more finely, and a declared budget below 64
+could never be met. The check refuses a budget its own phase cannot exceed, for the
+same reason: a bound that cannot be broken is not an assertion.
 
 ## 8. Running it
 
