@@ -414,33 +414,39 @@ the fault. Reading the netlist pin by pin found both. What it checks:
   warning), so a severity-keyed budget would pin the gate to one KiCad version.
 - **Generator drift.** Regenerates each board and compares netlists, so a
   committed `.kicad_sch` cannot silently diverge from its generator.
-- **The sheet decomposition.** For a hierarchical *skeleton* — `o1next-lff` has
-  sheets and design notes but no components yet — the sheets *are* the design, so
-  the root sheet's `Sheetname` set is asserted against the list in the tool.
 
 CI runs it on every change to `hardware/**/*.kicad_sch` or `gen_*_sch.py`
 (`.github/workflows/schematic-check.yml`). Requires `kicad-cli` (KiCad 7+);
-set `KICAD_CLI` if it is not on PATH. Standard library only.
+set `KICAD_CLI` if it is not on PATH. Standard library only. The boards are the
+ones in `hardware/README.md`'s register, named `<shortform>` or
+`<shortform>-<revision>`: `floppy-adapter`, `interposer-upgrade-reva`,
+`interposer-upgrade-rev0`.
 
 ## The board register (`check_boards.py`)
 
-`Rev A` / `Rev B` / `Rev 0` named four unrelated things in this tree, and the
-boards were named three ways in three places: `hardware/README.md`'s folder list,
-`site/hardware/index.md`'s table, and `BOARDS` in `check_schematics.py`. None was
-derivable from another, and the site is what the world reads.
+The boards were named three ways in three places, and none was derivable from
+another: `hardware/README.md` listed seven folders, `site/hardware/index.md`
+listed a different set under different names, and `BOARDS` in
+`check_schematics.py` covered three boards — while the folders were named after
+neither (`wifi-modem-module/` held the `O1NEXT WiFi COMM PAC`). The site is what
+the world reads, so the drift was visible to everyone.
 
 ```
 python3 tools/check_boards.py          # check
 python3 tools/check_boards.py -v       # also print what it parsed
 ```
 
-`hardware/README.md`'s **board register** is now the single table (#308), and
-this is the check that keeps it single. It fails when a board's home is not a
-directory and the row does not say "no directory" with the issue that will make
-one; when a board with no schematic does not say so; when the register and
-`check_schematics.py` disagree about which boards have schematics; when a
-`.kicad_sch` in the tree belongs to no checked board; or when the site's board
-table is a different set, or the same set in a different order.
+The rule now (#308): **the shortform is the board's name**, and it is the folder,
+the site URL and the checker's board id. `hardware/README.md`'s **board register**
+is the single table, and this is the check that keeps it single. It fails when a
+board's home is not a directory named after its shortform and the row does not say
+"no directory" with the issue that will make one; when a board with no schematic
+does not say so; when the register and `check_schematics.py` disagree about which
+boards have schematics, or a checker board id belongs to no shortform; when a
+`.kicad_sch` in the tree belongs to no checked board; when a folder under
+`hardware/` is not a board's home; when a part of `interposer-upgrade` (one unit
+in four parts) has no home; or when the site's board table is a different set, in
+a different order, or links a board at a URL that is not `/hardware/<shortform>/`.
 
 It needs **no `kicad-cli`** — it imports the board *list*, it does not run the
 netlists — so the coverage half fails in seconds. CI runs it on changes to

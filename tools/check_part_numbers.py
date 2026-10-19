@@ -31,7 +31,7 @@ Exempt, and why.  This list is the whole argument; do not grow it silently:
                                   MCUs are RP2040 and Pico W, and a blanket
                                   replace corrupts the survey.
     site/compendium/prior-art.md  its generated mirror, so it inherits the above.
-    hardware/interposer/rev0/**   the superseded, never-built probe.  It records
+    hardware/interposer-upgrade/rev0/**   the superseded, never-built probe.  It records
                                   the module it was designed around, and that
                                   module's 26 GPIO are the reason the production
                                   board uses the bare part — rewriting the record
@@ -103,7 +103,7 @@ EXEMPT_FILES = {
 
 EXEMPT_DIRS = (
     "research",
-    "hardware/interposer/rev0",
+    "hardware/interposer-upgrade/rev0",
 )
 
 SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__",

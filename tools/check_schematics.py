@@ -20,7 +20,7 @@ collide on the sheet.
 Usage
 -----
     python3 tools/check_schematics.py              # all boards
-    python3 tools/check_schematics.py --board reva # one board
+    python3 tools/check_schematics.py --board interposer-upgrade-reva  # one board
     python3 tools/check_schematics.py -v           # list every net checked
 
 Requires ``kicad-cli`` (KiCad 7 or newer).  Set ``KICAD_CLI`` or pass
@@ -160,23 +160,6 @@ def parse_sheet(path: Path):
             if at:
                 labels.append((node[1], float(at[1]), float(at[2])))
     return placed, labels
-
-
-def sheet_names(path: Path) -> list:
-    """The root sheet's child-sheet names, in the order they are drawn.
-
-    For a hierarchical *skeleton* -- one with sheets and design notes but no
-    components yet -- the decomposition IS the design, so it is the invariant
-    worth asserting (the same hand-transcribed-table-then-check-it pattern the
-    pinout tables below use).
-    """
-    root = sexpr(path.read_text(errors="replace"))
-    names = []
-    for node in _kids(root, "sheet"):
-        for prop in _kids(node, "property"):
-            if len(prop) > 2 and prop[1] == "Sheetname":
-                names.append(prop[2])
-    return names
 
 
 def find_overlaps(placed):
@@ -377,12 +360,11 @@ class Board:
     def __init__(self, name, sch, gen, erc_allowance, exact_nets=None,
                  contains_nets=None, excludes_nets=None, pin_nets=None,
                  passthrough=None, pinout=None, unused_pins=None,
-                 allow_overlaps=0, allow_label_collisions=0, sheets=None):
+                 allow_overlaps=0, allow_label_collisions=0):
         self.name = name
         self.sch = REPO / sch
         self.gen = gen
         self.erc_allowance = erc_allowance
-        self.sheets = sheets or []
         self.exact_nets = exact_nets or {}
         self.contains_nets = contains_nets or {}
         self.excludes_nets = excludes_nets or {}
@@ -421,13 +403,6 @@ def check_board(cli: str, board: Board, tmp: Path, verbose: bool):
 
     placed, labels = parse_sheet(board.sch)
     notes.append(f"{len(placed)} symbols, {len(labels)} labels")
-
-    # -- the sheet decomposition (a skeleton's only real content) -----------
-    if board.sheets:
-        got = sheet_names(board.sch)
-        if got != board.sheets:
-            failures.append(f"the sheet decomposition is wrong: the root sheet "
-                            f"has {got}, expected {board.sheets}")
 
     # -- sheet geometry -----------------------------------------------------
     hits = find_overlaps(placed)
@@ -579,9 +554,9 @@ FLOPPY = Board(
 # Interposer Rev A engineering sample.  J1 plugs into the O1's Z80 socket and
 # U1 is the on-board Z84C00, so both must follow the Z80 DIP-40 pinout exactly.
 REVA = Board(
-    name="reva",
-    sch="hardware/interposer/reva/reva.kicad_sch",
-    gen="hardware/interposer/reva/gen_reva_sch.py",
+    name="interposer-upgrade-reva",
+    sch="hardware/interposer-upgrade/reva/reva.kicad_sch",
+    gen="hardware/interposer-upgrade/reva/gen_reva_sch.py",
     erc_allowance={
         "pin_not_connected": 12,    # genuinely unused pins (U7/U8 /QH, U11 2A2/2Y2,
                                     # Pico RUN/ADC_VREF/3V3_EN/VBUS, ESP IO2/IO8/IO10)
@@ -603,9 +578,9 @@ REVA = Board(
 # Interposer Rev 0 (snoop-only test probe).  J1 is the plug, J2 the socket the
 # CPU moves into: every pin must pass through unchanged.
 REV0 = Board(
-    name="rev0",
-    sch="hardware/interposer/rev0/rev0.kicad_sch",
-    gen="hardware/interposer/rev0/gen_rev0_sch.py",
+    name="interposer-upgrade-rev0",
+    sch="hardware/interposer-upgrade/rev0/rev0.kicad_sch",
+    gen="hardware/interposer-upgrade/rev0/gen_rev0_sch.py",
     erc_allowance={
         "pin_not_connected": 28,    # unused 165 /QH outputs + unassigned Pico GPIOs
                                     # (PICO_NET is preliminary: firmware owns the
@@ -617,22 +592,7 @@ REV0 = Board(
     passthrough=[("J1", "J2", range(1, 41), set())],
 )
 
-# o1next-LFF, the 1:1 mainboard replacement (#49).  A block-level skeleton: the
-# sheets and their design notes are the whole design so far, so the invariant
-# asserted here is the decomposition itself (the root sheet's `Sheetname` set)
-# rather than a netlist with no components in it.  The board is recorded as
-# "won't build" (maintainer, 2026-10-19) and the skeleton stays covered anyway,
-# because hardware/README.md's register lists it and this tool has to agree with
-# that list -- tools/check_boards.py is the check that they do.
-LFF = Board(
-    name="lff",
-    sch="hardware/o1next/o1next-lff/o1next-lff.kicad_sch",
-    gen="hardware/o1next/o1next-lff/gen_lff_sch.py",
-    erc_allowance={},
-    sheets=["cpu_mem", "video", "floppy", "io", "keyboard", "power", "clock"],
-)
-
-BOARDS = [FLOPPY, LFF, REVA, REV0]
+BOARDS = [FLOPPY, REVA, REV0]
 
 
 def check_reference_tables() -> list:

@@ -76,7 +76,7 @@ use rp2350_emu::{Config, Emulator, EmulatorError};
 use crate::fabric::Board;
 use crate::frame;
 
-/// The Rev B pin map (hardware/interposer/revb/README.md), in one place.
+/// The Rev B pin map (hardware/interposer-upgrade/revb/README.md), in one place.
 pub const PIN_MREQ: u8 = 8;
 pub const PIN_IORQ: u8 = 9;
 pub const PIN_RD: u8 = 10;
@@ -131,7 +131,7 @@ pub struct Tx {
     /// For a firmware that only says "handled" (one toggle) this equals `answer`.
     /// For a *personality* it does not, and the difference is the interesting
     /// number: a personality asserts `/WAIT` when it takes the cycle and releases
-    /// it when the answer is on the bus (`hardware/interposer/revb/README.md`), so
+    /// it when the answer is on the bus (`hardware/interposer-upgrade/revb/README.md`), so
     /// `answer` is the time to *notice* and `last` is the time to *answer* — and
     /// `last - answer` is what the cycle costs, which is the number a 165 snapshot
     /// has to be judged against (#303).

@@ -21,7 +21,7 @@
 //!
 //! # The parts, and what each one does on the board
 //!
-//! `hardware/interposer/revb/README.md` is the pin map; the mechanism is:
+//! `hardware/interposer-upgrade/revb/README.md` is the pin map; the mechanism is:
 //!
 //! - **74AHCT595** — serial in, parallel out, clocked by the firmware
 //!   (`SR_MOSI`/`SR_SCK`, latched by `SR_RCK`, outputs enabled by `/OE_ADDR`). Its
@@ -38,7 +38,7 @@
 //!
 //! # The widths are parameters, on purpose
 //!
-//! `hardware/interposer/revb/` has a **README and no schematic** (`rev0/` and
+//! `hardware/interposer-upgrade/revb/` has a **README and no schematic** (`rev0/` and
 //! `reva/` have `.kicad_sch`; `revb/` does not). So the *parts'* behaviour is
 //! modelled from the datasheets and the widths are explicit parameters, defaulted to
 //! the numbers the README implies — rather than hard-coding a wiring nobody has
@@ -63,7 +63,7 @@ pub const FABRIC_BITS: u32 = 24;
 /// The bits the 688 compares: `A8–15`, eight of them.
 pub const MATCH_BITS: u32 = 8;
 
-/// The Rev B fabric pins (`hardware/interposer/revb/README.md`, GP26–30).
+/// The Rev B fabric pins (`hardware/interposer-upgrade/revb/README.md`, GP26–30).
 pub const PIN_SR_SCK: u8 = 26;
 /// The 165's serial output — an **input** to the chip, so the board drives it.
 pub const PIN_SR_MISO: u8 = 27;
@@ -492,7 +492,7 @@ mod tests {
         //
         // The consequence, and the reason #303 is a decision rather than a pin edit:
         // a register-selected personality is **/IORQ plus a 165 snapshot per I/O
-        // cycle**, not a window hit. `hardware/interposer/revb/README.md` describes
+        // cycle**, not a window hit. `hardware/interposer-upgrade/revb/README.md` describes
         // the 688 as the live path, which is true for the *memory* windows (the ROM
         // window, Drive C, the bank-2 door at 2800h) and misleading for I/O ports.
         let mut b = Board::new();
