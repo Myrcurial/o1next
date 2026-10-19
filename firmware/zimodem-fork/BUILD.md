@@ -73,6 +73,117 @@ brought out to a connector and the board has no UART bridge, so without it there
 If the fitted module is a PSRAM part, add `PSRAM=enabled`. The N4 has none and does
 not need it.
 
+### The console you can type at
+
+That CDC was **write-only** until #334: `debugPrintf()` mirrored the firmware's log
+out of it and nothing ever read it back, so there was no way to type at a running
+board and no way to ask it what it had loaded, which slot it booted from, or
+whether the firmware was the one we thought we had flashed. The read half is
+`zimodem/o1next_console.ino` in the fork — declared by `o1next_console.h`, polled
+from `loop()` behind the same guard the CDC half of `debugPrintf` uses.
+
+**It is not the modem's serial port.** The O1 side is UART1 (GPIO15/16) and the
+ROM bootloader's own log is UART0; the console is a third, independent stream on
+the native USB. Nothing in it reads or writes `HWSerial`, so a command typed here
+cannot be mistaken for a byte the Osborne sent, and no byte the Osborne sent can be
+eaten by the console.
+
+```
+o1next console -- Zimodem 4.0.3.  Type help for the commands.
+o1next> status
+
+Zimodem 4.0.3  (built Oct 19 2026 17:15:10)
+board    ESP32-S2, flash 4194304 bytes, MAC 80:65:99:ef:c7:82
+serial   O1 side is UART1: RXD 16, TXD 15, 1200 bps
+         handshake DCD -1, CTS -1, RTS -1, RI -1, DSR -1, DTR -1
+         console is this USB CDC; ROM log is UART0
+strap    GPIO0 (BOOT / factory reset) reads HIGH
+slot     running app0 at 0x010000, 1966080 bytes
+         next update would go to app1 at 0x1f0000
+uptime   227.2 s
+heap     free 155416, min free since boot 154772
+o1next>
+```
+
+| command | what it does |
+|---|---|
+| `status` | version and build time, MAC, the pins in use, what GPIO0 reads right now, the running slot and the slot an update would go to, uptime, heap |
+| `reboot` | `esp_restart()` — back into the application |
+| `bootloader` | the ROM's download mode, with **no button** (below) |
+| `update` | the hook for the OTA path; nothing is received yet (#334, item 2) |
+| `help` | the list, and the note that this is not the modem's port |
+
+`tools/console-o1next.py` is the writing half of `tools/read-console.py`:
+
+```sh
+tools/console-o1next.py '/dev/cu.usbmodem*' status
+tools/console-o1next.py '/dev/cu.usbmodem*' bootloader   # then tools/flash-o1next.sh
+```
+
+It re-opens across the resets `reboot` and `bootloader` cause, for the same reason
+`read-console.py` does: a reader that opens once misses everything after the
+command it was run to send.
+
+#### `bootloader` — and it is *not* the obvious implementation
+
+The only programming port on this board is the ESP32-S2's own USB, and the ROM
+cannot reset the chip over it. esptool's own reset papers over that on a board with
+an auto-reset circuit, which is the board we brought up on. **Our own PCB will not
+have one**, so there the button is the only way into the ROM — unless the running
+firmware can do it.
+
+The obvious implementation is the BOOT strap: drive GPIO0 low, call `esp_restart()`,
+let the ROM sample it. **Measured 2026-10-19, and it does not work**: the port drops
+and the *application* comes back, banner and all. An SW system reset does not
+re-sample the BOOT strap — the mode latched by the last hardware reset persists.
+
+That also settles an older mystery in `tools/flash-o1next.sh`. esptool's
+`write_mem` of `SW_SYS_RST` to `0x3f408000` "worked" only in the sense that the port
+dropped; the chip came back in download mode, and the note there blamed the board's
+auto-reset circuit. It was never the circuit: the chip was *already* in download
+mode, so the latched mode was download mode.
+
+What does work is the RTC domain's `RTC_CNTL_FORCE_DOWNLOAD_BOOT` bit
+(`RTC_CNTL_OPTION1_REG`, `0x3f408128`, bit 0), which survives the SW reset — and
+which is the mechanism the Arduino core itself uses in `usb_persist_restart()`
+(`cores/esp32/esp32-hal-tinyusb.c`). GPIO0 is still driven low, because it is the
+half that matters if the reset that follows is a *hardware* one.
+
+The evidence, on the board:
+
+- `bootloader` → the port drops, **no banner follows**, and esptool with
+  `--before no_reset` then syncs to it:
+  ```
+  Features: WiFi, Embedded Flash 4MB, Embedded PSRAM 2MB, ...
+  Crystal is 40MHz
+  MAC: 80:65:99:ef:c7:82
+  Uploading stub... Running stub... Stub running...
+  Staying in bootloader.
+  ```
+  The discriminator is the control: against a *running* application the same probe
+  fails with *"Failed to connect to ESP32-S2: No serial data received."*
+- `bootloader` → `tools/flash-o1next.sh` → the application is back and answering,
+  with **no cable moved, no button, no download-mode dance**. That is the whole
+  point of the command, and it is the loop our PCB will need.
+- `status` while the chip is in the ROM's stub → silence, which is what a dead
+  application looks like from here.
+
+#### Two things the console does that look like bugs
+
+- **esptool's sync filler is `0x55`, which is `'U'` and printable.** Point
+  `--before no_reset` at a *running* application and the console reads a few
+  thousand of them, fills its line buffer, and answers `line too long (max 63) --
+  dropped` to the next command sent. Send a bare newline first, or just retype; the
+  console says what it did rather than silently truncating into a different command.
+- **`uptime` is `millis()`, and not every reset zeroes it.** `esp_restart()` does —
+  measured 6703.5 s, `reboot`, 9.6 s — and so does esptool's own reset on a running
+  application (20.0 s after a flash that began with one). **The reset esptool
+  performs at the end of a *stub* session does not**: after one, a freshly started
+  application reported 6664.9 s, and after a flash driven from that stub, 346.5 s.
+  So `uptime` is a real number and not always "how long has this application been
+  up" — the `built` line is what answers "is this the firmware I just flashed".
+
+
 ## Configuration: what to set for our board
 
 **Upstream has no S2 pin profile.** The `#elif` chain in `zimodem.ino` covers the
@@ -124,10 +235,19 @@ Two things worth knowing without opening it:
 The pins are implemented in the fork as **`zimodem/o1next.h`** — one file, selected
 by `O1NEXT_BOARD`, which `zimodem.ino` defines for this fork. Upstream has no S2
 profile: its chain covers the C3 and the S3 and then falls through to *"standard
-ESP32 4 & 8MB boards"*, whose pins are not ours. The diff to upstream's
-`zimodem.ino` is **eight added lines and no modified ones** — a modification notice
-(Apache-2.0 §4(b)), the define, and the two-line branch — so a future merge from
-upstream stays a merge.
+ESP32 4 & 8MB boards"*, whose pins are not ours.
+
+**The diff to upstream's `zimodem.ino` is 53 added lines and 2 modified**, measured
+against upstream `a534e51` with `git diff --numstat`. (An earlier version of this
+paragraph said *"eight added lines and no modified ones"*, and both halves of that
+were wrong by the time #334 landed — the notice and the CDC half of `debugPrintf`
+are lines too, and the two fixed arrays are upstream lines that changed.) The added
+ones are a modification notice (Apache-2.0 §4(b)), the define, the two-line branch,
+the CDC half of `debugPrintf`, the notice above the two fixed arrays, and the
+console's one call from `loop()`. The two modified are the `pinSupport[]` and
+`pinCache[]` declarations, which gained their padding in #334. The fork's own files
+— `o1next.h`, `o1next_console.h`, `o1next_console.ino` — are new, so they cost a
+future merge from upstream nothing.
 
 The profile also carries the feature switches for a board with no SD card:
 `INCLUDE_SD_SHELL` off, and with it `INCLUDE_HOSTCM` and `INCLUDE_COMET64`, which
@@ -178,9 +298,10 @@ the app offset is cross-checked against the partition table the build just produ
 read back with the core's own `gen_esp32part.py`. A wrong app offset merges cleanly
 and produces a board that does not boot, so it fails the build here instead.
 
-It also refuses to build past **90% of the application partition**, because there is
-no OTA path on this board and the panel (#322), the SSH key store (#321) and the
-audio are all still to come. It sits at **53%** today.
+It also refuses to build past **90% of the application partition**, because the
+panel (#322), the SSH key store (#321) and the audio are all still to come, and
+because the OTA path (#334, item 2) writes into the *other* slot and wants the room.
+It sits at **53%** today.
 
 `SHA256SUMS` and `BUILD-INFO.txt` are written beside the image: the git ref, the
 arduino-cli version, the core version, the four offsets, and the checksums.
@@ -197,10 +318,13 @@ its behaviours was corrected by a real board** rather than reasoned out:
 - The **RTC_CNTL `SW_SYS_RST` write** (`0x3f408000` bit 31 — what `esp_restart()`
   does) **does not work on this board**: the write lands and the port drops, so it
   looks like a reset, but the chip comes back in download mode. `GPIO0` reads
-  **high** (`GPIO_IN = 0x3c060001`), so it is not the strap — the board's auto-reset
-  circuit holds GPIO0 low while the port is open, and only esptool's own sequence
-  releases it. **Our own PCB is the case where this trick may be needed**, so it
-  stays documented in the script rather than deleted.
+  **high** (`GPIO_IN = 0x3c060001`), so it is not the strap — and the explanation
+  this note used to carry, *"the board's auto-reset circuit holds GPIO0 low while
+  the port is open"*, **is wrong**. #334 settled it: an SW system reset does not
+  re-sample the BOOT strap at all, so the chip simply came back in the mode the
+  last *hardware* reset had latched — which, from esptool, is download mode. The
+  console's `bootloader` command is the same mechanism, deliberately; see
+  **The console you can type at** above.
 - The flash is **retried**, because resetting *running* firmware into download mode
   changes the USB device and esptool's handle dies with it. Attempt one fails;
   attempt two finds the chip already in download mode. The script says so out loud
