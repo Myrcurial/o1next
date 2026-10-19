@@ -72,26 +72,21 @@ Two things already fall out correctly and need **no patch**:
 | `DEFAULT_BAUD_RATE` | `1200` | upstream's default, **and an O1 rate** — so the out-of-box case works before any auto-baud exists (#319) |
 | `DEFAULT_PIN_*` | **ours** | see below |
 
-### Pins — indicative, to be finalised with #324/#325
+### Pins
 
-The authoritative map is the board schematic. In **role B** the same pins carry the
-RP2354B link instead of the machine's ACIA (#323).
+**The pin map is [`../../hardware/wifi-comm-pac/pinmap.md`](../../hardware/wifi-comm-pac/pinmap.md)** —
+twelve GPIO, the fork's `#define` block written out in full, and the reason each of
+the module's other 25 GPIO is left alone. It is one map for both roles: role B
+changes only what is on the far end of GPIO15/16 (#323).
 
-| Signal | Note |
-|---|---|
-| O1 UART TXD/RXD | **UART1** — `DEFAULT_PIN_TXD` / `DEFAULT_PIN_RXD` |
-| Debug | UART0, the USB-serial console |
-| I²C SDA/SCL | the AW9523B panel (#322/#325) |
-| I²S BCLK/LRCLK/DIN | the audio amp (#325) |
-| `DEFAULT_PIN_DCD` | carrier detect — the O1's real DCD comes through the ACIA |
-| `DEFAULT_PIN_RI` | ring — **also P1 pin 9**, wired to the video-PIA UC15 CA2 |
-| `DEFAULT_PIN_CTS` / `DEFAULT_PIN_RTS` | flow control |
-| `DEFAULT_PIN_SND` | the beeper/piezo output |
-| `DEFAULT_PIN_OTH` | stream/command-mode flag |
-| `DEFAULT_PIN_DSR` / `DEFAULT_PIN_DTR` | **not used** — the O1's DE-9 has no DSR/DTR. Its DTR-equivalent is **MCB (pin 8)**, which is a *read* and belongs on the panel expander (#324) |
+Two things worth knowing without opening it:
 
-A `DEFAULT_PIN_*` of `-1` means "not fitted" — that is how upstream disables a
-line. Prefer it to inventing a pin.
+- **UART1 is on GPIO15/16, not its IO-MUX default of 17/18.** Those two pins are
+  also the only DACs, and UART1 can be routed anywhere — so the movable function
+  goes on movable pins and the unique pins stay free.
+- **A `DEFAULT_PIN_*` of `-1` means "not fitted"**, which is how upstream disables a
+  line. Most of ours are `-1`: the panel and the handshake are on the AW9523B's I²C
+  channels, not on GPIO.
 
 ## Where the O1-specific core is
 

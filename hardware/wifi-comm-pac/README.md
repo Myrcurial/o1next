@@ -17,15 +17,33 @@ Tracks: #56 (extension of #21). Physical interface documented by #57.
 
 ## Definition
 
-- **Base:** Zimodem fork targeting **ESP32** (not ESP8266) — the ESP32
-  build already carries the SSH client (`INCLUDE_SSH`), SD shell, FTP,
-  SLIP/PPP; ESP8266 lacks the headroom.
+- **Base:** Zimodem fork targeting **ESP32-S2** (not ESP8266, and not the C-series)
+  — the S2 is the variant whose auto-baud pulse counter is **20-bit**, which is what
+  makes the machine-side rate detection work at all (#317, #319); it carries the
+  SSH client (`INCLUDE_SSH`), and the ESP8266 lacks the headroom entirely.
 - **New O1-specific work on top:**
   1. **SSH as first-class transport** — keys, host verification, session
      management via the web UI; `ssh` from the O1 into a modern host.
   2. **Baud-rate buffering/correction** — decouple O1-side ACIA rate
      from the far-end link rate; makes the 2× business turbo (#55)
      usable and quietly corrects the factory 600/2400 → 650/2600 quirk.
+
+## The MCU, the module, and the pin map
+
+**ESP32-S2**, in an **`ESP32-S2-MINI-2U`** module — the **U** for its IPEX/U.FL
+connector, which is what lets the antenna go on a pigtail to the case edge, away
+from the floppy drives and the CRT (#56 §D).
+
+That is the *current* part rather than a preference. On 2026-10-19, against
+Espressif's own datasheets: the **MINI-1/MINI-1U are NRND**, and the **WROOM and
+SOLO/SOLO-U are end of life** (2025-02-24 and 2024-09-05). The MINI-2 line is what
+is still recommended for new designs.
+
+**The pin map is [`pinmap.md`](pinmap.md)** — twelve GPIO allocated, the other 25 of
+the module's 37 deliberately left free, the panel and the four P1 handshake lines on
+two I²C pins, and the fork's `#define` block written out in full. It is **one map for
+both roles**: the standalone module and the module docked to the interposer/SFF board
+differ only in what sits on the other end of GPIO15/16 (#323).
 
 ## Host interface — MODEM port (P1, DE-9P)
 
@@ -76,6 +94,8 @@ leave the pocket usable with the keyboard closed.
 
 ## References
 
+- `pinmap.md` — the MCU, the module, and every GPIO
 - `docs/o1-modem-serial.md` (authoritative pinout + levels)
 - `docs/o1-memory-io-map.md` §"6850 ACIA detail"
+- `hardware/interposer-upgrade/` — the interposer the module docks to (#323)
 - Upstream: https://github.com/bozimmerman/Zimodem
