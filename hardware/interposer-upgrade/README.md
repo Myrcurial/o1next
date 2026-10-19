@@ -81,7 +81,7 @@ without an interposer to design one for.
 of *just* the OEM board with the Dual Density upgrade built in would be
 equivalent to it. So there is one brief, one ROM image and one test matrix. (An
 LFF 1:1 board is *possible* if a chassis ever needs restoring, but it is not in
-the set — see *Not boards* in [`../README.md`](../README.md).)
+the set — see *Hardware that is not a board* in [`../README.md`](../README.md).)
 
 ## Electrical definition (settled decisions)
 
