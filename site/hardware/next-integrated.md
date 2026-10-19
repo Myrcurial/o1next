@@ -67,9 +67,10 @@ host, so neither needs a hub, a driver stack or a negotiation story.
 there is no composite output to offer at all — that discrete chain is an OEM
 mainboard's job.
 
-**No MODEM port (P1).** P1 is a TTL tap onto the same 6850 ACIA the RS-232 port
-uses, and the modem is a firmware personality now — so the physical port has
-nothing left to do.
+**No MODEM port — but the modem is in.** P1 is a TTL tap onto the same 6850 ACIA
+the RS-232 port uses, so the *connector* has nothing left to do; the **modem
+personality is fundamental** (the machine needs WiFi) and lives on the board.
+The DB-25 RS-232 port stays.
 
 The display is an **8" 1024×768 HDMI panel** inside, plus an **external HDMI
 port**: the RP2354B drives HDMI directly, and that panel size is available off the

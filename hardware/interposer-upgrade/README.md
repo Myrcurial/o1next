@@ -12,17 +12,31 @@ Tracks: #11 (Phase 1 hardware design), #12 (electrical/mechanical
 interface spec), #83 (ROM 2.00), **#259** (one board — it absorbs #13 and #15),
 #297 (CLK), #303 (the address path), #304 (the fabric model).
 
-## One unit, four parts
+## One board, four sections — and they snap apart
 
-This is **one delivery in four parts** (maintainer, 2026-10-19). Only the first
-has a KiCad project today:
+This is **one delivery in four parts** (maintainer, 2026-10-19), and the parts are
+**sections of one PCB**, not four boards: the panel is **routed and separated by
+mouse bites**, so the whole thing is completed in **one pass, with every surface-mount
+part landing at once and a single board-handling requirement**. That is the point of
+building it this way — one assembly, one stencil, one trip through the line.
 
 | Part | Home |
 |---|---|
-| **the interposer board itself** — `Rev 0` → `Rev A` → `Rev B` | this directory (`rev0/`, `reva/`, `revb/`) |
-| **the UI pod** — the ribbon-cabled faceplate (#14) | `ui-pod/` |
-| **the ROM socket tap** — the UD11 daughterboard the Pico serves the window through (tap 2 below) | *no directory yet* — the signal list is #12's |
-| **the character ROM socket tap** — UA15, the font (tap 3 below) | *no directory yet* |
+| **the interposer board itself** — the main section (`Rev 0` → `Rev A` → `Rev B`) | this directory (`rev0/`, `reva/`, `revb/`) |
+| **the UI pod** — a snap-off section; the ribbon-cabled faceplate (#14) | `ui-pod/` |
+| **the ROM socket tap** — a snap-off section; the UD11 daughterboard the Pico serves the window through (tap 2 below) | `rom-tap/` |
+| **the character ROM socket tap** — a snap-off section; UA15, the font (tap 3 below) | `chargen-tap/` |
+
+**The ROM taps are "air connected", and that is deliberate.** Once snapped off, a
+tap sits in the machine's own ROM socket, which is nowhere near the Z80 — so its
+nets leave the PCB and come back through a **pair of header pin assemblies, wired
+back-to-back**: the nets for the ROM chips are *air connected* across that pair
+rather than routed on the board. It is the same trick that lets the tap be a
+DIP-down/ribbon-up daughterboard at all (tap 2), and it keeps the panel single.
+
+Only the interposer's own schematic exists today (`rev0/`, `reva/`, `revb/`); the
+pod and the two taps are sections of it, so they have notes rather than schematics
+of their own.
 
 ## Personalities hosted (firmware, Phase 2 #16)
 

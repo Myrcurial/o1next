@@ -22,34 +22,42 @@ are the maintainer's, from the 2026-10-19 board list on #308.
 | `keyboard-adapter` | O1NEXT USB Keyboard Adapter | `hardware/keyboard-adapter/` | #47 | Reference design; spec validation pending. **No schematic yet** (#47). **Deliverable 2** | — |
 | `wifi-comm-pac` | O1NEXT WiFi COMM PAC | `hardware/wifi-comm-pac/` | #56, #21, #57 | Concept; P1/DE-9 pinout and levels documented. **No schematic yet** (#56). **Deliverable 3** | — |
 | `drive-c-repro` | O1NEXT Drive C Repro | `hardware/drive-c-repro/` | #84, #6 | Concept; blocked on the #6 command set. **No schematic yet** (#84). **Deliverable 4** | — |
-| `interposer-upgrade` | O1NEXT Upgrade — the interposer, **one unit in four parts** | `hardware/interposer-upgrade/` | #11, #12, #13, #15, #83, #259, #297, #303, #304 | Rev A engineering-sample schematic generated; Rev B is a pin map and has **no schematic yet** (#259). **Deliverable 5** — it subsumes the three boards above it | `interposer-upgrade-reva`, `interposer-upgrade-rev0` |
+| `interposer-upgrade` | O1NEXT Upgrade — the interposer, **one board in four snap-off sections** | `hardware/interposer-upgrade/` | #11, #12, #13, #15, #83, #259, #297, #303, #304 | Rev A engineering-sample schematic generated; Rev B is a pin map and has **no schematic yet** (#259). **Deliverable 5** — it subsumes the three boards above it | `interposer-upgrade-reva`, `interposer-upgrade-rev0` |
 | `next-integrated` | O1NEXT Integrated — the SFF board | `hardware/next-integrated/` | #49 | Concept. **No schematic yet** (#49). **Deliverable 6** — the board the project is named for | — |
 
-### `interposer-upgrade` is one unit in four parts
+### `interposer-upgrade` is one board in four sections
 
-One delivery, four parts. Only the first has a KiCad project today:
+One delivery, four parts — and the parts are **sections of one PCB**, routed and
+separated by **mouse bites**, so the panel is completed in **one pass, with every
+surface-mount part landing at once and a single board-handling requirement**:
 
 | Part | Home |
 |---|---|
-| the interposer board itself — `Rev 0` → `Rev A` → `Rev B` | `hardware/interposer-upgrade/` |
-| the **UI pod** — the ribbon-cabled faceplate (#14) | `hardware/interposer-upgrade/ui-pod/` |
-| the **ROM socket tap** — the UD11 daughterboard the Pico serves the ROM window through | *no directory yet* — the signal list is #12's |
-| the **character ROM socket tap** — UA15, the font | *no directory yet* |
+| the interposer board itself — the main section, `Rev 0` → `Rev A` → `Rev B` | `hardware/interposer-upgrade/` |
+| the **UI pod** — a snap-off section; the ribbon-cabled faceplate (#14) | `hardware/interposer-upgrade/ui-pod/` |
+| the **ROM socket tap** — a snap-off section; the UD11 daughterboard the Pico serves the ROM window through | `hardware/interposer-upgrade/rom-tap/` |
+| the **character ROM socket tap** — a snap-off section; UA15, the font | `hardware/interposer-upgrade/chargen-tap/` |
 
-### Not boards
+The ROM taps are **air connected**: once snapped off, a tap sits in the machine's
+own ROM socket, so its nets leave the PCB and come back through **a pair of header
+pin assemblies wired back-to-back**. Only the interposer's own schematic exists
+today; the pod and the taps are sections of it.
 
-- **`O1NEXT Complete` — the machine.** Deliverable 7: the `next-integrated` board
-  with a case, an 8" panel, an 18650 pack and a keyboard. It is not a board, so it
-  has no row above and no folder of its own — its description is
-  `site/hardware/o1next-complete.md` and the render is
-  `docs/design/o1next-lunchbox-concept.*` (#52, #53).
-- **An LFF (large form factor) 1:1 mainboard — possible, not planned.** A faithful
-  OCC1/OCC1A mainboard recreation, with the Z80 left socketed so the interposer
-  stays the upgrade path, is *possible* if a chassis ever needs restoring. It was
-  sketched once — cpu_mem / video / floppy / io / keyboard / power / clock, L-shaped
-  with four mounting screws, in the git history — and it is **discarded as a
-  deliverable** (maintainer, 2026-10-19): no directory, no schematic, nothing to
-  build, nothing to check. #49 is where it would start if it were ever wanted.
+## Hardware that is not a board
+
+**`O1NEXT Complete` is still hardware** — it is a machine, not a board, and it is
+tracked here like everything else:
+
+| Shortform | What it is | Home | Tracking issues | State | Schematic |
+|---|---|---|---|---|---|
+| `o1next-complete` | O1NEXT Complete — **the machine** | `hardware/o1next-complete/` | #49, #52, #53, #125, #128 | **Hardware**: chassis CAD (`docs/design/o1next-lunchbox-concept.*`), print STLs and an assembly BOM to produce, and the machine's own keyboard PCB inside it. **No schematic of its own** — it is CAD and a BOM, not a PCB (#52) | — |
+| — | an **LFF (large form factor) 1:1 mainboard** | *no directory yet* | #49 | **Possible, not planned.** A faithful OCC1/OCC1A recreation with the Z80 left socketed so the interposer stays the upgrade path; sketched once (cpu_mem / video / floppy / io / keyboard / power / clock, L-shaped, four screws) and discarded as a deliverable (maintainer, 2026-10-19). Nothing to build, nothing to check | — |
+
+### Inside the machine
+
+| Part | Home |
+|---|---|
+| the **custom USB keyboard PCB** — QMK-compatible, in the Osborne 1 layout | `hardware/o1next-complete/keyboard/` |
 
 **Not ours:** board names, and `Rev A`/`Rev B` hits, under `research/` or
 describing an early Osborne 1 ROM, refer to other people's hardware. They are not
@@ -64,7 +72,7 @@ project boards — see the vocabulary note below.
   floppy header, P4, P1/DE-9, and P3 + P5. None needs the interposer, none changes
   the BIOS, and nothing in the machine or its cables is cut.
 - **`interposer-upgrade`** (the O1NEXT Upgrade) is the board on the Z80 bus, and it
-  is **one unit in four parts** (the board, the UI pod, and the two ROM socket
+  is **one board in four snap-off sections** (the board, the UI pod, and the two ROM socket
   taps). It **can act as any one of the first three boards** and offers every
   personality, so if you have it you don't need them. On a real machine it also
   serves the ROM window, so no ROM part is needed at all.
@@ -73,19 +81,22 @@ project boards — see the vocabulary note below.
   interposer the **precursor of the SFF, not a separate product from it**: the SFF
   can replace the interposer, and the interposer cannot replace the SFF.
 - **`O1NEXT Complete`** is the `next-integrated` board with the machine wrapped
-  around it.
-- **The LFF 1:1 mainboard is not in this set.** It remains *possible* (see *Not
-  boards*), and if it were ever built it would sit *under* the interposer exactly
-  as an OEM board does — **LFF + interposer ≡ OEM + interposer** — which is why it
-  has no ROM path and no test matrix of its own.
+  around it: chassis CAD, print STLs, an assembly BOM, and the machine's own
+  QMK-compatible keyboard PCB. It is hardware, but it is not a board — see
+  *Hardware that is not a board* above.
+- **The LFF 1:1 mainboard is not in this set.** It remains *possible* (see
+  *Hardware that is not a board*), and if it were ever built it would sit *under*
+  the interposer exactly as an OEM board does — **LFF + interposer ≡ OEM +
+  interposer** — which is why it has no ROM path and no test matrix of its own.
 
 ## One vocabulary for the names and the revision letters
 
-- **The shortform is the board's name.** `floppy-adapter`, `keyboard-adapter`,
-  `wifi-comm-pac`, `drive-c-repro`, `interposer-upgrade`, `next-integrated` — the
-  folder, the site URL (`/hardware/<shortform>/`) and the netlist checker all use
-  it. The longer forms (`O1NEXT Upgrade` and friends) are how a board is *described*
-  to a reader, and they are the site's page titles. Nothing else is a name.
+- **The shortform is the name.** `floppy-adapter`, `keyboard-adapter`,
+  `wifi-comm-pac`, `drive-c-repro`, `interposer-upgrade`, `next-integrated`, and
+  `o1next-complete` for the machine — the folder, the site URL
+  (`/hardware/<shortform>/`) and the netlist checker all use it. The longer forms
+  (`O1NEXT Upgrade` and friends) are how a board is *described* to a reader, and
+  they are the site's page titles. Nothing else is a name.
 - **In `hardware/`, an unqualified `Rev 0` / `Rev A` / `Rev B` is
   `interposer-upgrade`'s** — the interposer's own revisions. **Rev 0** is the probe
   (superseded), **Rev A** the engineering sample, **Rev B** the production
@@ -124,7 +135,7 @@ project boards — see the vocabulary note below.
   **char-gen socket UA15** (the font). A 24-pin 2732 socket carries no `A12`, no
   `A13` and no write strobe, so a *part* in it can never exceed 4 KB — but when the
   Pico serves the window those lines are irrelevant, because the bank is which 4 KB
-  the firmware presents. The UD11 and UA15 taps are two of the four parts of
+  the firmware presents. The UD11 and UA15 taps are two of the four sections of
   `interposer-upgrade`.
 - **One ROM 2.00, and on a real machine no ROM part at all.** The same image runs
   on OEM board + interposer and on the `next-integrated` board (with the socket

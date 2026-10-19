@@ -1,9 +1,10 @@
 # ui-pod — the UI pod of `interposer-upgrade`
 
-**Part 2 of 4 of `interposer-upgrade`.** The unit is the interposer board, this
-pod, the UD11 ROM socket tap and the UA15 char-gen socket tap; the register is
-[`../../README.md`](../../README.md) and the unit's own README is
-[`../README.md`](../README.md).
+**Part 2 of 4 of `interposer-upgrade`** — and a **snap-off section of the
+interposer PCB** (routed and separated by mouse bites, so it is assembled in the
+same single SMT pass as the rest of the panel), not a board of its own. The unit's
+README is [`../README.md`](../README.md) and the register is
+[`../../README.md`](../../README.md).
 
 **Not a board of its own** — it is reached over a ribbon cable and is mostly
 connectors, a display and LEDs. The maintainer's board description places the pod

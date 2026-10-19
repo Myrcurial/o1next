@@ -9,9 +9,21 @@ subtitle: O1NEXT Complete — the whole machine, case included
 `hardware/next-integrated/` (the board inside it), `docs/design/`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
-**It is not a board.** `O1NEXT Complete` is the `next-integrated` board with the
-rest of the machine wrapped around it, so it has no row in the board register and
-no folder of its own.
+**It is hardware, but it is not a board.** `O1NEXT Complete` is the
+`next-integrated` board with the rest of the machine wrapped around it — chassis
+CAD, print STLs and an assembly BOM, plus the machine's own keyboard PCB. It has
+its own folder (`hardware/o1next-complete/`) and page, and no schematic of its own
+because it is CAD and a BOM, not a PCB.
+
+## What it is made of
+
+| Piece | Where it stands |
+|---|---|
+| **Chassis CAD** | the render and outline, `docs/design/o1next-lunchbox-concept.*` (#53) |
+| **Print STLs** | the printable chassis and keyboard-mounting parts, *to produce* (#52) |
+| **Assembly BOM** | board, 8" panel, 18650 pack, keyboard, fasteners — *to produce* (#52) |
+| **The keyboard PCB** | a **custom USB keyboard, QMK-compatible, in the Osborne 1 layout** |
+| **The board inside it** | [`next-integrated`]({{ '/hardware/next-integrated/' | relative_url }}) |
 
 ## What it is
 

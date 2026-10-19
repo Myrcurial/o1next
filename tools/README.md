@@ -444,9 +444,10 @@ board's home is not a directory named after its shortform and the row does not s
 does not say so; when the register and `check_schematics.py` disagree about which
 boards have schematics, or a checker board id belongs to no shortform; when a
 `.kicad_sch` in the tree belongs to no checked board; when a folder under
-`hardware/` is not a board's home; when a part of `interposer-upgrade` (one unit
-in four parts) has no home; or when the site's board table is a different set, in
-a different order, or links a board at a URL that is not `/hardware/<shortform>/`.
+`hardware/` is not a home; when a part (the four sections of `interposer-upgrade`,
+the keyboard inside the machine) has no home; or when the site's board table is a
+different set, in a different order, or links a board at a URL that is not
+`/hardware/<shortform>/`.
 
 It needs **no `kicad-cli`** — it imports the board *list*, it does not run the
 netlists — so the coverage half fails in seconds. CI runs it on changes to

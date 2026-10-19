@@ -86,6 +86,7 @@ need it, and what is dropped is dropped because a personality replaces it.
 | Function | Connector | Note |
 |---|---|---|
 | Serial | **DB-25 (P2)** | The RS-232C port, 6850 ACIA-driven, pinout per `docs/o1-modem-serial.md` |
+| WiFi modem | **none — on the board** | A **firmware personality** on the same 6850 ACIA the RS-232 port uses. **The modem is fundamental** (the machine needs WiFi); what is dropped is the P1 *connector* |
 | IEEE-488 | **Edge connector (P3)** | The GPIB / Drive C bus, as on the original |
 | Keyboard | **24-position (P4)** | The original keyboard interface, so a real O1 keyboard can be used |
 | Video | **HDMI out** | Adjacent to the **RESET** and **TURBO** buttons |
@@ -106,11 +107,15 @@ story.
   chain an OEM board carries is simply not reproduced here, so this board has no
   composite output to offer at all.
 
-### Deliberately absent
+### No MODEM port — but the modem is in
 
-- **The MODEM port (P1) is not carried.** P1 is a TTL tap onto the same 6850 ACIA
-  the RS-232 port uses, and the modem is now a **firmware personality** — so the
-  physical port has nothing left to do. The DB-25 RS-232 port stays.
+- **The MODEM port (P1) is not carried**, and only the *port*: P1 is a TTL tap onto
+  the same 6850 ACIA the RS-232 port uses, so a physical connector has nothing left
+  to do on a board whose modem is a firmware personality.
+- **The modem itself is fundamental, not optional.** WiFi is required, so the
+  personality is part of the baseline rather than an add-on, and the RS-232 port
+  stays for period serial hardware. On an OEM machine the same modem is the
+  `wifi-comm-pac` module on the P1 connector; here it is on the board.
 
 ## The machine it becomes
 
@@ -123,9 +128,12 @@ fantasy in 1985 and is do-able by a hobbyist today.
 Concretely: the **Dolch / Compaq Portable III idiom in O1A blue/grey industrial
 design**, with the "keyboard seals the unit" aesthetic retained. ~8 cm thick: this
 board + **8" 1024×768 (4:3) HDMI panel** + 18650 pack, detachable flip-up
-keyboard. Optional rear "backpack" for a physical 5.25" half-height drive. The
-machine is not a board and has no folder — see *Not boards* in
-[`../README.md`](../README.md) and `site/hardware/o1next-complete.md`.
+keyboard. Optional rear "backpack" for a physical 5.25" half-height drive.
+
+The machine is **hardware but not a board**, and it has its own folder for the
+chassis CAD, the print STLs, the assembly BOM and the machine's own
+QMK-compatible keyboard PCB: [`../o1next-complete/`](../o1next-complete/). See
+*Hardware that is not a board* in [`../README.md`](../README.md).
 
 ## Open questions
 

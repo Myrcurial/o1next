@@ -20,7 +20,7 @@ repository's board register (`hardware/README.md`), which is the authority —
 | [`keyboard-adapter`]({{ '/hardware/keyboard-adapter/' | relative_url }}) | P4 keyboard connector | Reference design defined; spec validation pending |
 | [`wifi-comm-pac`]({{ '/hardware/wifi-comm-pac/' | relative_url }}) | MODEM (P1), DE-9 | Concept; pinout and levels documented |
 | [`drive-c-repro`]({{ '/hardware/drive-c-repro/' | relative_url }}) | IEEE-488 (P3) + video (P5) | Concept; blocked on the #6 protocol |
-| [`interposer-upgrade`]({{ '/hardware/interposer-upgrade/' | relative_url }}) | Z80 socket, the main ROM socket UD11, the char-gen socket UA15, ribbon to the pod | One unit in four parts — the interposer board, the UI pod and the two ROM socket taps. Rev A engineering-sample schematic generated; Rev B is a pin map with no schematic yet |
+| [`interposer-upgrade`]({{ '/hardware/interposer-upgrade/' | relative_url }}) | Z80 socket, the main ROM socket UD11, the char-gen socket UA15, ribbon to the pod | One board in four snap-off sections — the interposer, the UI pod and the two ROM socket taps. Rev A engineering-sample schematic generated; Rev B is a pin map with no schematic yet |
 | [`next-integrated`]({{ '/hardware/next-integrated/' | relative_url }}) | One integrated board; not a 1:1 swap | Concept; no schematic yet (#49) |
 
 The longer forms — **O1NEXT Floppy Adapter**, **O1NEXT USB Keyboard Adapter**,
@@ -31,8 +31,10 @@ its folder, and its page here.
 ## Not boards
 
 - [`o1next-complete`]({{ '/hardware/o1next-complete/' | relative_url }}) — **the
-  machine**, deliverable 7: the `next-integrated` board with a case, an 8" panel,
-  an 18650 pack and a keyboard.
+  machine**, and **hardware**: chassis CAD, print STLs and an assembly BOM for
+  [`next-integrated`]({{ '/hardware/next-integrated/' | relative_url }}), plus the
+  machine's own **QMK-compatible keyboard PCB** in the Osborne 1 layout. It is not
+  a board, so it is not a row above — it has its own folder and page.
 - **An LFF (large form factor) 1:1 mainboard** — a faithful OCC1/OCC1A
   replacement, with the Z80 left socketed so the interposer stays the upgrade path.
   It is **possible** if a chassis ever needs restoring, and it is **not planned,

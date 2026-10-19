@@ -21,10 +21,13 @@ table.  This is the check that keeps it that way.  It fails when:
     not check, that tool checks a board the register does not list, or a board id
     does not belong to a shortform;
   * a ``.kicad_sch`` in the tree belongs to no checked board;
-  * a part of `interposer-upgrade` (it is one unit in four parts) has no home;
-  * a folder under `hardware/` is not a board's home;
+  * a part has no home — the four sections of `interposer-upgrade`, and the
+    keyboard inside the machine;
+  * a folder under `hardware/` is not a home;
   * `site/hardware/index.md` presents a different set of boards, in a different
-    order, or under a URL that is not ``/hardware/<shortform>/``.
+    order, or under a URL that is not ``/hardware/<shortform>/``;
+  * the hardware that is not a board (the machine, `o1next-complete`) is not
+    named and linked on the site.
 
 Standard library only, and no `kicad-cli`: it imports the board *list* from
 `tools/check_schematics.py`, it does not run the netlist checks.  The names are
@@ -61,12 +64,18 @@ def cells(row: str) -> list:
     return [c.strip() for c in row.strip().strip("|").split("|")]
 
 
-def table(header: str, ncols: int) -> list:
-    """The rows of the markdown table whose header line starts with *header*."""
+def tables(header: str, ncols: int, require: str = "") -> list:
+    """The rows of every markdown table whose header line starts with *header*.
+
+    *require* is a further substring the header line must carry, because the
+    register has two tables with the same first column (`| Shortform | Board |`
+    for the boards and `| Shortform | What it is |` for the hardware that is not
+    a board), and two `| Part |` tables.
+    """
     lines = REGISTER.read_text(errors="replace").splitlines()
     rows = []
     for i, line in enumerate(lines):
-        if not line.startswith(header):
+        if not (line.startswith(header) and require in line):
             continue
         for row in lines[i + 2:]:                  # past the header and the ---
             if not row.startswith("|"):
@@ -74,22 +83,35 @@ def table(header: str, ncols: int) -> list:
             row = cells(row)
             if len(row) >= ncols:
                 rows.append(row)
-        break
     return rows
 
 
-def parse_register() -> list:
-    """Shortform | Board | Home | Tracking issues | State | Schematic."""
-    return [{"shortform": strip_markup(r[0]), "board": strip_markup(r[1]),
-             "home": r[2], "state": r[4],
-             "schematic": re.findall(r"`([^`]+)`", r[5])}
-            for r in table("| Shortform |", 6)]
+def _row(r: list) -> dict:
+    return {"shortform": strip_markup(r[0]), "board": strip_markup(r[1]),
+            "home": r[2], "state": r[4],
+            "schematic": re.findall(r"`([^`]+)`", r[5])}
+
+
+def parse_boards() -> list:
+    """The boards: Shortform | Board | Home | Tracking issues | State | Schematic."""
+    return [_row(r) for r in tables("| Shortform |", 6, require="| Board |")]
+
+
+def parse_not_boards() -> list:
+    """The hardware that is not a board — same columns, different first header.
+
+    A row whose Shortform is an em dash is informational (a thing that could
+    exist, not a thing the project has), so it is checked for its home and
+    nothing else.
+    """
+    return [_row(r) for r in tables("| Shortform |", 6, require="| What it is |")]
 
 
 def parse_parts() -> list:
-    """The `interposer-upgrade` parts table: Part | Home."""
+    """Every `Part | Home` table — the four sections of the interposer and the
+    keyboard inside the machine."""
     return [{"part": strip_markup(r[0]), "home": r[1]}
-            for r in table("| Part |", 2)]
+            for r in tables("| Part |", 2)]
 
 
 def parse_site() -> list:
@@ -132,11 +154,15 @@ def home_failure(what: str, home: str, need_issue: bool) -> str:
 def check() -> list:
     failures = []
 
-    boards = parse_register()
+    boards = parse_boards()
     if not boards:
         return [f"no board register found in {REGISTER.relative_to(REPO)}"]
+    others = parse_not_boards()
 
-    for b in boards:
+    # The boards, plus the hardware that is not a board but still has a home (the
+    # machine).  A row whose Shortform is an em dash is informational: a thing
+    # that could exist, not a thing the project has.
+    for b in boards + [o for o in others if o["shortform"] not in ("\u2014", "-")]:
         # -- a home named after the shortform ------------------------------
         fail = home_failure(b["shortform"], b["home"], need_issue=True)
         if fail:
@@ -191,8 +217,8 @@ def check() -> list:
             failures.append(f"{sch.relative_to(REPO)} belongs to no board in "
                             f"tools/check_schematics.py")
 
-    # -- no stray folders: every folder under hardware/ is a board ---------
-    homes = {b["home"].strip("`") for b in boards}
+    # -- no stray folders: every folder under hardware/ is a home ----------
+    homes = {b["home"].strip("`") for b in boards + others}
     for d in sorted(p for p in (REPO / "hardware").iterdir() if p.is_dir()):
         if f"{d.relative_to(REPO)}/" not in homes:
             failures.append(f"hardware/{d.name}/ is not a board's home — a "
@@ -218,6 +244,18 @@ def check() -> list:
             if name in here and url != f"/hardware/{name}/":
                 failures.append(f"the site links {name!r} at {url!r}, but the "
                                 f"board's folder and URL are /hardware/{name}/")
+
+    # -- and the hardware that is not a board is named on the site too ------
+    index = SITE_INDEX.read_text(errors="replace")
+    for o in others:
+        s = o["shortform"]
+        if s in ("\u2014", "-"):
+            continue
+        if s not in index:
+            failures.append(f"{s!r} is in the register but is not named on the site")
+        elif f"/hardware/{s}/" not in index:
+            failures.append(f"{s!r} is named on the site but not linked at "
+                            f"/hardware/{s}/")
     return failures
 
 
@@ -229,9 +267,9 @@ def main() -> int:
                     help="print what was parsed")
     args = ap.parse_args()
 
-    boards = parse_register()
+    boards = parse_boards()
     if args.verbose:
-        for b in boards:
+        for b in boards + parse_not_boards():
             print(f"  {b['shortform']:20} {b['board']}\n"
                   f"      home: {b['home']}\n"
                   f"      schematic: {b['schematic'] or ['(none yet)']}")

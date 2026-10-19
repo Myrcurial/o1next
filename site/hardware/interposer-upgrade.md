@@ -1,7 +1,7 @@
 ---
 layout: page
 title: interposer-upgrade
-subtitle: O1NEXT Upgrade — the core board and its panel, one unit in four parts
+subtitle: O1NEXT Upgrade — the core board and its panel, one board in four snap-off sections
 ---
 
 **Status:** the interposer's Rev A engineering-sample schematic generated, ready
@@ -12,13 +12,19 @@ Tracks **#11** (Phase 1), **#12** (interface spec), **#83** (ROM 2.00), **#259**
 Source: `hardware/interposer-upgrade/`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
-## One unit, four parts
+## One board, four snap-off sections
 
-This is **one delivery in four parts**: the **interposer board** itself
-(`Rev 0` → `Rev A` → `Rev B`), the **UI pod** below, the **ROM socket tap** (the
-UD11 daughterboard the Pico serves the window through) and the **character ROM
-socket tap** (UA15). Only the board has a KiCad project today; the two taps have
-no directory yet and their signal lists are #12's.
+This is **one delivery in four parts** — and the parts are **sections of one PCB**,
+routed and separated by **mouse bites**, so the panel is completed in **one pass,
+with every surface-mount part landing at once and a single board-handling
+requirement**: the **interposer board** itself (`Rev 0` → `Rev A` → `Rev B`), the
+**UI pod** below, the **ROM socket tap** (the UD11 daughterboard the Pico serves the
+window through) and the **character ROM socket tap** (UA15). They have notes rather
+than schematics of their own; only the interposer's schematic exists.
+
+**The ROM taps are air connected.** Snapped off, a tap sits in the machine's own ROM
+socket, nowhere near the Z80, so its nets leave the PCB and come back through **a
+pair of header pin assemblies wired back-to-back**.
 
 ## What it is
 
