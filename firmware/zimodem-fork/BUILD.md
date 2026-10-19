@@ -128,6 +128,47 @@ And the branch is **taken** — which a successful build alone does not prove. A
 ESP32 4 & 8MB boards"* fallback is not. `o1next.h` is **in** the build, not merely
 beside it.
 
+### One command, and one image to flash
+
+```sh
+tools/build-o1next.sh          # compile, merge, verify
+tools/build-o1next.sh --clean  # ...without the previous build's objects
+```
+
+It writes `build/o1next-s2/`, and the file that matters is
+**`zimodem-o1next-merged.bin`** — bootloader, partition table, otadata and
+application in **one image, flashed at 0x0**:
+
+```sh
+esptool --chip esp32s2 write_flash 0x0 zimodem-o1next-merged.bin
+```
+
+That is the point of the script. Arduino's own build leaves three binaries plus a
+fourth that lives in the core, and flashing them means getting four offsets right.
+The script merges them and then **checks the offsets rather than trusting them**:
+the app offset is cross-checked against the partition table the build just produced,
+read back with the core's own `gen_esp32part.py`. A wrong app offset merges cleanly
+and produces a board that does not boot, so it fails the build here instead.
+
+It also refuses to build past **90% of the application partition**, because there is
+no OTA path on this board and the panel (#322), the SSH key store (#321) and the
+audio are all still to come. It sits at **32%** today.
+
+`SHA256SUMS` and `BUILD-INFO.txt` are written beside the image: the git ref, the
+arduino-cli version, the core version, the four offsets, and the checksums.
+
+### The same script runs in CI
+
+**`.github/workflows/build.yml` in the fork** — not in this repository, and the
+reason is the trigger. A job here could only build a *pinned* ref, which answers
+"did the pin build once" and not "does what was just pushed build". It runs
+`tools/build-o1next.sh`, so the CI build and the documented build are the same
+build, and it uploads the merged image, the three parts, the ELF and the manifest
+as a workflow artifact.
+
+arduino-cli is pinned to **1.5.1** and the core to **2.0.17** — which is also the
+cache key, so a cache miss is slow and never wrong.
+
 ### Rosetta, and why the build needs it
 
 **This machine cannot build an Arduino ESP32 sketch without Rosetta.** Every
