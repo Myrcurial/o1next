@@ -145,8 +145,11 @@ are not ours. So the fork supplies its own block, and `-1` means "not fitted",
 which is how upstream disables a line:
 
 ```c
-#define DEFAULT_PIN_TXD       15   /* UART1, GPIO-matrix routed, not the IO-MUX default */
-#define DEFAULT_PIN_RXD       16
+/* The profile is zimodem/o1next.h in the fork (#330), and this block is its
+ * design statement -- the two must not drift.  `-1` is how upstream disables a
+ * line. */
+#define DEFAULT_PIN_TXD       GPIO_NUM_15  /* UART1, GPIO-matrix routed: NOT the IO-MUX default */
+#define DEFAULT_PIN_RXD       GPIO_NUM_16
 #define DEFAULT_PIN_DCD       -1   /* the DE-9 has no DCD: the machine sees MSB and RI */
 #define DEFAULT_PIN_CTS       -1   /* on the AW9523B */
 #define DEFAULT_PIN_RTS       -1   /* not fitted */
@@ -155,10 +158,12 @@ which is how upstream disables a line:
 #define DEFAULT_PIN_DTR       -1   /* not fitted */
 #define DEFAULT_PIN_SND       -1   /* the sound is I2S, not a beeper */
 #define DEFAULT_PIN_OTH       -1   /* stream/command-mode flag: not wired */
-#define PIN_FACTORY_RESET     GPIO_NUM_0
-#define DEFAULT_BAUD_RATE     1200
 
-/* SUPPORT_LED_PINS is left undefined, which is how upstream disables it: the
+/* Left as upstream has them, deliberately not redefined:
+ *   PIN_FACTORY_RESET   GPIO_NUM_0   -- the BOOT strap, and the factory reset
+ *   DEFAULT_BAUD_RATE   1200         -- upstream's default, and an O1 rate
+ *
+ * SUPPORT_LED_PINS is left undefined, which is how upstream disables it: the
  * panel is the AW9523B (#322), not three lamps on three GPIO. */
 ```
 
