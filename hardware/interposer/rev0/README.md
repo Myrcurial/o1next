@@ -1,4 +1,8 @@
-# rev0/ — "test probe" board (KiCad)
+# rev0/ — the interposer's Rev 0 "test probe" (KiCad)
+
+**Board:** the **O1NEXT Upgrade**, Rev 0 — see the register in
+[`../../README.md`](../../README.md). Rev 0 is the **superseded** first revision
+of the one interposer board; it is the decision record, not a product.
 
 Minimal **snoop-only** interposer for the least-modified Osborne 1:
 pass-through Z80 socket + plug, 74AHCT245 capture buffers, Pico 2 W,
@@ -45,7 +49,7 @@ GPIO expanders (µs latency vs 250 ns T-states), a bigger MCU class
   32 bits into the RP2350 in ~210 ns — inside one 250 ns T-state at
   4 MHz. 6 GPIO instead of 32; also exercises the production AHCT
   logic family on a cheap board.
-- **Rev A/B (production interposer): RP2354B.** The 80-pad package has
+- **The interposer's Rev A and Rev B (one board): RP2354B.** The 80-pad package has
   **48 GPIO** — full 32-line capture *plus* the drive-mode transceivers
   every personality needs, no muxing. WiFi is the onboard ESP32 on UART0,
   not a radio module. The Pico 2 W module constraint applies only to the

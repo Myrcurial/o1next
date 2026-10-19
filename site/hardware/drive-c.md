@@ -1,12 +1,13 @@
 ---
 layout: page
-title: Drive C reproduction
+title: O1NEXT Drive C Repro
 subtitle: The machine's own IEEE-488 RAM disk, rebuilt on modern parts
 ---
 
 **Status:** concept; blocked on the **#6** protocol.
 Tracks **#84** (device) and **#6** (the protocol). Source:
-`hardware/drive-c/`.
+`hardware/drive-c/`. Board register:
+[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
 

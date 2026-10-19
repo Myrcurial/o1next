@@ -1,4 +1,9 @@
-# o1next-lff/ — 1:1 mainboard replacement (KiCad skeleton)
+# o1next-lff/ — the LFF board: 1:1 mainboard replacement (KiCad skeleton)
+
+**Board:** the **LFF board** — **won't build** (maintainer, 2026-10-19; the stub
+idea is kept for the record). See the register in
+[`../../README.md`](../../README.md). The schematic skeleton is still covered by
+`tools/check_schematics.py` (the register's `lff`).
 
 Hierarchical schematic skeleton for the **large form factor** o1next: the
 faithful 1:1 replacement mainboard for a real **OCC1 or OCC1A** chassis

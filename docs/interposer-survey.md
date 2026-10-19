@@ -1,6 +1,6 @@
 # Research: Open-Source Z80 Bus Interposers / Sniffers / ICEs
 
-Input to the RP2350 Osborne 1 interposer (Rev A). Prior art for a
+Input to the interposer (`O1NEXT Upgrade`, Rev A). Prior art for a
 Raspberry Pi Pico 2 W interposer between a 4 MHz, 5 V Z80 and its
 socket, with passive capture + active drive + USB/WiFi streaming.
 All claims cited; sources verified 2026-10-08.
@@ -28,8 +28,9 @@ new and is the one to read before reusing anything here.**
   pre/post trigger; edge or pattern trigger; 100 Msps, 32K samples.
   Separate fast level-shifter board required for 5 V targets.
 - Level shifting: dedicated shifter PCB (KiCad in repo). Documented
-  Rev-A erratum: J1/J2 footprints exchanged (inputs<->outputs);
-  recovered by flipping the symmetric board.
+  **gusmanb/logicanalyzer Rev-A** erratum: J1/J2 footprints exchanged
+  (inputs<->outputs); recovered by flipping the symmetric board.
+  *(Someone else's board: not the interposer's Rev A.)*
 - Capture vs drive: capture only.
 - Key lessons:
   - Trigger logic must live in PIO; naive GPIO-compare loops cost

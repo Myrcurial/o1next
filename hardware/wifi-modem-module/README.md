@@ -1,4 +1,11 @@
-# wifi-modem-module — severable WiFi modem (ESP32, Zimodem fork)
+# wifi-modem-module — the O1NEXT WiFi COMM PAC (ESP32 Zimodem fork)
+
+**Board:** the **O1NEXT WiFi COMM PAC** — the project's **third deliverable**.
+See the register in [`../README.md`](../README.md). It closely models the
+original Osborne 1 COMM PAC 300-baud modem and lives in the left-hand floppy
+storage pocket, taking power and signal from the MODEM (P1) 9-pin port. The PCB
+also hosts ~10 indicator LEDs, a piezo speaker, the aux power port for the USB
+Keyboard Adapter, and a USB-C port for programming or powering the ESP32.
 
 Hayes-compatible WiFi modem for the Osborne 1, designed as a **severable
 module**: usable standalone on the MODEM (P1) port, or as part of the

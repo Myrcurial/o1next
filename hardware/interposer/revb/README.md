@@ -1,9 +1,15 @@
-# revb/ — Rev B personality engine: RP2354B pin map
+# revb/ — the interposer's Rev B (production): RP2354B pin map
 
-Rev A (ES) and Rev B are **separate products, not revisions**: Rev A is
-the mastering/debug instrument (shift-register fabric, CPU stopped);
-Rev B is the live-cycle personality engine (respond inside a running
-machine's bus window). This document is the Rev B pin allocation.
+**One board, three revisions.** `Rev B` is the interposer's **production
+revision**, not a second product — the split is what **#259** collapsed, and the
+vocabulary is in [`../README.md`](../README.md). Rev B is the Rev A engineering
+sample *plus* the live-cycle personality engine (respond inside a running
+machine's bus window), and it **keeps the Rev A instrument**: the shift-register
+fabric and `/BUSRQ` mastering. This document is the Rev B pin allocation.
+
+**No schematic yet.** `rev0/` and `reva/` each carry a `.kicad_sch`; Rev B does
+not, and this pin map is what the firmware is written against. **#259** is the
+issue that produces Rev B's schematic.
 
 ## The trick that makes 48 GPIO enough: window detect + /WAIT stretch
 

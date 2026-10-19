@@ -414,10 +414,38 @@ the fault. Reading the netlist pin by pin found both. What it checks:
   warning), so a severity-keyed budget would pin the gate to one KiCad version.
 - **Generator drift.** Regenerates each board and compares netlists, so a
   committed `.kicad_sch` cannot silently diverge from its generator.
+- **The sheet decomposition.** For a hierarchical *skeleton* — `o1next-lff` has
+  sheets and design notes but no components yet — the sheets *are* the design, so
+  the root sheet's `Sheetname` set is asserted against the list in the tool.
 
 CI runs it on every change to `hardware/**/*.kicad_sch` or `gen_*_sch.py`
 (`.github/workflows/schematic-check.yml`). Requires `kicad-cli` (KiCad 7+);
 set `KICAD_CLI` if it is not on PATH. Standard library only.
+
+## The board register (`check_boards.py`)
+
+`Rev A` / `Rev B` / `Rev 0` named four unrelated things in this tree, and the
+boards were named three ways in three places: `hardware/README.md`'s folder list,
+`site/hardware/index.md`'s table, and `BOARDS` in `check_schematics.py`. None was
+derivable from another, and the site is what the world reads.
+
+```
+python3 tools/check_boards.py          # check
+python3 tools/check_boards.py -v       # also print what it parsed
+```
+
+`hardware/README.md`'s **board register** is now the single table (#308), and
+this is the check that keeps it single. It fails when a board's home is not a
+directory and the row does not say "no directory" with the issue that will make
+one; when a board with no schematic does not say so; when the register and
+`check_schematics.py` disagree about which boards have schematics; when a
+`.kicad_sch` in the tree belongs to no checked board; or when the site's board
+table is a different set, or the same set in a different order.
+
+It needs **no `kicad-cli`** — it imports the board *list*, it does not run the
+netlists — so the coverage half fails in seconds. CI runs it on changes to
+`hardware/**`, `site/hardware/**` or either checker
+(`.github/workflows/boards.yml`). Standard library only.
 
 ## Part numbers (`check_part_numbers.py`)
 

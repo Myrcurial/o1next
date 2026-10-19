@@ -1,13 +1,17 @@
 ---
 layout: page
-title: Floppy adapter
+title: O1NEXT Floppy Adapter
 subtitle: A switchable Gotek / physical-drive daughter card
 ---
 
-**Status:** design settled; **Rev A schematic captured**, ready for
-footprint and routing review. Tracks **#62**, and the floppy interposer
+**Status:** design settled; **the Floppy Adapter's Rev A schematic captured**,
+ready for footprint and routing review. Tracks **#62**, and the floppy interposer
 personality **#20**. Source: `hardware/floppy-adapter/`,
-`docs/floppy-adapter-design.md`.
+`docs/floppy-adapter-design.md`. Board register:
+[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
+
+*This board's own Rev A / Rev B are unrelated to the interposer's Rev A / Rev B —
+the letters always carry the board's name.*
 
 ## What it is
 

@@ -8,17 +8,30 @@ The project builds more than one thing. Every other vintage computing platform h
 
 **Nothing here has been fabricated... YET** Hardware, firmware, and software is in a wild state of flux. Each page says what is actually in hand, not what is planned.
 
-| Device | Attaches to | Status |
+## The boards
+
+One name per board, and the **same set** here as in the repository's board
+register (`hardware/README.md`), which is the authority. `tools/check_boards.py`
+fails if this list and that table drift apart.
+
+| Board | Attaches to | Status |
 |---|---|---|
-| [MAME machine]({{ '/hardware/mame-machine/' | relative_url }}) | Um... your laptop? | A working MAME machine (osborne1nx) so you can explore the machine in emulation before looking at the hardware - also heavily used for testing |
-| [USB keyboard interface]({{ '/hardware/keyboard-interface/' | relative_url }}) | P4 keyboard connector | Reference design defined; spec validation pending |
-| [External WiFi modem]({{ '/hardware/external-modem/' | relative_url }}) | MODEM (P1), DE-9 | Concept; pinout and levels documented |
-| [Drive C reproduction]({{ '/hardware/drive-c/' | relative_url }}) | IEEE-488 (P3) + video (P5) | Concept; blocked on the #6 protocol |
-| [Floppy adapter]({{ '/hardware/floppy-adapter/' | relative_url }}) | Mainboard floppy header | Rev A schematic captured; ready for routing review |
-| [Bus interposer + control pod]({{ '/hardware/interposer/' | relative_url }}) | Z80 socket, char-gen socket, ribbon to the pod | Rev A engineering-sample schematic generated |
-| [LFF replacement board]({{ '/hardware/lff-replacement/' | relative_url }}) | Replaces the mainboard, 1:1 — OCC1 or OCC1A | Block-level KiCad skeleton |
-| [SFF integrated board]({{ '/hardware/sff-integrated/' | relative_url }}) | One integrated board; not a 1:1 swap - DIY an O1NEXT | Concept |
-| [Complete O1NEXT]({{ '/hardware/o1next-complete/' | relative_url }}) | The SFF board with the machine wrapped around it | Concept render exists |
+| [**O1NEXT Floppy Adapter**]({{ '/hardware/floppy-adapter/' | relative_url }}) | Mainboard floppy header | Floppy Adapter's Rev A schematic captured; ready for routing review |
+| [**O1NEXT USB Keyboard Adapter**]({{ '/hardware/keyboard-interface/' | relative_url }}) | P4 keyboard connector | Reference design defined; spec validation pending |
+| [**O1NEXT WiFi COMM PAC**]({{ '/hardware/external-modem/' | relative_url }}) | MODEM (P1), DE-9 | Concept; pinout and levels documented |
+| [**O1NEXT Drive C Repro**]({{ '/hardware/drive-c/' | relative_url }}) | IEEE-488 (P3) + video (P5) | Concept; blocked on the #6 protocol |
+| [**O1NEXT Upgrade**]({{ '/hardware/interposer/' | relative_url }}) | Z80 socket, the main ROM socket UD11, the char-gen socket UA15, ribbon to the pod | Interposer's Rev A engineering-sample schematic generated; Rev B is a pin map with no schematic yet |
+| [**O1NEXT Integrated**]({{ '/hardware/sff-integrated/' | relative_url }}) | One integrated board; not a 1:1 swap | Concept — **no directory in the tree yet** (#49) |
+| [**LFF board**]({{ '/hardware/lff-replacement/' | relative_url }}) | Replaces the mainboard, 1:1 — OCC1 or OCC1A | Block-level KiCad skeleton. **Won't build** |
+| [**O1NEXT Complete**]({{ '/hardware/o1next-complete/' | relative_url }}) | The O1NEXT Integrated board with the machine wrapped around it | Concept render exists |
+
+The **O1NEXT Upgrade**'s **interface pod** — the front-panel faceplate with the
+SD/USB sockets, HDMI, the OLED and the modem LED bank (#14) — is part of that
+board, not a board of its own.
+
+**Not a board:** the [MAME machine]({{ '/compendium/emulation/' | relative_url }}),
+the emulated Osborne 1 (`osborne1nx`) used to explore the machine and to test the
+firmware long before any hardware exists.
 
 ## Why so many?
 
@@ -32,7 +45,7 @@ four independent places to attach something modern:
   IEEE-488 card edge (P3) and the video connector (P5). **Every connector on an
   Osborne 1 is on the front of the machine**; there is nothing at the back, which
   is why fitting anything means unclipping the keyboard that docks over that face;
-- **the character-generator and main ROM socket** (UA15 / UA11) — doing flying replacement of ROM code; and
+- **the character-generator and main ROM socket** (UA15 / UD11) — doing flying replacement of ROM code; and
 - **the mainboard itself** — for the reproduction.
 
 Each device below takes one of those, and the point of the standalone three is

@@ -1,12 +1,13 @@
 ---
 layout: page
-title: External WiFi modem
+title: O1NEXT WiFi COMM PAC
 subtitle: A Hayes-compatible modem that plugs into the machine's own MODEM port
 ---
 
 **Status:** concept; the P1 pinout and levels are documented.
 Tracks **#56** (an extension of **#21**); the physical interface is #57.
-Source: `hardware/wifi-modem-module/`.
+Source: `hardware/wifi-modem-module/`. Board register:
+[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
 

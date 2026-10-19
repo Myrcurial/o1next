@@ -13,6 +13,10 @@ document and neither was complete: `docs/picoem-bridge.md` §5 has the picoem
 gaps, `docs/mame-emulation.md` §7 has MAME's open items, and several of the
 statements in both are stale relative to the code. §4 is the one list.
 
+> **Vocabulary:** `Rev B` in this document is the **interposer's** Rev B — the
+> `O1NEXT Upgrade`'s production revision (`hardware/interposer/revb/README.md`),
+> not a ROM revision and not another board's. See `hardware/README.md`.
+
 **The child documents, and the relationship.** This document owns the *loop*, the
 gap register and the plan. It does not restate measurements that live elsewhere:
 

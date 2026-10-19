@@ -1,11 +1,12 @@
 ---
 layout: page
-title: SFF integrated board
+title: O1NEXT Integrated (the SFF board)
 subtitle: One board, no interposer, the whole machine
 ---
 
-**Status:** concept.
-Tracks **#49** (Phase 5). Source: `hardware/o1next/`.
+**Status:** concept. **No directory in the tree yet** — #49 makes it.
+Tracks **#49** (Phase 5). Source: `hardware/o1next/`. Board register:
+[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
 
