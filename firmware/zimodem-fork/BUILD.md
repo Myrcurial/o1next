@@ -349,9 +349,20 @@ interface** (where the firewall matters), telnet negotiated and echoed and hung 
   `192.168.2.2`, the machine's own route untouched on `en0` — but turning it on or off
   needs a person: the daemon runs as root (signalling it is *"Operation not permitted"*),
   its config is root-owned, there is no launchd job to kickstart on macOS 27,
-  `networksetup` has nothing for it, and the `internetSharing` App Intent only helps if
-  somebody builds a Shortcut from it. So the state is **readable** and the change has to
-  be **asked for**: `ifconfig bridge100`, `pgrep InternetSharing`, and
+  `networksetup` has nothing for it, and the `internetSharing` App Intent is a
+  **settings-pane target rather than a toggle** — the app-intents metadata lists it as an
+  enum case whose subtitle is the pane path (`General / Sharing / Internet Sharing`) and
+  there is no state parameter anywhere in the extension, so a Shortcut built from it
+  opens the switch rather than flipping it. What *does* work, and needs no privileges, is
+  the same deep link the extension uses:
+
+  ```sh
+  open "x-apple.systempreferences:com.apple.Sharing-Settings.extension?Internet"
+  ```
+
+  which puts the switch in front of the operator for one click. So the state is
+  **readable** and the change has to be **asked for**: `ifconfig bridge100`,
+  `pgrep InternetSharing`, and
   `/Library/Preferences/SystemConfiguration/com.apple.nat.plist` — `NAT/Enabled`,
   `NAT/PrimaryInterface/Device` = `en0`, `NAT/SharingDevices` = `[en1]`.
   **That file is not a handle.** On the day it was written it said
