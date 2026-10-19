@@ -447,9 +447,12 @@ was found by running something and reading the result.
   bus cycle above. **That is now built** (`src/fabric.rs` for the board, and `chip.rs`
   steps a quantum at a time so the board sees every level the firmware makes), and
   `firmware/picoem-fabric/` drives it: `--fabric-test` gets two registers, two answers,
-  and measures a 24-bit snapshot at **14 976 cycles**. It is **blocked on one line of
-  picoem** — its SIO is the RP2040's, whose 30-bit `PIN_MASK` hides GP30/GP31, i.e.
-  `SR_RCK` and `/OE_ADDR` (`docs/emulation-testbed.md` §4.2 P9).
+  and measures a 24-bit snapshot at **14 976 cycles** — **8 of 8**. Getting the last check
+  green needed a **picoem fix** rather than a firmware one: its SIO modelled bank 0 as 30
+  pins, hiding GP30/GP31 (`SR_RCK` and `/OE_ADDR`), and the same assumption was in a second
+  place — `cp0_bit_op`, which is where `gpio_set_dir` lands.
+  `tools/emulator-setup/picoem/rp2350-correctness.patch` commits 2–3;
+  `docs/emulation-testbed.md` §4.2 **P9**.
 - **The guest reading the answer.** The reply is logged and can be written to a
   guest scratch byte (`O1_PICOEM_SCRATCH`), but the Z80's own `IN` still returns
   the card device's byte, not the firmware's — the read tap deliberately returns

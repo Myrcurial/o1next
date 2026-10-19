@@ -125,7 +125,7 @@ dependencies = [
 [[package]]
 name = "picoem-common"
 version = "0.2.2"
-source = "git+https://github.com/Myrcurial/picoem?rev=a014aea35d3034f9a02e3c947b0b43cad6230c94#a014aea35d3034f9a02e3c947b0b43cad6230c94"
+source = "git+https://github.com/Myrcurial/picoem?rev=aebfd93045f7a4047fabadda167a7493e1f35dac#aebfd93045f7a4047fabadda167a7493e1f35dac"
 dependencies = [
  "libc",
  "tracing",
@@ -176,7 +176,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 [[package]]
 name = "rp2350-emu"
 version = "0.2.6"
-source = "git+https://github.com/Myrcurial/picoem?rev=a014aea35d3034f9a02e3c947b0b43cad6230c94#a014aea35d3034f9a02e3c947b0b43cad6230c94"
+source = "git+https://github.com/Myrcurial/picoem?rev=aebfd93045f7a4047fabadda167a7493e1f35dac#aebfd93045f7a4047fabadda167a7493e1f35dac"
 dependencies = [
  "picoem-common",
  "sha2",

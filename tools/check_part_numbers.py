@@ -49,7 +49,7 @@ Two more files are exempt because their *purpose* is to name the wrong spellings
 
 And one generated artifact, for a reason that is the same as the archive's:
 
-    tools/emulator-setup/picoem/rp2350-coproc-and-exclusive.patch
+    tools/emulator-setup/picoem/rp2350-correctness.patch
                                   a **diff against someone else's source tree**
                                   (#192).  Its `-` lines are picoem's own
                                   comments, and picoem models the RP2354A as well
@@ -98,7 +98,7 @@ EXEMPT_FILES = {
     # A diff against another project's source tree: its `-` lines are *their*
     # comments, and picoem models the RP2354A as well as the B part.  See the
     # header for the full argument.
-    "tools/emulator-setup/picoem/rp2350-coproc-and-exclusive.patch",
+    "tools/emulator-setup/picoem/rp2350-correctness.patch",
 }
 
 EXEMPT_DIRS = (

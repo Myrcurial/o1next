@@ -1,8 +1,7 @@
 # picoem-fabric — the interposer's shift fabric, driven (#304, part of #192)
 
-**Status: the firmware runs, the fabric answers, and one thing blocks it — picoem cannot
-see GP30 or GP31.** Measured 2026-10-19, `--fabric-test` passes everything except the
-latch, and the latch is not the firmware's fault.
+**Status: built, and `--fabric-test` is 8 of 8.** Measured 2026-10-19 — and the last
+check to go green needed a picoem fix, not a firmware one (see *What was blocked*).
 
 ## What it is
 
@@ -55,18 +54,29 @@ And it is **measured rather than asserted**: the bridge's own edge count is chec
 the floor a 24-bit snapshot must produce, so a firmware that went too fast fails the check
 instead of working sometimes.
 
-## What is blocked, and on what
+## What *was* blocked, and how it was fixed
 
-**picoem masks GP30 and GP31 away.** It re-uses the **RP2040's** SIO
-(`crates/rp2040-emu/src/bus/sio.rs`: `PIN_MASK = 0x3FFF_FFFF` — thirty bits, because an
-RP2040 has thirty GPIOs), so every SIO write *and* read drops bits 30 and 31. Rev B's
-`SR_RCK` is GP30 and `/OE_ADDR` is GP31: **two of the five fabric pins.**
+**picoem masked GP30 and GP31 away.** Its own SIO modelled bank 0 as **30 pins** —
+`crates/rp2350-emu/src/sio/mod.rs`: `PIN_MASK = 0x3FFF_FFFF` and ten `pin >= 30` guards —
+while the crate models the 48-GPIO part everywhere else (`read_all_gpio` returns a 48-bit
+physical mask). Rev B's `SR_RCK` is GP30 and `/OE_ADDR` is GP31: **two of the five fabric
+pins.**
 
-So the firmware shifts its window in and picoem never sees the latch — `--fabric-test`
-counts all 8 `SR_SCK` edges and reports `0 latch(es)`, and the diagnostic names the mask
-rather than leaving it to be inferred. The fix is **one line** in picoem (the mask, for the
-48-GPIO part's SIO), and because that pin lives in the fork's patch series it means a new
-patch and a re-pin. `docs/emulation-testbed.md` §4.2 **P9** has the measurement.
+So the firmware shifted its window in and picoem never saw the latch: `--fabric-test`
+counted all 8 `SR_SCK` edges and reported `0 latch(es)`, and the diagnostic named the mask
+rather than leaving it to be inferred.
+
+**It was not one line, and the reason is worth keeping.** The mask in `sio/mod.rs` was one
+site; the other was `cp0_bit_op`'s `pin >= 30` guard — and that is the path
+`gpio_set_dir(gpio, out)` actually takes, because the SDK emits `gpioc_bit_oe_put`, not
+the masked form. Fixing the first changed **nothing measurable**; re-running this check
+afterwards is the only reason the second site was found. Both are in
+`tools/emulator-setup/picoem/rp2350-correctness.patch` (commits 2 and 3) on
+`Myrcurial/picoem`, pinned at `aebfd93`; `docs/emulation-testbed.md` §4.2 **P9** has the
+measurement.
+
+**And it was worth more than the latch:** the same patch's `gpio_set_dir` test now covers
+pins 30 and 31, so the next firmware to use them does not have to rediscover this.
 
 ## Not here
 

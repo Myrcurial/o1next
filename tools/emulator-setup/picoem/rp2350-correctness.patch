@@ -1,5 +1,5 @@
 diff --git a/crates/rp2350-emu/src/core/coprocessor.rs b/crates/rp2350-emu/src/core/coprocessor.rs
-index 55b8e79..d59e2c6 100644
+index 55b8e79..1d3da00 100644
 --- a/crates/rp2350-emu/src/core/coprocessor.rs
 +++ b/crates/rp2350-emu/src/core/coprocessor.rs
 @@ -1,6 +1,43 @@
@@ -46,7 +46,7 @@ index 55b8e79..d59e2c6 100644
  impl CortexM33 {
      /// Top-level coprocessor dispatch.
      pub(crate) fn thumb32_coprocessor<B: CoreBus>(
-@@ -32,223 +69,282 @@ impl CortexM33 {
+@@ -32,223 +69,286 @@ impl CortexM33 {
          }
      }
  
@@ -90,36 +90,27 @@ index 55b8e79..d59e2c6 100644
      }
  
 -    /// CP0 MCR/MRC dispatch — matches HLD §C.1 / Pico SDK `hardware_gpio.h`.
--    ///
++    /// CP0 MCR/MRC -- the mask write/read forms.
+     ///
 -    /// Thumb-32 MCR/MRC encoding:
 -    /// - hw0 = `1110 1110 opc1[3] L CRn[4]` (L=0 MCR, L=1 MRC)
 -    /// - hw1 = `Rt[4] coproc[4] opc2[3] 1 CRm[4]`
-+    /// CP0 MCR/MRC -- the mask write/read forms.
-     ///
--    /// The SDK uses `opc1` to select the bank (OUT/OE/IN × LO/HI) and then
--    /// discriminates **bulk vs per-bit** by the `(CRn, CRm)` pair:
--    ///   - `(CRn=0, CRm=0)` → bulk bank op; op2 selects get/put/set/clr/xor.
--    ///   - otherwise → per-bit op on `pin = (CRn<<4)|CRm`; op2 selects the op.
 +    /// ```text
 +    /// hw0 = 1110 1110 opc1[3] L CRn[4]        L: 0 = MCR, 1 = MRC
 +    /// hw1 = Rt[4] coproc[4] opc2[3] 1 CRm[4]  opc2 is 0 in every SDK form
 +    /// ```
      ///
--    /// Bank mapping (RP2354A is 30-pin, HI bank is RAZ/WI):
+-    /// The SDK uses `opc1` to select the bank (OUT/OE/IN × LO/HI) and then
+-    /// discriminates **bulk vs per-bit** by the `(CRn, CRm)` pair:
+-    ///   - `(CRn=0, CRm=0)` → bulk bank op; op2 selects get/put/set/clr/xor.
+-    ///   - otherwise → per-bit op on `pin = (CRn<<4)|CRm`; op2 selects the op.
 +    /// **`opc1` is the operation and `CRm` selects the register.** Reading it the
 +    /// other way round -- `opc1` as the bank, `(CRn,CRm)` as a pin -- is a decode
 +    /// that appears self-consistent, works for `put`/`put_all` by accident, and
 +    /// silently drops every `set`, `clr` and `xor` the SDK emits. That
 +    /// transposition is what this table corrects.
      ///
--    /// | opc1 | Bank              |
--    /// |------|-------------------|
--    /// |  0   | LO OUT (GPIO_OUT, pins 0..29)  |
--    /// |  1   | LO OE  (GPIO_OE,  pins 0..29)  |
--    /// |  2   | LO IN  (GPIO_IN,  pins 0..29)  |
--    /// |  4   | HI OUT (pins 30..47 — RAZ/WI)  |
--    /// |  5   | HI OE  (pins 30..47 — RAZ/WI)  |
--    /// |  6   | HI IN  (pins 30..47 — RAZ)     |
+-    /// Bank mapping (RP2354A is 30-pin, HI bank is RAZ/WI):
 +    /// | opc1 | mask form (Rt = mask) | single-bit form (Rt = pin) |
 +    /// |------|-----------------------|----------------------------|
 +    /// | 0    | put -- `gpioc_lo_out_put`, `gpio_put_all` | -- |
@@ -130,9 +121,14 @@ index 55b8e79..d59e2c6 100644
 +    /// | 6    | -- | set -- `gpioc_bit_out_set` |
 +    /// | 7    | -- | clr -- `gpioc_bit_out_clr` |
      ///
--    /// Per-bit op2 selection (when CRn or CRm is non-zero):
--    /// `op2=0` → `_get` (MRC), `op2=4` → `_put` (MCR Rt[0]),
--    /// `op2=5` → `_set`, `op2=6` → `_clr`, `op2=7` → `_xor`.
+-    /// | opc1 | Bank              |
+-    /// |------|-------------------|
+-    /// |  0   | LO OUT (GPIO_OUT, pins 0..29)  |
+-    /// |  1   | LO OE  (GPIO_OE,  pins 0..29)  |
+-    /// |  2   | LO IN  (GPIO_IN,  pins 0..29)  |
+-    /// |  4   | HI OUT (pins 30..47 — RAZ/WI)  |
+-    /// |  5   | HI OE  (pins 30..47 — RAZ/WI)  |
+-    /// |  6   | HI IN  (pins 30..47 — RAZ)     |
 +    /// | CRm | register | SDK name |
 +    /// |-----|----------|----------|
 +    /// | `c0` | LO OUT | `gpioc_lo_out_*` |
@@ -142,21 +138,25 @@ index 55b8e79..d59e2c6 100644
 +    /// | `c8` | LO IN | `gpioc_lo_in_get` -- **`gpio_get_all()`** |
 +    /// | `c9` | HI IN | `gpioc_hi_in_get` |
      ///
--    /// Bulk op2 selection (when CRn=0 and CRm=0):
--    /// MRC `op2=0` → `_get`. MCR `op2=0` → `_put`, `op2=1` → `_set`,
--    /// `op2=2` → `_clr`, `op2=3` → `_xor`.
+-    /// Per-bit op2 selection (when CRn or CRm is non-zero):
+-    /// `op2=0` → `_get` (MRC), `op2=4` → `_put` (MCR Rt[0]),
+-    /// `op2=5` → `_set`, `op2=6` → `_clr`, `op2=7` → `_xor`.
 +    /// Reads use `opc1 = 0` in every SDK form; a read with any other `opc1`, and
 +    /// any write to an IN register, is undefined here and left as a silent NOP.
      ///
--    /// Examples matching HLD §C.1:
--    ///   `gpioc_lo_out_get()` = MRC CP0, opc1=0, CRn=0, CRm=0, op2=0.
--    ///   `gpioc_hi_out_get()` = MRC CP0, opc1=4, CRn=0, CRm=0, op2=0.
--    ///   `gpioc_bit_out_get(pin)` = MRC CP0, opc1=0, CRn=pin_hi, CRm=pin_lo, op2=0.
+-    /// Bulk op2 selection (when CRn=0 and CRm=0):
+-    /// MRC `op2=0` → `_get`. MCR `op2=0` → `_put`, `op2=1` → `_set`,
+-    /// `op2=2` → `_clr`, `op2=3` → `_xor`.
 +    /// **The HI bank is RAZ/WI, and that is a separate gap from the encoding.**
 +    /// This crate's `Sio` models bank 0 only, so a HI access has nothing to route
 +    /// to -- which is why GP32-47 are unreachable in the emulator. The encoding
 +    /// above reaches the right register; the register does not exist yet.
      ///
+-    /// Examples matching HLD §C.1:
+-    ///   `gpioc_lo_out_get()` = MRC CP0, opc1=0, CRn=0, CRm=0, op2=0.
+-    ///   `gpioc_hi_out_get()` = MRC CP0, opc1=4, CRn=0, CRm=0, op2=0.
+-    ///   `gpioc_bit_out_get(pin)` = MRC CP0, opc1=0, CRn=pin_hi, CRm=pin_lo, op2=0.
+-    ///
 -    /// Note: pin 0 has (CRn=0, CRm=0), which collides with the bulk encoding.
 -    /// Per HLD, pin 0 per-bit ops are unreachable by this scheme; firmware
 -    /// uses the bulk mask path for pin 0. Matches Pico SDK behavior.
@@ -208,11 +208,11 @@ index 55b8e79..d59e2c6 100644
 +            // ---- single-bit writes: Rt is the pin number, and unconditional ----
 +            (false, Cp0Reg::LoOut) if (5..=7).contains(&opc1) => {
 +                Self::cp0_bit_op(bus, opc1, rt_val, 1, false, false);
-             }
--            _ => {} // unknown opc1 / MCR to HI bank -> silent NOP
++            }
 +            (false, Cp0Reg::LoOe) if (5..=7).contains(&opc1) => {
 +                Self::cp0_bit_op(bus, opc1, rt_val, 1, false, true);
-+            }
+             }
+-            _ => {} // unknown opc1 / MCR to HI bank -> silent NOP
 +
 +            // Bank 1 reads as zero: the register is in the encoding and not in
 +            // this crate's Sio.
@@ -291,8 +291,12 @@ index 55b8e79..d59e2c6 100644
 -                // op2=0 is the documented get; other op2 treated as NOP read 0.
 -                self.regs.r[rt] = if op2 == 0 {
 -                    bus.gpio_read_out() & Sio::PIN_MASK
-+        if pin >= 30 {
-+            return; // outside the modelled bank (Sio::PIN_MASK) -> RAZ/WI
++        // The same bank-0 width the SIO uses, from the same constant -- this guard
++        // is where `gpio_set_dir(gpio, out)` lands (`gpioc_bit_oe_put`), so a wrong
++        // number here is a `gpio_set_dir` that silently does nothing for a pin the
++        // SIO itself would have accepted.
++        if pin >= u32::from(Sio::BANK0_PINS) {
++            return; // outside bank 0 -> RAZ/WI
 +        }
 +        let mask = 1u32 << pin;
 +        let on = val & 1 != 0;
@@ -506,7 +510,7 @@ index 55b8e79..d59e2c6 100644
      }
  
      /// CP4/5 (DCP): Double-precision coprocessor (Phase 7 Stage D).
-@@ -722,14 +818,17 @@ mod tests {
+@@ -722,14 +822,17 @@ mod tests {
      use crate::core::CortexM33;
      use crate::core::Fault;
  
@@ -528,7 +532,7 @@ index 55b8e79..d59e2c6 100644
      fn encode_mrc(coproc: u8, rt: u8, crm: u8) -> (u16, u16) {
          encode_mrc_full(coproc, 0, 0, rt, 0, crm)
      }
-@@ -762,9 +861,27 @@ mod tests {
+@@ -762,9 +865,27 @@ mod tests {
          (hw0, hw1)
      }
  
@@ -559,7 +563,7 @@ index 55b8e79..d59e2c6 100644
      }
  
      /// Set CPACR to enable a given coprocessor (full access = 0b11).
-@@ -845,287 +962,372 @@ mod tests {
+@@ -845,287 +966,407 @@ mod tests {
      }
  
      // ---- CP0 GPIOC tests (Phase 7 Stage C) ----
@@ -629,27 +633,16 @@ index 55b8e79..d59e2c6 100644
 +        let (hw0, hw1) = encode_mcr_full(0, 2, 0, 1, 0, 0); // set
          cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 -        assert_eq!(bus.sio.gpio_out, 1 << pin);
--    }
 +        assert_eq!(bus.sio.gpio_out, 0xFF00);
- 
--    #[test]
--    fn test_cp0_bit_out_clr() {
--        let mut cpu = CortexM33::for_test(0);
--        let mut bus = Bus::default();
--        enable_cp(&mut cpu, 0);
--        bus.sio.gpio_out = 0x0000_00FF;
++
 +        cpu.regs.r[1] = 0x00F0;
 +        let (hw0, hw1) = encode_mcr_full(0, 3, 0, 1, 0, 0); // clr
 +        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 +        assert_eq!(bus.sio.gpio_out, 0xFF00);
- 
--        let pin = 3u8;
--        let (crn, crm) = pin_split(pin);
--        let (hw0, hw1) = encode_mcr_full(0, 0, crn, 0, 6, crm);
++
 +        cpu.regs.r[1] = 0xF000;
 +        let (hw0, hw1) = encode_mcr_full(0, 1, 0, 1, 0, 0); // xor
-         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(bus.sio.gpio_out, 0xF7);
++        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 +        assert_eq!(bus.sio.gpio_out, 0x0F00);
      }
  
@@ -659,66 +652,90 @@ index 55b8e79..d59e2c6 100644
 +    /// was outside the old table, so the access fell into the per-bit path and
 +    /// sampled pin 8 of the *output* bank instead of the input bank.
      #[test]
--    fn test_cp0_bit_out_xor() {
+-    fn test_cp0_bit_out_clr() {
 +    fn test_cp0_gpio_get_all_sdk_form() {
          let mut cpu = CortexM33::for_test(0);
          let mut bus = Bus::default();
          enable_cp(&mut cpu, 0);
--        bus.sio.gpio_out = 0b1010;
+-        bus.sio.gpio_out = 0x0000_00FF;
 +        bus.gpio_in.store(0xA5A5_A5A5, Ordering::Relaxed);
  
--        let pin = 1u8;
+-        let pin = 3u8;
 -        let (crn, crm) = pin_split(pin);
--        let (hw0, hw1) = encode_mcr_full(0, 0, crn, 0, 7, crm);
+-        let (hw0, hw1) = encode_mcr_full(0, 0, crn, 0, 6, crm);
 +        let (hw0, hw1) = encode_mrc_full(0, 0, 0, 3, 0, 0x8);
          cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(bus.sio.gpio_out, 0b1000);
+-        assert_eq!(bus.sio.gpio_out, 0xF7);
 +
 +        assert_eq!(
 +            cpu.regs.r[3],
-+            0xA5A5_A5A5 & 0x3FFF_FFFF,
++            0xA5A5_A5A5,
 +            "gpio_get_all reads the input bank, not pin 8 of the output bank"
 +        );
      }
  
 +    /// The three mask reads: `c0` LO OUT, `c4` LO OE, `c8` LO IN.
      #[test]
--    fn test_cp0_bit_out_put() {
+-    fn test_cp0_bit_out_xor() {
 +    fn test_cp0_mask_reads_are_selected_by_crm() {
          let mut cpu = CortexM33::for_test(0);
          let mut bus = Bus::default();
          enable_cp(&mut cpu, 0);
+-        bus.sio.gpio_out = 0b1010;
 +        bus.sio.gpio_out = 0x0BAD_F00D & 0x3FFF_FFFF;
 +        bus.sio.gpio_oe = 0x0000_00FF;
 +        bus.gpio_in.store(0x1234_5678, Ordering::Relaxed);
  
--        let pin = 7u8;
+-        let pin = 1u8;
 -        let (crn, crm) = pin_split(pin);
+-        let (hw0, hw1) = encode_mcr_full(0, 0, crn, 0, 7, crm);
 +        let (hw0, hw1) = encode_mrc_full(0, 0, 0, 4, 0, 0x0);
-+        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        assert_eq!(bus.sio.gpio_out, 0b1000);
 +        assert_eq!(cpu.regs.r[4], bus.sio.gpio_out);
- 
--        // Put 1 into pin 7.
--        cpu.regs.r[2] = 1;
--        let (hw0, hw1) = encode_mcr_full(0, 0, crn, 2, 4, crm);
++
 +        let (hw0, hw1) = encode_mrc_full(0, 0, 0, 5, 0, 0x4);
-         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(bus.sio.gpio_out, 1 << pin);
++        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 +        assert_eq!(cpu.regs.r[5], bus.sio.gpio_oe);
- 
--        // Put 0 into pin 7.
--        cpu.regs.r[2] = 0;
--        let (hw0, hw1) = encode_mcr_full(0, 0, crn, 2, 4, crm);
++
 +        let (hw0, hw1) = encode_mrc_full(0, 0, 0, 6, 0, 0x8);
-         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(bus.sio.gpio_out, 0);
++        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 +        assert_eq!(cpu.regs.r[6], bus.gpio_in.load(Ordering::Relaxed));
      }
  
 +    /// `gpio_set_dir_out_masked(mask)` = `mcr p0, #2, Rt, c0, c4`.
      #[test]
--    fn test_cp0_bit_out_get() {
+-    fn test_cp0_bit_out_put() {
 +    fn test_cp0_gpio_set_dir_masked_sdk_form() {
+         let mut cpu = CortexM33::for_test(0);
+         let mut bus = Bus::default();
+         enable_cp(&mut cpu, 0);
+ 
+-        let pin = 7u8;
+-        let (crn, crm) = pin_split(pin);
+-
+-        // Put 1 into pin 7.
+-        cpu.regs.r[2] = 1;
+-        let (hw0, hw1) = encode_mcr_full(0, 0, crn, 2, 4, crm);
++        cpu.regs.r[0] = 0xDEAD_BEEF;
++        let (hw0, hw1) = encode_mcr_full(0, 2, 0, 0, 0, 0x4);
+         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        assert_eq!(bus.sio.gpio_out, 1 << pin);
++        assert_eq!(bus.sio.gpio_oe, 0xDEAD_BEEF);
+ 
+-        // Put 0 into pin 7.
+-        cpu.regs.r[2] = 0;
+-        let (hw0, hw1) = encode_mcr_full(0, 0, crn, 2, 4, crm);
++        let (hw0, hw1) = encode_mrc_full(0, 0, 0, 1, 0, 0x4);
+         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        assert_eq!(bus.sio.gpio_out, 0);
++        assert_eq!(cpu.regs.r[1], 0xDEAD_BEEF);
+     }
+ 
++    /// `gpio_set_dir_all_bits(values)` = `gpioc_lo_oe_put` = `mcr p0, #0, Rt, c0, c4`.
+     #[test]
+-    fn test_cp0_bit_out_get() {
++    fn test_cp0_gpio_set_dir_all_bits_sdk_form() {
          let mut cpu = CortexM33::for_test(0);
          let mut bus = Bus::default();
          enable_cp(&mut cpu, 0);
@@ -728,27 +745,32 @@ index 55b8e79..d59e2c6 100644
 -        // Read pin 9 -> 1.
 -        let (crn, crm) = pin_split(9);
 -        let (hw0, hw1) = encode_mrc_full(0, 0, crn, 4, 0, crm);
-+        cpu.regs.r[0] = 0xDEAD_BEEF;
-+        let (hw0, hw1) = encode_mcr_full(0, 2, 0, 0, 0, 0x4);
++        cpu.regs.r[2] = 0x00FF_00FF;
++        let (hw0, hw1) = encode_mcr_full(0, 0, 0, 2, 0, 0x4);
          cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 -        assert_eq!(cpu.regs.r[4], 1);
-+        assert_eq!(bus.sio.gpio_oe, 0xDEAD_BEEF & 0x3FFF_FFFF);
- 
+-
 -        // Read pin 10 -> 0.
 -        let (crn, crm) = pin_split(10);
 -        let (hw0, hw1) = encode_mrc_full(0, 0, crn, 5, 0, crm);
-+        let (hw0, hw1) = encode_mrc_full(0, 0, 0, 1, 0, 0x4);
-         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 -        assert_eq!(cpu.regs.r[5], 0);
-+        assert_eq!(cpu.regs.r[1], 0xDEAD_BEEF & 0x3FFF_FFFF);
++        assert_eq!(bus.sio.gpio_oe, 0x00FF_00FF);
      }
  
 -    // --- Per-bit GPIO_OE ops ---
--
-+    /// `gpio_set_dir_all_bits(values)` = `gpioc_lo_oe_put` = `mcr p0, #0, Rt, c0, c4`.
++    // --- The MCRR family: gpio_put() and gpio_set_dir() ---------------------
+ 
++    /// `gpio_put(gpio, value)` = `gpioc_bit_out_put` =
++    /// `mcrr p0, #4, gpio, value, c0`.
++    ///
++    /// **This is the regression that made a real firmware look broken.** The
++    /// crate had no MCRR dispatch for CP0 at all, so the single most-used GPIO
++    /// call in any firmware was a silent NOP: the firmware ran, reached its main
++    /// loop, and drove nothing.
      #[test]
 -    fn test_cp0_bit_oe_set_clr_xor_put_get() {
-+    fn test_cp0_gpio_set_dir_all_bits_sdk_form() {
++    fn test_cp0_gpio_put_sdk_form() {
          let mut cpu = CortexM33::for_test(0);
          let mut bus = Bus::default();
          enable_cp(&mut cpu, 0);
@@ -758,39 +780,6 @@ index 55b8e79..d59e2c6 100644
 -
 -        // set
 -        let (hw0, hw1) = encode_mcr_full(0, 1, crn, 0, 5, crm);
-+        cpu.regs.r[2] = 0x00FF_00FF;
-+        let (hw0, hw1) = encode_mcr_full(0, 0, 0, 2, 0, 0x4);
-         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(bus.sio.gpio_oe, 1 << pin);
-+        assert_eq!(bus.sio.gpio_oe, 0x00FF_00FF);
-+    }
- 
--        // get -> r6 = 1
--        let (hw0, hw1) = encode_mrc_full(0, 1, crn, 6, 0, crm);
--        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(cpu.regs.r[6], 1);
-+    // --- The MCRR family: gpio_put() and gpio_set_dir() ---------------------
- 
--        // xor -> clears
--        let (hw0, hw1) = encode_mcr_full(0, 1, crn, 0, 7, crm);
--        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(bus.sio.gpio_oe, 0);
-+    /// `gpio_put(gpio, value)` = `gpioc_bit_out_put` =
-+    /// `mcrr p0, #4, gpio, value, c0`.
-+    ///
-+    /// **This is the regression that made a real firmware look broken.** The
-+    /// crate had no MCRR dispatch for CP0 at all, so the single most-used GPIO
-+    /// call in any firmware was a silent NOP: the firmware ran, reached its main
-+    /// loop, and drove nothing.
-+    #[test]
-+    fn test_cp0_gpio_put_sdk_form() {
-+        let mut cpu = CortexM33::for_test(0);
-+        let mut bus = Bus::default();
-+        enable_cp(&mut cpu, 0);
- 
--        // put 1
--        cpu.regs.r[7] = 1;
--        let (hw0, hw1) = encode_mcr_full(0, 1, crn, 7, 4, crm);
 +        // gpio_put(7, true): Rt = pin 7, Rt2 = value 1
 +        cpu.regs.r[1] = 7;
 +        cpu.regs.r[2] = 1;
@@ -803,23 +792,64 @@ index 55b8e79..d59e2c6 100644
 +            "gpio_put(pin, true) drives the pin"
 +        );
  
--        // clr
--        let (hw0, hw1) = encode_mcr_full(0, 1, crn, 0, 6, crm);
+-        // get -> r6 = 1
+-        let (hw0, hw1) = encode_mrc_full(0, 1, crn, 6, 0, crm);
 +        // gpio_put(7, false): same encoding, value 0
 +        cpu.regs.r[2] = 0;
 +        let (hw0, hw1) = encode_mcrr_full(0, 4, 1, 2, 0x0, false);
          cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(bus.sio.gpio_oe, 0);
+-        assert_eq!(cpu.regs.r[6], 1);
 +        assert_eq!(bus.sio.gpio_out, 0, "gpio_put(pin, false) clears it");
++    }
+ 
+-        // xor -> clears
+-        let (hw0, hw1) = encode_mcr_full(0, 1, crn, 0, 7, crm);
+-        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        assert_eq!(bus.sio.gpio_oe, 0);
++    /// `gpio_set_dir(gpio, out)` = `gpioc_bit_oe_put` =
++    /// `mcrr p0, #4, gpio, out, c4`.
++    #[test]
++    fn test_cp0_gpio_set_dir_sdk_form() {
++        let mut cpu = CortexM33::for_test(0);
++        let mut bus = Bus::default();
++        enable_cp(&mut cpu, 0);
+ 
+-        // put 1
+-        cpu.regs.r[7] = 1;
+-        let (hw0, hw1) = encode_mcr_full(0, 1, crn, 7, 4, crm);
++        cpu.regs.r[1] = 12;
++        cpu.regs.r[2] = 1;
++        let (hw0, hw1) = encode_mcrr_full(0, 4, 1, 2, 0x4, false);
+         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        assert_eq!(bus.sio.gpio_oe, 1 << pin);
++        assert_eq!(
++            bus.sio.gpio_oe,
++            1 << 12,
++            "gpio_set_dir(pin, true) is an output"
++        );
+ 
+-        // clr
+-        let (hw0, hw1) = encode_mcr_full(0, 1, crn, 0, 6, crm);
++        cpu.regs.r[2] = 0;
++        let (hw0, hw1) = encode_mcrr_full(0, 4, 1, 2, 0x4, false);
+         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        assert_eq!(bus.sio.gpio_oe, 0);
++        assert_eq!(bus.sio.gpio_oe, 0, "gpio_set_dir(pin, false) is an input");
      }
  
 -    // --- Bulk GPIO_OUT ops ---
 -
-+    /// `gpio_set_dir(gpio, out)` = `gpioc_bit_oe_put` =
-+    /// `mcrr p0, #4, gpio, out, c4`.
++    /// The same form at the top of bank 0, which is where the interposer's shift
++    /// fabric lives: `gpio_set_dir(30, OUT)` is `SR_RCK` and `gpio_set_dir(31, OUT)`
++    /// is `/OE_ADDR`.
++    ///
++    /// Both were **silent no-ops** while bank 0 was modelled as 30 pins, and no test
++    /// above pin 29 existed to say so — a firmware that shifted a match value into
++    /// the '595 and latched it appeared to have done neither. Measured: the bridge
++    /// counted all 8 of the firmware's `SR_SCK` edges and **0 latches**.
      #[test]
 -    fn test_cp0_lo_out_put_then_get() {
-+    fn test_cp0_gpio_set_dir_sdk_form() {
++    fn test_cp0_gpio_set_dir_reaches_30_and_31() {
          let mut cpu = CortexM33::for_test(0);
          let mut bus = Bus::default();
          enable_cp(&mut cpu, 0);
@@ -827,25 +857,31 @@ index 55b8e79..d59e2c6 100644
 -        cpu.regs.r[1] = 0x1234_5678;
 -        // HLD §C.1: lo_out_put = MCR CP0, opc1=0, CRn=0, CRm=0, op2=0.
 -        let (hw0, hw1) = encode_mcr_full(0, 0, 0, 1, 0, 0);
-+        cpu.regs.r[1] = 12;
-+        cpu.regs.r[2] = 1;
-+        let (hw0, hw1) = encode_mcrr_full(0, 4, 1, 2, 0x4, false);
-         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 -        // Value masked to 30 pins.
 -        assert_eq!(bus.sio.gpio_out, 0x1234_5678 & 0x3FFF_FFFF);
-+        assert_eq!(
-+            bus.sio.gpio_oe,
-+            1 << 12,
-+            "gpio_set_dir(pin, true) is an output"
-+        );
++        for pin in [30u32, 31] {
++            cpu.regs.r[1] = pin;
++            cpu.regs.r[2] = 1;
++            let (hw0, hw1) = encode_mcrr_full(0, 4, 1, 2, 0x4, false);
++            cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
++            assert_ne!(
++                bus.sio.gpio_oe & (1u32 << pin),
++                0,
++                "gpio_set_dir({pin}, true) must set OE bit {pin}"
++            );
++        }
++        assert_eq!(bus.sio.gpio_oe, 0xC000_0000, "pins 30 and 31, and nothing else");
  
 -        // Read back: lo_out_get = MRC CP0, opc1=0, CRn=0, CRm=0, op2=0.
 -        let (hw0, hw1) = encode_mrc_full(0, 0, 0, 2, 0, 0);
-+        cpu.regs.r[2] = 0;
++        // And pin 32 is still outside bank 0.
++        cpu.regs.r[1] = 32;
++        cpu.regs.r[2] = 1;
 +        let (hw0, hw1) = encode_mcrr_full(0, 4, 1, 2, 0x4, false);
          cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 -        assert_eq!(cpu.regs.r[2], 0x1234_5678 & 0x3FFF_FFFF);
-+        assert_eq!(bus.sio.gpio_oe, 0, "gpio_set_dir(pin, false) is an input");
++        assert_eq!(bus.sio.gpio_oe, 0xC000_0000, "pin 32 is not in bank 0");
      }
  
 +    /// The MCRR `*2` forms act only when the value's bit 0 is set -- the one
@@ -935,14 +971,14 @@ index 55b8e79..d59e2c6 100644
 +        cpu.regs.r[1] = 0; // register index 0 = LO bank
 +        cpu.regs.r[2] = 0x0000_0F00;
 +        let (hw0, hw1) = encode_mcrr_full(0, 10, 1, 2, 0x0, false); // index_out_set
-         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
--        assert_eq!(cpu.regs.r[8], 0xA5A5_A5A5 & 0x3FFF_FFFF);
++        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 +        assert_eq!(bus.sio.gpio_out, 0x0000_0F00);
 +
 +        cpu.regs.r[1] = 1; // register index 1 = HI bank -> no effect
 +        cpu.regs.r[2] = 0xFFFF_0000;
 +        let (hw0, hw1) = encode_mcrr_full(0, 10, 1, 2, 0x0, false);
-+        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+         cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
+-        assert_eq!(cpu.regs.r[8], 0xA5A5_A5A5 & 0x3FFF_FFFF);
 +        assert_eq!(bus.sio.gpio_out, 0x0000_0F00, "bank 1 is not modelled");
      }
  
@@ -1017,16 +1053,15 @@ index 55b8e79..d59e2c6 100644
 +        let (hw0, hw1) = encode_mrc_full(0, 0, 0, 3, 0, 0x9);
 +        cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
 +        assert_eq!(cpu.regs.r[3], 0, "HI IN reads as zero");
-     }
- 
++    }
++
 +    /// A `CRm` that selects no register at all (`c2`, `c3`, `c6`, `c7`, ...) is a
 +    /// silent NOP in both directions.
-     #[test]
--    fn test_cp0_lo_out_put_masks_upper_bits() {
++    #[test]
 +    fn test_cp0_unknown_crm_is_silent_nop() {
-         let mut cpu = CortexM33::for_test(0);
-         let mut bus = Bus::default();
-         enable_cp(&mut cpu, 0);
++        let mut cpu = CortexM33::for_test(0);
++        let mut bus = Bus::default();
++        enable_cp(&mut cpu, 0);
 +        bus.sio.gpio_out = 0x0000_000F;
 +
 +        for crm in [0x2u8, 0x3, 0x6, 0x7, 0xA, 0xB, 0xE, 0xF] {
@@ -1036,19 +1071,20 @@ index 55b8e79..d59e2c6 100644
 +            assert_eq!(bus.sio.gpio_out, 0x0000_000F, "CRm {crm:#x} must not write");
 +            assert!(cpu.pending_fault.is_none());
 +        }
-+    }
+     }
+ 
++    /// Writes to an IN register are undefined and are left as NOPs.
+     #[test]
+-    fn test_cp0_lo_out_put_masks_upper_bits() {
++    fn test_cp0_write_to_in_register_is_nop() {
+         let mut cpu = CortexM33::for_test(0);
+         let mut bus = Bus::default();
+         enable_cp(&mut cpu, 0);
  
 -        // Write a value with bits [31:30] set; expect them masked to 0.
 -        // HLD §C.1: lo_out_put = MCR CP0, opc1=0, CRn=0, CRm=0, op2=0.
 -        cpu.regs.r[0] = 0xFFFF_FFFF;
 -        let (hw0, hw1) = encode_mcr_full(0, 0, 0, 0, 0, 0);
-+    /// Writes to an IN register are undefined and are left as NOPs.
-+    #[test]
-+    fn test_cp0_write_to_in_register_is_nop() {
-+        let mut cpu = CortexM33::for_test(0);
-+        let mut bus = Bus::default();
-+        enable_cp(&mut cpu, 0);
-+
 +        cpu.regs.r[1] = 0xFFFF_FFFF;
 +        let (hw0, hw1) = encode_mcr_full(0, 0, 0, 1, 0, 0x8);
          cpu.thumb32_coprocessor(hw0, hw1, &mut bus);
@@ -1080,7 +1116,7 @@ index 55b8e79..d59e2c6 100644
      }
  
      // --- Discrimination: CP0 and SIO MMIO observe the same state ---
-@@ -1136,22 +1338,21 @@ mod tests {
+@@ -1136,22 +1377,21 @@ mod tests {
          let mut bus = Bus::default();
          enable_cp(&mut cpu, 0);
  
@@ -1112,7 +1148,7 @@ index 55b8e79..d59e2c6 100644
      }
  
      // --- CPACR disabled -> UsageFault ---
-@@ -1160,49 +1361,74 @@ mod tests {
+@@ -1160,49 +1400,74 @@ mod tests {
      fn test_cp0_cpacr_disabled_faults() {
          let mut cpu = CortexM33::for_test(0);
          let mut bus = Bus::default();
@@ -1321,8 +1357,120 @@ index b7d691a..0f3b965 100644
          // (Falls through to LDRD/STRD for any other unrecognized pattern)
  
          // LDRD/STRD (immediate): default path
+diff --git a/crates/rp2350-emu/src/sio/mod.rs b/crates/rp2350-emu/src/sio/mod.rs
+index 80494c0..2ef9677 100644
+--- a/crates/rp2350-emu/src/sio/mod.rs
++++ b/crates/rp2350-emu/src/sio/mod.rs
+@@ -249,23 +249,34 @@ impl Sio {
+     // `gpio_bit_in_get` method is provided here — CP0 reads `bus.gpio_in`
+     // directly.
+     //
+-    // RP2354A target: 30 pins. Bits [31:30] are masked on writes and read
+-    // back as zero. The `PIN_MASK` constant encodes this.
++    // **32 bank-0 pins, not the A part's 30.** The B part has 48 GPIOs and this
++    // crate models it everywhere else -- `Emulator::read_all_gpio` returns a
++    // 48-bit physical mask -- so bits [31:30] are real pins here, and masking
++    // them away made GP30 and GP31 undrivable *and* unreadable through every SIO
++    // path. That is two of the interposer's five shift-fabric pins (`SR_RCK` and
++    // `/OE_ADDR`), and it failed as a zero, which reads like a firmware bug.
++    //
++    // `PIN_MASK` encodes the bank-0 width and `BANK0_PINS` is the guard the
++    // per-bit methods use, so the number lives in one place. Bank 1 (GPIO32-47)
++    // is still not modelled here: there are no GPIO_HI_* registers in this SIO.
++
++    /// GPIO pins in bank 0 on this part.
++    pub(crate) const BANK0_PINS: u8 = 32;
+ 
+-    /// Mask of valid GPIO pin bits for RP2354A (30 pins, bits [29:0]).
+-    pub(crate) const PIN_MASK: u32 = 0x3FFF_FFFF;
++    /// Mask of valid bank-0 GPIO bits.
++    pub(crate) const PIN_MASK: u32 = u32::MAX;
+ 
+     // Per-bit output (GPIO_OUT) operations.
+ 
+     pub fn gpio_bit_out_get(&self, pin: u8) -> bool {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return false;
+         }
+         (self.gpio_out >> pin) & 1 != 0
+     }
+ 
+     pub fn gpio_bit_out_put(&mut self, pin: u8, v: bool) {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return;
+         }
+         let mask = 1u32 << pin;
+@@ -277,21 +288,21 @@ impl Sio {
+     }
+ 
+     pub fn gpio_bit_out_set(&mut self, pin: u8) {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return;
+         }
+         self.gpio_out |= 1u32 << pin;
+     }
+ 
+     pub fn gpio_bit_out_clr(&mut self, pin: u8) {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return;
+         }
+         self.gpio_out &= !(1u32 << pin);
+     }
+ 
+     pub fn gpio_bit_out_xor(&mut self, pin: u8) {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return;
+         }
+         self.gpio_out ^= 1u32 << pin;
+@@ -300,14 +311,14 @@ impl Sio {
+     // Per-bit output-enable (GPIO_OE) operations.
+ 
+     pub fn gpio_bit_oe_get(&self, pin: u8) -> bool {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return false;
+         }
+         (self.gpio_oe >> pin) & 1 != 0
+     }
+ 
+     pub fn gpio_bit_oe_put(&mut self, pin: u8, v: bool) {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return;
+         }
+         let mask = 1u32 << pin;
+@@ -319,21 +330,21 @@ impl Sio {
+     }
+ 
+     pub fn gpio_bit_oe_set(&mut self, pin: u8) {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return;
+         }
+         self.gpio_oe |= 1u32 << pin;
+     }
+ 
+     pub fn gpio_bit_oe_clr(&mut self, pin: u8) {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return;
+         }
+         self.gpio_oe &= !(1u32 << pin);
+     }
+ 
+     pub fn gpio_bit_oe_xor(&mut self, pin: u8) {
+-        if pin >= 30 {
++        if pin >= Self::BANK0_PINS {
+             return;
+         }
+         self.gpio_oe ^= 1u32 << pin;
 diff --git a/crates/rp2350-emu/src/tests.rs b/crates/rp2350-emu/src/tests.rs
-index ef7de49..9e1aa8f 100644
+index ef7de49..dacda47 100644
 --- a/crates/rp2350-emu/src/tests.rs
 +++ b/crates/rp2350-emu/src/tests.rs
 @@ -7260,6 +7260,154 @@ fn ldrexh_clrex_strexh_fail() {
@@ -1480,7 +1628,78 @@ index ef7de49..9e1aa8f 100644
  // ============================================================================
  // MSPLIM / PSPLIM via MSR/MRS
  // ============================================================================
-@@ -19195,111 +19343,182 @@ mod stage7_coprocessor_coverage {
+@@ -18863,18 +19011,29 @@ mod stage7_sio_coverage {
+     }
+ 
+     #[test]
+-    fn gpio_bit_out_masked_at_or_above_30() {
++    fn gpio_bit_out_real_at_30_and_31_masked_at_or_above_32() {
+         let mut sio = Sio::new();
+-        // get returns false for pin >= 30
+-        assert!(!sio.gpio_bit_out_get(30));
++        // The B part's bank 0 is 32 pins, so 30 and 31 are **real pins** -- they
++        // are the two a 30-pin SIO masked away, and on the interposer they are the
++        // shift fabric's SR_RCK and /OE_ADDR. This is the positive half of the
++        // change: before it, these two calls were silent no-ops.
++        sio.gpio_bit_out_set(30);
++        assert!(sio.gpio_bit_out_get(30));
++        sio.gpio_bit_out_set(31);
++        assert!(sio.gpio_bit_out_get(31));
++        sio.gpio_bit_out_clr(31);
+         assert!(!sio.gpio_bit_out_get(31));
+-        // put / set / clr / xor are no-ops for pin >= 30
++
++        // get returns false for pin >= 32
++        assert!(!sio.gpio_bit_out_get(32));
++        assert!(!sio.gpio_bit_out_get(33));
++        // put / set / clr / xor are no-ops for pin >= 32
+         let snap = sio.gpio_out;
+-        sio.gpio_bit_out_put(30, true);
+-        sio.gpio_bit_out_put(31, true);
+-        sio.gpio_bit_out_set(30);
+-        sio.gpio_bit_out_clr(30);
+-        sio.gpio_bit_out_xor(30);
++        sio.gpio_bit_out_put(32, true);
++        sio.gpio_bit_out_put(33, true);
++        sio.gpio_bit_out_set(32);
++        sio.gpio_bit_out_clr(32);
++        sio.gpio_bit_out_xor(32);
+         assert_eq!(sio.gpio_out, snap);
+     }
+ 
+@@ -18896,15 +19055,24 @@ mod stage7_sio_coverage {
+     }
+ 
+     #[test]
+-    fn gpio_bit_oe_masked_at_or_above_30() {
++    fn gpio_bit_oe_real_at_30_and_31_masked_at_or_above_32() {
+         let mut sio = Sio::new();
+-        assert!(!sio.gpio_bit_oe_get(30));
+-        let snap = sio.gpio_oe;
+-        sio.gpio_bit_oe_put(30, true);
+-        sio.gpio_bit_oe_put(31, true);
++        // Same as the OUT test above, for the output-enable bank: 30 and 31 are
++        // real pins on the B part, and pin 31 is the interposer's /OE_ADDR.
+         sio.gpio_bit_oe_set(30);
+-        sio.gpio_bit_oe_clr(30);
+-        sio.gpio_bit_oe_xor(30);
++        assert!(sio.gpio_bit_oe_get(30));
++        sio.gpio_bit_oe_set(31);
++        assert!(sio.gpio_bit_oe_get(31));
++        sio.gpio_bit_oe_clr(31);
++        assert!(!sio.gpio_bit_oe_get(31));
++
++        assert!(!sio.gpio_bit_oe_get(32));
++        let snap = sio.gpio_oe;
++        sio.gpio_bit_oe_put(32, true);
++        sio.gpio_bit_oe_put(33, true);
++        sio.gpio_bit_oe_set(32);
++        sio.gpio_bit_oe_clr(32);
++        sio.gpio_bit_oe_xor(32);
+         assert_eq!(sio.gpio_oe, snap);
+     }
+ 
+@@ -19195,111 +19363,182 @@ mod stage7_coprocessor_coverage {
          assert!(cpu.pending_fault.is_none());
      }
  
