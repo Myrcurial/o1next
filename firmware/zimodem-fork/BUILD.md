@@ -244,8 +244,39 @@ absence of `SPIFFS Formatted.` in the boot banner after an update.
 `update` takes a byte count, so the cable is still the wire. Taking a URL instead —
 `WiFiClient` streaming into the same verified write path — is what makes the cable
 unnecessary, and it reuses this slot handling, this verification and these failure
-semantics. It needs an SSID and a password to test against, which is why it is a
-separate step rather than a hopeful one.
+semantics.
+
+**The server half exists and is tested.** `tools/ota-server-o1next.py` serves the
+application image, stdlib only, with the properties the firmware will need from it:
+`Content-Length` always (so `Update.begin(size)` can refuse an image that cannot fit
+*before* a byte is written), the whole file on one GET, a 404 for anything else, a
+single range for debugging by hand, and a log line per transfer with the bytes and
+the rate in it.
+
+```sh
+tools/ota-server-o1next.py build/o1next-s2/zimodem.ino.bin
+```
+
+Two things this machine imposes, both measured rather than assumed, and either one
+would otherwise look like a broken board:
+
+- **The application firewall drops incoming connections to it.** Loopback serves
+  fine; the interface address *hangs* — curl exit 28, nothing in any log. The
+  firewall is on with *"automatically allow built-in signed software"* enabled, so
+  serving with **`/usr/bin/python3`** (Apple-signed, 3.9.6) works where the Homebrew
+  `python3` does not: same file, same port, 200 against a timeout. The other fix
+  needs sudo (`socketfilterfw --add/--unblockapp`) and is not needed.
+- **The board can only join a 2.4 GHz network.** The ESP32-S2 is a 2.4 GHz part —
+  [`hardware/wifi-comm-pac/pinmap.md`](../../hardware/wifi-comm-pac/pinmap.md) is
+  where the module and its antenna live — so whatever provides the access point has
+  to be on a 2.4 GHz channel.
+
+What is still missing is the firmware half, and it is missing on purpose: it cannot
+be tested without a network for the board to join, and an untested network path is
+how afternoons get spent. When there is one, the work is `update <url>`: a GET with
+`WiFiClient`, the body streamed in 4 KB chunks into `Update.write()`, and the console
+free to print progress — because over TCP nothing has to *be* the acknowledgement
+channel, which is the one part of the console path that will not be reused.
 
 
 #### Two things the console does that look like bugs
