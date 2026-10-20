@@ -149,12 +149,35 @@ prior art is `na103/zimodem` (CC BY 4.0 — method only).
 
 ## The schematic
 
-`wifi-comm-pac.kicad_sch` (KiCad 7 format, A2) — **Rev A, captured**, which is
+`wifi-comm-pac.kicad_sch` (KiCad 7 format, A1) — **Rev A, captured**, which is
 what the case STL and the placement drawing are sized against. It is
 **generated**, not hand-drawn: `gen_wifi_comm_pac_sch.py` emits the sheet, and
 `tools/check_schematics.py` re-generates it and asserts the invariant nets (which
 P1 pin carries which signal, that the machine's 5 V never reaches a 3.3 V pin,
 that the 12.6 V rail stops at the buck, and that no symbol or label collides).
+
+**The nets are wired, not label-connected.** Every signal net is drawn as
+orthogonal wire segments between the pins it joins; the supply rails use power
+symbols, which is how a schematic normally shows GND/3V3/5V. Exactly **one net
+label per net** is kept, so the net *names* survive — and because it is one
+label and not fifteen, a missing or mis-routed wire breaks the netlist instead of
+being papered over by a label.
+
+A small Manhattan router does the drawing, on a 1.27 mm grid:
+
+- symbol bodies are impassable;
+- another net's wire may be **crossed** but not travelled **along** (that would be
+  a collinear overlap, i.e. a short), and may not be **ended on** (that would make
+  a junction);
+- **another component's pin is impassable** — a wire routed through a pin is a
+  short that no label ever reveals, and it is what the first wiring pass did wrong;
+- nets are routed longest-first, so the long runs get the open corridors.
+
+It is a *first-draft* drawing: correct, complete and readable in blocks, but the
+long runs (USB to the MCU, the interface expander to the level stage) are routed
+for clearance rather than for beauty. A placement pass — moving the USB block
+next to the ESP32 — is what would make it read like a finished drawing, and it is
+cosmetic, not electrical.
 
 ```sh
 python3 hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py

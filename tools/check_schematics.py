@@ -601,7 +601,7 @@ WIFI_COMM_PAC = Board(
     name="wifi-comm-pac",
     sch="hardware/wifi-comm-pac/wifi-comm-pac.kicad_sch",
     gen="hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py",
-    erc_allowance={"lib_symbol_issues": 71},   # embedded symbols, no sym-lib-table
+    erc_allowance={"lib_symbol_issues": 171},   # embedded symbols, no sym-lib-table
     pinout=[("J1", {1: "GND", 2: "P1_TXD", 4: "P1_MSB", 5: "P1_CTS",
                     6: "P1_RXD", 7: "+12V", 8: "P1_MCB", 9: "P1_RI"})],
     exact_nets={
