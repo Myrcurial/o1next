@@ -239,24 +239,114 @@ Read it live on **TCP 2324** (the header arrives on attach), or after the fact w
 Because it is line-oriented text, `grep '^[0-9]* <'` is a valid way to read the
 machine's half of a conversation.
 
-## Stage 0 — what this rig has to prove
+## Stage 0 — measured, 2026-10-20
 
-From the Mac, through the rig:
+From the Mac, through the rig. **Items 1–3 pass. Item 4's instrument is built and
+measured; its *report* is #319's.**
 
-1. **`AT` returns `OK`.** Type `relay` at the console, then `AT`.
-2. **`ATDT 192.168.2.1 2323` reaches the harness's telnet server** and the banner comes
-   back — `tools/harness-o1next.py`, on the Mac.
-3. **The trace shows both directions with times** — `nc <bridge> 2324`.
-4. **A paced 650-baud stream makes the modem report that rate** — `pace 1024 55` after
-   walking the ladder above.
+### 1. `AT` returns `OK` — ✅
 
-> **Item 4 is not this rig's to finish.** The modem cannot *report* a measured rate until
-> #319 lands — today its O1 side receives at `baudRate` (`DEFAULT_BAUD_RATE`, 1200) and
-> nothing measures the incoming waveform. What this rig can do today is be the *precise
-> host* the measurement will be taken against, and it can do that now.
+Over the USB relay:
+
+```
+o1next> relay
+AT
+AT
+OK
+-- escaped to the console (3 bytes in, 8 out, 0 dropped)
+```
+
+and over the **TCP relay door**, which is the same relay through the other door:
+
+```
+$ ( printf 'AT\r'; sleep 3 ) | nc -w 6 192.168.2.3 2323
+AT
+OK
+```
+
+### 2. The dial reaches the harness's telnet server — ✅
+
+> **The syntax is `ATDT <host>:<port>` — one token, with a colon — and NOT
+> `ATDT <host> <port>`.** `ZCommand`'s `validateHostInfo()` fails any command whose colon
+> is missing or doubled (`colonDex <= 0`), so the space-separated form fails validation and
+> answers `NO ANSWER`. #342's acceptance and its handover both wrote the space-separated
+> form. Measured on the bench.
+
+```
+o1next> relay
+ATDT 192.168.2.1:2323
+CONNECT 2
+o1next harness telnet -- Cortexiphan
+type `quit` to hang up
+```
+
+and the harness's own log, which is the other end of the same fact:
+
+```
+12:33:13  192.168.2.2      telnet session opened
+```
+
+### 3. The trace shows both directions with times — ✅
+
+`trace dump` after that dial, 103 records, every byte carrying its own millisecond:
+
+```
+#o1next-trace 1 bench-bridge ms
+676402 > 41 54 44 54 20 31 39 32 ... 0d      <- ATDT 192.168.2.1:2323 out
+676618 < 43 4f 4e 4e 45 43 54 20 32 0d 0a    <- "CONNECT 2" back
+676743 < 6f 31 6e 65 78 74 ...               <- "o1next harness telnet -- ..."
+```
+
+**And the Stage 1 shape works through the TCP door**, which is what that door is for:
+
+```
+$ ( printf 'ATDT 192.168.2.1:2323\r'; sleep 12 ) | nc -w 16 192.168.2.3 2323
+ATDT 192.168.2.1:2323
+CONNECT 3
+o1next harness telnet -- Cortexiphan
+```
+
+Because that door is a **pure pipe** it passes the modem's own `+++` hangup straight
+through — which is what to reach for when the USB door's escape would eat it:
+
+```
+$ ( sleep 1.5; printf '+++'; sleep 2.0; printf 'AT\r'; sleep 4 ) | nc -w 12 192.168.2.3 2323
++++OK
+AT
+OK
+```
+
+### 4. A paced 650-baud stream — the instrument is measured, the report is #319's
+
+```
+o1next> rate 650
+rate 650 bps
+         the MODEM must be at this rate too -- `send ATB 650` while both ends still agree
+o1next> pace 128 55
+pacing 128 bytes of 0x55 at 650 bps -- 2.0 s of wire
+done
+```
+
+and the trace, which is where the pacing is *measured* rather than asserted:
+
+```
+records: 130
+first: 865150 > 55 55 55 ... (64 bytes)
+last : 867130
+span : 1980 ms
+ideal: 129 intervals x 10 bits / 650 baud = 1984.6 ms
+```
+
+**Within 5 ms of ideal**, which is the whole reason this is the rig's job and not the
+emulator's: the UART hardware paces the bytes, so the waveform *is* the rate.
+
+**What is not done is the modem reporting it.** Nothing on the modem measures the incoming
+waveform yet — that is #319, and its 20-bit auto-baud counter is why the S2 was chosen for
+the modem in the first place. The rig can be the precise host for that measurement today;
+the measurement is not there to be taken.
 
 Stage 1 (`-rs232 pty` through `tools/serial-relay-o1next.py` to the TCP relay door) is
-#342's second half.
+#342's second half, and the door it needs is now proven working.
 
 ## Testing the rig without the modem
 
@@ -301,6 +391,11 @@ makes the rig echo. That is the test to run when the rig's own loopback passes b
 counterparty stays silent.
 
 ## Measured on the bench — 2026-10-20, ESP32-C3
+
+> **Read this as a chronology.** When the notes below were taken the modem end was mute
+> (a wire on the wrong pin), so the counters read `out 0` and that is called the diagnostic
+> rather than the failure. It was: **the modem was fixed and Stage 0 then passed — the
+> results are in the Stage 0 section above.**
 
 The rig's board is an **ESP32-C3**, wired `GPIO6 (RX) ← modem GPIO15`,
 `GPIO7 (TX) → modem GPIO16`, `GND — GND`. Everything below is a measurement, not a plan.
