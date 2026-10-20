@@ -592,7 +592,61 @@ REV0 = Board(
     passthrough=[("J1", "J2", range(1, 41), set())],
 )
 
-BOARDS = [FLOPPY, REVA, REV0]
+# O1NEXT WiFi COMM PAC (issues #324, #325, part of #56).  J1 is the 2x5 IDC on
+# the board end of the 10-conductor pigtail; pin n is DE-9 pin n for 1..9, and
+# pin 10 is spare.  The 6850 and the PIA are +5 V parts, so the nets are checked
+# to make sure the machine's 5 V side never reaches a 3.3 V pin, and that the
+# 12.6 V rail stops at the buck.
+WIFI_COMM_PAC = Board(
+    name="wifi-comm-pac",
+    sch="hardware/wifi-comm-pac/wifi-comm-pac.kicad_sch",
+    gen="hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py",
+    erc_allowance={"lib_symbol_issues": 71},   # embedded symbols, no sym-lib-table
+    pinout=[("J1", {1: "GND", 2: "P1_TXD", 4: "P1_MSB", 5: "P1_CTS",
+                    6: "P1_RXD", 7: "+12V", 8: "P1_MCB", 9: "P1_RI"})],
+    exact_nets={
+        "P1_TXD": {("J1", "2"), ("U1", "8")},
+        "P1_RXD": {("J1", "6"), ("U4", "14")},
+        "P1_MSB": {("J1", "4"), ("U3", "4")},
+        "P1_CTS": {("J1", "5"), ("U2", "8")},
+        "P1_RI": {("J1", "9"), ("U2", "9")},
+        "P1_MCB": {("J1", "8"), ("U1", "9")},
+        # the translated machine side: TXD lands on UART1 RX, MCB on the expander
+        "O1_TXD_3V3": {("U1", "3"), ("U5", "6")},
+        "O1_MCB_3V3": {("U1", "4"), ("U7", "12")},
+        # the interface expander's three outputs are open-drain, hence the pulls
+        "IF_CTS": {("U2", "3"), ("U7", "9"), ("R25", "1")},
+        "IF_RI": {("U2", "4"), ("U7", "10"), ("R26", "1")},
+        "IF_MSB": {("U3", "2"), ("U7", "11"), ("R27", "1")},
+        # the port's 12.6 V reaches the switch and nothing else before it
+        "+12V": {("J1", "7"), ("SW1", "1")},
+        "+5V_USB": {("F1", "2"), ("D14", "1")},
+    },
+    excludes_nets={
+        # 5 V must never touch the 3.3 V-only parts (all of the ESP32, both
+        # expanders, the MAX3232 and the audio amp's logic pins)
+        "+5V": (pins("U5", range(1, 19)) | pins("U6", range(1, 25))
+                | pins("U7", range(1, 25)) | pins("U4", range(1, 17))),
+        # the machine's 12.6 V stops at the buck
+        "+12V": (pins("U10", range(1, 6)) | pins("U8", range(1, 10))
+                 | pins("U5", range(1, 19)) | pins("J3", range(1, 8))),
+        # and USB VBUS is not the machine rail
+        "+5V_USB": pins("J1", range(1, 11)) | pins("U9", range(1, 9)),
+    },
+    unused_pins={
+        "J1": {3, 10},
+        "U1": {5, 6, 10, 11},
+        "U2": {5, 6, 10, 11},
+        "U3": {1},
+        "U4": {7, 9, 12},
+        "U5": {4, 16, 17},
+        "U6": {12, 13, 14, 15, 16},
+        "U7": set(range(13, 17)) | set(range(17, 25)),
+        "U10": {5},
+    },
+)
+
+BOARDS = [FLOPPY, REVA, REV0, WIFI_COMM_PAC]
 
 
 def check_reference_tables() -> list:
