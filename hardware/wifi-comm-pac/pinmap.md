@@ -1,7 +1,7 @@
 # wifi-comm-pac — the ESP32-S2 pin map
 
 The module's own GPIO allocation. It is one map for **both roles** (the standalone
-COMM PAC and the module docked to the interposer/SFF board), because role B changes
+COMM PAC and the same circuit on the interposer/SFF board), because role B changes
 only *what is on the other end of the UART*, not the module (#323).
 
 Tracks: #56, #317 (the S2 decision), #324 (the P1 stage), #325 (panel/audio/power).
@@ -70,25 +70,28 @@ stating plainly, because it is the one non-obvious trade in the file:
 
 ## The allocation
 
-Twelve pins, of which four are fixed for us rather than chosen.
+Fourteen pins, of which four are fixed for us rather than chosen.
 
 | GPIO | Function | Notes |
 |---|---|---|
 | **0** | BOOT button — and factory reset while running | a strapping pin, and the standard dual purpose: hold at reset for the ROM bootloader, hold 5 s while running for Zimodem's factory reset |
 | **15** | UART1 **TX** → level stage → O1 RXD (role A) / → RP2354B (role B) | the machine-facing side |
 | **16** | UART1 **RX** ← O1 TXDATA (TTL) / ← RP2354B | **RMT taps this same pin** for #319 — see below |
-| **33** | I²C **SDA** → AW9523B | |
-| **34** | I²C **SCL** → AW9523B | |
-| **35** | I²S **BCLK** → audio amp | |
-| **36** | I²S **LRCLK** → audio amp | |
-| **37** | I²S **DIN** → audio amp | |
+| **33** | I²C **SDA** → both AW9523B | | |
+| **34** | I²C **SCL** → both AW9523B | | |
+| **35** | I²S **BCLK** → audio amp | | |
+| **36** | I²S **LRCLK** → audio amp | | |
+| **37** | I²S **DIN** → audio amp | | |
+| **38** | **INTN**, panel AW9523B | added 2026-10-20 — the expander needs an interrupt pin and the first map had none |
+| **21** | **INTN**, interface AW9523B (`0x59`) | the second expander's interrupt; DNP if the second part is not fitted |
 | **19** | USB **D−** | fixed — the only USB pins |
 | **20** | USB **D+** | fixed |
 | **43** | UART0 **TXD** — console and the ROM's own boot log | fixed by the ROM |
 | **44** | UART0 **RXD** | fixed by the ROM |
 
-Seven signals are ours to place (15, 16, 33, 34, 35, 36, 37); the other five are
-where the silicon puts them.
+Eight signals are ours to place (15, 16, 33, 34, 35, 36, 37, 38, 21); the rest are
+where the silicon puts them. **`RESETN` on both expanders is strapped** (10 kΩ to
+3.3 V + 100 nF), not a GPIO — a shared reset is not worth two pins.
 
 The **module's own pin numbers are deliberately not restated here** — they are in
 the MINI-2 datasheet's §3.2 pin layout, and a secondary source for them is a way
@@ -96,46 +99,64 @@ to lose a board. This file fixes *functions*; the layout fixes geometry.
 
 ## What is left free, and why
 
-The module brings out 37 GPIO. Twelve are allocated. **The other 25 are left
+The module brings out 37 GPIO. Fourteen are allocated. **The other 23 are left
 alone**, and the point of a conservative map is that the reason for each group is
 written down:
 
 | Left free | Why |
 |---|---|
-| **GPIO1–10** | **ADC1** — the only ADC that works while the radio is on (ADC2 is unusable with WiFi). The plausible use is a **rail monitor**: a divider on the +12 V from P1 pin 7 would let the firmware *measure* the sag through R21 rather than argue about it, which is exactly the open question in #324/#325. |
+| **GPIO1–10** | **ADC1** — the only ADC that works while the radio is on (ADC2 is unusable with WiFi). A **rail monitor** was the plausible use; it is no longer needed, because P1 pin 7 turns out not to be behind a 22 Ω (`README.md` §Power). |
 | **GPIO11–14** | touch channels, and nothing here wants touch. Plain enough to spend later. |
 | **GPIO17, 18** | **the two DACs** — see the trade above. |
-| **GPIO21, 38** | plain spares, kept plain on purpose. |
 | **GPIO39–42** | **JTAG**. The debug path is cheaper to keep than to regain. |
 | **GPIO26** | the PSRAM chip select **on the R2 variants**. Not allocated, so the N4-vs-N4R2 choice stays open. |
 | **GPIO45, 46** | strapping pins, and 46 is input-only. Not available to us. |
 
-## The panel and the handshake — the AW9523B, all 16 channels
+**GPIO38 and GPIO21 were spares and are now the two expander interrupts** — the
+first version of this map gave both AW9523B parts an `INTN` pin and forgot to give
+it anywhere to go.
+
+## The panel and the handshake — two AW9523B, split by function
 
 Two I²C pins carry eleven lamps and the four P1 handshake lines (#322, #325).
-Every channel is spoken for, which is the argument for the part:
+Both parts are on the same bus at **`0x58`** and **`0x59`**, and they are split by
+*job* rather than by pin count — **both are fitted**, because the handshake is not
+optional. The split is what buys the headroom: U6 keeps 5 spare channels for more
+lamps, U7 keeps 12 for whatever the next idea is.
+
+**U6 — panel (`0x58`).** P0 is push-pull and constant-current; **P1 is open-drain
+only** on this part, which is why the last three lamps carry series resistors.
 
 | Channel | Function | Direction |
 |---|---|---|
-| P0_0 | LED — **WiFi radio on** | out |
-| P0_1 | LED — **WiFi connected** | out |
-| P0_2 | LED — **HS** (≥ 9600) | out |
-| P0_3 | LED — **AA** auto answer | out |
-| P0_4 | LED — **CD** carrier detect | out |
-| P0_5 | LED — **OH** off hook | out |
-| P0_6 | LED — **RD** receive data | out |
-| P0_7 | LED — **SD** send data | out |
-| P1_0 | LED — **TR** terminal ready | out |
-| P1_1 | LED — **MR** modem ready | out |
-| P1_2 | LED — **RI** ring indicator | out |
-| P1_3 | **CTS** → P1 pin 5 | out |
-| P1_4 | **RI line** → P1 pin 9 (also the video-PIA UC15 CA2) | out |
-| P1_5 | **MSB** → P1 pin 4, through an open-drain N-FET | out (sink) |
-| P1_6 | **MCB** ← P1 pin 8 | **in** |
-| P1_7 | **spare** | — |
+| P0_0 | LED — **WiFi radio on** | out, CC |
+| P0_1 | LED — **WiFi connected** | out, CC |
+| P0_2 | LED — **HS** (≥ 9600) | out, CC |
+| P0_3 | LED — **AA** auto answer | out, CC |
+| P0_4 | LED — **CD** carrier detect | out, CC |
+| P0_5 | LED — **OH** off hook | out, CC |
+| P0_6 | LED — **RD** receive data | out, CC |
+| P0_7 | LED — **SD** send data | out, CC |
+| P1_0 | LED — **TR** terminal ready | out, open-drain + R |
+| P1_1 | LED — **MR** modem ready | out, open-drain + R |
+| P1_2 | LED — **RI** ring indicator | out, open-drain + R |
+| P1_3–P1_7 | spare | — |
 
-Eleven lamps plus four lines is fifteen; the sixteenth is the spare, kept because
-a spare on a part that is already fitted costs nothing.
+**U7 — interface (`0x59`).** Sits on the **3.3 V side** of the translators;
+it gives the handshake a home and two spare channels so the next idea does not
+need a respin.
+
+| Channel | Function | Direction |
+|---|---|---|
+| P1_0 | **CTS** → 74LVC4T245 → P1 pin 5 | out |
+| P1_1 | **RI line** → 74LVC4T245 → P1 pin 9 | out |
+| P1_2 | **MSB** → 74LVC1G07 (open-drain) → P1 pin 4 | out |
+| P1_3 | **MCB** ← 74LVC4T245 ← P1 pin 8 | **in** |
+| rest | spare | — |
+
+The expander **holds its outputs**, so a hung firmware leaves a readable frozen
+panel rather than a dark one. Both `INTN` lines are open-drain with a 10 kΩ
+pull-up, to GPIO38 and GPIO21. `RESETN` is strapped, not driven.
 
 ## The fork's `#define` block
 
@@ -176,13 +197,14 @@ out-of-box case works before any auto-baud exists (#319).
 |---|---|---|
 | GPIO15/16 face | the level stage → P1 | the RP2354B (its GP38/39 UART0) |
 | Who owns the ACIA | the machine's own 6850 | the RP2354B serves the window |
-| Panel and handshake | the module's AW9523B | **the same** |
-| Audio | the module's I²S amp | **the same** |
+| Panel and handshake | this board's AW9523B pair | **the same circuit, copied** |
+| Audio | this board's I²S amp | **the same circuit, copied** |
 | Web UI | the ESP32's own pages | the RP2354B's, bridged |
 
 **Nothing in the allocation changes between roles**, which is the point of #323's
-decision: the module is the same module, and only the counterparty at the far end
-of GPIO15/16 differs.
+decision: **the schematic is copied, the layout is not**, and only the counterparty
+at the far end of GPIO15/16 differs. There is no dock connector — the interposer
+and the SFF each carry their own populated copy.
 
 ## Peripherals that cost no pins
 
@@ -192,27 +214,22 @@ of GPIO15/16 differs.
   no jumper, no switch and no second wire.
 - **PCNT**, likewise, if it turns out to be the better measurement.
 - **LEDC** is spare — the panel's dimming is the AW9523B's own.
-- **The antenna** is the module's IPEX connector: no GPIO at all, and in role B the
-  pod is already outside the case.
+- **The antenna** is the module's IPEX connector: no GPIO at all, and on the SFF
+  board the module is already outside the case.
 
 ## Open before layout
 
-1. **MCB is the one handshake line we *read*** (P1 pin 8), so it needs a port with
-   input capability — and an interrupt, if the "host suppressed output" edge is to
-   be prompt. Confirm against the AW9523B datasheet that the chosen port supports
-   input. **If it does not, MCB moves to a direct GPIO — GPIO38 is the spare — and
-   the expander gains a second spare channel.**
-2. **MSB needs an open-drain sink** (P1 pin 4 is open-collector, "50 µA sink =
-   inactive"), so it is an N-FET on an expander channel, never a push-pull pin
-   (#324).
+1. **The 2×5 IDC orientation** — the only mechanical unknown on the board. The
+   cable is keyed, but which end is pin 1 is not in the schematic, so it is
+   confirmed against a real machine (#324).
+2. **The RXD negative swing**, in hardware: the MAX3232 gives ±5.5 V, which is
+   inside the machine's −0.5…−10 V window, but the receiving front end is a
+   comparator with a 5.1 V clamp and it wants measuring, not assuming (#324).
 3. **There is no DCD line on P1.** The DE-9 carries MSB (one status bit), CTS and
    RI — so the panel's **CD lamp is socket state**, and the machine-visible carrier
-   indication is **MSB**. Confirm that reading against schematic sheet 7 in #324.
-4. **The rail monitor** on GPIO1–10 is left *free*, not built. If #324/#325 wants
-   it, it is one divider and one pin — and it would turn the R21 budget argument
-   into a measurement.
-5. **The audio part** is #325's: an I²S-input class-D amplifier with its own DAC,
-   three pins, and no GPIO beyond BCLK/LRCLK/DIN.
+   indication is **MSB**.
+4. **The audio transducer** — passive piezo element or small speaker, and where
+   it points once the case is closed (#325).
 
 ## References
 

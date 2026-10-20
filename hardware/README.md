@@ -16,7 +16,7 @@ are relative to this directory, and a board's home is always
 |---|---|---|---|---|---|
 | `floppy-adapter` | O1NEXT Floppy Adapter | `floppy-adapter/` | #62, #20, #95 | Rev A schematic captured; no PCB | `floppy-adapter` |
 | `keyboard-adapter` | O1NEXT USB Keyboard Adapter | `keyboard-adapter/` | #47 | Reference design; **no schematic yet** (#47) | — |
-| `wifi-comm-pac` | O1NEXT WiFi COMM PAC | `wifi-comm-pac/` | #56, #21, #57 | Concept; **no schematic yet** (#56) | — |
+| `wifi-comm-pac` | O1NEXT WiFi COMM PAC | `wifi-comm-pac/` | #56, #21, #57, #324, #325 | Rev A schematic captured; no PCB | `wifi-comm-pac` |
 | `drive-c-repro` | O1NEXT Drive C Repro | `drive-c-repro/` | #84, #6 | Concept; **no schematic yet** (#84) | — |
 | `interposer-upgrade` | O1NEXT Upgrade | `interposer-upgrade/` | #11, #12, #13, #15, #83, #259, #297, #303, #304 | Rev A engineering-sample schematic; Rev B is a pin map, **no schematic yet** (#259) | `interposer-upgrade-reva`, `interposer-upgrade-rev0` |
 | `next-integrated` | O1NEXT Integrated (the SFF board) | `next-integrated/` | #49 | Concept; **no schematic yet** (#49) | — |
@@ -91,7 +91,9 @@ header pin assemblies wired back-to-back.
   reference the interposer was designed against, **OEM + interposer** is the one
   host brief and the one test matrix.
 - **MODEM port (P1) is TTL, not RS-232**, and its RXD is bipolar — the modem must
-  swing TX-toward-O1 negative for a clean mark (`docs/o1-modem-serial.md`).
+  swing TX-toward-O1 negative for a clean mark (`docs/o1-modem-serial.md`). Its
+  **+12.6 V on pin 7 is direct from the supply** (`+12 V @ 2.02 A`); the 22 Ω
+  (R21) is the **keyboard** branch through J6, not this port.
 - **P4 keyboard connector:** pin 19 = +12 V via jumper J6 + R21 — usable to power
   small adapter boards (`keyboard-adapter/`).
 

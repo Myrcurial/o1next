@@ -8,10 +8,11 @@ left-hand floppy storage pocket, taking power and signal from the MODEM (P1)
 port for the keyboard adapter, and a USB-C port for programming or powering the
 ESP32.
 
-Hayes-compatible WiFi modem for the Osborne 1, designed as a **severable
-module**: usable standalone on the MODEM (P1) port, or as part of the
-interposer (where the RP2354B personality #21 does the same job via
-memory-map snooping instead).
+Hayes-compatible WiFi modem for the Osborne 1, built as **one design with two
+physical instantiations**: the standalone COMM PAC in the machine's floppy
+pocket, and the same schematic copied onto the interposer and the SFF board
+(#323). It is not a daughterboard — the interposer carries its own copy of the
+circuit, and only the thing on the far end of GPIO15/16 differs.
 
 Tracks: #56 (extension of #21). Physical interface documented by #57.
 
@@ -39,58 +40,159 @@ Espressif's own datasheets: the **MINI-1/MINI-1U are NRND**, and the **WROOM and
 SOLO/SOLO-U are end of life** (2025-02-24 and 2024-09-05). The MINI-2 line is what
 is still recommended for new designs.
 
-**The pin map is [`pinmap.md`](pinmap.md)** — twelve GPIO allocated, the other 25 of
+**The pin map is [`pinmap.md`](pinmap.md)** — fourteen GPIO allocated, the other 23 of
 the module's 37 deliberately left free, the panel and the four P1 handshake lines on
 two I²C pins, and the fork's `#define` block written out in full. It is **one map for
-both roles**: the standalone module and the module docked to the interposer/SFF board
-differ only in what sits on the other end of GPIO15/16 (#323).
+both roles**: role A and role B differ only in what sits on the other end of
+GPIO15/16 (#323).
 
-## Host interface — MODEM port (P1, DE-9P)
+## Host interface — MODEM port (P1): DE-9 pigtail, 2×5 IDC on the board
 
-**TTL levels, not RS-232** — the port feeds straight into the 6850 ACIA
-(status `2A00H` / data `2A01H`), bypassing the RS-232 level shifters.
+**The module does not plug into the machine.** The COMM-PAC sits in the
+**left floppy pocket**, a short **10-conductor ribbon** leaves it, and a **DE-9
+plug** on the far end goes into the machine's MODEM socket. The board end of
+that ribbon is a **2×5 IDC header** — which is why the connector and its
+orientation are ours, not inherited (#324). The manual describes it exactly:
+*"plug the small, rectangular connector on the modem cable into the 10-pin
+socket on the modem… grooved to fit only one way"* (`research/osborne1/Comm-Pac_Users_Manual.pdf`).
 
-- 1 GND · 2 TXD (TTL) · 3 NC · 4 MSB (open-collector) · 5 CTS ·
-  6 RXD (**bipolar input**, −0.5…−10 V = 1) · 7 +12V via R21 22Ω ·
-  8 MCB (TTL, low = suppress output) · 9 RI (TTL)
-- **Asymmetric levels:** TXD/MCB/RI are plain TTL, but **RXD is bipolar**
-  (LM1458 + 1N5231B zener front-end) — the module must swing
-  TX-toward-O1 **negative** for a clean mark. Needs in-hardware
-  validation; a small charge-pump or transistor level stage is expected.
-- On-board P1 header carries DE-9 pin numbers straight through
-  (schematic sheet 7); 2×5 IDC orientation to be confirmed on a real
-  board (same validation class as #47's P4).
+Ten conductors carry nine DE-9 signals plus one spare; the original modem used
+only six of them (no CTS, no RI), and ours uses all of the status lines.
+
+**TTL levels, not RS-232** — the port feeds the 6850 ACIA directly (status
+`2A00H` / data `2A01H`), bypassing the level shifters.
+
+| P1 | Signal | Level | Direction |
+|---|---|---|---|
+| 1 | GND | — | — |
+| 2 | TXD | **5 V TTL** | O1 → module |
+| 3 | — | not used | — |
+| 4 | MSB | **open-collector** ("50 µA sink = inactive") | module → O1 |
+| 5 | CTS | TTL | module → O1 |
+| 6 | RXD | **bipolar, −0.5…−10 V = 1** | module → O1 |
+| 7 | **+12.6 V DC** | labelled `VDD` in the Comm-Pac manual | power |
+| 8 | MCB | TTL, low = suppress output | O1 → module |
+| 9 | RI | TTL, falling edge sets the flag | module → O1 |
+
+### The level stage — five signal paths, three part types
+
+**5 V TTL is not 3.3 V, and this board has to say so.** The 6850 and the PIA are
++5 V parts, so TXD and MCB arrive as a 0–5 V swing. The ESP32-S2's input limit
+is `VDD + 0.3` — it is **not 5 V tolerant**. An earlier version of this file
+said the receive direction needed "no level work"; it does.
+
+| Path | Part | Why |
+|---|---|---|
+| TXD, MCB (5 V → 3.3 V) | **74LVC4T245** | dual-supply translator, 5 V-tolerant B side |
+| CTS, RI (3.3 V → 5 V) | **74LVC4T245** | the second 4-bit half; one `DIR` per package, so mixed directions cost two packages, not one |
+| MSB (3.3 V → open-collector) | **74LVC1G07** | open-drain, 5 V-tolerant output; a push-pull driver would violate the interface |
+| RXD (3.3 V → bipolar) | **MAX3232 at 3.3 V** | on-chip charge pump gives **±5.5 V**, inside the machine's −0.5…−10 V window and under the 5.1 V clamp; at 5 V it would swing ±9–10 V, needlessly close to both limits |
+
+The MAX3232's receivers are RS-232-threshold and must **not** be used for the
+TTL lines. Its 3.3 V rail is taken **after** the diode-OR, so an unpowered board
+can never drive the machine's RXD.
+
+Still to confirm in hardware: the physical orientation of the 2×5 header, and
+the RXD negative swing, both on a real machine (#324).
 
 ## Power
 
-+12V available on DE-9 pin 7 (via R21) — same power trick as the
-keyboard adapter; on-board regulator to 3.3 V for the ESP32. **The port
-carrying power is what makes the severable module possible at all**: it
-hangs on the front of the machine and feeds itself, with no case opened
-and no separate supply.
+**DE-9 pin 7 is +12.6 V DC, and it is not behind the 22 Ω.** Reading sheet 7 of
+9 at 600 dpi settles it: `R21 = 22 Ω` sits between the `+12V` net and
+**`J6 pin 1 → J6 pin 2 → P4-19`** — the *keyboard* branch. P1 pin 7 is drawn on
+the `+12V` net with **no series part on the sheet**. The Astec supply is rated
+`+12 V @ 2.02 A` (11.40–12.60 V), and the Comm-Pac manual labels the pin
+**+12.6 V**.
 
-- **The current budget is deliberately deferred** (decision 2026-10-10,
-  #56): don't derive it until a board is close enough to need the answer.
-  The expected resolution is cheap — a bulk capacitor local to the module
-  absorbs the WiFi transmit transients and R21 only has to supply the
-  *average*. A series resistor is a sustained-current limit, so it and a
-  transient reservoir do not actually fight each other.
-- **R21 is shared, and that is an opportunity rather than a tension.** The same
-  22 Ω resistor feeds **P4 pin 19** through jumper J6 *and* **P1 pin 7**. Because
-  **P1 is externally accessible while P4's path needs J6 bridged**, a USB
-  keyboard adapter (#47) fitted alongside this module can take its +12 V from the
-  **modem port** through a 9-pin passthrough — **no case opening at all**. Both
-  loads share R21 either way; what changes is which connector feeds them. Revisit
-  the budget with the numbers above, not separately.
+So the old "shared R21 budget" story is retired: the keyboard adapter's 22 Ω and
+this port's supply are **separate**, and the port can supply what a period modem
+drew. The maintainer's figure for the original COMM-PAC is **~500 mA at 12 V**;
+the modern board is a small fraction of that.
+
+- **Buck 12.6 V → 5 V**, then **5 V → 3.3 V**; USB-C VBUS is **5 V → 3.3 V only**.
+  Two sources, **diode-OR** (Schottky pair, or a P-FET ideal diode if the drop
+  matters) so neither back-feeds the other.
+- **Switch ahead of the buck**, latching slide type, so "off" is genuinely dark.
+  USB still runs the board with no machine attached (bench-prep, #207).
+- **Bulk capacitance at the buck input** for WiFi TX bursts — a few hundred µF.
+  With no 22 Ω in the path there is no inrush problem to design around.
+- The machine's `−12 V` rail is rated **0.1 A**; the negative rail for RXD comes
+  from the MAX3232's own charge pump, never from the machine.
+
+## Panel
+
+**Eleven lamps and the handshake, on I²C — two AW9523B, split by function.**
+U6 (`0x58`) carries the lamps; U7 (`0x59`) carries the four P1 handshake lines.
+Both are fitted, because the handshake is not optional: 16 channels each, 5 and
+12 spare respectively, and the pin argument is closed for good.
+
+- 8 lamps on **P0** — push-pull, constant-current, per-LED dimming.
+- 3 lamps on **P1** (TR, MR, RI) — **P1 is open-drain only** on this part, so
+  those three get series resistors and sink from 3.3 V.
+- The handshake sits on the 3.3 V side of the translators: CTS and RI out,
+  MSB through the `1G07`, MCB in.
+
+The expander **holds its outputs**, so a hung firmware leaves a readable frozen
+panel rather than a dark one. Two **INTN** lines go to GPIO38 and GPIO21, and
+`RESETN` is strapped with an RC (or shares one GPIO) — the earlier map had no
+pin for either, which the second expander forces us to fix.
+
+LED states and semantics are #322; current is set to **2–3 mA** per lamp.
+
+## Audio
+
+An **I²S-input class-D amplifier with its own DAC** (MAX98357A class) on the
+**5 V** rail, three pins (BCLK/LRCLK/DIN) plus gain/mode straps, driving a
+**passive** transducer — an active buzzer is the wrong part (one tone, no dial
+tone, no DTMF, no ring cadence). Dial tone, DTMF and ring cadence are in #322;
+prior art is `na103/zimodem` (CC BY 4.0 — method only).
+
+## The schematic
+
+`wifi-comm-pac.kicad_sch` (KiCad 7 format, A2) — **Rev A, captured**, which is
+what the case STL and the placement drawing are sized against. It is
+**generated**, not hand-drawn: `gen_wifi_comm_pac_sch.py` emits the sheet, and
+`tools/check_schematics.py` re-generates it and asserts the invariant nets (which
+P1 pin carries which signal, that the machine's 5 V never reaches a 3.3 V pin,
+that the 12.6 V rail stops at the buck, and that no symbol or label collides).
+
+```sh
+python3 hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py
+python3 tools/check_schematics.py --board wifi-comm-pac
+```
+
+| Ref | Part | Why |
+|---|---|---|
+| J1 | 2×5 IDC | the P1 pigtail; pin *n* = DE-9 pin *n* |
+| U1, U2 | 74LVC4T245 | 5 V ↔ 3.3 V, one package per direction |
+| U3 | 74LVC1G07 | MSB, open-drain only |
+| U4 | MAX3232 | RXD, bipolar, on 3.3 V |
+| U5 | ESP32-S2-MINI-2U | the modem |
+| U6, U7 | AW9523B ×2 | panel (0x58) and handshake (0x59) |
+| U8 | MAX98357A | I²S class-D audio |
+| U9, U10 | TPS54331, AP2112K | 12.6 V → 5 V → 3.3 V |
+| D13, D14 | Schottky pair | the diode-OR between the port and USB |
+
+**What it does not fix yet:** footprints are unassigned and the IC pin numbers in
+the netlist are logical placeholders — binding them is the first layout task.
+The 2×5 orientation and the RXD swing are the two hardware confirmations (#324).
 
 ## Enclosure
 
-The module ships with STLs for a **"COMM PAC-look" case** that fits in
-the **left floppy storage pocket** — period-authentic Osborne
-industrial design so it reads as original kit, not a modern dongle.
-Deliverables: `case/*.stl` (top/bottom shells, LED light-pipe window)
-alongside the PCB. Case design should accommodate the DE-9P pigtail and
-leave the pocket usable with the keyboard closed.
+The case STL is **already designed and fit-tested** by the maintainer; the
+apertures it currently cuts are **USB-C** and the **2×5 IDC**. Final placement,
+left to right looking at the front of the machine:
+
+1. **antenna connector** — RP-SMA bulkhead (reverse-polarity, as every WiFi
+   pigtail is; the module end is U.FL), fed from the MINI-2U's IPEX connector
+2. **power switch**
+3. **2×5 IDC** — the P1 ribbon
+4. **LED row** — 11 × 3528 with light pipes
+5. **USB-C**
+
+The schematic fixes the parts; the placement drawing that goes with it is what
+lets the STL be finalised (#56 §E).
+
 
 ## References
 

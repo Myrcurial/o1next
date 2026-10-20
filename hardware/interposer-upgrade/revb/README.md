@@ -69,15 +69,16 @@ what **#303** has to decide.
 | GP34, GP35 | /BUSAK in, /RESET in | handshake/status |
 | GP36 | /RFSH in | snapshot strobe refinement |
 | GP37 | spare / front-panel ribbon aux | candidate: PIO-USB for 2nd keyboard (with GP38?) |
-| GP38, GP39 | **UART0 TX/RX → ESP32-C3** | modem + WiFi + LED bank offload |
+| GP38, GP39 | **UART0 TX/RX → ESP32-S2** | modem + WiFi + LED bank offload |
 | GP40–43 | SPI: SCK, MOSI, MISO, /CS_SD | SD card (SPI mode); 4-bit SDIO-via-PIO would cost 2 more — deferred |
 | GP44 | /CS_FLASH | W25Q library flash (shares SPI bus) |
 | GP45, GP46 | **I²C SDA, SCL** | front-panel OLED/encoder, expanders, "just in case" |
 | GP47 | trigger / debug LED / ADDR_HIT2 | spare comparator window |
 
-**ESP32-C3 side (offloaded from RP2354B):** Hayes-style LED bank
-(charlieplexed or I²C expander), modem UART link, web radio. EN/BOOT
-driven from 595 bits (slow by nature).
+**ESP32-S2 side (offloaded from RP2354B):** Hayes-style LED bank
+(on the same two AW9523B expanders as the standalone COMM PAC — the
+panel schematic is copied, not redesigned), modem UART link, web radio.
+EN/BOOT driven from 595 bits (slow by nature).
 
 **Fit check:** 47–48 allocated with the whole personality set covered;
 the 595/165 fabric remains the pressure-relief valve for any slow line
@@ -86,5 +87,6 @@ that turns out to want a pin.
 ## Carry-over from Rev A
 
 595/165 shift fabric, 244 sysctl tri-state, 245 data path, W25Q flash,
-ESP32-C3 radio, /BUSRQ mastering — Rev B keeps the whole instrument
+ESP32-S2 radio (the same circuit as `../../wifi-comm-pac/`, copied),
+/BUSRQ mastering — Rev B keeps the whole instrument
 and adds the live-response path (688 + /WAIT + direct control/data).

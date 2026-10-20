@@ -73,29 +73,36 @@ Read/write it via the CP/M `IOBYTE` function, same as the serial port.
 | 4 | MSB | Modem status bit — open collector, 50 µA sink = inactive |
 | 5 | CTS | Clear to send |
 | 6 | RXD | Receive data — **bipolar input, −0.5 V…−10 V = 1** |
-| 7 | +12 V | Connected to power supply through **22 Ω** |
+| 7 | +12 V | **+12.6 V DC**, direct from the supply (`2.02 A` rail); the Comm-Pac manual labels it `VDD` |
 | 8 | MCB | Modem control bit — TTL, **low suppresses output** |
 | 9 | RI | Ring indicator — TTL, high-to-low sets flag |
 
 ### Design notes for #56
 
-- **Levels are asymmetric.** TXD/MCB/RI are plain TTL (drive/read directly from
-  a 3.3 V MCU with the #12 level spec). **RXD is a bipolar input**
-  (−0.5…−10 V = mark): on sheet 7 the RXDATA line enters receiver **UE3
-  (LM1458 op-amp)** with zener clamp **CR1 (1N5231B, 5.1 V)** — a
-  comparator-style front-end, not a plain TTL gate. So driving RXD with 0–5 V
-  (or 0–3.3 V) leaves the mark (1) level at/below threshold. The module should
-  swing TX-toward-O1 **negative** for a clean mark (a small charge-pump −5 V,
-  or bias the comparator reference), and this must be **validated on real
-  hardware** — see the open item below.
-- **+12 V on pin 7 is current-limited by 22 Ω** (schematic sheet 7: R21 — the
-  same R21 that feeds keyboard P4 pin 19 through jumper J6). Fine to sense,
-  and marginal as a *sustained* source; the **interposer-onboard** module is
-  therefore powered from the interposer's dedicated 5 V rail (research-gaps
-  #5) rather than from P1. The **severable external** module is the reverse
-  case — it exists because the port carries power at all. Its current budget
-  is deliberately deferred until a board exists: see
-  [`hardware/wifi-comm-pac/README.md`](https://github.com/Myrcurial/o1next/blob/main/hardware/wifi-comm-pac/README.md) §Power.
+- **Levels are asymmetric, and the receive direction is not free.** TXD and MCB
+  are **5 V TTL** because the 6850 and the PIA are +5 V parts; the ESP32-S2's
+  inputs are **not 5 V tolerant** (`VDD + 0.3`), so both need a translator. CTS,
+  RI and MSB leave the module at TTL thresholds; MSB is open-collector and needs
+  an **open-drain** driver. **RXD is a bipolar input** (−0.5…−10 V = mark): on
+  sheet 7 the RXDATA line enters a receiver with zener clamp **CR1 (1N5231B,
+  5.1 V)** — a comparator-style front-end, not a TTL gate. So driving RXD with
+  0–3.3 V leaves the mark at or below threshold, and the module must swing
+  **negative** for a clean mark. A MAX3232 on 3.3 V (its own charge pump, ±5.5 V)
+  is the cheap answer, and the negative swing still wants confirming on real
+  hardware — see the open item below.
+  The receiver's part number is read differently in two places —
+  [`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) sheet 10 lists **UE3 as a 1489** and three
+  **LM3900** comparators at UD4, while an earlier pass here identified UE3 as an
+  **LM1458**. It does not change the requirement (negative for mark), but it
+  changes the input impedance, so re-read that region at native resolution before
+  fixing the drive current.
+- **+12 V on pin 7 is *not* behind the 22 Ω.** Reading sheet 7 at 600 dpi:
+  `R21 = 22 Ω` sits between the `+12V` net and **`J6 → P4-19`**, the *keyboard*
+  branch. P1 pin 7 is drawn on the `+12V` net with **no series part**. The Astec
+  supply is rated `+12 V @ 2.02 A` (11.40–12.60 V), so the port is a real power
+  source: the original Comm-Pac drew **~500 mA at 12 V** from it, and the modern
+  module a small fraction of that. The keyboard adapter (#47) has its **own** 22 Ω
+  and does not share a budget with this port.
 - **MSB (pin 4) is open-collector** and **MCB (pin 8) low suppresses output** —
   together these are the modem's "hook"/enable handshake. RI (pin 9) falling
   edge sets the ring flag; the ESP32 can drive it to signal an incoming

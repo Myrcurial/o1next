@@ -1,18 +1,18 @@
 ---
 layout: page
 title: wifi-comm-pac
-subtitle: O1NEXT WiFi COMM PAC — a Hayes-compatible modem on the machine's own MODEM port
+subtitle: O1NEXT WiFi COMM PAC — a Hayes-compatible modem in the machine's floppy pocket
 ---
 
-**Status:** concept; the P1 pinout and levels are documented.
-Tracks **#56** (an extension of **#21**); the physical interface is #57.
-Source: `hardware/wifi-comm-pac/`. Board register:
-[`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
+**Status:** Rev A schematic captured; no PCB yet.
+Tracks **#56** (an extension of **#21**); the physical interface is #57; the
+board itself is #324 (the P1 stage) and #325 (panel, audio, power). Board
+register: [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 ## What it is
 
-An ESP32 running a **Zimodem fork** — Hayes AT command set plus telnet, and with
-two pieces of new work on top:
+An **ESP32-S2** running a **Zimodem fork** — Hayes AT command set plus telnet,
+and with two pieces of new work on top:
 
 - **SSH as a first-class transport**, with keys, host verification and session
   management from a web UI. An Osborne 1 dialling into a modern host with `ssh`.
@@ -20,38 +20,57 @@ two pieces of new work on top:
   far-end link rate — which makes a turbo upgrade usable and quietly corrects the
   factory 600/2400 → 650/2600 quirk.
 
-The ESP32 rather than an ESP8266 is deliberate: the ESP32 build already carries
-the SSH client, SD shell, FTP and SLIP/PPP, and the ESP8266 lacks the headroom.
+The S2 rather than an ESP8266 or a C3 is deliberate: its auto-baud pulse counter
+is 20-bit, and the C3/S3 are 12-bit, which puts 300/1200/2400 below their floor.
+The ESP8266 lacks the headroom for SSH entirely.
 
 ## How it attaches
 
-The **MODEM port (P1)**, a DE-9P. This is the interesting part: **the port is
-TTL, not RS-232** — it feeds straight into the 6850 ACIA (status `2A00H`, data
-`2A01H`), bypassing the level shifters. But the levels are **asymmetric**:
+It sits in the **left floppy pocket** and hangs off the machine's **MODEM port
+(P1)** by a short **10-conductor ribbon**: a **DE-9 plug** into the machine, a
+**2×5 IDC header** on the board. There is no case opening and no separate supply.
 
-- TXD, MCB and RI are plain TTL;
-- **RXD is a bipolar input** (`−0.5 … −10 V = 1`, via an LM1458 and a 1N5231B
-  zener), so the module must swing TX-toward-O1 **negative** for a clean mark.
-  A small charge pump or transistor stage is expected, and it needs validating in
-  hardware.
+The port is **TTL, not RS-232** — it feeds the 6850 ACIA directly (status
+`2A00H`, data `2A01H`). The levels are asymmetric, and both halves need work:
 
-**It powers itself from the port.** DE-9 pin 7 carries +12 V through R21, which
-is what makes the whole "severable module" idea work at all: it hangs on the
-front of the machine and feeds itself, with **no case opened and no separate
-supply**.
+- **TXD and MCB arrive at 5 V** and the ESP32 is not 5 V tolerant, so a
+  dual-supply translator (74LVC4T245) sits in each direction.
+- **MSB is open-collector** and gets an open-drain driver (74LVC1G07).
+- **RXD is bipolar** (`−0.5 … −10 V = 1`), so a **MAX3232 on 3.3 V** supplies
+  ±5.5 V from its own charge pump.
+
+## Power
+
+DE-9 pin 7 is **+12.6 V DC, direct from the supply** — the machine's Astec unit
+is rated `+12 V @ 2.02 A`, and the 22 Ω that the documents used to blame for a
+tight budget turned out to be in the *keyboard* branch (R21 → J6 → P4-19). The
+original Comm-Pac drew around 500 mA from this pin; the modern board is a small
+fraction of that.
+
+Two sources, **diode-OR**'d so neither back-feeds the other: the port's
+**12.6 V → 5 V → 3.3 V**, and **USB-C 5 V → 3.3 V** for programming and bench
+work. The switch is ahead of the buck, so "off" is genuinely dark.
+
+## The panel, and the noise
+
+Eleven lamps on an **AW9523B** (16 constant-current channels, 256-step dimming,
+holds its outputs so a hung firmware leaves a readable frozen panel): radio,
+connected, HS, AA, CD, OH, RD, SD, TR, MR, RI. A second expander is a DNP
+option and carries the handshake lines.
+
+Sound is an **I²S class-D amplifier with its own DAC** on the 5 V rail, driving a
+passive transducer — dial tone, DTMF and a ring cadence, not a one-note buzzer.
 
 ## The case
 
-The module ships with STLs for a **"COMM PAC-look" case** that fits in the **left
-floppy storage pocket** — period-authentic Osborne industrial design, so it reads
-as original kit rather than a modern dongle.
+A **"COMM PAC-look" case** fits the left pocket — period-authentic Osborne
+industrial design, so it reads as original kit rather than a modern dongle. The
+STL is already designed and fit-tested; left to right across the front: antenna,
+power switch, 2×5 IDC, LED row, USB-C.
 
 ## Still to confirm
 
-- The 2×5 IDC orientation on a real board (same validation class as P4).
-- The RXD level stage, in hardware.
-- The current budget, **deliberately deferred**: don't derive it until a board is
-  close enough to need the answer. The expected resolution is cheap — a bulk
-  capacitor absorbs the WiFi transmit transients, and R21 only has to supply the
-  average. R21 is shared with the [USB keyboard interface]({{
-  '/hardware/keyboard-adapter/' | relative_url }}).
+- The **2×5 IDC orientation** on a real machine (#324).
+- The **RXD negative swing** in hardware — ±5.5 V should be comfortable, but the
+  receiving front end is a comparator with a 5.1 V clamp.
+- The **audio transducer** and where it points once the case is closed (#325).
