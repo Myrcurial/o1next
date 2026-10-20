@@ -35,13 +35,13 @@ code injection into a running machine over USB/WiFi.
   analyzer front end from Rev 0, retained for passive capture while the
   Z84C00 runs.
 - **U2 (RP2354B):** brains. USB to the host is the part's own connector.
-- **U12 (ESP32-C3 castellated module):** WiFi — UART bridge to the
+- **U12 (ESP32-S2 castellated module):** WiFi — UART bridge to the
   RP2354B (GP16/17); runs the Zimodem fork later
   (`firmware/zimodem-fork/`), AT-bridge firmware initially.
 - **U13 (W25Q 64 Mb SPI flash):** the built-in diskette library
   (boot diskette at minimum).
 - **Power:** J2 dedicated 5 V in; U14 LDO makes 3V3 for the ESP32/flash
-  (the part's own regulator is not sized for the C3's TX bursts).
+  (the part's own regulator is not sized for the S2's TX bursts).
 
 ## What this enables (firmware roadmap hooks)
 
