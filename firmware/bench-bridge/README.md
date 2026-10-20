@@ -417,6 +417,80 @@ out of the ACIA. Three bytes go — `AT` + CR — and the rest do not leave, so 
 needs gating on TDRE between bytes rather than blind `poke`s. Stage 1's hop is proven;
 the dial string is the next step, and it is a guest-side scripting question, not a rig one.
 
+### Stage 1, complete — a real BBS on the machine's own screen, 2026-10-20
+
+**End to end, and watchable.** The chain is
+
+```
+MAME -rs232 pty -> tools/serial-relay-o1next.py -> ESP32-C3 rig -> real modem
+                -> WiFi -> bbs.8bitboyz.com:6502 -> back into the emulated ACIA
+                -> MDM740 (the 1984 Osborne Comm-Pac terminal) -> the screen
+```
+
+and what the emulated machine displayed, read off its own video memory, is a real
+BBS's ANSI banner:
+
+```
+r07| ZDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD?
+r08|3 1 Welcome to 8-Bit Boyz BBS system                                          3
+r09|@DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDY
+r11| The account name you entered was not located in our account database.  If you
+r12| wish to create a new account, answer YES below to continue on to the new
+r13| account application.  If you've mistyped your account name, answer NO and you
+r14| will be returned to the login prompt.
+r16|Create an account with this BBS? No
+r18|[~] Enter your user name:
+```
+
+`MDM740.COM` runs from **`B:`** of the MD-10 hard disk. The session is boot ->
+`HARD` -> `B:` -> `MDM` -> **`T`** -> `ATDT bbs.8bitboyz.com:6502`.
+
+#### `T` is the pass-through, and it is the whole trick
+
+MDM740's own help text, read out of the overlay on the hard disk image, says it in
+one line:
+
+```
+T = Terminal mode (full duplex, echo provided remotely)
+```
+
+At the `B>>COMMAND:` prompt, **`T` puts the program straight into terminal mode** —
+a transparent keyboard-to-ACIA pipe. That is what makes this a *terminal* demo
+rather than a serial demo: you type `ATDT ...` yourself and the **modem** dials.
+Going the other way, `CAL` (Dial number) is the program's *helper*, and it is the
+wrong tool here: it is a 1984 dialer that validates a **phone number** and rejects
+a hostname outright, which is how `CAL bbs.8bitboyz.com:6502` ends back at the
+prompt with nothing on the wire.
+
+MDM740's three-letter commands are `CPM DIR ERA LOG SPD TCC TLC TLF TRB TXO SET
+BYE CAL DSC DEL WRT`, and its terminal-mode local commands are `CTL-N` (disconnect),
+`CTL-P` (toggle printer — the `LST:` device), `CTL-Y`/`CTL-R` (buffer copy),
+`CTL-T` (send ASCII file) and `CTL-[` (send a local control character).
+
+#### Watching it needs four things that headless does not
+
+`tools/emulator-setup/mame-osborne1nx/` is where the launcher lives; a watching run
+differs from a headless one in four ways, and each of them is a way to lose time:
+
+- **`-skip_gameinfo`.** Without it MAME stops on its own *configuration display*
+  with "press any key to continue" **before the emulated machine exists** — and the
+  Lua key script posts to the emulated machine's natural keyboard, so it cannot
+  press that key. The session deadlocks on a screen that is not the guest's.
+- **`-window`, and no `SDL_VIDEODRIVER=dummy`, no `-video none`.** The headless
+  launcher sets all three.
+- **Real speed — never `-nothrottle`.** Otherwise a 300-baud modem does not look
+  like one.
+- **A keystroke before the first `wait`.** The Osborne stops at *"Insert disk in
+  Drive A and press RETURN"*, so a script whose first instruction is `wait A>`
+  waits forever on a machine that is waiting for it. Send `key cr` first.
+
+#### The `CAL` library, as a period artifact
+
+`CAL` presents the Comm-Pac's built-in dialing directory — a page of 1984 names and
+numbers, `Kirk De Haan`, `Jack Kinn`, `Keith Petersen`, `Larry Snyder`, `Wayne
+Masters`, `Bruce Ratoff` and more — and prompts `Enter library code or phone number`.
+It is a nice thing to leave on the screen.
+
 ## Testing the rig without the modem
 
 **A software loopback, which needs no jumper and no second board.** UART1's RX and TX
