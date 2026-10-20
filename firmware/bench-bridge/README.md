@@ -348,6 +348,17 @@ the measurement is not there to be taken.
 Stage 1 (`-rs232 pty` through `tools/serial-relay-o1next.py` to the TCP relay door) is
 #342's second half, and the door it needs is now proven working.
 
+**And the relay has a second far end, for a host-level reason.** macOS's Local Network
+privacy gates *outbound* LAN connections per binary: a Python process gets
+`Errno 65 No route to host` reaching the rig on the local network while `ping`, `nc` and
+`curl` reach it fine. So `tools/serial-relay-o1next.py` gained **`--serial <port>`** — the
+rig's own USB door, with no network in the path at all, which cannot be refused that way.
+Put the rig in `relay` first; its USB console is the console until you do.
+
+```sh
+tools/serial-relay-o1next.py --pty /dev/ttys001 --serial /dev/cu.usbmodem2144201
+```
+
 ## Testing the rig without the modem
 
 **A software loopback, which needs no jumper and no second board.** UART1's RX and TX
