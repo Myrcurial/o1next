@@ -258,6 +258,48 @@ From the Mac, through the rig:
 Stage 1 (`-rs232 pty` through `tools/serial-relay-o1next.py` to the TCP relay door) is
 #342's second half.
 
+## Testing the rig without the modem
+
+**A software loopback, which needs no jumper and no second board.** UART1's RX and TX
+can both be routed to the *same* pin, and then the rig hears exactly what it sends:
+
+```
+BRIDGE_PINS='-DBRIDGE_RXD=7 -DBRIDGE_TXD=7' \
+  firmware/bench-bridge/build-bench-bridge.sh --board c3
+esptool --chip esp32c3 --port /dev/cu.usbmodem2144101 \
+  write_flash 0x0 build/bench-bridge-c3/bench-bridge-merged.bin
+```
+
+Then `relay`, and type. Measured on the C3 rig 2026-10-20:
+
+```
+o1next> relay
+-- relaying.  `+++` after a second of silence comes back to this console
+   1200 bps on UART1 (RXD 7, TXD 7).  Nothing else is printed here until you leave.
+AT                        <- typed here
+AT                        <- came straight back
++++
+-- escaped to the console (3 bytes in, 3 out, 0 dropped)
+o1next> trace dump
+#o1next-trace 1 bench-bridge ms
+16215 > 41 54 0d
+16223 < 41
+16231 < 54
+16239 < 0d
+-- 4 records
+```
+
+`3 in, 3 out` with the exact bytes is the whole proof: **the UART, the pin, the relay, the
+escape, the counters and the trace all work, with no cable in the path.** It is the first
+thing to run when a wire is suspect, because it removes the rig from the list of suspects
+in about a minute — and because it is the only way to test the rig's TX without an
+instrument.
+
+**A jumper between the two UART1 pins does the same thing and additionally tests the
+physical path** — with the *normal* firmware (RX 6, TX 7), a dupont from GPIO6 to GPIO7
+makes the rig echo. That is the test to run when the rig's own loopback passes but a
+counterparty stays silent.
+
 ## Measured on the bench — 2026-10-20, ESP32-C3
 
 The rig's board is an **ESP32-C3**, wired `GPIO6 (RX) ← modem GPIO15`,
