@@ -445,6 +445,13 @@ r18|[~] Enter your user name:
 `MDM740.COM` runs from **`B:`** of the MD-10 hard disk. The session is boot ->
 `HARD` -> `B:` -> `MDM` -> **`T`** -> `ATDT bbs.8bitboyz.com:6502`.
 
+**And that session runs the pty at 300, not the 1200 the shipped cfg carries.** The
+Comm-Pac overlay's default is 300, so `cfg/osborne1nx.cfg` needs `value="2"` (300) for
+it — MDM740 selects the rate itself and the pty has to match it. The rig is not the
+constraint here: it re-times, and drives the modem at 1200 regardless. But the pty and
+the ACIA must agree with each other, so **the pty's rate follows the guest's, and
+`rs232-pty-1200.cfg` is the 1200 case (ACIA control `0x15`), not a universal file.**
+
 #### `T` is the pass-through, and it is the whole trick
 
 MDM740's own help text, read out of the overlay on the hard disk image, says it in
