@@ -359,6 +359,64 @@ Put the rig in `relay` first; its USB console is the console until you do.
 tools/serial-relay-o1next.py --pty /dev/ttys001 --serial /dev/cu.usbmodem2144201
 ```
 
+### Stage 1, attached — the two baud rates have to agree, 2026-10-20
+
+The last hop is done: `AT` written to the emulated ACIA came back as `AT` echoed plus `OK`
+from the real modem, through the rig. The relay log of the moment is the proof — `A` and
+`T` out, and `O` and `K` coming back into the emulated machine:
+
+```
+pty -> far     1  A
+far -> pty     1  A
+pty -> far     1  T
+far -> pty     1  T
+pty -> far     1  .        <- CR
+far -> pty     1  .        <- the modem echoes it
+far -> pty     1  .        <- LF
+far -> pty     1  O        <- the modem's answer, arriving in the ACIA
+far -> pty     1  K
+```
+
+**It was blocked for a while on a baud mismatch that presents as a wiring fault**, so the
+two numbers are written down here. A byte written to the pty reached the rig as
+`78 f8 00 78 78 00` — which is what a **9600 pty sampling a 1200 ACIA** looks like, and
+which reads as "the cable is wrong" when the cable is fine.
+
+MAME's `pty` device is a `device_serial_interface`: it decodes the ACIA's TXD line at
+`RS232_RXBAUD` and encodes onto RXD at `RS232_TXBAUD`, and **both default to 9600**. The
+Osborne's ACIA does not run at 9600. The driver's `"Serial Speed"` config
+(`osborne1.cpp`) offers 300/1200, 600/2400, 1200/4800 and 2400/9600, and **the default is
+300/1200** — so a stock machine is 1200 at its high setting.
+
+Those ports are **not settable on the command line** — `-rs232:pty:RS232_TXBAUD` is
+rejected as an unknown option in every tag form tried. MAME reads and writes them in
+`cfg/<machine>.cfg`. `tools/emulator-setup/mame-osborne1nx/rs232-pty-1200.cfg` is that
+file, ready to copy into the directory MAME runs from; it sets both ports to
+`value="4"` (1200) against a `defvalue="7"` (9600).
+
+**And the guest has to select the same rate, from the ACIA's own control register.** Bits
+CR0/CR1 are the 6850's clock division — 00 = ÷1, 01 = ÷16, 10 = ÷64, 11 = master reset —
+and with the 300/1200 wiring the ACIA's clock is 19200 Hz, so ÷16 gives 1200 and ÷64 gives
+300:
+
+| control word | CR1 CR0 | division | rate |
+|---|---|---|---|
+| `0x15` | 0 1 | ÷16 | **1200** |
+| `0x16` | 1 0 | ÷64 | 300 |
+
+`0x16` is the one that is easy to reach for, because the two bits read as "16". It is the
+300-baud word. **This is the "poke the low/high bit" step, and it is why a machine left at
+its default behaves as a 300-baud machine.**
+
+So the working sequence is: copy the cfg, boot with `-rs232 pty` **at real speed**, then
+from the guest `poke 0x2A00 3` (master reset), `poke 0x2A00 0x15` (8N1, ÷16), and write
+bytes to `0x2A01`. `peek 0x2A00` then reads `03` — TDRE and RDRF, i.e. it received.
+
+**What is still open:** driving a *multi-byte* command (the `ATDT host:port` dial string)
+out of the ACIA. Three bytes go — `AT` + CR — and the rest do not leave, so the write path
+needs gating on TDRE between bytes rather than blind `poke`s. Stage 1's hop is proven;
+the dial string is the next step, and it is a guest-side scripting question, not a rig one.
+
 ## Testing the rig without the modem
 
 **A software loopback, which needs no jumper and no second board.** UART1's RX and TX
