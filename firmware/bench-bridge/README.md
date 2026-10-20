@@ -158,15 +158,17 @@ map), so there the command holds the BOOT strap low and asks for a hardware rese
 
 ```
 o1next> status
-bench-bridge -- the o1next bench rig (built Oct 20 2026 10:29:11)
-board    ESP32-S2, flash 4194304 bytes, MAC 80:65:99:ef:c7:82
+bench-bridge -- the o1next bench rig (built Oct 20 2026 10:50:16)
+board    ESP32-C3 rev 4, 1 core(s), flash 4194304 bytes, MAC 88:56:a6:62:3b:94
 role     bridge -- the wire's host end; the machine end is the modem
-serial   O1 side is UART1: RXD 9, TXD 10, 1200 bps
-link     relay idle, tcp relay free, console free, trace reader free
-counters in 6, out 8, dropped 0, escapes 0
-trace    recording, 4 of 256 records
-wifi     not connected -- the TCP doors are closed
-uptime   41.2 s
+serial   O1 side is UART1: RXD 6, TXD 7, 1200 bps
+link     relay idle
+doors    OPEN -- relay :2323, trace :2324, console :2325
+clients  tcp relay free, console attached, trace reader free
+counters in 3, out 0, dropped 0, escapes 1
+trace    recording, 1 of 256 records
+wifi     o1next, 192.168.2.3
+uptime   171.9 s
 ```
 
 | command | what it does |
@@ -255,6 +257,78 @@ From the Mac, through the rig:
 
 Stage 1 (`-rs232 pty` through `tools/serial-relay-o1next.py` to the TCP relay door) is
 #342's second half.
+
+## Measured on the bench — 2026-10-20, ESP32-C3
+
+The rig's board is an **ESP32-C3**, wired `GPIO6 (RX) ← modem GPIO15`,
+`GPIO7 (TX) → modem GPIO16`, `GND — GND`. Everything below is a measurement, not a plan.
+
+**The console answers, and the probe finds it with no `--baud`.** `identify-o1next.py`
+reports the rig on its own line, because the C3's host door is native USB and there is no
+wire for the host to get the rate wrong on:
+
+```
+PORT                   MAC                WHAT ANSWERED  DETAIL
+/dev/cu.usbmodem2144101 88:56:a6:62:3b:94  console        Oct 20 2026 10:47:36; RXD 6, TXD 7
+```
+
+**The relay, the escape, the counters and the trace all behave.** `AT\r` sent through the
+relay, then the escape, then `trace dump`:
+
+```
+o1next> relay
+-- relaying.  `+++` after a second of silence comes back to this console
+   1200 bps on UART1 (RXD 6, TXD 7).  Nothing else is printed here until you leave.
+                        <- `AT\r` sent here; no echo, which is the transparency working
++++                     <- one second of silence, then the escape
+-- escaped to the console (3 bytes in, 0 out, 0 dropped)
+o1next> trace dump
+#o1next-trace 1 bench-bridge ms
+84433 > 41 54 0d
+-- 1 records
+```
+
+**`out 0` is the diagnostic, and it is the correct one**: the modem end is mute (see #342),
+so the outbound path is proven and the inbound path has nothing to carry yet. That
+difference — bytes in, none out — is the whole reason the counters are on the `status`
+line.
+
+**All three TCP doors work**, from the Mac at `192.168.2.1`, rig at `192.168.2.3`:
+
+```
+nc -w 5 192.168.2.3 2324        ->  #o1next-trace 1 bench-bridge ms
+nc -w 5 192.168.2.3 2325        ->  bench-bridge console, over TCP / o1next> status / ...
+nc -w 5 192.168.2.3 2323        ->  accepts AT\r, sends it down the wire
+```
+
+### Four things the bench taught, which the code and this file now say
+
+1. **A full-image flash at 0x0 erases NVS.** The merged image spans 0x0…0x10000 and
+   `merge_bin` fills the gaps with 0xFF, so the NVS partition at **0x9000** — where the
+   WiFi credentials live — is overwritten every time. `wifi <ssid> <password>` has to be
+   typed again after a reflash. This is the same trap the modem's handover recorded for
+   its own board ("the flash erased the chip, so its WiFi config is gone"), arrived at
+   from the other direction.
+2. **The board cannot always name itself.** `USB_PRODUCT` is honoured by exactly one file
+   in the core — `cores/esp32/USB.cpp`, the **TinyUSB** stack — so it works on an S2 or an
+   S3. A C3 with `CDCOnBoot=cdc` gets the **USB Serial/JTAG** peripheral instead, whose
+   product string is its own and cannot be renamed. A C3 bridge is identified by its
+   **MAC on the console** and by the label on the board; the build script deliberately
+   sets no `-D` there rather than one that reads like it does something.
+3. **`status` must say whether the doors are OPEN**, not just whether a client is
+   attached. The first C3 build had a real bug — joining WiFi *from the console* left the
+   three listeners never `begin()`n, because the join function set the flag that
+   `bridgeNetPoll` uses to decide whether to open them. The board answered `ping` with
+   every port closed and nothing said why. The fix is one deleted line; the `doors` line
+   is what makes the next one of those visible.
+4. **macOS's Local Network privacy gates *outbound* LAN connections, per binary.** A
+   Python process (Homebrew *or* `/usr/bin`) gets `OSError: [Errno 65] No route to host`
+   reaching `192.168.2.3` while `ping`, `nc` and `curl` — Apple's own — reach it fine, and
+   the same Python reaches `1.1.1.1:443` without complaint. So: **test the doors with
+   `nc` or `curl`, and grant Local Network access to whatever interpreter a host script
+   runs under.** This is the outbound twin of the inbound application-firewall prompt
+   that `harness-o1next.py` documents, and it fails the same way — a connection that does
+   not happen and no message that says why.
 
 ## References
 
