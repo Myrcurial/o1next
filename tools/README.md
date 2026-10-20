@@ -42,6 +42,14 @@ under the Homebrew prefix.
   format it speaks is documented in `docs/picoem-bridge.md`. `cargo test` there
   is a CI job; the full acceptance is
   `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`.
+- **serial-relay-o1next.py** — the **pty ↔ TCP relay** for the bench rig (#342, part of
+  #334). MAME's `-rs232 pty` hands out a *host-local* pseudo terminal and no socket, so
+  something has to sit between it and the rig's TCP relay door; this is that, and it is
+  a select() loop and nothing else. `--pty /dev/ttysNNN` attaches to a pty somebody else
+  made (the MAME case — read the path out of MAME's log), `--make-pty` makes one and
+  prints its path. It counts bytes both ways and says which side was silent on exit,
+  which is the whole diagnosis when a session does not work. The rig's firmware is
+  `firmware/bench-bridge/`.
 - **edsk2raw.py** — EXTENDED CPC DSK (SAMdisk output) to raw CP/M
   sector image. Sorts sectors by R id (handles interleave and Kaypro's
   side-continuous sector numbering: side0 = 0-9, side1 = 10-19).
