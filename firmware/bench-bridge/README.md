@@ -491,6 +491,67 @@ numbers, `Kirk De Haan`, `Jack Kinn`, `Keith Petersen`, `Larry Snyder`, `Wayne
 Masters`, `Bruce Ratoff` and more — and prompts `Enter library code or phone number`.
 It is a nice thing to leave on the screen.
 
+### Before you close the machine: hang the modem up
+
+**A session that closes with the modem still in a call poisons the next one.** The
+modem keeps the telnet session, so the next `ATDT` does not dial — the emulated
+terminal comes up already *inside* the old BBS session, mid-application, and every
+byte typed goes to the BBS instead of to the modem's command parser. That presents
+as "the terminal is at the wrong prompt", and the terminal is innocent: nobody hung
+up. On 2026-10-20 this cost a session that dialled into its own predecessor's
+connection and could not tell.
+
+`tools/hangup-o1next.sh` is that step, and it prints the proof:
+
+```sh
+tools/hangup-o1next.sh            # rig at the default address
+```
+
+Four things about it are worth knowing, and each is a way to get it wrong:
+
+- **The door is the rig's TCP relay door, `:2323`, because it is always raw.** The
+  USB door's `+++` escape would swallow the escape before the modem saw it.
+- **One client at a time.** The rig is a pipe, not a hub: while
+  `tools/serial-relay-o1next.py` holds the USB door, the modem's answers go *there*
+  and a TCP client sees nothing. Stop the relay first.
+- **`+++` then `ATH` — not `ATH0`.** `+++` is the Hayes escape (about a second of
+  silence either side, **no trailing CR**) and is only needed if a call is up.
+  Zimodem v4.0.3 accepts **`ATH`** and answers `OK`; **`ATH0` is answered `ERROR`**.
+  The trailing-0 form is Hayes-standard and is the one you reach for, so an `ERROR`
+  here does not mean the hangup failed — it means the command was not understood.
+- **The proof is the rig's trace, not `nc`'s stdout.** The console (`:2325`) and
+  trace (`:2324`) doors are independent of the relay, so the trace still records
+  UART1 while the relay holds the USB door. `ATI` answers with a *banner* only when
+  the modem is in command mode, so banner + `READY.` + `OK` is the proof that
+  nothing is off-hook.
+
+```
++++ATH
+OK
+ATI
+Zimodem ESP32 Firmware v4.0.3
+sdk=v4.4.7-dirty chipid=0 cpu@240
+tot=4096k heap=94k fsize=110k
+CONNECTED TO o1next (192.168.2.2)
+READY.
+OK
+```
+
+### Reading the guest's screen: the top rows are stale
+
+MDM740's terminal mode does **not** clear the screen, so its own banner
+(`B0>MDM`, `MDM740 modem pgm`, `Version for Osborne COMM-PAC modem`) stays in video
+memory while the BBS writes over the lower rows. A screen dump taken in terminal
+mode therefore shows a *mixture*, and reading the banner as "we are at the command
+prompt" is exactly the mistake it invites. In terminal mode the live text is at the
+bottom; the prompt you left is not where the cursor is.
+
+### A rig bug worth its own issue
+
+The rig's `help` output **truncates mid-word** at a fixed point — every run stops at
+`relay raw   the same, with the e`, so the rest of the command list is unreachable
+over the console. `status` is fine; it is `help` specifically.
+
 ## Testing the rig without the modem
 
 **A software loopback, which needs no jumper and no second board.** UART1's RX and TX
