@@ -7,6 +7,11 @@
 __pycache__/
 build/
 *.kicad_prl
+# KiCad's own backup and history directories appear beside a schematic the first
+# time it is opened or exported, and a .kicad_sch inside either of them makes
+# tools/check_boards.py fail ("belongs to no board").
+.history/
+*-backups/
 
 # Local Jekyll build output.  site/ is published by
 # .github/workflows/jekyll-gh-pages.yml, which builds into _site/ and installs
