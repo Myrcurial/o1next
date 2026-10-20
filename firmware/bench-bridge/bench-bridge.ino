@@ -533,14 +533,27 @@ static void bridgeStatus(void)
 
     bridgePrintf("\r\nbench-bridge -- the o1next bench rig (built %s %s)\r\n",
                  __DATE__, __TIME__);
-    bridgePrintf("board    ESP32-S2, flash %u bytes, MAC %s\r\n",
+    /* The part is READ, not assumed.  The rig builds for three families and this line
+     * said "ESP32-S2" on all of them until the C3 session noticed -- which is exactly
+     * the kind of lie a `status` exists to prevent. */
+    bridgePrintf("board    %s rev %u, %u core(s), flash %u bytes, MAC %s\r\n",
+                 ESP.getChipModel(), (unsigned)ESP.getChipRevision(),
+                 (unsigned)ESP.getChipCores(),
                  (unsigned)ESP.getFlashChipSize(), mac);
     bridgePrintf("role     bridge -- the wire's host end; the machine end is the modem\r\n");
     bridgePrintf("serial   O1 side is UART1: RXD %d, TXD %d, %lu bps\r\n",
                  BRIDGE_RXD, BRIDGE_TXD, (unsigned long)bridgeRate);
-    bridgePrintf("link     relay %s%s, tcp relay %s, console %s, trace reader %s\r\n",
+    bridgePrintf("link     relay %s%s\r\n",
                  bridgeRelayActive ? "USB CDC" : "idle",
-                 bridgeRelayActive && bridgeRelayRaw ? " (raw, no escape)" : "",
+                 bridgeRelayActive && bridgeRelayRaw ? " (raw, no escape)" : "");
+    /* The DOORS are a separate line from the CLIENTS, and it is not cosmetic: a board
+     * can be on the network, answering ping, with every port closed because the
+     * listeners were never begun.  That happened here on 2026-10-20, and nothing in
+     * `status` said so -- the line below is what would have. */
+    bridgePrintf("doors    %s -- relay :%d, trace :%d, console :%d\r\n",
+                 bridgeWifiUp ? "OPEN" : "closed (no wifi)",
+                 BRIDGE_RELAY_PORT, BRIDGE_TRACE_PORT, BRIDGE_CONSOLE_PORT);
+    bridgePrintf("clients  tcp relay %s, console %s, trace reader %s\r\n",
                  bridgeRelayClient ? "attached" : "free",
                  bridgeConsoleClient ? "attached" : "free",
                  bridgeTraceClient ? "attached" : "free");
@@ -695,9 +708,18 @@ static void bridgeWifiSave(const char *ssid, const char *pass)
     snprintf(bridgePass, sizeof(bridgePass), "%s", pass);
 }
 
-/* Joining blocks for a bounded time and then says what happened.  A console that
- * hangs on a network that is not there is the same failure as a hang with no
- * message, which is the worst shape a failure can have. */
+/* Joining blocks for a bounded time and then says what happened.  A console that hangs
+ * on a network that is not there is the same failure as a hang with no message, which is
+ * the worst shape a failure can have.
+ *
+ * **It does not touch `bridgeWifiUp`, and that is a bug it used to have.** That flag
+ * means "the doors are open", and only bridgeNetPoll() may set it -- because opening the
+ * doors is what it does when it sees the flag go from false to true.  Setting it here as
+ * well meant that joining from the *console* (rather than from setup) left the three
+ * listeners never begun: the flag was already true, so bridgeNetPoll skipped the branch
+ * that calls begin(), and the board sat on the network answering nothing.  Measured on
+ * the C3 rig 2026-10-20 -- ping replied, all three ports were closed, and nothing in
+ * `status` said why. */
 static bool bridgeWifiJoin(const char *ssid, const char *pass, unsigned timeout_s)
 {
     WiFi.mode(WIFI_STA);
@@ -705,13 +727,10 @@ static bool bridgeWifiJoin(const char *ssid, const char *pass, unsigned timeout_
     WiFi.begin(ssid, pass);
 
     for (unsigned i = 0; i < timeout_s * 2; i++) {
-        if (WiFi.status() == WL_CONNECTED) {
-            bridgeWifiUp = true;
+        if (WiFi.status() == WL_CONNECTED)
             return true;
-        }
         delay(500);
     }
-    bridgeWifiUp = false;
     return false;
 }
 

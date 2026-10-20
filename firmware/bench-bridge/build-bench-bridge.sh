@@ -86,16 +86,19 @@ case "$BOARD" in
         board_fqbn='esp32:esp32:esp32'
         board_pins='-DBRIDGE_RXD=9 -DBRIDGE_TXD=10'
         board_note='host door is UART0 through a bridge chip -- the host MUST match the baud'
+        board_usb_naming=''
         ;;
     c3)
         board_fqbn='esp32:esp32:esp32c3:CDCOnBoot=cdc'
         board_pins='-DBRIDGE_RXD=6 -DBRIDGE_TXD=7'
-        board_note='host door is the native USB -- the baud is a decoration'
+        board_note='host door is the native USB Serial/JTAG -- the baud is a decoration'
+        board_usb_naming=''
         ;;
     s2)
         board_fqbn='esp32:esp32:esp32s2:CDCOnBoot=cdc'
         board_pins='-DBRIDGE_RXD=18 -DBRIDGE_TXD=17'
         board_note='host door is the native USB -- the baud is a decoration'
+        board_usb_naming='-DUSB_MANUFACTURER="o1next" -DUSB_PRODUCT="o1next-bridge" -DUSB_SERIAL="o1next-bridge"'
         ;;
     *)
         usage
@@ -108,6 +111,22 @@ esac
 FQBN=${FQBN:-$board_fqbn}
 BRIDGE_PINS=${BRIDGE_PINS:-$board_pins}
 BRIDGE_HOST_BAUD=${BRIDGE_HOST_BAUD:-115200}
+
+# What the board calls itself on a USB port -- **where that is possible at all**, and on
+# a C3 it is not.
+#
+# `USB_PRODUCT` is honoured by exactly one file in the core, `cores/esp32/USB.cpp`, which
+# is the **TinyUSB** stack: the S2 and the S3.  An ESP32-C3 with `CDCOnBoot=cdc` gets the
+# **USB Serial/JTAG peripheral** (`HWCDC`) instead, and that peripheral's product string
+# is its own -- `USB JTAG/serial debug unit` -- with no way to rename it.  Measured on
+# the C3 that became this rig's board, 2026-10-20.
+#
+# So the C3 entry names nothing rather than setting a `-D` that reads like it does
+# something and does not.  The identity a C3 bridge has is the **console's MAC** (which
+# `status` prints, and `identify-o1next.py` reads) and the label somebody writes on the
+# board -- the same rule the handover for this rig set for the modem, arrived at from the
+# other direction: the port name is not the identity, and on a C3 it cannot even be a hint.
+USB_NAMING=${USB_NAMING:-$board_usb_naming}
 
 BUILD="$root/build/bench-bridge-$BOARD"
 SKETCH="$here"
@@ -202,7 +221,7 @@ compile_log="$(dirname "$BUILD")/compile-$BOARD.log"
 # so a `-D` whose value contains a space arrives as two stray arguments and the build
 # dies with "'X' was not declared in this scope".  Through --build-property the shell
 # does the quoting.
-flags="$BRIDGE_PINS -DBRIDGE_HOST_BAUD=$BRIDGE_HOST_BAUD"
+flags="$BRIDGE_PINS -DBRIDGE_HOST_BAUD=$BRIDGE_HOST_BAUD $USB_NAMING"
 if ! arduino-cli compile --fqbn "$FQBN" --build-path "$BUILD" \
         --build-property "compiler.cpp.extra_flags=$flags" "$SKETCH" \
         > "$compile_log" 2>&1; then
