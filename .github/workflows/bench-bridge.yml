@@ -1,0 +1,112 @@
+name: bench-bridge check
+
+# The bench rig's firmware (#342, part of #334), built the way a person builds it.
+#
+# Why this workflow lives in the o1next repository and not in the Zimodem fork: the
+# fork's workflow exists there because its trigger has to be a push to THAT repository.
+# This one is the opposite case -- the rig is part of this repository, and the rule the
+# rig exists under is that **the device under test must not be modified by the rig that
+# tests it.**  The fork's CI builds the modem; this builds the thing that pokes it.
+#
+# Three things are checked, and they are the three that can be wrong with no hardware:
+#
+#   1. the sketch COMPILES, for every board it claims to support.  This is the check
+#      that matters most, because the rig's whole design is "the board is a parameter"
+#      and a build that only works for the board the author had on the bench is a
+#      board-specific sketch wearing a table.
+#   2. the merge and its offsets are right -- build-bench-bridge.sh checks the merged
+#      image against the partition table it just produced, and against each image's
+#      magic bytes.  A wrong app offset merges cleanly and does not boot.
+#   3. the host-side tool parses.  `tools/serial-relay-o1next.py` is Stage 1's pty
+#      relay, and a syntax error in it would otherwise be found on a bench, at the
+#      moment it is needed.
+
+on:
+  push:
+    paths:
+      - 'firmware/bench-bridge/**'
+      - 'tools/serial-relay-o1next.py'
+      - '.github/workflows/bench-bridge.yml'
+  pull_request:
+    paths:
+      - 'firmware/bench-bridge/**'
+      - 'tools/serial-relay-o1next.py'
+      - '.github/workflows/bench-bridge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    name: bench rig firmware
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # arduino-cli is fetched directly, by version AND checksum, rather than through an
+      # action -- the same rule the fork's workflow follows, for the same reason: a
+      # static binary fetched by checksum has no Node runtime to deprecate.  The version
+      # and the hash are the ones the fork's BUILD.md documents.
+      - name: Install arduino-cli
+        run: |
+          version=1.5.1
+          sha256=28a8e119c498a25607821c36cb2dc49e8463941b261a0d99091baa7bc692dd2b
+          url="https://github.com/arduino/arduino-cli/releases/download/v${version}/arduino-cli_${version}_Linux_64bit.tar.gz"
+          curl -fsSL -o /tmp/arduino-cli.tar.gz "$url"
+          echo "${sha256}  /tmp/arduino-cli.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf /tmp/arduino-cli.tar.gz -C "$HOME/.local/bin" arduino-cli
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/arduino-cli" version
+
+      # The core is the whole cost of a cold run, so it is cached on the exact version.
+      # The version is pinned, so the key cannot go stale: a cache miss is slow, never
+      # wrong.  Same key as the fork's workflow, deliberately -- it is the same core.
+      - name: Cache the ESP32 core
+        uses: actions/cache@v5
+        with:
+          path: ~/.arduino15
+          key: arduino-${{ runner.os }}-esp32-2.0.17
+
+      - name: Install the ESP32 core
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls \
+            https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@2.0.17
+
+      # Every board the script claims.  A build that only works for one of them is the
+      # failure this step exists to catch, and it is a real one: the three differ in
+      # FQBN, in UART1's default pins, and in whether the host door is a real UART.
+      - name: Build, merge and verify -- classic ESP32
+        run: firmware/bench-bridge/build-bench-bridge.sh --board esp32
+
+      - name: Build, merge and verify -- ESP32-C3
+        run: firmware/bench-bridge/build-bench-bridge.sh --board c3
+
+      - name: Build, merge and verify -- ESP32-S2
+        run: firmware/bench-bridge/build-bench-bridge.sh --board s2
+
+      - name: shellcheck the build script
+        run: shellcheck -S warning firmware/bench-bridge/build-bench-bridge.sh
+
+      - name: check the pty relay parses
+        run: |
+          python3 -m py_compile tools/serial-relay-o1next.py
+          rm -rf tools/__pycache__
+          echo "parsed: tools/serial-relay-o1next.py"
+
+      - name: Upload the rig firmware
+        uses: actions/upload-artifact@v7
+        with:
+          name: o1next-bench-rig-firmware
+          if-no-files-found: error
+          path: |
+            build/bench-bridge-esp32/bench-bridge-merged.bin
+            build/bench-bridge-esp32/BUILD-INFO.txt
+            build/bench-bridge-esp32/SHA256SUMS
+            build/bench-bridge-c3/bench-bridge-merged.bin
+            build/bench-bridge-s2/bench-bridge-merged.bin
