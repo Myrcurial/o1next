@@ -25,8 +25,25 @@ data bus through the AHCT transceivers during the correct bus window.
 Keep it a separate module (`snoop/`) inside this folder so other
 personalities link it without the capture pipeline.
 
+## The trace format is already written down
+
+`#o1next-trace` — the envelope, the version, the time unit and the rules — is defined in
+[`../bench-bridge/README.md`](../bench-bridge/README.md) (#342), and it is deliberately
+**one definition shared by every producer rather than one per producer**:
+
+```
+#o1next-trace <version> <source> <unit>
+<time> <kind> <payload…>
+```
+
+**The envelope is shared; the payload is per-source.** This analyzer emits Z80 bus
+cycles; the bench rig emits byte runs in two directions; `tools/trace-analyzer/` should
+carry one reader for the envelope and one decoder per source, rather than a second
+format that has to be kept in step with the first by hand.
+
 ## Deliverables
 
 - PIO programs + capture firmware (Pico SDK, C)
 - Trigger/filter configuration (address ranges, port bases, R/W)
-- USB streaming protocol spec (shared with `tools/trace-analyzer/`)
+- USB streaming protocol spec (shared with `tools/trace-analyzer/`) — **the envelope
+  already exists**; what is left is this source's `kind`s and payload fields
