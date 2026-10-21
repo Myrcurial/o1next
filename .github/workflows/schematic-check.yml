@@ -40,12 +40,34 @@ jobs:
 
       # kicad-cli is headless; no xvfb or display is needed for sch export /
       # sch erc.  Bump the PPA major here when a newer KiCad lands.
+      #
+      # **And the version is asserted, because "install kicad" can quietly give
+      # you a different KiCad.**  On 2026-10-21 Launchpad returned 503 for this
+      # PPA, apt reported it as a *warning* rather than an error, and the install
+      # fell back to Ubuntu 24.04's own KiCad 7.0.11 -- two majors older than the
+      # 9.0.9 the previous run had used.  The job then failed with "Failed to load
+      # schematic file" on all four boards, three of which nobody had touched:
+      # a failure that reads like a broken schematic and is really a wrong tool.
+      #
+      # The package version is the contract, so it is checked rather than printed.
       - name: Install KiCad (official stable PPA)
+        env:
+          KICAD_MAJOR: 9
         run: |
-          sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+          sudo add-apt-repository --yes "ppa:kicad/kicad-${KICAD_MAJOR}.0-releases"
           sudo apt-get update
           sudo apt-get install --yes kicad
-          kicad-cli --version
+          got="$(kicad-cli --version)"
+          echo "kicad-cli: $got"
+          case "$got" in
+            "${KICAD_MAJOR}".*)
+              echo "ok: kicad-cli $got"
+              ;;
+            *)
+              echo "::error::kicad-cli is $got, expected ${KICAD_MAJOR}.x -- the PPA did not install.  A distro fallback cannot load these schematics: it fails as 'Failed to load schematic file' on every board, which reads like a broken schematic rather than a wrong tool."
+              exit 1
+              ;;
+          esac
 
       - name: Check schematics
         run: python3 tools/check_schematics.py
