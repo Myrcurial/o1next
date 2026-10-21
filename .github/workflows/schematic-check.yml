@@ -48,26 +48,46 @@ jobs:
       # 9.0.9 the previous run had used.  The job then failed with "Failed to load
       # schematic file" on all four boards, three of which nobody had touched:
       # a failure that reads like a broken schematic and is really a wrong tool.
+      # (It is not only a version-number mismatch: the generated sheets carry
+      # `exclude_from_sim`, a KiCad 8 token, under a KiCad 7 version header.)
       #
       # The package version is the contract, so it is checked rather than printed.
+      #
+      # **And the install is retried, because Launchpad is a third party that
+      # goes down.**  A 503 is transient and whole-site: on 2026-10-21 the 9.0 and
+      # 7.0 PPAs served 503 for over half an hour while the 8.0 one flapped between
+      # 200 and 503.  A single attempt turns somebody else's outage into a red
+      # check on an unrelated pull request, which is how a real failure gets
+      # ignored.  Retrying keeps the assertion honest -- a wrong KiCad still
+      # fails, it just takes a few minutes of trying first.
       - name: Install KiCad (official stable PPA)
         env:
           KICAD_MAJOR: 9
         run: |
-          sudo add-apt-repository --yes "ppa:kicad/kicad-${KICAD_MAJOR}.0-releases"
-          sudo apt-get update
-          sudo apt-get install --yes kicad
-          got="$(kicad-cli --version)"
-          echo "kicad-cli: $got"
-          case "$got" in
-            "${KICAD_MAJOR}".*)
-              echo "ok: kicad-cli $got"
-              ;;
-            *)
-              echo "::error::kicad-cli is $got, expected ${KICAD_MAJOR}.x -- the PPA did not install.  A distro fallback cannot load these schematics: it fails as 'Failed to load schematic file' on every board, which reads like a broken schematic rather than a wrong tool."
-              exit 1
-              ;;
-          esac
+          set -u
+          ppa="ppa:kicad/kicad-${KICAD_MAJOR}.0-releases"
+          got=""
+          for attempt in 1 2 3 4 5; do
+            echo "::group::attempt $attempt"
+            sudo add-apt-repository --yes "$ppa" || true
+            # apt-get update exits non-zero when *any* source 404s or 503s, and
+            # the PPA is the only one we care about -- so the failure is ignored
+            # here and the version check below is what decides.
+            sudo apt-get update || true
+            sudo apt-get install --yes --allow-downgrades kicad || true
+            got="$(kicad-cli --version 2>/dev/null || echo none)"
+            echo "kicad-cli: $got"
+            echo "::endgroup::"
+            case "$got" in
+              "${KICAD_MAJOR}".*) echo "ok: kicad-cli $got on attempt $attempt"; exit 0 ;;
+            esac
+            if [ "$attempt" -lt 5 ]; then
+              echo "not ${KICAD_MAJOR}.x yet -- Launchpad is probably 503ing; waiting 30s"
+              sleep 30
+            fi
+          done
+          echo "::error::kicad-cli is $got after 5 attempts, expected ${KICAD_MAJOR}.x -- the PPA did not serve.  A distro fallback cannot load these schematics: it fails as 'Failed to load schematic file' on every board, which reads like a broken schematic rather than a wrong tool.  Check https://ppa.launchpadcontent.net/kicad/kicad-${KICAD_MAJOR}.0-releases/ubuntu/dists/noble/Release -- a 503 there is Launchpad, not this repository."
+          exit 1
 
       - name: Check schematics
         run: python3 tools/check_schematics.py
