@@ -236,9 +236,19 @@ and the SFF each carry their own populated copy.
 
 ## Open before layout
 
-1. **The 2×5 IDC orientation** — the only mechanical unknown on the board. The
-   cable is keyed, but which end is pin 1 is not in the schematic, so it is
-   confirmed against a real machine (#324).
+1. ~~**The 2×5 IDC orientation**~~ — **settled 2026-10-21.** It was the board's
+   one mechanical unknown: the cable is keyed, but which end was pin 1 was not in
+   the schematic. It is now fixed by the footprint, and the answer is written down
+   rather than left to whoever does layout — a **right-angle shrouded IDC box
+   header** (`IDC-Header_2x05_P2.54mm_Horizontal`), whose own geometry at rotation
+   0 puts the mating face at +X and **pin 1 on the left** when you face it.
+
+   The shroud is not decoration: the cable is keyed, and a keyed socket cannot go
+   on plain pins — which is exactly what the old footprint specified, so the
+   connector could not have accepted the cable it was chosen for. The key is a rib
+   inside the shroud between the third and fourth pin pairs, and the part must be
+   fitted **key down, toward the PCB**. That last one is a build instruction and
+   not a schematic fact: a footprint is 2D and has no "which way up".
 2. **The RXD negative swing**, in hardware: the MAX3232 gives ±5.5 V, which is
    inside the machine's −0.5…−10 V window, but the receiving front end is a
    comparator with a 5.1 V clamp and it wants measuring, not assuming (#324).

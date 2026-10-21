@@ -252,6 +252,28 @@ U5_PADS = U5_USED + U5_GND + U5_NC
 # Pin sides follow the signal flow left -> right: the machine (J1) on the left,
 # then the level stage, then the ESP32, then the expanders and the panel.
 SYMS = {
+    # ---- J1: the 2x5 IDC on the machine's P1 pigtail -------------------------
+    # **Right angle, shrouded, keyed** -- `IDC-Header_2x05_P2.54mm_Horizontal`, a
+    # DIN 41651 / IEC 60603-13 box header, not the plain pin header this used to
+    # be.  Two reasons, and the second is the one that was wrong before:
+    #
+    #   1. the cable comes out the front of the floppy pocket, so the connector has
+    #      to be right angle, not vertical;
+    #   2. the cable **is keyed**, and a keyed socket cannot go on plain pins --
+    #      it needs the shroud with its polarising feature.  The old footprint
+    #      could not accept the cable it was specified for.
+    #
+    # Orientation is fixed by the footprint, at rotation 0, and it is worth writing
+    # down because it is the answer to the mechanical unknown this board carried:
+    # the pads are at x=0 (odd) and x=2.54 (even) running in +Y, the shroud body is
+    # offset +X, so the **mating face points +X**.  Standing in front of it looking
+    # in, your right hand is +Y, and pin numbers increase with +Y -- so **pin 1 is
+    # on the left**, which is what was asked for.  check_schematics.py asserts the
+    # horizontal footprint so this cannot silently regress.
+    #
+    # The key is a rib inside the shroud at y=7.13, between the third and fourth pin
+    # pairs, and the part must be fitted **key down, toward the PCB**.  That one the
+    # schematic can only record: a footprint is 2D and has no "which way up".
     'J1': ic('CONN_2X05_MODEM', 'J', [], [
         (2, 'TXD'), (8, 'MCB'), (5, 'CTS'), (9, 'RI'), (6, 'RXD'),
         (4, 'MSB'), (7, '+12.6V'), (1, 'GND'), (3, 'NC'), (10, 'SPARE'),
@@ -650,7 +672,10 @@ NOTES = [
 # Keyed by SYMS key, so one line covers every instance of a template part: `R`
 # is 27 resistors and `C` is 14 capacitors.
 FOOTPRINTS = {
-    'J1':  'Connector_PinHeader_2.54mm:PinHeader_2x05_P2.54mm_Vertical',
+    # J1 is a **right-angle shrouded IDC box header**, not a plain pin header: the
+    # cable is keyed, and the key needs the shroud.  See the symbol above for the
+    # pin-1-on-the-left derivation.
+    'J1':  'Connector_IDC:IDC-Header_2x05_P2.54mm_Horizontal',
     'U1':  'Package_SO:TSSOP-16_4.4x5mm_P0.65mm',
     'U2':  'Package_SO:TSSOP-16_4.4x5mm_P0.65mm',
     'U3':  'Package_TO_SOT_SMD:SOT-23-6',

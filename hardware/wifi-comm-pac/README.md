@@ -334,7 +334,9 @@ needed a net. Doing the same for the others means binding each signal to a real
 module pin, which is a **GPIO allocation decision** for U5 rather than a datasheet
 lookup.
 
-The 2×5 orientation and the RXD swing are the two hardware confirmations (#324).
+The RXD swing is the remaining hardware confirmation (#324), and the **2×5 IDC
+orientation is settled** — see `pinmap.md` §"Open before layout": right-angle and
+shrouded, pin 1 on the left facing it, key down toward the PCB.
 
 ## Enclosure
 

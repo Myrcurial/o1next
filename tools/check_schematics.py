@@ -269,6 +269,31 @@ def check_pin_pad(board: Board, repo: Path):
     return failures, notes
 
 
+def check_mech(board: Board):
+    """Footprint choices made for **mechanical** reasons, asserted by name.
+
+    Some part choices are forced by the case and not by the circuit: J1 is right
+    angle because the cable leaves the front of the floppy pocket, and shrouded
+    because that cable is keyed.  No net assertion can see either, so without this
+    the footprint could be swapped back to a plain vertical pin header and every
+    check would still pass.
+    """
+    failures = []
+    if not board.mech:
+        return failures
+    root = sexpr(board.sch.read_text(errors="replace"))
+    for ref, (want, why) in sorted(board.mech.items()):
+        got = None
+        for node in root:
+            if (isinstance(node, list) and node and node[0] == "symbol"
+                    and _prop(node, "Reference") == ref):
+                got = _prop(node, "Footprint")
+                break
+        if got != want:
+            failures.append(f"{ref} footprint is {got!r}, must be {want!r} -- {why}")
+    return failures
+
+
 def find_overlaps(placed):
     """Symbol bodies that overlap -- always a drawing bug, usually a short."""
     hits = []
@@ -473,7 +498,8 @@ class Board:
     def __init__(self, name, sch, gen, erc_allowance, exact_nets=None,
                  contains_nets=None, excludes_nets=None, pin_nets=None,
                  passthrough=None, pinout=None, unused_pins=None,
-                 pin_partial=None, allow_overlaps=0, allow_label_collisions=0):
+                 pin_partial=None, mech=None, allow_overlaps=0,
+                 allow_label_collisions=0):
         self.name = name
         self.sch = REPO / sch
         self.gen = gen
@@ -486,6 +512,7 @@ class Board:
         self.pinout = pinout or []
         self.unused_pins = unused_pins or {}
         self.pin_partial = pin_partial or {}
+        self.mech = mech or {}
         self.allow_overlaps = allow_overlaps
         self.allow_label_collisions = allow_label_collisions
 
@@ -525,6 +552,9 @@ def check_board(cli: str, board: Board, tmp: Path, verbose: bool):
     failures += pin_fail
     if verbose:
         notes += pin_notes
+
+    # -- mechanical footprint choices ---------------------------------------
+    failures += check_mech(board)
 
     # -- sheet geometry -----------------------------------------------------
     hits = find_overlaps(placed)
@@ -864,6 +894,18 @@ WIFI_COMM_PAC = Board(
                "mounting tabs (MT1-MT4) and pad 3",
         "J5": "JST PH S2B-PH-SM4-TB: 2 pins against 4 pads; the two named MP are "
               "the board-retention mounting pegs, which are mechanical",
+    },
+    # Mechanical footprint choices, asserted by name.  These are forced by the case
+    # rather than by the circuit, so no net assertion can see them -- and that means
+    # without this they could silently regress.
+    mech={
+        "J1": ("Connector_IDC:IDC-Header_2x05_P2.54mm_Horizontal",
+               "right angle, because the P1 cable leaves the front of the floppy "
+               "pocket; shrouded, because that cable is keyed and a keyed socket "
+               "cannot go on plain pins. At rotation 0 the footprint's own geometry "
+               "puts the mating face at +X and pin 1 on the left facing it -- "
+               "verified from the pads (odd at x=0, even at x=2.54, running +Y) and "
+               "the shroud body (offset +X)"),
     },
 )
 
