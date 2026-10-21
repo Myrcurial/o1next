@@ -34,7 +34,10 @@ jobs:
   netlist:
     name: netlist + ERC invariants
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # 45, because the install step may spend up to 18 minutes riding out a
+    # flapping Launchpad and the check itself takes about two.  The original 30
+    # left too little room once the retry was time-bounded rather than counted.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -69,6 +72,12 @@ jobs:
       # own with no timeout, and against a 503ing Launchpad it simply waited.  A
       # job that hangs is worse than one that fails -- it holds the runner and the
       # pull request.  So the update is split out and every step gets `timeout`.
+      #
+      # The retry is bounded by **time**, not by a count, because Launchpad flaps:
+      # on 2026-10-21 it served 503 for the 9.0 and 7.0 PPAs, then 200, then 503
+      # again within minutes, and three attempts missed a window that a longer
+      # loop would have caught.  Eighteen minutes of trying leaves the check its
+      # own window inside the job's 45-minute timeout.
       - name: Install KiCad (official stable PPA, falling back to the distro's)
         env:
           KICAD_MAJOR: 9
@@ -76,8 +85,11 @@ jobs:
           set -u
           ppa="ppa:kicad/kicad-${KICAD_MAJOR}.0-releases"
           got=""
-          for attempt in 1 2 3; do
-            echo "::group::PPA attempt $attempt"
+          attempt=0
+          deadline=$((SECONDS + 1080))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            attempt=$((attempt + 1))
+            echo "::group::PPA attempt $attempt, ${SECONDS}s elapsed"
             timeout 60  sudo add-apt-repository --yes --no-update "$ppa" || true
             # apt-get update exits non-zero when *any* source 503s, and the PPA is
             # the only one we care about -- so the failure is ignored here and the
@@ -90,7 +102,8 @@ jobs:
             case "$got" in
               "${KICAD_MAJOR}".*) echo "ok: kicad-cli $got from the PPA on attempt $attempt"; exit 0 ;;
             esac
-            [ "$attempt" -lt 3 ] && { echo "not ${KICAD_MAJOR}.x yet -- Launchpad is probably 503ing; waiting 20s"; sleep 20; }
+            echo "not ${KICAD_MAJOR}.x yet -- Launchpad is probably flapping; waiting 20s"
+            sleep 20
           done
 
           # The PPA did not serve.  **KiCad 7 is not a fallback**: it was tried,
