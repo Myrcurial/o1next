@@ -465,6 +465,199 @@ int o1_dtmf_tones(char digit, uint16_t *low, uint16_t *high)
     return 0;
 }
 
+/* ------------------------------------------------------- the dial fingerprint */
+
+char o1_dtmf_symbol(unsigned nibble)
+{
+    /* The sixteen symbols, in nibble order.  Indices 10 and 11 are `*` and `#` --
+     * the two keys the keypad has and hex does not, which is exactly the two
+     * digits hex has and the keypad does not.  It is a happy coincidence and it is
+     * why four bits per tone is possible at all. */
+    static const char sym[16] = {
+        '0', '1', '2', '3', '4', '5', '6', '7',
+        '8', '9', '*', '#', 'A', 'B', 'C', 'D'
+    };
+
+    return sym[nibble & 0x0Fu];
+}
+
+uint64_t o1_fnv1a64(const void *data, unsigned n)
+{
+    const uint8_t *p = (const uint8_t *)data;
+    uint64_t       h = 0xcbf29ce484222325ull;   /* the FNV offset basis */
+    unsigned       i;
+
+    if (p == 0)
+        return h;
+
+    for (i = 0u; i < n; i++) {
+        h ^= (uint64_t)p[i];
+        h *= 0x100000001b3ull;                  /* the FNV prime */
+    }
+    return h;
+}
+
+unsigned o1_dtmf_fingerprint(const char *connect, char *out, unsigned out_n,
+                             unsigned digits)
+{
+    uint64_t h;
+    unsigned i;
+
+    if (connect == 0 || out == 0)
+        return 0u;
+
+    if (digits < O1_DTMF_DIGITS_MIN)
+        digits = O1_DTMF_DIGITS_MIN;
+    if (digits > O1_DTMF_DIGITS_MAX)
+        digits = O1_DTMF_DIGITS_MAX;
+    if (out_n < digits + 1u)
+        return 0u;
+
+    h = o1_fnv1a64(connect, (unsigned)strlen(connect));
+
+    /* The top nibbles, and the reason is in tone.h: FNV-1a mixes upward, so the
+     * low bits of a short input are the weak ones and a truncated high half is
+     * the better half to keep. */
+    for (i = 0u; i < digits; i++)
+        out[i] = o1_dtmf_symbol((unsigned)((h >> (60u - 4u * i)) & 0x0Full));
+    out[digits] = '\0';
+
+    return digits;
+}
+
+/* ----------------------------------------------------------------- the dial */
+
+/* One shared name for every gap, because every gap is the same silence.  The
+ * *tone* phases get their own storage: `o1_tone_phase_name` hands the pointer out
+ * and a caller may hold it, so one shared buffer would make every digit report
+ * itself as the last one. */
+static const char o1_dtmf_gap_name[] = "gap";
+
+unsigned o1_dtmf_dial_from_digits(o1_dtmf_dial *d, const char *digits, unsigned n)
+{
+    char     src[O1_DTMF_DIGITS_MAX + 1u];
+    unsigned i;
+
+    if (d == 0 || digits == 0 || n == 0u)
+        return 0u;
+
+    if (n > O1_DTMF_DIGITS_MAX)
+        n = O1_DTMF_DIGITS_MAX;
+
+    /* Copied first, because `memset` below would otherwise clobber a caller that
+     * passed `d->digits` back in -- which is exactly what a re-dial does. */
+    for (i = 0u; i < n; i++)
+        src[i] = digits[i];
+    src[n] = '\0';
+
+    memset(d, 0, sizeof *d);
+    d->n = n;
+
+    for (i = 0u; i < n; i++) {
+        uint16_t lo = 0u, hi = 0u;
+
+        if (!o1_dtmf_tones(src[i], &lo, &hi))
+            return 0u;   /* not a symbol DTMF can dial */
+
+        d->digits[i]   = src[i];
+        d->names[i][0] = src[i];
+        d->names[i][1] = '\0';
+
+        d->phases[i * 2u].sig  = O1_SIG_DTMF;
+        d->phases[i * 2u].bits = O1_BIT_MARK;
+        d->phases[i * 2u].f1   = lo;
+        d->phases[i * 2u].f2   = hi;
+        d->phases[i * 2u].ms   = O1_DTMF_TONE_MS;
+        d->phases[i * 2u].name = d->names[i];
+
+        /* A gap *between* digits and not after the last one: a trailing silence is
+         * 40 ms of admission the operator never asked for. */
+        if (i + 1u < n) {
+            unsigned g = i * 2u + 1u;
+
+            d->phases[g].sig  = O1_SIG_SILENCE;
+            d->phases[g].bits = O1_BIT_MARK;
+            d->phases[g].ms   = O1_DTMF_GAP_MS;
+            d->phases[g].name = o1_dtmf_gap_name;
+        }
+    }
+
+    d->digits[n] = '\0';
+    d->hs.name   = d->digits;      /* the log line and the sound say the same thing */
+    d->hs.phases = d->phases;
+    d->hs.n      = n * 2u - 1u;
+
+    return n;
+}
+
+unsigned o1_dtmf_dial_build(o1_dtmf_dial *d, const char *connect, unsigned digits)
+{
+    char     fp[O1_DTMF_DIGITS_MAX + 1u];
+    unsigned n;
+
+    if (d == 0)
+        return 0u;
+
+    n = o1_dtmf_fingerprint(connect, fp, (unsigned)sizeof fp, digits);
+    if (n == 0u)
+        return 0u;
+
+    return o1_dtmf_dial_from_digits(d, fp, n);
+}
+
+/* ---------------------------------------------------------- the admission gate */
+
+void o1_dial_gate_reset(o1_dial_gate *g)
+{
+    if (g == 0)
+        return;
+    g->armed   = 0;
+    g->dialled = 0;
+    g->linked  = 0;
+}
+
+void o1_dial_gate_arm(o1_dial_gate *g)
+{
+    if (g == 0)
+        return;
+    g->armed   = 1;
+    g->dialled = 0;   /* a *new* dial: neither fact from the last one survives */
+    g->linked  = 0;
+}
+
+void o1_dial_gate_dialled(o1_dial_gate *g)
+{
+    if (g != 0)
+        g->dialled = 1;
+}
+
+void o1_dial_gate_linked(o1_dial_gate *g)
+{
+    if (g != 0)
+        g->linked = 1;
+}
+
+void o1_dial_gate_abort(o1_dial_gate *g)
+{
+    /* Not "the link dropped" -- that is a *disconnect*, and it happens after
+     * admission.  This is "the attempt failed", so the next one starts clean. */
+    o1_dial_gate_reset(g);
+}
+
+int o1_dial_gate_admitted(const o1_dial_gate *g)
+{
+    if (g == 0)
+        return 1;
+    if (!g->armed)
+        return 1;   /* nothing was dialled, so there is nothing to wait for */
+    return (g->dialled && g->linked) ? 1 : 0;
+}
+
+int o1_dial_gate_armed(const o1_dial_gate *g)
+{
+    return (g != 0 && g->armed) ? 1 : 0;
+}
+
 /* ------------------------------------------------------------- the bit source */
 
 uint8_t o1_bitpat_bit(o1_bitpat pat, unsigned *idx)

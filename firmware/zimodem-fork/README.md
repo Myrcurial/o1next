@@ -106,6 +106,11 @@ is how that is done — the C64 Ultimate pattern.
      accumulator, plus dial tone, DTMF, ring and connect/disconnect. Not a .wav
      in sight: the frequencies are parameters, and the suite *measures* the
      output. `docs/modem-tones.md` is where every frequency comes from.
+   - The **dial fingerprint** is the same file — `o1_fnv1a64`,
+     `o1_dtmf_fingerprint`, `o1_dtmf_dial_build` and `o1_dial_gate`. On `ATDT`
+     the connect string is hashed, the hash becomes 10–15 DTMF symbols, and they
+     are dialled at the very start. **A connection is not admitted until the dial
+     has finished *and* the link is up** — either order.
 6. **Role B** (#323) — the console becomes a `Stream`, so one codebase serves the
    standalone module (UART to the machine's ACIA) and the interposer/SFF (UART to
    the RP2354B, which serves the ACIA window).

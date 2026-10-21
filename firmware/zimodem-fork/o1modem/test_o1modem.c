@@ -39,6 +39,7 @@
  *      re-clocked, so rate 0 releases everything at once however long the gap.
  */
 #include <inttypes.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1084,6 +1085,290 @@ static void test_dtmf(void)
     CHECK(o1_dtmf_tones('7', 0, 0) == 1, "a null out-pointer was not tolerated");
 }
 
+/* ------------------------------------------------------------ the dial fingerprint
+ *
+ * **The hash is checked against the published FNV-1a vectors**, not against its own
+ * output.  That is the difference between "this is FNV-1a" and "this is a hash I
+ * wrote that agrees with itself", and only the first one is worth asserting --
+ * because the fingerprint's whole job is that two *different* implementations
+ * would dial the same number for the same host.
+ */
+static void test_fingerprint(void)
+{
+    /* The reference vectors, from the FNV specification. */
+    static const struct {
+        const char *s;
+        uint64_t    h;
+    } fnv[] = {
+        { "",       0xcbf29ce484222325ull },
+        { "a",      0xaf63dc4c8601ec8cull },
+        { "b",      0xaf63df4c8601f1a5ull },
+        { "c",      0xaf63de4c8601eff2ull },
+        { "foobar", 0x85944171f73967e8ull },
+    };
+    char     buf[O1_DTMF_DIGITS_MAX + 1u];
+    unsigned i;
+
+    printf("the dial fingerprint (FNV-1a 64, and the DTMF alphabet)\n");
+
+    for (i = 0u; i < sizeof fnv / sizeof fnv[0]; i++)
+        CHECK(o1_fnv1a64(fnv[i].s, (unsigned)strlen(fnv[i].s)) == fnv[i].h,
+              "FNV-1a 64 of \"%s\" is %016llx, the reference says %016llx",
+              fnv[i].s,
+              (unsigned long long)o1_fnv1a64(fnv[i].s, (unsigned)strlen(fnv[i].s)),
+              (unsigned long long)fnv[i].h);
+
+    /* The sixteen symbols, in nibble order, and every one of them dialable. */
+    {
+        static const char want[17] = "0123456789*#ABCD";
+
+        for (i = 0u; i < 16u; i++) {
+            uint16_t lo = 0u, hi = 0u;
+
+            CHECK(o1_dtmf_symbol(i) == want[i],
+                  "nibble %u is '%c', wanted '%c'", i, o1_dtmf_symbol(i), want[i]);
+            CHECK(o1_dtmf_tones(o1_dtmf_symbol(i), &lo, &hi) == 1,
+                  "nibble %u maps to '%c', which DTMF cannot dial",
+                  i, o1_dtmf_symbol(i));
+        }
+    }
+
+    /* **The whole chain, against one published value.**  FNV-1a 64 of "foobar" is
+     * 0x85944171f73967e8, so twelve symbols taken from the top is
+     * 85944171D739 -- which pins the hash, the high-nibble order and the
+     * 10->'*'/11->'#'/15->'D' mapping in one assertion. */
+    CHECK(o1_dtmf_fingerprint("foobar", buf, sizeof buf, 12u) == 12u,
+          "the fingerprint refused a twelve-symbol request");
+    CHECK(strcmp(buf, "85944171D739") == 0,
+          "foobar dials as \"%s\", expected \"85944171D739\"", buf);
+    note("foobar -> %s", buf);
+
+    /* Deterministic: the same host always sounds the same. */
+    {
+        char again[O1_DTMF_DIGITS_MAX + 1u];
+
+        o1_dtmf_fingerprint("foobar", again, sizeof again, 12u);
+        CHECK(strcmp(again, buf) == 0, "the same string dialled differently twice");
+    }
+
+    /* The length is clamped to the band rather than refused. */
+    CHECK(o1_dtmf_fingerprint("foobar", buf, sizeof buf, 3u) == O1_DTMF_DIGITS_MIN,
+          "a too-short request was not clamped up to %u", O1_DTMF_DIGITS_MIN);
+    CHECK(o1_dtmf_fingerprint("foobar", buf, sizeof buf, 99u) == O1_DTMF_DIGITS_MAX,
+          "a too-long request was not clamped down to %u", O1_DTMF_DIGITS_MAX);
+    CHECK(o1_dtmf_fingerprint("foobar", buf, 8u, 12u) == 0u,
+          "a buffer too small for the digits was not refused");
+
+    /* Different destinations sound different.  Ten real-looking strings, no two
+     * the same -- which is the property the operator actually hears. */
+    {
+        static const char *hosts[] = {
+            "bbs.example.net:23", "bbs.example.net:2323", "192.0.2.10:6400",
+            "mybbs", "MYBBS", "bbs.example.net", "bbs.example.com:23",
+            "10.0.0.1", "10.0.0.2", "sdf.org",
+        };
+        char seen[10][O1_DTMF_DIGITS_MAX + 1u];
+        unsigned a, b, clashes = 0u;
+
+        for (a = 0u; a < 10u; a++) {
+            o1_dtmf_fingerprint(hosts[a], seen[a], sizeof seen[a], 12u);
+            for (b = 0u; b < a; b++)
+                if (strcmp(seen[a], seen[b]) == 0)
+                    clashes++;
+        }
+        CHECK(clashes == 0u, "%u of ten distinct hosts dialled the same number", clashes);
+        note("ten hosts, ten dials -- the first is %s", seen[0]);
+    }
+}
+
+/* One bin of a Goertzel filter: how much energy is at `f`?  The test uses it to
+ * prove the two DTMF tones are really both in the rendered samples, which is the
+ * one thing a phase table cannot tell you. */
+static double energy_at(const int16_t *s, unsigned n, unsigned fs, unsigned f)
+{
+    double   w = 2.0 * 3.14159265358979323846 * (double)f / (double)fs;
+    double   c = 2.0 * cos(w);
+    double   s1 = 0.0, s2 = 0.0;
+    unsigned i;
+
+    for (i = 0u; i < n; i++) {
+        double s0 = (double)s[i] + c * s1 - s2;
+
+        s2 = s1;
+        s1 = s0;
+    }
+    return (s1 * s1 + s2 * s2 - c * s1 * s2) / ((double)n * (double)n);
+}
+
+static void test_dial(void)
+{
+    static o1_dtmf_dial d;
+    o1_dial_gate        g;
+
+    printf("the dial (DTMF, and the admission gate)\n");
+
+    /* Three digits: three tones and the two gaps *between* them, and none after
+     * the last -- a trailing silence is admission the operator never asked for. */
+    CHECK(o1_dtmf_dial_from_digits(&d, "123", 3u) == 3u, "a three-digit dial was refused");
+    CHECK(d.n == 3u, "the dial has %u symbols", d.n);
+    CHECK(d.hs.n == 5u, "three digits made %u phases, expected 5", d.hs.n);
+    CHECK(o1_hs_ms(&d.hs) == 3u * O1_DTMF_TONE_MS + 2u * O1_DTMF_GAP_MS,
+          "the dial is %u ms, expected %u", o1_hs_ms(&d.hs),
+          3u * O1_DTMF_TONE_MS + 2u * O1_DTMF_GAP_MS);
+    CHECK(strcmp(d.hs.name, "123") == 0, "the dial calls itself \"%s\"", d.hs.name);
+
+    /* The first phase is '1' -- 697 + 1209 Hz -- and the second is the gap. */
+    {
+        uint16_t lo = 0u, hi = 0u;
+
+        o1_dtmf_tones('1', &lo, &hi);
+        CHECK(d.hs.phases[0].sig == O1_SIG_DTMF, "the first phase is not a DTMF tone");
+        CHECK(d.hs.phases[0].f1 == lo && d.hs.phases[0].f2 == hi,
+              "the first digit is %u+%u Hz, wanted %u+%u",
+              d.hs.phases[0].f1, d.hs.phases[0].f2, lo, hi);
+        CHECK(d.hs.phases[0].ms == O1_DTMF_TONE_MS, "the first tone is %u ms",
+              d.hs.phases[0].ms);
+        CHECK(d.hs.phases[1].sig == O1_SIG_SILENCE,
+              "there is no gap after the first digit");
+        CHECK(d.hs.phases[1].ms == O1_DTMF_GAP_MS, "the gap is %u ms",
+              d.hs.phases[1].ms);
+        CHECK(d.hs.phases[4].sig == O1_SIG_DTMF, "the last phase is not the last digit");
+    }
+
+    /* The names are per digit and not shared: `o1_tone_phase_name` hands the
+     * pointer out and a caller may hold it, so one buffer would make every digit
+     * report itself as the last one. */
+    CHECK(d.hs.phases[0].name != 0 && strcmp(d.hs.phases[0].name, "1") == 0,
+          "digit 0 is named \"%s\"", d.hs.phases[0].name ? d.hs.phases[0].name : "(null)");
+    CHECK(d.hs.phases[2].name != 0 && strcmp(d.hs.phases[2].name, "2") == 0,
+          "digit 1 is named \"%s\"", d.hs.phases[2].name ? d.hs.phases[2].name : "(null)");
+    CHECK(d.hs.phases[1].name != 0 && strcmp(d.hs.phases[1].name, "gap") == 0,
+          "the gap is named \"%s\"", d.hs.phases[1].name ? d.hs.phases[1].name : "(null)");
+
+    /* **The rendered output, filtered.**  The table says 697 + 1209; this says the
+     * samples carry both and that the frequencies neither of them uses are down.
+     * A phase table cannot be wrong in a way this misses. */
+    {
+        static o1_tone_gen gen;
+        static int16_t     buf[4096];
+        unsigned           want = (O1_DTMF_TONE_MS * O1_TONE_FS_DEFAULT) / 1000u;
+        unsigned           got = 0u, n;
+        double             e697, e1209, e941, e1336, e1477, e_off;
+
+        o1_tone_start(&gen, &d.hs, O1_TONE_FS_DEFAULT, O1_TONE_AMP_DEFAULT);
+        while (got < want) {
+            /* Exactly the first digit, and no further: `o1_tone_render` fills what
+             * it is asked for, so asking for the whole buffer would render into
+             * the *next* digits and the filter would measure three tones instead
+             * of one.  That is what this test did the first time it ran. */
+            n = o1_tone_render(&gen, buf + got, want - got);
+            if (n == 0u)
+                break;
+            got += n;
+        }
+        CHECK(got == want, "the first digit rendered %u samples, expected %u", got, want);
+
+        e697  = energy_at(buf, got, O1_TONE_FS_DEFAULT, 697u);
+        e1209 = energy_at(buf, got, O1_TONE_FS_DEFAULT, 1209u);
+        e941  = energy_at(buf, got, O1_TONE_FS_DEFAULT, 941u);
+        e1336 = energy_at(buf, got, O1_TONE_FS_DEFAULT, 1336u);
+        e1477 = energy_at(buf, got, O1_TONE_FS_DEFAULT, 1477u);
+        e_off = energy_at(buf, got, O1_TONE_FS_DEFAULT, 2000u);
+
+        CHECK(e697 > 8.0 * e_off, "'1' carries no 697 Hz (%.0f vs %.3f off-tone)",
+              e697, e_off);
+        CHECK(e1209 > 8.0 * e_off, "'1' carries no 1209 Hz (%.0f vs %.3f off-tone)",
+              e1209, e_off);
+        CHECK(e697 > 3.0 * e941, "'1' leaked 941 Hz (%.0f vs %.0f)", e697, e941);
+        CHECK(e1209 > 3.0 * e1336, "'1' leaked 1336 Hz (%.0f vs %.0f)", e1209, e1336);
+        CHECK(e1209 > 3.0 * e1477, "'1' leaked 1477 Hz (%.0f vs %.0f)", e1209, e1477);
+        note("'1': 697 Hz %.0f, 1209 Hz %.0f; 941 %.0f, 1336 %.0f, 1477 %.0f, off %.3f",
+             e697, e1209, e941, e1336, e1477, e_off);
+    }
+
+    /* And the gaps are **exactly** silent -- zero, not merely quiet. */
+    {
+        static o1_tone_gen gen;
+        static int16_t     buf[8192];
+        unsigned           total = 0u, n, k, loud = 0u, noise = 0u;
+        unsigned           expect = (3u * O1_DTMF_TONE_MS + 2u * O1_DTMF_GAP_MS)
+                                    * (O1_TONE_FS_DEFAULT / 1000u);
+
+        o1_tone_start(&gen, &d.hs, O1_TONE_FS_DEFAULT, O1_TONE_AMP_DEFAULT);
+        while ((n = o1_tone_render(&gen, buf + total, 8192u - total)) > 0u)
+            total += n;
+
+        CHECK(total == expect, "the dial rendered %u samples, expected %u", total, expect);
+
+        for (k = 0u; k < total; k++) {
+            /* tone = 60 ms = 960 samples, gap = 40 ms = 640. */
+            int in_gap = ((k >= 960u && k < 1600u) || (k >= 2560u && k < 3200u));
+
+            if (in_gap) {
+                if (buf[k] != 0)
+                    noise++;
+            } else if (buf[k] != 0) {
+                loud++;
+            }
+        }
+        CHECK(noise == 0u, "%u non-zero samples in the gaps -- a gap is a silence", noise);
+        CHECK(loud > 0u, "the dial is entirely silent");
+    }
+
+    /* A twelve-symbol dial for a real-looking host: the shape the brief asks for. */
+    {
+        char fp[O1_DTMF_DIGITS_MAX + 1u];
+
+        CHECK(o1_dtmf_dial_build(&d, "bbs.example.net:23", 12u) == 12u,
+              "the dial for a host was refused");
+        o1_dtmf_fingerprint("bbs.example.net:23", fp, sizeof fp, 12u);
+        CHECK(strcmp(d.hs.name, fp) == 0,
+              "the dial is named \"%s\", wanted \"%s\"", d.hs.name, fp);
+        CHECK(o1_hs_ms(&d.hs) > 1000u && o1_hs_ms(&d.hs) < 1500u,
+              "a twelve-digit dial is %u ms, which is not a plausible dial",
+              o1_hs_ms(&d.hs));
+        note("bbs.example.net:23 dials as %s, %u ms", d.hs.name, o1_hs_ms(&d.hs));
+    }
+
+    /* The gate: **both facts, either order, or no dial to wait for.** */
+    o1_dial_gate_reset(&g);
+    CHECK(o1_dial_gate_admitted(&g), "a gate that was never armed refused a connection");
+    CHECK(!o1_dial_gate_armed(&g), "a reset gate says it is armed");
+
+    o1_dial_gate_arm(&g);
+    CHECK(o1_dial_gate_armed(&g), "an armed gate says it is not armed");
+    CHECK(!o1_dial_gate_admitted(&g), "an armed gate admitted before either fact");
+
+    o1_dial_gate_linked(&g);
+    CHECK(!o1_dial_gate_admitted(&g), "the link alone admitted the connection");
+
+    o1_dial_gate_dialled(&g);
+    CHECK(o1_dial_gate_admitted(&g), "both facts did not admit the connection");
+
+    /* The other order, and re-arming clears the last attempt's facts. */
+    o1_dial_gate_arm(&g);
+    CHECK(!o1_dial_gate_admitted(&g), "re-arming did not clear the facts");
+    o1_dial_gate_dialled(&g);
+    CHECK(!o1_dial_gate_admitted(&g), "the dial alone admitted the connection");
+    o1_dial_gate_linked(&g);
+    CHECK(o1_dial_gate_admitted(&g), "the other order did not admit the connection");
+
+    /* An aborted attempt starts clean -- and is then admitted immediately, because
+     * there is no dial left to wait for. */
+    o1_dial_gate_abort(&g);
+    CHECK(o1_dial_gate_admitted(&g), "an aborted attempt did not clear the gate");
+    CHECK(!o1_dial_gate_armed(&g), "an aborted gate still says it is armed");
+
+    /* The three ways a dial can be refused.  Last, because a refusal leaves the
+     * dial partially built. */
+    CHECK(o1_dtmf_dial_from_digits(&d, "12E", 3u) == 0u, "'E' was dialled");
+    CHECK(o1_dtmf_dial_from_digits(&d, "123456789012345678", 18u) == O1_DTMF_DIGITS_MAX,
+          "an over-long dial was not clamped to %u", O1_DTMF_DIGITS_MAX);
+    CHECK(o1_dtmf_dial_from_digits(&d, "", 0u) == 0u, "an empty dial was accepted");
+    CHECK(o1_dtmf_dial_build(&d, "x", 0u) == O1_DTMF_DIGITS_MIN,
+          "a zero-digit request was not clamped to %u", O1_DTMF_DIGITS_MIN);
+}
+
 int main(int argc, char **argv)
 {
     int i;
@@ -1108,6 +1393,8 @@ int main(int argc, char **argv)
     test_tone_tables();
     test_tone_render();
     test_dtmf();
+    test_fingerprint();
+    test_dial();
 
     if (failures == 0) {
         printf("o1modem: all checks passed\n");

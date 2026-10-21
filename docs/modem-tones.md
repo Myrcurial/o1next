@@ -376,6 +376,57 @@ for connect and falling for disconnect and are never confused in a room.
 intersection. `o1_dtmf_tones()` returns the pair for `0-9`, `*`, `#` and the A–D
 column the keypad never had.
 
+### The dial fingerprint — `ATDT` becomes audible
+
+**The connect string is dialled.** On `ATDT <string>`, the whole string after the
+`ATDT` is hashed, the hash becomes a short run of DTMF symbols, and those symbols
+are played at the **very start** of the sequence. Two hosts sound different, the
+same host always sounds the same, and you can hear which one you dialled.
+
+| | |
+|---|---|
+| Hash | **FNV-1a, 64-bit** — asserted against the *published* reference vectors ("" is `0xcbf29ce484222325`, `"foobar"` is `0x85944171f73967e8`) rather than against its own output |
+| Symbols | **10 to 15**, default **12** — 48 bits, a birthday collision at ~16 million destinations |
+| Which bits | the **high** nibbles: FNV-1a's carries travel upward, so its low bits are the weak ones and a truncated high half is the better half to keep |
+| Alphabet | the **16 DTMF symbols**, indexed by nibble — `0-9`, then `*`, `#`, `A`, `B`, `C`, `D` |
+| Timing | 60 ms tone, 40 ms gap, **no gap after the last digit** — a gap separates two digits, and a trailing one would delay admission for a silence nobody ever heard |
+
+**Why the alphabet is `*` and `#` rather than E and F.** DTMF has exactly
+**sixteen** symbols and hex has exactly sixteen digits, so a nibble maps 1:1 and
+four bits per tone is possible. The two keys the keypad has and hex does not —
+`*` and `#` — stand in for the two digits hex has and the keypad does not. The
+alternative is a base-14 alphabet and a longer dial for the same collision budget,
+which is strictly worse.
+
+Worked example, and it is a test:
+
+```
+"foobar"              -> FNV-1a 64 = 0x85944171f73967e8 -> 85944171D739
+"bbs.example.net:23"  -> 669DB0#30*#A
+```
+
+**The admission gate.** A connection is **not admitted until the dial has finished
+*and* the link is up** — either order, so a fast host is waited for and a slow dial
+is waited out. The two facts arrive from different places (the sound engine and the
+network), so `o1_dial_gate` holds them rather than inferring them, and
+`o1_dial_gate_admitted()` is the only question the connect path asks.
+
+An **unarmed** gate admits immediately: a session that was never dialled — an
+incoming call, a phonebook entry, a plain `ATD` — has no dial to wait for, and that
+is what keeps an ordinary connection ordinary. `o1_dial_gate_abort()` is "the
+attempt failed" and starts the next one clean; a link that drops *after* admission
+is a **disconnect**, not a gate event.
+
+**One thing this does not own: the timeout.** If the link never comes up, the gate
+never admits — which is correct, and it means the connect path still needs its own
+"No carrier" timeout. The gate decides *when* a connection may be announced; it
+does not decide when to give up.
+
+**What the caller must get right.** The string is hashed **exactly as given**, so a
+caller that trims whitespace has to trim it the same way every time. A leading
+space is a different destination, and it is the only way this can be subtly wrong.
+
+
 ## 10. What is ours, and what is deliberately absent
 
 Everything in this section is a **choice**, stated so nobody later mistakes it for
@@ -426,8 +477,9 @@ work:
 |---|---|
 | The generator | `firmware/zimodem-fork/o1modem/tone.c` — an integer phase accumulator, a quarter-wave table, two modulators; no floats and no libm |
 | The scores | the same file: four `o1_phase[]` tables and the `o1_handshake` structs over them |
-| The proof | `firmware/zimodem-fork/o1modem/run_tests.sh` — measures the *rendered output* by counting zero crossings and asserts 2225 / 2250 / 2250 / 2100 Hz to ±2% |
-| The ear | `firmware/zimodem-fork/o1modem/render_wav.sh` — writes eight `.wav` files to `build/modem-tones/` (gitignored), so the sound can be tuned before any hardware exists |
+| The dial | the same file: `o1_fnv1a64`, `o1_dtmf_fingerprint`, `o1_dtmf_dial_build` and `o1_dial_gate` — the `ATDT` fingerprint and the rule that a connection is not admitted until it has finished |
+| The proof | `firmware/zimodem-fork/o1modem/run_tests.sh` — measures the *rendered output*: zero crossings for the four answer tones (2225 / 2250 / 2250 / 2100 Hz to ±2%), and a Goertzel filter for the DTMF (both tones present, the three they do not use down by 500×) |
+| The ear | `firmware/zimodem-fork/o1modem/render_wav.sh` — writes nine `.wav` files to `build/modem-tones/` (gitignored), including one dial, so the sound can be tuned before any hardware exists |
 
 ```sh
 firmware/zimodem-fork/o1modem/run_tests.sh -v      # the frequencies, measured

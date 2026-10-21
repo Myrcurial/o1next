@@ -119,5 +119,21 @@ int main(int argc, char **argv)
     ok &= render(dir, "connect",       &o1_hs_connect, fs, amp);
     ok &= render(dir, "disconnect",    &o1_hs_disconnect, fs, amp);
 
+    /* And one dial, so the fingerprint can be *heard* rather than reasoned about.
+     * The digits are a function of the string, so this file changes whenever the
+     * hash or the alphabet does -- which is the point of rendering it. */
+    {
+        static o1_dtmf_dial dial;
+
+        if (o1_dtmf_dial_build(&dial, "bbs.example.net:23", 12u) == 12u) {
+            printf("  %-12s %6u ms  dialling %s\n", "dial", o1_hs_ms(&dial.hs),
+                   dial.digits);
+            ok &= render(dir, "dial-fingerprint", &dial.hs, fs, amp);
+        } else {
+            fprintf(stderr, "could not build the dial fingerprint\n");
+            ok = 0;
+        }
+    }
+
     return ok ? 0 : 1;
 }

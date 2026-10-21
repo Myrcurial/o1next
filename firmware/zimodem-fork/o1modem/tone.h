@@ -231,6 +231,126 @@ const o1_handshake *o1_hs_for_rate(o1_rate mbaud);
  * (0-9, *, #, and A-D, which are the four the keypad never had). */
 int o1_dtmf_tones(char digit, uint16_t *low, uint16_t *high);
 
+/* ------------------------------------------------------- the dial fingerprint
+ *
+ * **On `ATDT`, the connect string becomes audible.**  The whole string after the
+ * `ATDT` is hashed, the hash becomes a short run of DTMF symbols, and those
+ * symbols are dialled at the very start of the sequence -- so what the panel
+ * plays is a *function of the destination* rather than a decoration.  Two hosts
+ * sound different, the same host always sounds the same, and you can hear which
+ * one you dialled.
+ *
+ * Why a hash rather than the string itself
+ * ----------------------------------------
+ * A hostname is not dialable: `bbs.example.net:23` has no tones.  A hash gives a
+ * fixed-width, keypad-shaped answer for any string, and the length becomes a
+ * *choice* rather than whatever the operator typed.
+ *
+ * Why 10 to 15 symbols
+ * --------------------
+ * Sixteen symbols would be the whole 64-bit hash, and eight is too few to be a
+ * fingerprint.  The band is 10..15 and the default is **12** -- 48 bits, a
+ * birthday collision at about 16 million destinations.  That is far more than a
+ * wall of modems will ever see, and it keeps the dial under a second and a half.
+ * The count is a parameter because it is a collision *budget*, not a
+ * specification.
+ *
+ * Why the high nibbles
+ * --------------------
+ * FNV-1a's low bits are the weakly-mixed ones -- the final multiply's carries
+ * travel upward -- so a truncated *low* half of a short input is measurably worse
+ * than a truncated high half.  `o1_dtmf_fingerprint` takes the top nibbles.
+ */
+#define O1_DTMF_DIGITS_MIN 10u
+#define O1_DTMF_DIGITS_MAX 15u
+
+/* The 16-symbol DTMF alphabet, indexed by a 4-bit nibble.  **DTMF has exactly
+ * sixteen symbols** -- 0-9, `*`, `#` and A-D -- so a hex nibble maps 1:1 and the
+ * two spare keypad keys stand in for E and F.  That is not a dodge: `*` and `#`
+ * are the two extra buttons on every keypad that ever had a modem next to it, and
+ * using them keeps four bits per tone.  The alternative -- dropping E and F --
+ * would be a base-14 alphabet and a longer dial for the same collision budget. */
+char o1_dtmf_symbol(unsigned nibble);
+
+/* FNV-1a, 64-bit.  The *published* reference vectors are asserted in
+ * `test_o1modem.c` ("" is 0xcbf29ce484222325, "foobar" is 0x85944171f73967e8),
+ * so the hash is checked against the standard rather than against itself. */
+uint64_t o1_fnv1a64(const void *data, unsigned n);
+
+/* The fingerprint for a connect string: `digits` symbols, high nibble first,
+ * NUL-terminated into `out`.  `out` must hold O1_DTMF_DIGITS_MAX + 1.  `digits`
+ * is clamped to [MIN, MAX].  Returns the number of symbols written.
+ *
+ * `connect` is hashed **exactly as given**, so a caller that trims whitespace
+ * must trim it the same way every time -- a leading space is a different
+ * destination, and that is the one thing the caller has to get right. */
+unsigned o1_dtmf_fingerprint(const char *connect, char *out, unsigned out_n,
+                             unsigned digits);
+
+/* ----------------------------------------------------------------- the dial
+ *
+ * A dial is a score like any other -- one tone phase per symbol, with a gap
+ * between them -- so it plays through the same generator and needs no special
+ * case in the engine.  **There is no gap after the last digit**: a gap is what
+ * separates two digits, and a trailing one would delay admission by 40 ms to
+ * reproduce a silence nobody ever heard.
+ *
+ * The tone and gap lengths are ours.  DTMF specifies a *minimum* tone duration
+ * (40 ms) and a minimum inter-digit interval, not a fixed pair, and 60/40 is what
+ * a period keypad sounded like.
+ */
+#define O1_DTMF_TONE_MS 60u
+#define O1_DTMF_GAP_MS  40u
+
+typedef struct {
+    o1_handshake hs;                                    /* points at `phases` */
+    o1_phase     phases[O1_DTMF_DIGITS_MAX * 2u - 1u];
+    char         digits[O1_DTMF_DIGITS_MAX + 1u];
+    char         names[O1_DTMF_DIGITS_MAX][2u];          /* one symbol each */
+    unsigned     n;                                     /* symbols */
+} o1_dtmf_dial;
+
+/* Build the dial for a connect string.  Returns the symbol count, or 0 if the
+ * arguments are unusable.  The dial's *name* is the fingerprint itself, so a log
+ * line and the sound say the same thing. */
+unsigned o1_dtmf_dial_build(o1_dtmf_dial *d, const char *connect, unsigned digits);
+
+/* The same, from symbols already in hand -- what the tests use, and what a caller
+ * uses when it wants the digits without the hash.  Returns 0 on a symbol DTMF
+ * cannot dial, which is the one way this can fail. */
+unsigned o1_dtmf_dial_from_digits(o1_dtmf_dial *d, const char *digits, unsigned n);
+
+/* ---------------------------------------------------------- the admission gate
+ *
+ * **A connection is not admitted until the dial has finished *and* the link is
+ * up.**  Either order -- a fast host is waited for, a slow dial is waited out --
+ * and the two facts arrive from different places, so they are held here rather
+ * than inferred.  `admitted()` is the only question the connect path asks.
+ *
+ * `armed` is what keeps an ordinary connection ordinary.  A session that was never
+ * dialled -- an incoming call, a phonebook entry, a plain `ATD` -- is admitted the
+ * moment the link is up, because there is no dial to wait for.
+ */
+typedef struct {
+    int armed;     /* a DTMF dial is in progress */
+    int dialled;   /* ... and it has finished */
+    int linked;    /* the network connection is up */
+} o1_dial_gate;
+
+void o1_dial_gate_reset(o1_dial_gate *g);     /* unarmed, nothing known */
+void o1_dial_gate_arm(o1_dial_gate *g);       /* a dial starts: both facts clear */
+void o1_dial_gate_dialled(o1_dial_gate *g);   /* the tones finished */
+void o1_dial_gate_linked(o1_dial_gate *g);    /* the link came up */
+void o1_dial_gate_abort(o1_dial_gate *g);     /* the attempt failed; start over */
+
+/* Both facts, or no dial to wait for.  This is the whole point of the type. */
+int o1_dial_gate_admitted(const o1_dial_gate *g);
+
+/* Is a dial in progress?  A caller uses it to know whether an admission it is
+ * about to grant is a *deferred* one -- which is the interesting case in a log,
+ * and the one a support call is about. */
+int o1_dial_gate_armed(const o1_dial_gate *g);
+
 /* -------------------------------------------------------------- the generator
  *
  * Two modulators, because **full duplex is the sound**.  A 300-baud Bell 103
