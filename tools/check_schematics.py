@@ -91,6 +91,28 @@ def _val(node, key):
     return None
 
 
+def _all_kids(node, key):
+    """Every descendant named *key*, at any depth."""
+    found = []
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        for c in n[1:]:
+            if isinstance(c, list) and c:
+                if c[0] == key:
+                    found.append(c)
+                stack.append(c)
+    return found
+
+
+def _prop(node, name):
+    """A named property's value, e.g. _prop(sym, 'Reference') -> 'U5'."""
+    for c in _kids(node, "property"):
+        if len(c) > 2 and c[1] == name:
+            return c[2]
+    return None
+
+
 def normalise_net(name: str) -> str:
     """Netlist names carry the sheet path: label ``/WR`` on the root sheet
     exports as ``//WR`` (escaped ``/{slash}WR``), label ``A0`` as ``/A0``.
@@ -160,6 +182,91 @@ def parse_sheet(path: Path):
             if at:
                 labels.append((node[1], float(at[1]), float(at[2])))
     return placed, labels
+
+
+# --------------------------------------------------------------------------
+# symbol pins vs footprint pads
+# --------------------------------------------------------------------------
+# A symbol pin with **no matching pad** is a net that cannot reach the board, and
+# it is never acceptable.  The reverse -- pads with no pin -- is sometimes
+# legitimate: mounting tabs, an exposed pad, channels a symbol does not model.
+#
+# But it is *also* what "logical pin numbers" looks like, and that is the trap.
+# A symbol numbers its pins 1..n for convenience; the footprint's pads 1..m are the
+# part's **real** pins.  The two then collide by name while disagreeing in meaning,
+# and a transfer puts the wrong net on the wrong pad with nothing to complain:
+# wifi-comm-pac's U5 had symbol pin 1 = +3V3 against the module's pin 1 = GND1, a
+# 3.3 V-to-ground short that every existing check passed.  So each component that
+# carries unaccounted pads is **declared below with its reason**, and an undeclared
+# one fails.
+KICAD_FP_ROOTS = [
+    Path("/Applications/KiCad/KiCad.app/Contents/SharedSupport/footprints"),
+    Path("/usr/share/kicad/footprints"),
+    Path("/usr/local/share/kicad/footprints"),
+]
+
+
+def footprint_pads(fpid: str, repo: Path):
+    """Pad names of a footprint, or None if the file cannot be found."""
+    if not fpid:
+        return None
+    if fpid.startswith("o1next:"):
+        cands = [repo / "hardware" / "wifi-comm-pac" / "footprints" / "o1next.pretty"
+                 / (fpid.split(":", 1)[1] + ".kicad_mod")]
+    else:
+        lib, nm = fpid.split(":", 1)
+        cands = [r / (lib + ".pretty") / (nm + ".kicad_mod") for r in KICAD_FP_ROOTS]
+    for c in cands:
+        if c.exists():
+            return re.findall(r'\(pad "([^"]+)"', c.read_text(errors="replace"))
+    return None
+
+
+def check_pin_pad(board: Board, repo: Path):
+    """Every symbol pin must have a pad, and every unaccounted pad must be declared."""
+    failures, notes = [], []
+    root = sexpr(board.sch.read_text(errors="replace"))
+
+    libsyms: dict = {}
+    for blk in _kids(root, "lib_symbols"):
+        for sym in _kids(blk, "symbol"):
+            libsyms[sym[1]] = [p[1] for p in _all_kids(sym, "number")]
+
+    audited = 0
+    for node in root:
+        if not (isinstance(node, list) and node and node[0] == "symbol"):
+            continue
+        lib_id = _val(node, "lib_id")
+        if lib_id not in libsyms:
+            continue
+        ref = _prop(node, "Reference") or "?"
+        if ref.startswith("#"):          # power symbols and flags
+            continue
+        fpid = _prop(node, "Footprint") or ""
+        pins = libsyms[lib_id]
+        pads = footprint_pads(fpid, repo)
+        if pads is None:
+            notes.append(f"{ref}: footprint {fpid or '(none)'!r} not found, not audited")
+            continue
+        audited += 1
+        orphan = [p for p in pins if p not in pads]
+        if orphan:
+            failures.append(
+                f"{ref} ({lib_id}): symbol pin(s) {orphan} have no matching pad in "
+                f"{fpid} -- a net that cannot reach the board")
+        spare = [p for p in pads if p not in pins]
+        if spare:
+            why = board.pin_partial.get(ref)
+            if why is None:
+                failures.append(
+                    f"{ref} ({lib_id}): {len(spare)} footprint pad(s) with no symbol "
+                    f"pin ({spare[:8]}{'...' if len(spare) > 8 else ''}) and no entry "
+                    f"in pin_partial -- if this is a symbol using logical pin numbers, "
+                    f"its nets land on the wrong pads")
+            else:
+                notes.append(f"{ref}: {len(spare)} pad(s) unaccounted, declared: {why}")
+    notes.append(f"{audited} components' pins checked against their footprints")
+    return failures, notes
 
 
 def find_overlaps(placed):
@@ -360,7 +467,7 @@ class Board:
     def __init__(self, name, sch, gen, erc_allowance, exact_nets=None,
                  contains_nets=None, excludes_nets=None, pin_nets=None,
                  passthrough=None, pinout=None, unused_pins=None,
-                 allow_overlaps=0, allow_label_collisions=0):
+                 pin_partial=None, allow_overlaps=0, allow_label_collisions=0):
         self.name = name
         self.sch = REPO / sch
         self.gen = gen
@@ -372,6 +479,7 @@ class Board:
         self.passthrough = passthrough or []
         self.pinout = pinout or []
         self.unused_pins = unused_pins or {}
+        self.pin_partial = pin_partial or {}
         self.allow_overlaps = allow_overlaps
         self.allow_label_collisions = allow_label_collisions
 
@@ -403,6 +511,14 @@ def check_board(cli: str, board: Board, tmp: Path, verbose: bool):
 
     placed, labels = parse_sheet(board.sch)
     notes.append(f"{len(placed)} symbols, {len(labels)} labels")
+
+    # -- pins against footprint pads ----------------------------------------
+    # Run before the netlist checks: a symbol whose pins do not correspond to its
+    # footprint's pads makes every net assertion below true and the board wrong.
+    pin_fail, pin_notes = check_pin_pad(board, REPO)
+    failures += pin_fail
+    if verbose:
+        notes += pin_notes
 
     # -- sheet geometry -----------------------------------------------------
     hits = find_overlaps(placed)
@@ -678,6 +794,28 @@ WIFI_COMM_PAC = Board(
         # no-connect rather than omitted, so this asserts that the no-connect is
         # real -- a pad accidentally on a net is exactly what this catches.
         "J3": J3_UNUSED,
+    },
+    # Footprint pads with no symbol pin, declared one by one.  See check_pin_pad:
+    # these are the parts whose symbols use **logical pin numbers** or model only
+    # the channels the board uses, so the pads are real package pins that no net
+    # reaches yet.  Declaring them here keeps them visible instead of silent, and
+    # binding them is the first layout task.  U5 is the one that is actively
+    # dangerous -- symbol pin 1 is +3V3 and the module's pin 1 is GND1.
+    pin_partial={
+        "U1": "74LVC4T245: 9 pins against 16 pads. Two of the four channels are "
+              "modelled and the numbers are logical, not the TSSOP-16 pinout",
+        "U2": "74LVC4T245: same as U1",
+        "U3": "74LVC1G07: 5 pins against 6 pads (SOT-23-6); pad 6 has no pin",
+        "U5": "ESP32-S2-MINI-2U: 18 pins against 73 pads, and the numbers collide "
+              "in meaning. Symbol pin 1 is +3V3; the module's pin 1 is GND1, so a "
+              "transfer today shorts 3.3 V to ground. Needs the real pin map, which "
+              "is a GPIO allocation decision, not a lookup",
+        "U6": "AW9523B: 24 pins against 25 pads; pad 25 is the exposed pad",
+        "U7": "AW9523B: same as U6",
+        "U8": "MAX98357A: 9 pins against 17 pads (TQFN-16 + EP); the numbers are "
+              "logical, not the VQFN-16 pinout",
+        "SW1": "SparkFun COM-10860: 2 pins against 7 pads; the five extra are the "
+               "mounting tabs (MT1-MT4) and pad 3",
     },
 )
 

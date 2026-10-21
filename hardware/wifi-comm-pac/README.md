@@ -223,12 +223,25 @@ python3 tools/check_schematics.py --board wifi-comm-pac
 | D13, D14 | Schottky pair | the diode-OR between the port and USB |
 
 **Footprints are now all assigned** — **71 of 71** component symbols carry one, so
-`Update PCB from Schematic` transfers the whole board rather than nothing. What is
-still true is that the **multi-pin ICs' pin numbers are logical placeholders**,
-not the vendor footprints': they exist so the netlist checker can name a pin, and
-binding them to the real package pinout is the first layout task. **J3 is the
-exception** — it now uses the part's own numbers (A1–A12, B1–B12, SH1–SH6), because
-its footprint has 30 pads and every one of them needed a net.
+`Update PCB from Schematic` transfers every part rather than nothing.
+
+**But the board is not yet correct, and this is the first layout task.** The
+**multi-pin ICs' pin numbers are logical placeholders**, not the vendor packages'.
+They exist so the netlist checker can name a pin. The footprints are real; the
+pin↔pad correspondence is not. **U5 is the dangerous one:** its symbol has 18
+pins numbered 1–18, the `ESP32-S2-MINI-2U` footprint has 73 pads numbered 1–65
+plus `61_1`…`61_9`, and the numbers *collide by name* while disagreeing in
+meaning — symbol pin 1 is `+3V3`, the module's pin 1 is **`GND1`**. So a transfer
+today puts 3.3 V on a ground pad. The other multi-pin parts are merely incomplete
+rather than wrong: U1/U2 (9 pins against 16 pads, two of four channels modelled),
+U8 (9 against 17), U3 (5 against 6), U6/U7 (24 against 25 — pad 25 is the exposed
+pad), SW1 (2 against 7 — the five mounting tabs). U4, U9 and U10 are exact.
+
+**J3 is the exception** that shows the fix: it now uses the part's own numbers
+(A1–A12, B1–B12, SH1–SH6) because its footprint has 30 pads and every one of them
+needed a net. Doing the same for the others means binding each signal to a real
+module pin, which is a **GPIO allocation decision** for U5 rather than a datasheet
+lookup.
 
 The 2×5 orientation and the RXD swing are the two hardware confirmations (#324).
 
