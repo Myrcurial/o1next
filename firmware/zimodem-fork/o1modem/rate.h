@@ -50,6 +50,13 @@
 
 #include <stdint.h>
 
+/* The core is plain C and the sketch is C++: without this the linker looks for a
+ * mangled name and the whole core reads as undefined symbols, which looks like a
+ * missing file rather than a linkage mistake. */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Milli-baud.  300 baud is 300000, 134.5 baud is 134500 -- exact, no rounding. */
 typedef uint32_t o1_rate;
 
@@ -122,5 +129,9 @@ o1_rate o1_rate_lock_value(const o1_rate_lock *l);
 
 /* The locked candidate's note, or NULL when not locked. */
 const char *o1_rate_lock_note(const o1_rate_lock *l);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* O1_MODEM_RATE_H */

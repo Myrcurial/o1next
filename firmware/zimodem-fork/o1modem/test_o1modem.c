@@ -46,7 +46,9 @@
 
 #include "buffer.h"
 #include "frame.h"
+#include "panel.h"
 #include "rate.h"
+#include "tone.h"
 
 static int failures;
 static int verbose;
@@ -558,6 +560,530 @@ static void test_buffer(void)
     }
 }
 
+/* ------------------------------------------------------------------ the panel
+ *
+ * The panel's tests are all "does this match a document", because that is what
+ * the panel *is*: a table in pinmap.md, a table in the AW9523B datasheet, and a
+ * table in #322.  Every one of the three is a place where a plausible-looking
+ * wrong answer would light a lamp and look fine.
+ */
+static void test_panel(void)
+{
+    static const struct {
+        o1_lamp     lamp;
+        int         ch;
+        const char *name;
+    } want[] = {
+        { O1_LAMP_WIFI_RADIO,     0, "WiFi radio" },
+        { O1_LAMP_WIFI_CONNECTED, 1, "WiFi conn"  },
+        { O1_LAMP_HS,             2, "HS"         },
+        { O1_LAMP_AA,             3, "AA"         },
+        { O1_LAMP_CD,             4, "CD"         },
+        { O1_LAMP_OH,             5, "OH"         },
+        { O1_LAMP_RD,             6, "RD"         },
+        { O1_LAMP_SD,             7, "SD"         },
+        { O1_LAMP_TR,             8, "TR"         },
+        { O1_LAMP_MR,             9, "MR"         },
+        { O1_LAMP_RI,            10, "RI"         },
+    };
+    static const uint8_t dim_reg[16] = {
+        0x24u, 0x25u, 0x26u, 0x27u, 0x28u, 0x29u, 0x2Au, 0x2Bu,
+        0x20u, 0x21u, 0x22u, 0x23u, 0x2Cu, 0x2Du, 0x2Eu, 0x2Fu,
+    };
+    o1_panel       p;
+    o1_panel_plan  plan;
+    o1_modem_state st;
+    unsigned       i, n;
+
+    printf("the panel (pinmap.md's table, and the AW9523B's)\n");
+
+    for (i = 0u; i < sizeof want / sizeof want[0]; i++) {
+        CHECK(o1_lamp_channel(want[i].lamp) == want[i].ch,
+              "%s is on channel %d, pinmap.md says %d",
+              want[i].name, o1_lamp_channel(want[i].lamp), want[i].ch);
+        CHECK(strcmp(o1_lamp_name(want[i].lamp), want[i].name) == 0,
+              "lamp %u is called \"%s\", wanted \"%s\"",
+              i, o1_lamp_name(want[i].lamp), want[i].name);
+    }
+
+    /* The dimming registers are *not* in pin order -- table 13 of the datasheet,
+     * and the one thing about this part a reader will not guess. */
+    for (i = 0u; i < 16u; i++)
+        CHECK(o1_panel_dim_reg(i) == dim_reg[i],
+              "channel %u dims at %02X, the datasheet says %02X",
+              i, o1_panel_dim_reg(i), dim_reg[i]);
+
+    /* The four handshake lines: three outputs and MCB, which is not. */
+    CHECK(o1_if_channel(O1_IF_CTS) == 8 && o1_if_is_output(O1_IF_CTS),
+          "CTS is not P1_0/out");
+    CHECK(o1_if_channel(O1_IF_RI) == 9 && o1_if_is_output(O1_IF_RI),
+          "RI is not P1_1/out");
+    CHECK(o1_if_channel(O1_IF_MSB) == 10 && o1_if_is_output(O1_IF_MSB),
+          "MSB is not P1_2/out");
+    CHECK(o1_if_channel(O1_IF_MCB) == 11 && !o1_if_is_output(O1_IF_MCB),
+          "MCB must be P1_3 and must be an input");
+
+    /* The iface byte: CTS bit 0, RI bit 1, MSB bit 2, and MCB nowhere. */
+    memset(&st, 0, sizeof st);
+    st.cts = 1;
+    CHECK(o1_iface_out(&st) == 0x01u, "CTS is not bit 0");
+    st.ring = 1;
+    CHECK(o1_iface_out(&st) == 0x03u, "RI is not bit 1");
+    st.msb = 1;
+    CHECK(o1_iface_out(&st) == 0x07u, "MSB is not bit 2");
+    CHECK((o1_iface_out(&st) & (1u << O1_IF_MCB_BIT)) == 0u,
+          "the iface output byte is writing MCB, which the machine drives");
+
+    /* HS follows the *feel* rate and not the ACIA rate (#320, #322). */
+    o1_panel_init(&p);
+    memset(&st, 0, sizeof st);
+    st.feel = 2400000u;
+    o1_panel_apply(&p, &st, 0u);
+    CHECK(!o1_panel_get(&p, O1_LAMP_HS), "2400 baud lit HS");
+    st.feel = 9600000u;
+    o1_panel_apply(&p, &st, 0u);
+    CHECK(o1_panel_get(&p, O1_LAMP_HS), "9600 baud did not light HS");
+    st.feel = 0u;
+    o1_panel_apply(&p, &st, 0u);
+    CHECK(!o1_panel_get(&p, O1_LAMP_HS), "the unshaped bypass lit HS");
+
+    /* RD and SD are monostable, and a burst must not flicker. */
+    o1_panel_init(&p);
+    o1_panel_pulse(&p, O1_LAMP_RD, 1000u);
+    CHECK(o1_panel_get(&p, O1_LAMP_RD), "a pulse did not light RD");
+    CHECK(o1_panel_tick(&p, 1000u + p.pulse_ms - 1u) == 0u, "the pulse expired early");
+    CHECK(o1_panel_get(&p, O1_LAMP_RD), "RD went dark early");
+
+    /* A byte arriving mid-window *extends* it.  This is the flicker case: at 9600
+     * baud bytes arrive faster than the window, and a restarting window would
+     * blink at the byte rate. */
+    o1_panel_pulse(&p, O1_LAMP_RD, 1000u + p.pulse_ms - 10u);
+    CHECK(o1_panel_tick(&p, 1000u + p.pulse_ms) == 0u,
+          "a second pulse inside the window did not extend it");
+    CHECK(o1_panel_tick(&p, 1000u + 2u * p.pulse_ms) == 1u, "the pulse never expired");
+    CHECK(!o1_panel_get(&p, O1_LAMP_RD), "RD stayed lit after the window");
+
+    /* `apply` must not touch RD or SD -- a level writer racing the monostable
+     * would clear the lamp while data is moving. */
+    memset(&st, 0, sizeof st);
+    o1_panel_pulse(&p, O1_LAMP_RD, 5000u);
+    o1_panel_apply(&p, &st, 5000u);
+    CHECK(o1_panel_get(&p, O1_LAMP_RD), "apply() cleared a pulsing RD");
+
+    /* The flush is on change only, and "nothing" is the feature: a hung firmware
+     * leaves the last state standing because nothing rewrites it.
+     *
+     * Note the two-call shape -- `apply` then `flush`.  `apply` is what turns the
+     * modem's state into lamp state (and is where the dirty flag comes from);
+     * `flush` is what turns lamp state into register bytes.  Keeping them apart is
+     * what lets the tests check "nothing changed" without an I2C bus. */
+    o1_panel_init(&p);
+    memset(&st, 0, sizeof st);
+    st.feel = 1200000u;
+    o1_panel_apply(&p, &st, 0u);
+    CHECK(o1_panel_flush(&p, &st, &plan) > 0u, "the first flush wrote nothing");
+
+    o1_panel_apply(&p, &st, 0u);
+    CHECK(o1_panel_flush(&p, &st, &plan) == 0u, "an unchanged panel was rewritten");
+
+    st.carrier = 1;
+    o1_panel_apply(&p, &st, 0u);
+    n = o1_panel_flush(&p, &st, &plan);
+    CHECK(n == 1u, "lighting one lamp wrote %u registers", n);
+    CHECK(plan.n_dim == 1u && plan.dim[0].reg == o1_panel_dim_reg(4u),
+          "CD did not write channel 4's dim register");
+    CHECK(plan.dim[0].val == p.bright,
+          "a lit lamp did not get the configured brightness");
+
+    st.carrier = 0;
+    o1_panel_apply(&p, &st, 0u);
+    CHECK(o1_panel_flush(&p, &st, &plan) == 1u, "clearing CD did not write");
+    CHECK(plan.dim[0].val == 0u, "a dark lamp was not written to zero");
+
+    /* And the frozen panel: after a failure the caller invalidates, and the next
+     * flush writes the *whole* panel again rather than only what changed. */
+    o1_panel_invalidate(&p);
+    o1_panel_apply(&p, &st, 0u);
+    n = o1_panel_flush(&p, &st, &plan);
+    CHECK(n == 17u,
+          "an invalidated panel wrote %u registers, expected 16 dims + the iface byte",
+          n);
+    CHECK(plan.n_dim == 16u, "an invalidated panel wrote %u dim registers", plan.n_dim);
+
+    /* The init order: mode, then direction, then dim.  A pin in LED mode ignores
+     * the output register, so a dim written before the mode is a lamp whose state
+     * depends on the part's power-on value. */
+    {
+        o1_reg_write seq[32];
+        unsigned     m = o1_panel_init_writes(seq, 32u);
+
+        CHECK(m == 24u, "the panel init is %u writes, expected 24", m);
+        CHECK(seq[0].reg == O1_AW9523_REG_RESET, "the panel init does not reset first");
+        CHECK(seq[1].reg == O1_AW9523_REG_GCR &&
+              seq[1].val == O1_AW9523_GCR_P0_PUSHPULL,
+              "GCR does not set P0 push-pull -- the panel's eight lamps need it");
+        CHECK(seq[2].reg == O1_AW9523_REG_LEDMODE0 && seq[2].val == 0x00u,
+              "P0 is not put in LED mode (0 = LED mode on this part)");
+        CHECK(seq[3].reg == O1_AW9523_REG_LEDMODE0 + 1u && seq[3].val == 0x00u,
+              "P1 is not put in LED mode");
+        CHECK(seq[4].reg == O1_AW9523_REG_CONFIG0 && seq[4].val == 0x00u,
+              "P0 is not configured as outputs");
+        CHECK(o1_panel_init_writes(seq, 8u) == 0u,
+              "the panel init did not refuse a buffer that is too small");
+    }
+
+    {
+        o1_reg_write seq[16];
+        unsigned     m = o1_iface_init_writes(seq, 16u);
+
+        CHECK(m == 6u, "the iface init is %u writes, expected 6", m);
+        CHECK(seq[2].reg == O1_AW9523_REG_CONFIG0 + 1u && seq[2].val == 0x08u,
+              "the iface direction is not P1_3 in and P1_0..P1_2 out");
+        CHECK(seq[4].reg == O1_AW9523_REG_INTEN0 + 1u && seq[4].val == 0xF7u,
+              "MCB's interrupt is not the only enabled one (1 = disabled)");
+    }
+}
+
+/* -------------------------------------------------------------- the scramblers
+ *
+ * A scrambler is the one part of a modem's sound that is *arithmetic* rather than
+ * taste, so it is the one part that can be proved.  Both polynomials are asserted
+ * by their **period**, which is a property only the right exponents have.
+ */
+static void test_scrambler(void)
+{
+    uint32_t sr;
+    unsigned i;
+    int      hit;
+
+    printf("the scramblers (the two polynomials, and their periods)\n");
+
+    /* Round trip: the descrambler inverts the scrambler.  That proves the taps
+     * are on the right side of the XOR -- not that they are the right taps. */
+    {
+        uint32_t a = (1u << 17) - 1u, b = a;
+
+        for (i = 0u; i < 4000u; i++) {
+            uint8_t d = (uint8_t)((i * 7u + (i >> 3)) & 1u);
+            uint8_t s = o1_scr_bit_of(&a, 14u, 17u, d);
+            uint8_t r = o1_desc_bit_of(&b, 14u, 17u, s);
+
+            if (r != d) {
+                CHECK(0, "the V.22 scrambler round trip broke at bit %u", i);
+                break;
+            }
+        }
+    }
+
+    /* The period.  The polynomials are primitive, so a *zero* input -- which
+     * reduces the scrambler to a plain LFSR -- walks all 2^n - 1 non-zero states
+     * and returns to where it started after exactly that many steps.  No other tap
+     * pair gives 131071, so this is the assertion that the exponents really are
+     * 14 and 17. */
+    sr  = 1u;
+    hit = 0;
+    for (i = 1u; i <= 131071u; i++) {
+        o1_scr_bit_of(&sr, 14u, 17u, 0u);
+        if (sr == 1u) {
+            hit = (int)i;
+            break;
+        }
+    }
+    CHECK(hit == 131071, "the V.22 scrambler's period is %d, expected 131071", hit);
+
+    /* And V.32's, which is 2^23 - 1.  Eight million iterations is a fraction of a
+     * second, and it is the only proof that the taps are 18 and 23. */
+    sr  = 1u;
+    hit = 0;
+    for (i = 1u; i <= 8388607u; i++) {
+        o1_scr_bit_of(&sr, 18u, 23u, 0u);
+        if (sr == 1u) {
+            hit = (int)i;
+            break;
+        }
+    }
+    CHECK(hit == 8388607, "the V.32 scrambler's period is %d, expected 8388607", hit);
+
+    /* A scrambler that simply returned its input would pass both of the above and
+     * fail this: "scrambled binary 1" has to come out looking like noise.  It is
+     * also the check that catches the degenerate preset -- from all-ones or
+     * all-zeros, an input of 1 passes straight through and this reads 4000 ones. */
+    {
+        o1_scrambler s;
+        unsigned     ones = 0u, zeros = 0u;
+
+        o1_scr_v22_init(&s);
+        for (i = 0u; i < 4000u; i++) {
+            if (o1_scr_bit(&s, 1u) != 0u)
+                ones++;
+            else
+                zeros++;
+        }
+        CHECK(ones > 1000u && zeros > 1000u,
+              "scrambled 1s came out %u ones / %u zeros -- that is not scrambling",
+              ones, zeros);
+        note("scrambled 1s over 4000 bits: %u ones, %u zeros", ones, zeros);
+    }
+}
+
+/* ---------------------------------------------------------------- the tone tables
+ *
+ * Every frequency in the scores, against the source `docs/modem-tones.md` names
+ * for it.  A table is data, and data drifts.
+ */
+static void test_tone_tables(void)
+{
+    unsigned i;
+
+    printf("the tone tables (the sources in docs/modem-tones.md)\n");
+
+    /* Bell 103A, from the Comm-Pac manual: (1,0) = (1270,1070) originate and
+     * (2225,2025) answer, 300 baud FSK. */
+    CHECK(o1_hs_bell103.phases[0].f1 == 2225u, "the 300-baud answer mark is not 2225 Hz");
+    CHECK(o1_hs_bell103.phases[1].f1 == 1270u, "the 300-baud originate mark is not 1270 Hz");
+    CHECK(o1_hs_bell103.phases[3].sig == O1_SIG_FSK &&
+          o1_hs_bell103.phases[3].baud == 300u,
+          "the 300-baud data phase is not FSK at 300 baud");
+    CHECK(o1_hs_bell103.phases[3].f1 == 2225u && o1_hs_bell103.phases[3].f2 == 2025u,
+          "the 300-baud answer band is not 2225/2025");
+    CHECK(o1_hs_bell103.phases[3].f3 == 1270u && o1_hs_bell103.phases[3].f4 == 1070u,
+          "the 300-baud originate band is not 1270/1070");
+
+    /* V.22 / Bell 212A: 2250 Hz answer tone, 600 baud, 2400/1200 split band. */
+    CHECK(o1_hs_v22.phases[0].f1 == 2250u, "the V.22 answer tone is not 2250 Hz");
+    CHECK(o1_hs_v22.phases[6].sig == O1_SIG_PSK4 && o1_hs_v22.phases[6].baud == 600u,
+          "the 1200-baud data phase is not 600-baud DPSK");
+    CHECK(o1_hs_v22.phases[6].f1 == 2400u && o1_hs_v22.phases[6].f3 == 1200u,
+          "the 1200-baud split band is not 2400/1200");
+    CHECK(o1_hs_v22.phases[6].two == 1u, "the 1200-baud data phase is not full duplex");
+
+    /* V.22bis: the same band and baud, sixteen points instead of four. */
+    CHECK(o1_hs_v22bis.phases[0].f1 == 2250u, "the V.22bis answer tone is not 2250 Hz");
+    CHECK(o1_hs_v22bis.phases[7].sig == O1_SIG_QAM16, "2400 bit/s is not QAM-16");
+    CHECK(o1_hs_v22bis.phases[7].baud == 600u, "QAM-16 is not at 600 baud");
+
+    /* S1: 100 ms of double dibit on the low band, after the standard's 456 ms
+     * wait.  The *pattern* is asserted separately, below. */
+    CHECK(o1_hs_v22bis.phases[3].bits == O1_BIT_DOUBLE_DIBIT &&
+          o1_hs_v22bis.phases[3].ms == 100u && o1_hs_v22bis.phases[3].f1 == 1200u,
+          "the S1 phase is not 100 ms of double dibit on the low band");
+    CHECK(o1_hs_v22bis.phases[2].ms == 456u,
+          "the standard's 456 ms wait before S1 is not in the score");
+
+    /* V.32: 2100 Hz ANS with 450 ms reversals, 600+3000 for AC/CA, one 1800 Hz
+     * carrier at 2400 baud with 32 points. */
+    CHECK(o1_hs_v32.phases[0].f1 == 2100u && o1_hs_v32.phases[0].rev_ms == 450u,
+          "the V.32 ANS is not 2100 Hz with 450 ms reversals");
+    CHECK(o1_hs_v32.phases[1].f1 == 1800u, "the V.32 AA signal is not 1800 Hz");
+    CHECK(o1_hs_v32.phases[2].f1 == 600u && o1_hs_v32.phases[2].f2 == 3000u,
+          "the AC/CA pair is not 600 + 3000 Hz");
+    CHECK(o1_hs_v32.phases[8].sig == O1_SIG_QAM32 && o1_hs_v32.phases[8].baud == 2400u,
+          "9600 bit/s is not 2400-baud 32-point");
+
+    /* **V.32 is not a split band.**  It is echo-cancelled, so it has one carrier,
+     * and every phase of its score has to say so -- a split-band 9600 would be a
+     * V.22 with a faster clock, which is a different sound entirely. */
+    for (i = 0u; i < o1_hs_v32.n; i++)
+        CHECK(o1_hs_v32.phases[i].two == 0u, "V.32 phase %u claims a split band", i);
+
+    /* The rate picker, including the machine's *real* rates: 650 and 2600 are the
+     * J1-out rates (#319) and are not modem rates at all. */
+    CHECK(o1_hs_for_rate(300000u) == &o1_hs_bell103, "300 baud is not the Bell 103 score");
+    CHECK(o1_hs_for_rate(650000u) == &o1_hs_bell103, "650 baud should get the 300 score");
+    CHECK(o1_hs_for_rate(1200000u) == &o1_hs_v22, "1200 baud is not the V.22 score");
+    CHECK(o1_hs_for_rate(2600000u) == &o1_hs_v22bis, "2600 baud should get the 2400 score");
+    CHECK(o1_hs_for_rate(9600000u) == &o1_hs_v32, "9600 baud is not the V.32 score");
+    CHECK(o1_hs_for_rate(0u) == &o1_hs_bell103, "the unshaped bypass should get 300");
+
+    /* Durations, as the sum of the phases. */
+    CHECK(o1_hs_ms(&o1_hs_v22) == 3300u + 200u + 456u + 100u + 100u + 400u + 2000u,
+          "the V.22 score is %u ms", o1_hs_ms(&o1_hs_v22));
+    CHECK(o1_hs_ms(&o1_hs_v32) > 5000u && o1_hs_ms(&o1_hs_v32) < 7000u,
+          "the V.32 score is %u ms, which is not a plausible handshake",
+          o1_hs_ms(&o1_hs_v32));
+
+    /* S1 as a *pattern*: 0,0,1,1 repeating.  The comment claims it; this asserts
+     * it, and a claim in a comment is not a test. */
+    {
+        static const uint8_t want8[8] = { 0u, 0u, 1u, 1u, 0u, 0u, 1u, 1u };
+        unsigned idx = 0u;
+
+        for (i = 0u; i < 8u; i++)
+            CHECK(o1_bitpat_bit(O1_BIT_DOUBLE_DIBIT, &idx) == want8[i],
+                  "the S1 double-dibit pattern is wrong at bit %u", i);
+
+        /* And ABABAB is an alternation, not a constant. */
+        idx = 0u;
+        CHECK(o1_bitpat_bit(O1_BIT_AB, &idx) == 1u, "S does not start at A");
+        CHECK(o1_bitpat_bit(O1_BIT_AB, &idx) == 0u, "S does not alternate");
+    }
+}
+
+/* -------------------------------------------------------------- the rendered output
+ *
+ * **This is the test that earns its place.**  It measures the samples the
+ * generator actually produces, so a wrong phase increment, a mis-mirrored sine
+ * table, a wrong sample rate and a reversed bit order all fail it -- and not one
+ * of them is visible in the source.  A .wav set cannot be tested this way at all,
+ * which is half of why there is not one (tone.h).
+ */
+static unsigned measure_hz(const o1_handshake *hs, unsigned ms, unsigned fs)
+{
+    static int16_t buf[512];
+    o1_tone_gen    g;
+    uint64_t       samples = 0u, want;
+    unsigned       crossings = 0u;
+    int            last = 0;
+
+    o1_tone_start(&g, hs, fs, O1_TONE_AMP_DEFAULT);
+    want = ((uint64_t)fs * (uint64_t)ms) / 1000u;
+
+    while (samples < want) {
+        unsigned n = o1_tone_render(&g, buf, 512u);
+        unsigned i;
+
+        if (n == 0u)
+            break;
+
+        for (i = 0u; i < n && samples < want; i++) {
+            int s = (buf[i] > 0) ? 1 : ((buf[i] < 0) ? -1 : 0);
+
+            if (s != 0) {
+                if (last != 0 && s != last)
+                    crossings++;
+                last = s;
+            }
+            samples++;
+        }
+    }
+
+    if (samples == 0u)
+        return 0u;
+
+    /* Two zero crossings per cycle. */
+    return (unsigned)(((uint64_t)crossings * (uint64_t)fs) / (2u * samples));
+}
+
+static void test_tone_render(void)
+{
+    static const struct {
+        const o1_handshake *hs;
+        unsigned            ms;
+        unsigned            want;
+        const char         *what;
+    } t[] = {
+        { &o1_hs_bell103, 1000u, 2225u, "Bell 103 answer mark" },
+        { &o1_hs_v22,     1000u, 2250u, "V.22 answer tone" },
+        { &o1_hs_v22bis,  1000u, 2250u, "V.22bis answer tone" },
+        { &o1_hs_v32,      400u, 2100u, "V.32 ANS, before its first reversal" },
+    };
+    unsigned i;
+
+    printf("the rendered output (measured, not assumed)\n");
+
+    for (i = 0u; i < sizeof t / sizeof t[0]; i++) {
+        unsigned got = measure_hz(t[i].hs, t[i].ms, O1_TONE_FS_DEFAULT);
+        unsigned err = (got > t[i].want) ? (got - t[i].want) : (t[i].want - got);
+
+        CHECK(err * 100u <= t[i].want * 2u,
+              "%s measured %u Hz, wanted %u (+/-2%%)", t[i].what, got, t[i].want);
+        note("%s: %u Hz over %u ms", t[i].what, got, t[i].ms);
+    }
+
+    /* The whole score renders, and it renders **exactly** the number of samples its
+     * duration implies: at 16 kHz every phase's millisecond count is a whole
+     * number of samples, so the total is exact and a drifting length is a failure.
+     * This is also the check that catches a phase boundary which never advances --
+     * a score that hangs is worse than a score that is wrong. */
+    {
+        o1_tone_gen    g;
+        static int16_t buf[512];
+        uint64_t       total = 0u, expect;
+        unsigned       n;
+
+        o1_tone_start(&g, &o1_hs_v22, O1_TONE_FS_DEFAULT, O1_TONE_AMP_DEFAULT);
+        CHECK(!o1_tone_done(&g), "a fresh generator is already done");
+        CHECK(o1_tone_phase_name(&g) != 0, "a fresh generator has no phase name");
+
+        while ((n = o1_tone_render(&g, buf, 512u)) > 0u)
+            total += n;
+
+        expect = (uint64_t)o1_hs_ms(&o1_hs_v22) * (O1_TONE_FS_DEFAULT / 1000u);
+        CHECK(o1_tone_done(&g), "the score never finished");
+        CHECK(total == expect,
+              "the V.22 score rendered %llu samples, expected %llu",
+              (unsigned long long)total, (unsigned long long)expect);
+        CHECK(o1_tone_render(&g, buf, 512u) == 0u, "a finished generator kept rendering");
+        CHECK(o1_tone_phase_name(&g) == 0, "a finished generator still names a phase");
+        note("the V.22 score: %llu samples, %u ms", (unsigned long long)total,
+             o1_hs_ms(&o1_hs_v22));
+    }
+
+    /* Every sample of a score is inside the amplitude asked for, and the signal is
+     * not silent -- the two ways a synthesis can be wrong while looking right. */
+    {
+        o1_tone_gen    g;
+        static int16_t buf[512];
+        int            peak = 0;
+        unsigned       nonzero = 0u, n;
+
+        o1_tone_start(&g, &o1_hs_v32, O1_TONE_FS_DEFAULT, O1_TONE_AMP_DEFAULT);
+        while ((n = o1_tone_render(&g, buf, 512u)) > 0u) {
+            unsigned k;
+
+            for (k = 0u; k < n; k++) {
+                int v = buf[k];
+                int a = (v < 0) ? -v : v;
+
+                if (a > peak)
+                    peak = a;
+                if (v != 0)
+                    nonzero++;
+            }
+        }
+        CHECK(peak <= O1_TONE_AMP_DEFAULT,
+              "the V.32 score peaked at %d, above the %d asked for",
+              peak, O1_TONE_AMP_DEFAULT);
+        CHECK(peak > O1_TONE_AMP_DEFAULT / 2,
+              "the V.32 score only reached %d -- that is too quiet to be the sound",
+              peak);
+        CHECK(nonzero > 1000u, "the V.32 score is mostly silence");
+        note("V.32: peak %d of %d, %u non-zero samples",
+             peak, O1_TONE_AMP_DEFAULT, nonzero);
+    }
+}
+
+/* ----------------------------------------------------------------------- DTMF */
+
+static void test_dtmf(void)
+{
+    static const struct {
+        char     digit;
+        uint16_t lo, hi;
+    } t[] = {
+        { '1', 697u, 1209u }, { '5', 770u, 1336u }, { '9', 852u, 1477u },
+        { '0', 941u, 1336u }, { '*', 941u, 1209u }, { '#', 941u, 1477u },
+        { 'A', 697u, 1633u }, { 'D', 941u, 1633u },
+    };
+    uint16_t lo, hi;
+    unsigned i;
+
+    printf("DTMF (the eight tones, and the grid)\n");
+
+    for (i = 0u; i < sizeof t / sizeof t[0]; i++) {
+        lo = 0u;
+        hi = 0u;
+        CHECK(o1_dtmf_tones(t[i].digit, &lo, &hi) == 1,
+              "'%c' is not recognised as a DTMF digit", t[i].digit);
+        CHECK(lo == t[i].lo && hi == t[i].hi,
+              "'%c' is %u + %u Hz, wanted %u + %u",
+              t[i].digit, lo, hi, t[i].lo, t[i].hi);
+    }
+
+    CHECK(o1_dtmf_tones('Q', &lo, &hi) == 0, "'Q' is not a DTMF digit");
+    CHECK(o1_dtmf_tones('7', 0, 0) == 1, "a null out-pointer was not tolerated");
+}
+
 int main(int argc, char **argv)
 {
     int i;
@@ -577,6 +1103,11 @@ int main(int argc, char **argv)
     test_ring();
     test_pace();
     test_buffer();
+    test_panel();
+    test_scrambler();
+    test_tone_tables();
+    test_tone_render();
+    test_dtmf();
 
     if (failures == 0) {
         printf("o1modem: all checks passed\n");

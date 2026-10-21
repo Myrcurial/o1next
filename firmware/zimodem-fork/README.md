@@ -97,6 +97,15 @@ is how that is done — the C64 Ultimate pattern.
 5. **The panel and the noise** (#322) — 11 Hayes LEDs on an AW9523B and the
    modem's sound. Upstream's `SUPPORT_LED_PINS` is three LEDs, commented out by
    default, and keys `HS` to `baudRate >= 38400`.
+   - The **panel** is `o1modem/panel.c` — the lamp-to-channel map, the
+     modem-state-to-lamp table, the RD/SD monostable, and the AW9523B register
+     bytes (including the dim registers, which are *not* in pin order). Written on
+     change only, so a hung firmware leaves a **readable frozen panel**.
+   - The **sound** is `o1modem/tone.c` — four handshake scores (**Bell 103A**,
+     **Bell 212A/V.22**, **V.22bis**, **V.32**) built from an integer phase
+     accumulator, plus dial tone, DTMF, ring and connect/disconnect. Not a .wav
+     in sight: the frequencies are parameters, and the suite *measures* the
+     output. `docs/modem-tones.md` is where every frequency comes from.
 6. **Role B** (#323) — the console becomes a `Stream`, so one codebase serves the
    standalone module (UART to the machine's ACIA) and the interposer/SFF (UART to
    the RP2354B, which serves the ACIA window).

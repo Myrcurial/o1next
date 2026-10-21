@@ -57,6 +57,13 @@
 #include "frame.h"
 #include "rate.h"
 
+/* The core is plain C and the sketch is C++: without this the linker looks for a
+ * mangled name and the whole core reads as undefined symbols, which looks like a
+ * missing file rather than a linkage mistake. */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* ------------------------------------------------------------------ the ring */
 
 typedef struct {
@@ -139,5 +146,9 @@ unsigned o1_buffer_from_o1(o1_buffer *b, const uint8_t *src, unsigned n);
 
 /* Characters drained toward the socket -- immediately, never paced. */
 unsigned o1_buffer_to_net(o1_buffer *b, uint8_t *dst, unsigned n);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* O1_MODEM_BUFFER_H */
