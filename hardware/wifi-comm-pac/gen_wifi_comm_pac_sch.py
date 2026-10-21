@@ -417,31 +417,38 @@ FOOTPRINTS = {
 FOOTPRINT_OPEN = {
     'U5':  'ESP32-S2-MINI-2U.  **The Espressif KiCad library does not carry this '
            'module.**  It has ESP32-S2-MINI-1, -1U and SOLO-2U only -- and MINI-1 '
-           'and -1U are NRND, which is why this board uses the -2U.  The MINI-2U '
-           'land pattern (12.3 x 15.4 mm outline) is a *different* land pattern, '
-           'so the -1U footprint is not a substitute.  Espressif publishes source '
-           'files and a .STEP model for it in the datasheet, section 10.1, so this '
-           'is drawable -- it just is not in the library.',
-    'J2':  'speaker connector -- 2-pin through hole, pins 5.00 mm apart.  Farnell '
-           'datasheet 2891582 would not download from here, so which *family* it '
-           'is has not been confirmed: a 5.00 mm terminal block and a 5.08 mm '
-           'wire-to-board header are both 2-pin THT at ~5 mm and have different '
-           'footprints.',
-    'J3':  'USB-C receptacle, Same Sky UJ32-C-H-G-DSMT-1-P24-TR.  Two changes are '
-           'needed and they are one job: the SYMBOL has 7 pins and the part has '
-           '24 (A1-A12, B1-B12, plus shield), so the symbol must be rebuilt with '
-           'the real pin map before a footprint means anything.  Same Sky '
-           'publishes a PCB footprint alongside the datasheet.',
-    'SW1': 'slide switch, latching -- SparkFun COM-10860.  The SparkFun KiCad '
-           'library carries SparkFun-Switch:Slide_SPDT_PTH_11.6x4.0mm, which looks '
-           'like the part; it needs confirming against the COM-10860 page rather '
-           'than assuming.',
-    'LED': '**The schematic calls this "3528" and the chosen part is not one.** '
-           'SunLED XZM2CRK168WA is a 1.8 x 0.6 mm right-angle chip LED, so the '
-           'VALUE is wrong as well as the footprint.  The nearest KiCad footprint '
-           'is LED_Kingbright_APA1606_1.6x0.6mm_Horizontal -- a different part, and '
-           'close enough is exactly what we are avoiding.  Draw it from the '
-           'datasheet, which carries the land pattern.',
+           'and -1U are NRND, which is why this board uses the -2U.  The land '
+           'pattern is datasheet section 10.1 (v1.4) / 7.2 (v1.1); Espressif '
+           'publishes source files for it.  SnapEDA carries a finished KiCad '
+           'footprint for the -2U-N4.  **The footprint belongs in '
+           'footprints/o1next.pretty/ so it can be published back to '
+           'espressif/kicad-libraries** -- see the README there.',
+    'J2':  'speaker connector -- 2-pin through hole, **5.08 mm pitch confirmed** '
+           '(it seats in a breadboard).  The open question is the *family*: a '
+           '5.08 mm terminal block and a 5.08 mm wire-to-board header are both '
+           '2-pin THT at that pitch and their footprints differ in pad shape, '
+           'hole size and courtyard.',
+    'J3':  'USB-C receptacle, Same Sky UJ32-C-H-G-DSMT-1-P24-TR -- buyable, and it '
+           'carries data and not only power.  We do not need every pin, but the '
+           'SYMBOL has 7 pins against the 24 the part has (A1-A12, B1-B12, plus '
+           'shield), so the symbol must be rebuilt with the real pin map -- the '
+           'unused ones carried and marked no-connect, or the board has pads with '
+           'no net.  That changes the netlist, which the checker asserts, so it is '
+           'its own job.',
+    'SW1': 'slide switch, latching -- SparkFun COM-10860, which is the **Surface '
+           'Mount Right Angle Switch** (4 V, 300 mA, 70 mOhm, 10,000 cycles): a '
+           '**SMD right-angle** part, for access from the edge of the board.  The '
+           'earlier PTH guess was wrong.  The SparkFun KiCad library carries five '
+           'SMD slide switches (SPST 6.7x2.6, SP3T 9.7x2.6, DPDT 7.2x3.5, DPDT '
+           '9.0x3.6, DP3T 9.8x3.5) and **none of them names the SKU**, so the right '
+           'one has to be matched to the COM-10860 datasheet.',
+    'LED': '**The part is right and the VALUE is wrong.**  SunLED XZM2CRK168WA is '
+           'a 1.8 x 0.6 mm right-angle chip LED, chosen for the front edge of the '
+           'board -- perpendicular to the front panel -- so the emission axis is '
+           'the intent and "3528" was only a placeholder.  The footprint is not in '
+           'KiCad (the nearest, LED_Kingbright_APA1606_1.6x0.6mm_Horizontal, is a '
+           'different part); datasheet page 3 has the recommended soldering '
+           'pattern, units mm, tolerance +/-0.1.',
     'LEDR': 'same as LED.',
 }
 
