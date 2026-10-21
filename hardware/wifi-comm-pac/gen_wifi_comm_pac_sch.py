@@ -427,9 +427,10 @@ FOOTPRINTS = {
     # so the waveform is synthesised in firmware (#322) and the transducer only has
     # to be linear across 300-3400 Hz.  8 ohm is the load the amp wants.
     #
-    # The footprint is ours and the body is exact; **its two pads are placed, not
-    # read** -- the datasheet's mechanical drawing is a figure.  See the footprint's
-    # own descr and FOOTPRINT_OPEN below.
+    # The footprint is ours, and its geometry is read off the datasheet's
+    # mechanical drawing: 15 x 11 x 3 mm body, two **0.6 mm square** solder pads on
+    # the left and right sides.  The only inference left is the pad-to-edge offset,
+    # taken as flush -- see FOOTPRINT_UNCONFIRMED below.
     'J2':  'o1next:Speaker_SameSky_CMS-151103-088SP',
     # SW1 is SparkFun COM-10860, the Surface Mount Right Angle Switch -- SPST,
     # 6.7 x 2.6 mm.  SparkFun's library is CC BY 4.0, so the footprint is copied
@@ -464,12 +465,11 @@ FOOTPRINT_OPEN = {
 # the board is complete and opens -- but it is not finished either, so it is
 # printed on every run beside it.
 FOOTPRINT_UNCONFIRMED = {
-    'J2':  'Same Sky CMS-151103-088SP speaker.  The 15 x 11 x 3 mm body and the '
-           'courtyard are exact, from the datasheet.  The **two solder pads are '
-           'placed, not read**: the mechanical drawing (page 2) is a figure, so the '
-           'pad size, the centre-to-centre spacing and the pad-to-edge offset do not '
-           'extract as text.  Drawn at 2.0 x 2.0 mm, 5.08 mm apart, 0.3 mm proud of '
-           'the frame edge.  Confirm those against the drawing and it is final.',
+    'J2':  'Same Sky CMS-151103-088SP speaker.  Body 15 x 11 x 3 mm and both pads '
+           '0.6 mm square on the left and right sides are **read from the drawing**.  '
+           'One inference is left: the pad-to-edge offset is taken as flush, so the '
+           'pad centres are at +/-7.2 mm (14.4 mm apart).  If the drawing insets them '
+           'instead, that is the single number to change.',
 }
 
 for _k, _s in SYMS.items():

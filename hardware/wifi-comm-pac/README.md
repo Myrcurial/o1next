@@ -155,13 +155,13 @@ part is small enough to sit inside the COMM PAC's floppy-pocket envelope. Pin 1
 is the **`+`** terminal (the datasheet's polarity: the cone moves forward with
 positive dc on `+`), so it takes `SPK_P`.
 
-Its footprint is ours (`o1next:Speaker_SameSky_CMS-151103-088SP`): the 15 × 11 mm
-body is exact from the datasheet, but the **two solder pads are placed, not read**
-— the datasheet's mechanical drawing is a figure, so the pad size and spacing do
-not extract as text. They are drawn at 2.0 × 2.0 mm, 5.08 mm apart, 0.3 mm proud
-of the frame edge, and those two numbers are to be confirmed against the drawing.
-The part it replaced was a Multicomp Pro MCKPT-G1340-3917 piezo buzzer; that
-footprint has been deleted.
+Its footprint is ours (`o1next:Speaker_SameSky_CMS-151103-088SP`), and its geometry
+comes off the datasheet's mechanical drawing: the 15 × 11 × 3 mm body, and **two
+0.6 mm square solder pads on the left and right sides**. They are drawn 14.4 mm
+apart, with each pad's outer edge flush with the 15 mm body end — that flush
+offset is the one number read rather than stated, and it is what would change if
+the drawing insets them. The part it replaced was a Multicomp Pro
+MCKPT-G1340-3917 piezo buzzer; that footprint has been deleted.
 
 Dial tone, DTMF and ring cadence are in #322; prior art is `na103/zimodem`
 (CC BY 4.0 — method only).
