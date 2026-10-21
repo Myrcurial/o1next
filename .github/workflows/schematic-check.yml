@@ -64,6 +64,11 @@ jobs:
       # **And the install is retried**, because Launchpad is a third party that
       # goes down: on 2026-10-21 the 9.0 and 7.0 PPAs served 503 for over half an
       # hour while the 8.0 one flapped between 200 and 503.
+      # **And every apt command is bounded**, because the first version of this
+      # retry hung for fifteen minutes: `add-apt-repository` runs an update of its
+      # own with no timeout, and against a 503ing Launchpad it simply waited.  A
+      # job that hangs is worse than one that fails -- it holds the runner and the
+      # pull request.  So the update is split out and every step gets `timeout`.
       - name: Install KiCad (official stable PPA, falling back to the distro's)
         env:
           KICAD_MAJOR: 9
@@ -73,19 +78,19 @@ jobs:
           got=""
           for attempt in 1 2 3; do
             echo "::group::PPA attempt $attempt"
-            sudo add-apt-repository --yes "$ppa" || true
+            timeout 60  sudo add-apt-repository --yes --no-update "$ppa" || true
             # apt-get update exits non-zero when *any* source 503s, and the PPA is
             # the only one we care about -- so the failure is ignored here and the
             # version check below is what decides.
-            sudo apt-get update || true
-            sudo apt-get install --yes --allow-downgrades kicad || true
+            timeout 180 sudo apt-get update -o Acquire::Retries=1 || true
+            timeout 300 sudo apt-get install --yes --allow-downgrades kicad || true
             got="$(kicad-cli --version 2>/dev/null || echo none)"
             echo "kicad-cli: $got"
             echo "::endgroup::"
             case "$got" in
               "${KICAD_MAJOR}".*) echo "ok: kicad-cli $got from the PPA on attempt $attempt"; exit 0 ;;
             esac
-            [ "$attempt" -lt 3 ] && { echo "not ${KICAD_MAJOR}.x yet -- Launchpad is probably 503ing; waiting 30s"; sleep 30; }
+            [ "$attempt" -lt 3 ] && { echo "not ${KICAD_MAJOR}.x yet -- Launchpad is probably 503ing; waiting 20s"; sleep 20; }
           done
 
           # The PPA did not serve.  The files are KiCad 7 format, so the distro's
