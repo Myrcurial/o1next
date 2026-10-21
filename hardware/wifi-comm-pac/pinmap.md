@@ -228,8 +228,13 @@ and the SFF each carry their own populated copy.
 3. **There is no DCD line on P1.** The DE-9 carries MSB (one status bit), CTS and
    RI — so the panel's **CD lamp is socket state**, and the machine-visible carrier
    indication is **MSB**.
-4. **The audio transducer** — passive piezo element or small speaker, and where
-   it points once the case is closed (#325).
+4. **The speaker's pad geometry** — J2 is settled as Same Sky CMS-151103-088SP
+   (15 × 11 × 3 mm, 8 Ω, 0.7 W), and the footprint's body is exact from the
+   datasheet. What is **not** yet read is the mechanical drawing's pad figure:
+   pad size, centre-to-centre spacing, and how far the pads sit from the frame
+   edge. They are drawn at 2.0 × 2.0 mm at 5.08 mm, 0.3 mm proud. Confirm those
+   against the drawing before layout. Also still open: **where the speaker
+   points** once the case is closed (#325).
 
 ## References
 

@@ -229,7 +229,7 @@ SYMS = {
              [(1, 'VBUS'), (2, 'CC1'), (3, 'CC2'), (4, 'D+'), (5, 'D-')],
              [(6, 'GND'), (7, 'SHIELD')], w=20.32),
     'SW1': two_pin('SW_LATCH', 'SW', 12.7),
-    'J2': two_pin('CONN_SPK', 'J', 10.16),
+    'J2': two_pin('SPEAKER', 'J', 10.16),
     'R': two_pin('R', 'R', 7.62),
     'C': two_pin('C', 'C', 7.62),
     'L': two_pin('L', 'L', 7.62),
@@ -281,6 +281,9 @@ NET_U10 = {1: '+5V', 2: 'GND', 3: '+5V', 4: '+3V3', 5: 'NC'}
 NET_J3 = {1: 'VBUS_IN', 2: 'USB_CC1', 3: 'USB_CC2', 4: 'USB_DP_CON',
           5: 'USB_DM_CON', 6: 'GND', 7: 'GND'}
 NET_SW1 = {1: '+12V', 2: '+12V_SW'}
+# Pin 1 is the '+' terminal.  The datasheet gives the polarity: the cone moves
+# forward with positive dc on '+'.  SPK_P is the amplifier's OUT+, so pin 1 takes
+# SPK_P and the speaker pushes on a positive half-cycle rather than pulling.
 NET_J2 = {1: 'SPK_P', 2: 'SPK_N'}
 
 # --------------------------------------------------------------- placement
@@ -299,7 +302,7 @@ PLACE = [
     ('U6', 'U6', 'AW9523B panel 0x58', 480, 130, NET_U6),
     # audio
     ('U8', 'U8', 'MAX98357A', 620, 400, NET_U8),
-    ('J2', 'J2', 'Speaker', 710, 400, NET_J2),
+    ('J2', 'J2', 'CMS-151103-088SP', 710, 400, NET_J2),
     # power
     ('SW1', 'SW1', 'Slide switch, latching', 450, 45, NET_SW1),
     ('U9', 'U9', 'TPS54331 buck 12.6->5', 520, 55, NET_U9),
@@ -412,10 +415,22 @@ FOOTPRINTS = {
     'L':   'Inductor_SMD:L_1210_3225Metric',
     'D':   'Diode_SMD:D_SMA',
     'F':   'Fuse:Fuse_1206_3216Metric',
-    # J2 is a **piezo buzzer**, not a speaker: Multicomp Pro MCKPT-G1340-3917,
-    # 12 Vp-p, 4 kHz, 80 dB, 9.5 nF.  Pin pitch 5.08 mm, measured by seating it in
-    # a breadboard.  Its own footprint, in the library above.
-    'J2':  'o1next:Piezo_Buzzer_Multicomp_MCKPT-G1340-3917',
+    # J2 is a **real speaker**, not a piezo buzzer: Same Sky CMS-151103-088SP,
+    # 15 x 11 x 3 mm rectangular frame, 0.7 W (1.0 W max), 8 ohm, 90 dB at
+    # 0.7 W/10 cm, PEEK cone, Nd-Fe-B magnet, solder-pad terminals, Fo 680-850 Hz
+    # in a 1 cc box.  The part was chosen on 2026-10-21 (the piezo it replaces --
+    # Multicomp Pro MCKPT-G1340-3917 -- is out; its footprint has been deleted).
+    #
+    # Why a speaker and not a buzzer: the panel has to make **the noise a modem
+    # makes** -- dial tone, DTMF, ring cadence -- and a transducer that only knows
+    # one note cannot.  The MAX98357A is an I2S class-D amplifier with its own DAC,
+    # so the waveform is synthesised in firmware (#322) and the transducer only has
+    # to be linear across 300-3400 Hz.  8 ohm is the load the amp wants.
+    #
+    # The footprint is ours and the body is exact; **its two pads are placed, not
+    # read** -- the datasheet's mechanical drawing is a figure.  See the footprint's
+    # own descr and FOOTPRINT_OPEN below.
+    'J2':  'o1next:Speaker_SameSky_CMS-151103-088SP',
     # SW1 is SparkFun COM-10860, the Surface Mount Right Angle Switch -- SPST,
     # 6.7 x 2.6 mm.  SparkFun's library is CC BY 4.0, so the footprint is copied
     # into ours *with attribution* rather than referenced: the board then needs no
@@ -441,6 +456,20 @@ FOOTPRINT_OPEN = {
            'with the real signal names, the ten unused contacts carried and marked '
            'no-connect, and it changes the netlist, which check_schematics.py '
            'asserts.  That is why it is its own job and not a footnote here.',
+}
+
+# A third category, and a different failure: the part is decided and the footprint
+# **is** assigned, but some dimension in it was placed rather than read, because
+# the source gives it only as a figure.  That is not the same as FOOTPRINT_OPEN --
+# the board is complete and opens -- but it is not finished either, so it is
+# printed on every run beside it.
+FOOTPRINT_UNCONFIRMED = {
+    'J2':  'Same Sky CMS-151103-088SP speaker.  The 15 x 11 x 3 mm body and the '
+           'courtyard are exact, from the datasheet.  The **two solder pads are '
+           'placed, not read**: the mechanical drawing (page 2) is a figure, so the '
+           'pad size, the centre-to-centre spacing and the pad-to-edge offset do not '
+           'extract as text.  Drawn at 2.0 x 2.0 mm, 5.08 mm apart, 0.3 mm proud of '
+           'the frame edge.  Confirm those against the drawing and it is final.',
 }
 
 for _k, _s in SYMS.items():
@@ -785,6 +814,11 @@ if missing:
     print()
     print('  A schematic with empty footprints transfers NOTHING to the PCB.')
     print('  Fill FOOTPRINTS above; every name there is checked against the library.')
+
+print()
+print('UNCONFIRMED -- footprint assigned, but a dimension in it was placed, not read:')
+for _k in sorted(FOOTPRINT_UNCONFIRMED):
+    print('  %-5s %s' % (_k, FOOTPRINT_UNCONFIRMED[_k]))
 
 print('wrote wifi-comm-pac.kicad_sch:',
       len(segs), 'wire segments,', len(labels), 'labels,',

@@ -4,7 +4,7 @@
 **third deliverable**. See the register in [`../README.md`](../README.md). It
 closely models the original Osborne 1 COMM PAC 300-baud modem and lives in the
 left-hand floppy storage pocket, taking power and signal from the MODEM (P1)
-9-pin port. The PCB also hosts ~10 indicator LEDs, a piezo speaker, the aux power
+9-pin port. The PCB also hosts ~10 indicator LEDs, a 15 × 11 mm speaker, the aux power
 port for the keyboard adapter, and a USB-C port for programming or powering the
 ESP32.
 
@@ -143,9 +143,28 @@ LED states and semantics are #322; current is set to **2–3 mA** per lamp.
 
 An **I²S-input class-D amplifier with its own DAC** (MAX98357A class) on the
 **5 V** rail, three pins (BCLK/LRCLK/DIN) plus gain/mode straps, driving a
-**passive** transducer — an active buzzer is the wrong part (one tone, no dial
-tone, no DTMF, no ring cadence). Dial tone, DTMF and ring cadence are in #322;
-prior art is `na103/zimodem` (CC BY 4.0 — method only).
+**real speaker** — not a piezo buzzer, and not an active buzzer. Both are the
+wrong part: an active buzzer knows one note, and a bare piezo element is
+non-linear and thin across the band, where the panel has to make **the noise a
+modem makes**.
+
+**J2 is Same Sky CMS-151103-088SP** — 15 × 11 × 3 mm rectangular frame, 0.7 W
+(1.0 W max), **8 Ω**, 90 dB at 0.7 W / 10 cm, PEEK cone, Nd-Fe-B magnet, solder-pad
+terminals, Fo 680–850 Hz in a 1 cc box. 8 Ω is the load the amp wants, and the
+part is small enough to sit inside the COMM PAC's floppy-pocket envelope. Pin 1
+is the **`+`** terminal (the datasheet's polarity: the cone moves forward with
+positive dc on `+`), so it takes `SPK_P`.
+
+Its footprint is ours (`o1next:Speaker_SameSky_CMS-151103-088SP`): the 15 × 11 mm
+body is exact from the datasheet, but the **two solder pads are placed, not read**
+— the datasheet's mechanical drawing is a figure, so the pad size and spacing do
+not extract as text. They are drawn at 2.0 × 2.0 mm, 5.08 mm apart, 0.3 mm proud
+of the frame edge, and those two numbers are to be confirmed against the drawing.
+The part it replaced was a Multicomp Pro MCKPT-G1340-3917 piezo buzzer; that
+footprint has been deleted.
+
+Dial tone, DTMF and ring cadence are in #322; prior art is `na103/zimodem`
+(CC BY 4.0 — method only).
 
 ## The schematic
 
