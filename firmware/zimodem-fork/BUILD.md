@@ -567,6 +567,21 @@ as a workflow artifact.
 arduino-cli is pinned to **1.5.1** and the core to **2.0.17** — which is also the
 cache key, so a cache miss is slow and never wrong.
 
+**CI fetches the core before it builds, and it has to.** The core is not in the
+fork's tree, so a job that only checked out the fork fails with *"no o1next core
+at .../o1modem"* — a message that reads like a broken build and is really a
+missing input. That happened: the vendoring step and the workflow landed in the
+same commit without the workflow being updated, so the fork's CI was **red from the
+moment the core moved out of the tree**, and the message it failed with pointed at
+the script rather than at the missing checkout.
+
+The fetch takes the **same-named branch** in `Myrcurial/o1next` when there is one,
+and falls back to `main`. That is deliberate rather than convenient: a fork branch
+and its core branch are *one unit of work* — the pair is what has to build — and
+`main` is the right answer only once the core has merged. It is a **sparse,
+partial** clone (`--filter=blob:none --sparse`), because `research/` is an
+intentional archive of manuals and disk images and none of it compiles anything.
+
 ### Rosetta, and why the build needs it
 
 **This machine cannot build an Arduino ESP32 sketch without Rosetta.** Every
