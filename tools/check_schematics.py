@@ -716,24 +716,37 @@ REV0 = Board(
     passthrough=[("J1", "J2", range(1, 41), set())],
 )
 
-# U5 is the ESP32-S2-MINI-2U module, and like J3 it uses the **part's own** pin
-# numbers, because its footprint has 73 pads and a net has to land on each.  These
-# three lists mirror the generator's; the pin-versus-pad audit below is what
-# guarantees they stay honest, since it checks all 73 against the footprint.
+# U5's 26 free GPIO, as (pad, the module's own IO name) -- mirroring the
+# generator's table, which builds U5's symbol, names these nets, and labels J4.
+U5_FREE = [
+    ("4", "IO0"), ("5", "IO1"), ("6", "IO2"), ("7", "IO3"), ("8", "IO4"),
+    ("9", "IO5"), ("10", "IO6"), ("11", "IO7"), ("12", "IO8"), ("13", "IO9"),
+    ("14", "IO10"), ("15", "IO11"), ("16", "IO12"), ("17", "IO13"),
+    ("18", "IO14"), ("21", "IO17"), ("22", "IO18"), ("26", "IO26"),
+    ("35", "IO39"), ("36", "IO40"), ("37", "IO41"), ("38", "IO42"),
+    ("39", "IO43"), ("40", "IO44"), ("41", "IO45"), ("44", "IO46"),
+]
+# Only the module's own pad 27 is genuinely unconnected now.  The free GPIO used to
+# be here; they go to J4 instead.
+U5_NC = ["27"]
 U5_GND = (["1", "2", "30", "42", "43"] + [str(p) for p in range(46, 56)]
           + ["56", "57", "58", "59", "60", "62"]
           + [f"61_{i}" for i in range(1, 10)]
           + ["63", "64", "65"])
 U5_USED = ["3", "45", "19", "20", "28", "29", "31", "32", "33", "34", "25",
            "23", "24"]
-# 26 GPIO this board leaves free, plus the module's own pad 27.  Carried in the
-# symbol and marked no-connect rather than omitted -- an omitted pad is a pad with
-# no net, which is how a module footprint ends up half-wired, and ERC would then
-# report 27 pin_not_connected errors instead of staying quiet about them.
-U5_NC = ["4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
-         "16", "17", "18", "21", "22", "26", "35", "36", "37", "38",
-         "39", "40", "41", "44", "27"]
-U5_PADS = U5_USED + U5_GND + U5_NC
+U5_PADS = U5_USED + U5_GND + U5_NC + [p for p, _ in U5_FREE]
+
+# The free-GPIO nets, each asserted as an **exact pair**: one U5 pad and one J4
+# pin.  This is the check that stops the header silk from lying -- a pin whose
+# label says IO1 but which is wired to IO2 fails here, rather than in somebody
+# else's project six months from now.
+GPIO_NETS = {}
+for _i, (_pad, _name) in enumerate(U5_FREE):
+    if _i < 13:
+        GPIO_NETS[_name] = {("U5", _pad), ("J4", str(2 * _i + 1))}
+    else:
+        GPIO_NETS[_name] = {("U5", _pad), ("J4", str(2 * (_i - 13) + 2))}
 
 # J3 is the USB-C receptacle, and it uses the part's **real** pin numbers -- A1-A12,
 # B1-B12 and SH1-SH6 -- because its footprint has 30 pads and a net has to land on
@@ -755,14 +768,14 @@ WIFI_COMM_PAC = Board(
     name="wifi-comm-pac",
     sch="hardware/wifi-comm-pac/wifi-comm-pac-generated/wifi-comm-pac.kicad_sch",
     gen="hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py",
-    # 178, and the number is derived rather than fudged: **every** violation this
+    # 189, and the number is derived rather than fudged: **every** violation this
     # board produces is the one kind -- "The current configuration does not include
     # the symbol library 'local'" -- and there is exactly one per *placed symbol*.
-    # The generator emits 178 of them.  Verified with
-    # `kicad-cli sch erc --severity-all`: 178 messages, 178 of this type, 0 of any
-    # other.  It was 179 before U5 was rebuilt: its 33 ground pads stack behind one
-    # visible pin, so two ground symbols became one.
-    erc_allowance={"lib_symbol_issues": 178},
+    # The generator emits 189 of them.  Verified with
+    # `kicad-cli sch erc --severity-all`: 189 messages, 189 of this type, 0 of any
+    # other.  It moves whenever a part is added, which is why the derivation is
+    # written down rather than the number.
+    erc_allowance={"lib_symbol_issues": 189},
     pinout=[("J1", {1: "GND", 2: "P1_TXD", 4: "P1_MSB", 5: "P1_CTS",
                     6: "P1_RXD", 7: "+12V", 8: "P1_MCB", 9: "P1_RI"})],
     exact_nets={
@@ -787,11 +800,18 @@ WIFI_COMM_PAC = Board(
         # classic way to get a port that works with the cable one way up and not
         # the other, and it looks fine on the sheet either way.
         "VBUS_IN": {("J3", "A4"), ("J3", "A9"), ("J3", "B4"), ("J3", "B9"),
-                    ("F1", "1")},
+                    ("F1", "1"), ("D15", "1")},
         "USB_CC1": {("J3", "A5"), ("R15", "1")},
         "USB_CC2": {("J3", "B5"), ("R16", "1")},
         "USB_DP_CON": {("J3", "A6"), ("J3", "B6"), ("R17", "2")},
         "USB_DM_CON": {("J3", "A7"), ("J3", "B7"), ("R18", "2")},
+        # the 5 V out: the diode-OR output, through the current limit, to the
+        # keyed connector.  J5 pin 1 is +5 V and pin 2 is ground -- the shroud
+        # makes that not a choice, and this asserts it anyway.
+        "ILIM_5V": {("U11", "5"), ("R28", "1")},
+        "+5V_OUT": {("U11", "6"), ("J5", "1")},
+        # and the 26 free-GPIO nets, each an exact U5-pad / J4-pin pair
+        **GPIO_NETS,
     },
     excludes_nets={
         # 5 V must never touch the 3.3 V-only parts (all of the ESP32, both
@@ -842,6 +862,8 @@ WIFI_COMM_PAC = Board(
               "logical, not the VQFN-16 pinout",
         "SW1": "SparkFun COM-10860: 2 pins against 7 pads; the five extra are the "
                "mounting tabs (MT1-MT4) and pad 3",
+        "J5": "JST PH S2B-PH-SM4-TB: 2 pins against 4 pads; the two named MP are "
+              "the board-retention mounting pegs, which are mechanical",
     },
 )
 

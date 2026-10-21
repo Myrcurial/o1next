@@ -101,11 +101,18 @@ to lose a board. This file fixes *functions*; the layout fixes geometry.
 with the module's own pads, taken from the datasheet and cross-checked against
 SnapEDA's symbol for the part. That is deliberate and it is not a restatement of
 this file — this file says *which GPIO*, the schematic says *which pad*, and the
-two only agree because someone checked. The 26 GPIO left free here are carried in
-the symbol and marked no-connect rather than omitted, so their pads are visibly
-unused instead of silently floating. The 33 ground pads are stacked behind one
+two only agree because someone checked. The 33 ground pads are stacked behind one
 visible pin — the vendor's own convention, and the reason a 73-pad module is a
 readable symbol.
+
+**The 26 GPIO left free here are not wasted.** They come out to **`J4`, a 2×13
+header that is left unpopulated** — 2×13 because that is exactly 26, with the
+module's own IO names on the silk so `IO43` reads as UART0 TXD without a datasheet.
+That is what makes "left free" a decision rather than a dead end: the radio, the
+DACs, the touch channels and the second SPI set are all reachable by soldering a
+header on, without touching U5's footprint. `GPIO0`, `IO43` and `IO44` are among
+them — the BOOT strapping pin and the UART0 console, which this map allocates but
+the board does not otherwise wire.
 
 ## What is left free, and why
 

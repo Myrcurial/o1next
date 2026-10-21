@@ -208,10 +208,65 @@ connected *across the page* and so cannot be followed:
 
 | Section | Holds |
 |---|---|
-| **POWER** (bottom band) | the P1 12.6 V rail and the USB-C front end — diode-OR, buck, LDO, polyfuse, the CC pulldowns |
-| **LOGIC** (left, upper) | J1, the level stage, the ESP32 and its support parts, both expanders |
+| **POWER** (bottom band) | the P1 12.6 V rail and the USB-C front end — diode-OR, buck, LDO, polyfuse, the CC pulldowns, the ESD clamp, and the 5 V out |
+| **LOGIC** (left, upper) | J1, the level stage, the ESP32 and its support parts, both expanders, and the free-GPIO header |
 | **PANEL** (right, upper) | the 11 lamps, one row each: resistor and LED side by side |
 | **AUDIO** (right, lower) | the MAX98357A and the speaker |
+
+### The free-GPIO header, J4 — and why it is 2×13
+
+U5 leaves **26 GPIO** unused. They were marked no-connect, which is correct but
+*terminal*: the pad is on the module's footprint, the header is not, and reaching
+it later means redoing the board. **J4** brings all 26 out to a **2×13 header** —
+2×13 exactly, because that is the 26 GPIO and not 2×14 with grounds.
+
+**It is left unpopulated, and marked `dnp`** so KiCad keeps it out of the BOM and
+off the placement file. That is the difference between "left unfitted on purpose"
+and "we forgot to order it". The pads cost nothing and mean somebody can solder a
+header on later and use the radio, the DACs, the touch channels and the second SPI
+set without touching U5's footprint.
+
+Pins are numbered the way a 2×13 is — odd on row 1, even on row 2 — and **named
+with the module's own IO names**, so the silk says `IO43` and that is UART0 TXD
+without a datasheet lookup:
+
+| | row 1 (odd) | row 2 (even) |
+|---|---|---|
+| | IO0 IO1 IO2 IO3 IO4 IO5 IO6 IO7 IO8 IO9 IO10 IO11 IO12 | IO13 IO14 IO17 IO18 IO26 IO39 IO40 IO41 IO42 IO43 IO44 IO45 IO46 |
+
+One table in the generator builds U5's symbol, names these nets, *and* labels the
+header, and `check_schematics.py` asserts each of the 26 as an **exact pair** — one
+U5 pad and one J4 pin. Three separate lists would drift, and the first thing to
+drift would be a header pin labelled `IO18` that is really `IO17`, which is the
+worst possible bug on a header a hobbyist is meant to use.
+
+### 5 V out to the keyboard adapter
+
+**J5** is a **JST PH, side entry, SMD** (`S2B-PH-SM4-TB`). It is fully shrouded
+with a polarising slot, so the plug cannot go in the wrong way round and **there is
+no reverse-voltage case to design for**. Side entry means the cable leaves parallel
+to the board, straight out the front of the floppy pocket. 2 A, 100 V, 2.0 mm
+pitch; KiCad carries the footprint, so nothing is drawn here.
+
+It is fed from the **diode-OR output** (`+5V`), so whichever source is present —
+the machine's 12.6 V through the buck, or USB VBUS — feeds the port. That is what
+lets the keyboard adapter drop its 12 V→5 V buck and keep only its LDO.
+
+**U11 is the current limit on it.** `D13`/`D14` are SS14 — **1 A each** — so the
+5 V rail cannot source more than about an amp, and a port labelled "5 V out"
+invites somebody to plug in a load that wants three. `U11` is a **TPS2553**
+current-limited power-distribution switch, and `R28` sets the limit: `I_OS = 25.6 /
+R_ILIM`, so **27 kΩ gives about 0.95 A** — under the diodes, and 15× the ~60 mA the
+adapter draws. It limits rather than latches, so nothing needs to know when it
+does; `FAULT` is unused for that reason.
+
+### ESD on the USB-C input
+
+**`D15`** is a `PESD5V0S1BA` on `VBUS_IN`, upstream of the diode-OR, so it is the
+first thing a transient meets. 5 V standoff, so it does not conduct on a 5.25 V
+VBUS, and it clamps low enough not to overstress the `AP2112K` downstream. The
+port is *meant* for a computer; "meant for" is not a protection.
+
 
 ### The wiring, and the defect it fixes
 

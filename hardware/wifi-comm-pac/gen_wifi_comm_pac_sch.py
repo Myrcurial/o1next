@@ -216,6 +216,38 @@ def stack_onto(sym, anchor, nums, name):
     return sym
 
 
+# ------------------------------------------------- U5's pads, named once
+# The module's 33 ground pads, its 26 unused GPIO, and its own pad 27.  Named here
+# rather than repeated, so the symbol, the net map and the checker cannot drift
+# apart -- and so the arithmetic is checkable: 13 used + 33 ground + 27 unused is
+# exactly the 73 pads the footprint has.
+U5_GND = (['1', '2', '30', '42', '43'] + [str(p) for p in range(46, 56)]
+          + ['56', '57', '58', '59', '60', '62']
+          + [f'61_{i}' for i in range(1, 10)]
+          + ['63', '64', '65'])
+# The 26 GPIO this board leaves free, as **pad -> the module's own IO name**.  One
+# table used three ways: to build U5's symbol, to name the nets, and to label the
+# breakout header.  That is deliberate -- three separate lists would drift, and
+# the first thing to drift would be a header pin labelled IO18 that is really
+# IO17, which is the worst possible bug on a header a hobbyist is meant to use.
+U5_FREE = [
+    ('4', 'IO0'), ('5', 'IO1'), ('6', 'IO2'), ('7', 'IO3'), ('8', 'IO4'),
+    ('9', 'IO5'), ('10', 'IO6'), ('11', 'IO7'), ('12', 'IO8'), ('13', 'IO9'),
+    ('14', 'IO10'), ('15', 'IO11'), ('16', 'IO12'), ('17', 'IO13'),
+    ('18', 'IO14'), ('21', 'IO17'), ('22', 'IO18'), ('26', 'IO26'),
+    ('35', 'IO39'), ('36', 'IO40'), ('37', 'IO41'), ('38', 'IO42'),
+    ('39', 'IO43'), ('40', 'IO44'), ('41', 'IO45'), ('44', 'IO46'),
+]
+U5_FREE_PADS = [p for p, _ in U5_FREE]
+U5_NC = ['27'] + U5_FREE_PADS
+U5_USED = ['3', '45', '19', '20', '28', '29', '31', '32', '33', '34', '25',
+           '23', '24']
+U5_PADS = U5_USED + U5_GND + U5_NC
+
+# 33 ground pads behind one visible pin, which is what makes a 73-pad module a
+# readable symbol.  See stack_onto.  (The call is below the SYMS table, because it
+# needs the symbol to exist.)
+
 # --------------------------------------------------------------- symbols
 # Pin sides follow the signal flow left -> right: the machine (J1) on the left,
 # then the level stage, then the ESP32, then the expanders and the panel.
@@ -272,14 +304,7 @@ SYMS = {
               ('34', 'IO38'), ('25', 'IO21'),
               ('23', 'IO19'), ('24', 'IO20'),
               ('1', 'GND')],
-             [('4', 'IO0'), ('5', 'IO1'), ('6', 'IO2'), ('7', 'IO3'),
-              ('8', 'IO4'), ('9', 'IO5'), ('10', 'IO6'), ('11', 'IO7'),
-              ('12', 'IO8'), ('13', 'IO9'), ('14', 'IO10'), ('15', 'IO11'),
-              ('16', 'IO12'), ('17', 'IO13'), ('18', 'IO14'),
-              ('21', 'IO17'), ('22', 'IO18'), ('26', 'IO26'),
-              ('27', 'NC'),
-              ('35', 'IO39'), ('36', 'IO40'), ('37', 'IO41'), ('38', 'IO42'),
-              ('39', 'IO43'), ('40', 'IO44'), ('41', 'IO45'), ('44', 'IO46')],
+             U5_FREE + [('27', 'NC')],
              w=35.56),
     'U6': ic('AW9523B_PANEL', 'U',
              [(1, 'VDD'), (2, 'GND'), (3, 'SDA'), (4, 'SCL'), (5, 'AD0'),
@@ -337,28 +362,48 @@ SYMS = {
     'LED': two_pin('LED', 'D', 7.62),
     'LEDR': two_pin('LED', 'D', 7.62),
     'F': two_pin('FUSE', 'F', 7.62),
+    # ---- J4: the free GPIO, brought out so they are not trapped in the module --
+    # U5 leaves 26 GPIO unused and they were marked no-connect, which is correct
+    # but *terminal*: the pad is on the footprint, the header is not, and there is
+    # no way to reach it without redoing the board.  A 2x13 header fixes that, and
+    # 26 pins is exactly the 26 GPIO -- which is why it is 2x13 and not 2x14 with
+    # grounds.  **It is left unpopulated**: it costs nothing to have the pads
+    # there, and it means a later hobbyist can solder a header on and use the
+    # radio, the DACs, the touch channels and the second SPI set without touching
+    # U5's footprint.  Pins are numbered the way a 2x13 is -- odd on row 1, even
+    # on row 2 -- and named with the module's own IO names, so pin 3 says IO1 and
+    # a datasheet lookup is not needed.
+    'J4': ic('EXP_GPIO_2X13', 'J',
+             [(str(2 * i + 1), U5_FREE[i][1]) for i in range(13)],
+             [(str(2 * i + 2), U5_FREE[13 + i][1]) for i in range(13)],
+             w=25.4, pitch=2.54),
+    # ---- J5: 5 V out, to the keyboard adapter -------------------------------
+    # A keyed JST PH: fully shrouded with a polarising slot, so the plug cannot go
+    # in the wrong way round and there is no reverse-voltage case to design for.
+    'J5': two_pin('PWR_OUT_5V', 'J', 10.16),
+    # ---- U11: the current limit on that 5 V out -----------------------------
+    # TPS2553, a current-limited power-distribution switch.  It exists because
+    # D13/D14 are SS14 -- **1 A each** -- so the 5 V rail cannot source more than
+    # about an amp, and a "5 V out" port invites somebody to plug in a load that
+    # wants three.  The limit is set by R28 on ILIM: I_OS = 25.6 / R_ILIM, so
+    # 27 kohm gives about 0.95 A, under the diodes and 15x the adapter's ~60 mA.
+    # EN is active LOW, so it is tied to GND to leave the switch on.  FAULT is
+    # open-drain and unused here -- there is no MCU pin to spare for it, and the
+    # part limits rather than latches, so nothing needs to know.
+    'U11': ic('TPS2553', 'U',
+              [(1, 'IN'), (3, '/EN'), (5, 'ILIM')],
+              [(6, 'OUT'), (4, '/FAULT'), (2, 'GND')]),
+    # ---- D15: the ESD clamp on the USB-C input power -------------------------
+    # The port is meant for a computer and nothing else, but "meant for" is not a
+    # protection.  VBUS arrives on J3, passes the polyfuse, and this clamps the
+    # transient before it reaches the diode-OR.  Its own symbol key because the
+    # footprint is different from the SS14s' -- SOD-323, not SMA.
+    'TVS': two_pin('D_ESD', 'D', 7.62),
 }
 
-# ------------------------------------------------- U5's pads, named once
-# The module's 33 ground pads, its 26 unused GPIO, and its own pad 27.  Named here
-# rather than repeated, so the symbol, the net map and the checker cannot drift
-# apart -- and so the arithmetic is checkable: 13 used + 33 ground + 27 unused is
-# exactly the 73 pads the footprint has.
-U5_GND = (['1', '2', '30', '42', '43'] + [str(p) for p in range(46, 56)]
-          + ['56', '57', '58', '59', '60', '62']
-          + [f'61_{i}' for i in range(1, 10)]
-          + ['63', '64', '65'])
-U5_FREE = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15',
-           '16', '17', '18', '21', '22', '26', '35', '36', '37', '38',
-           '39', '40', '41', '44']
-U5_NC = ['27'] + U5_FREE
-U5_USED = ['3', '45', '19', '20', '28', '29', '31', '32', '33', '34', '25',
-           '23', '24']
-U5_PADS = U5_USED + U5_GND + U5_NC
-
-# 33 ground pads behind one visible pin, which is what makes a 73-pad module a
-# readable symbol.  See stack_onto.
+# 33 ground pads behind one visible pin -- see stack_onto.
 stack_onto(SYMS['U5'], '1', U5_GND[1:], 'GND')
+
 # --------------------------------------------------------------- net maps
 LED_SRC = [                       # constant-current source, P0
     ('LED_RADIO', 17), ('LED_CONN', 18), ('LED_HS', 19), ('LED_AA', 20),
@@ -392,8 +437,12 @@ NET_U5 = {
 }
 for _p in U5_GND:
     NET_U5[_p] = 'GND'
-for _p in U5_NC:
-    NET_U5[_p] = 'NC'
+# The free GPIO are **named, not no-connected**: each one goes to J4, so the pad,
+# the net and the header pin all carry the module's own IO name.  Only pad 27 --
+# which is not connected inside the module either -- stays NC.
+for _pad, _name in U5_FREE:
+    NET_U5[_pad] = _name
+NET_U5['27'] = 'NC'
 NET_U6 = {1: '+3V3', 2: 'GND', 3: 'I2C_SDA', 4: 'I2C_SCL', 5: 'GND', 6: 'GND',
           7: 'INT_PANEL', 8: 'EXP_RSTN', 12: 'NC', 13: 'NC', 14: 'NC',
           15: 'NC', 16: 'NC'}
@@ -436,6 +485,22 @@ NET_J3 = {
     'A8': 'NC', 'B8': 'NC',
 }
 NET_SW1 = {1: '+12V', 2: '+12V_SW'}
+# J4 carries the 26 free GPIO.  The mapping is built the same way the symbol's is
+# -- odd pins on row 1, even on row 2 -- because a header whose silk says IO1 on a
+# pin that is really IO2 is worse than no header at all.
+NET_J4 = {}
+for _i in range(13):
+    NET_J4[str(2 * _i + 1)] = U5_FREE[_i][1]
+    NET_J4[str(2 * _i + 2)] = U5_FREE[13 + _i][1]
+
+# U11, the current limit on the 5 V out.  IN comes off the diode-OR output, so
+# whichever source is present feeds the port -- that is the whole point of putting
+# it here rather than on one of the two inputs.  EN is active low, so it is tied
+# to ground to leave the switch permanently on.  FAULT is unused: the part limits
+# rather than latches, so there is nothing for an MCU to react to.
+NET_U11 = {1: '+5V', 3: 'GND', 5: 'ILIM_5V', 6: '+5V_OUT', 4: 'NC', 2: 'GND'}
+# J5 pin 1 is +5 V and pin 2 is ground.  The shroud makes that not a choice.
+NET_J5 = {1: '+5V_OUT', 2: 'GND'}
 # Pin 1 is the '+' terminal.  The datasheet gives the polarity: the cone moves
 # forward with positive dc on '+'.  SPK_P is the amplifier's OUT+, so pin 1 takes
 # SPK_P and the speaker pushes on a positive half-cycle rather than pulling.
@@ -482,6 +547,11 @@ PLACE = [
     # --- AUDIO ---------------------------------------------------------------
     ('U8', 'U8', 'MAX98357A', 680, 420, NET_U8),
     ('J2', 'J2', 'CMS-151103-088SP', 762, 420, NET_J2),
+    # --- LOGIC: the free-GPIO breakout, beside the module whose GPIO they are --
+    ('J4', 'J4', '2x13 header, GPIO breakout (DNP)', 490, 290, NET_J4),
+    # --- POWER: 5 V out to the keyboard adapter, and the current limit on it ---
+    ('U11', 'U11', 'TPS2553 current limit ~0.95A', 620, 530, NET_U11),
+    ('J5', 'J5', '5V out to keyboard adapter', 760, 530, NET_J5),
     # --- POWER: the 12.6 V chain along the top of the band, USB below it ------
     ('SW1', 'SW1', 'Slide switch, latching', 400, 445, NET_SW1),
     ('U9', 'U9', 'TPS54331 buck 12.6->5', 470, 450, NET_U9),
@@ -503,6 +573,14 @@ TWO = [
     ('R', 'R14', '10k', 700, 470, 'COMP_N', 'GND'),
     ('C', 'C5', '22u', 740, 490, '+5V_P1', 'GND'),
     ('C', 'C7', '10u', 810, 440, '+3V3', 'GND'),
+    # --- POWER: the current limit's set resistor, and the ESD clamp on VBUS ---
+    # R28 sets U11's limit: I_OS = 25.6 / R_ILIM, so 27 kohm is about 0.95 A --
+    # under the SS14 diodes' 1 A, and 15x what the keyboard adapter draws.
+    ('R', 'R28', '27k', 660, 530, 'ILIM_5V', 'GND'),
+    # D15 sits on VBUS_IN, upstream of the diode-OR, so the clamp is the first
+    # thing a transient meets.  PESD5V0S1BA: 5 V standoff, so it does not conduct
+    # on a 5.25 V VBUS, and it clamps low enough not to overstress the AP2112K.
+    ('TVS', 'D15', 'PESD5V0S1BA ESD', 105, 440, 'VBUS_IN', 'GND'),
     # --- POWER: the diode-OR and the USB-C front end, below the rail ---------
     ('D', 'D13', 'SS14 OR', 290, 500, '+5V_P1', '+5V'),
     ('D', 'D14', 'SS14 OR', 290, 530, '+5V_USB', '+5V'),
@@ -633,6 +711,18 @@ FOOTPRINTS = {
     # right-angle is a different part.
     'LED':  'o1next:LED_SunLED_XZM2CRK168WA',
     'LEDR': 'o1next:LED_SunLED_XZM2CRK168WA',
+    # J4 is the free-GPIO breakout, **left unpopulated** -- see its symbol comment.
+    # 2x13 because that is exactly the 26 GPIO, not 2x14 with grounds.
+    'J4':  'Connector_PinHeader_2.54mm:PinHeader_2x13_P2.54mm_Vertical',
+    # J5 is the 5 V out to the keyboard adapter.  JST PH, side entry, SMD: the
+    # shroud and its polarising slot *are* the reverse-voltage protection, and
+    # KiCad carries the footprint, so nothing is drawn here.
+    'J5':  'Connector_JST:JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal',
+    # U11 is the current limit on that port.
+    'U11': 'Package_TO_SOT_SMD:SOT-23-6',
+    # D15 clamps ESD on the USB-C input power.  SOD-323, because it is a 5 V
+    # transient suppressor and not a rectifier.
+    'TVS': 'Diode_SMD:D_SOD-323',
 }
 
 # **Open, and deliberately not guessed.**  Each needs a part decision that
@@ -679,7 +769,8 @@ out = [
     '  (lib_symbols',
 ]
 for _k in ['J1', 'U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'U8', 'U9', 'U10',
-           'J2', 'J3', 'SW1', 'R', 'C', 'L', 'D', 'LED', 'LEDR', 'F']:
+           'J2', 'J3', 'J4', 'J5', 'U11', 'SW1', 'R', 'C', 'L', 'D', 'LED',
+           'LEDR', 'F', 'TVS']:
     out.append(SYMS[_k].lib_sexpr())
 for _n in sorted(POWER_NETS):
     out.append(PowerSym(_n).lib_sexpr())
@@ -688,6 +779,13 @@ out.append('  )')
 
 insts = []          # placed symbol sexprs
 sinst = []          # (ref, value) for symbol_instances
+
+# Parts that are on the schematic and on the board but deliberately **not fitted**.
+# J4 is the free-GPIO breakout: the pads are there so a hobbyist can solder a
+# header on later, and the board as shipped has none.  `dnp` is what tells KiCad
+# that -- it keeps the part out of the BOM and off the placement file, which is
+# the difference between "left unpopulated on purpose" and "we forgot to order it".
+DNP = {'J4'}
 rects = []          # symbol bodies, for the router
 pinpts = {}         # net -> [(ref, pin, x, y, side)]
 ncs = []            # no-connect points
@@ -702,11 +800,18 @@ def emit_symbol(key, ref, value, x, y, netmap):
     x, y = snap(x), snap(y)
     sinst.append((ref, value))
     ref_fp[ref] = s.footprint
+    # **Do not populate.**  J4 is the free-GPIO breakout and is deliberately left
+    # unfitted: the pads cost nothing and mean a later hobbyist can solder a header
+    # on, but the board as shipped has no header there.  `dnp` is what says so to
+    # KiCad -- it keeps the part out of the BOM and off the placement file, which
+    # is the difference between "unpopulated" and "we forgot to order it".
+    dnp = ref in DNP
     rects.append((x - s.w / 2 - 0.6, y - s.h / 2 - 0.6,
                   x + s.w / 2 + 0.6, y + s.h / 2 + 0.6))
     body = [
         f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1)'
-        f' (exclude_from_sim no) (in_bom yes) (on_board yes) (uuid "{uid()}")',
+        f' (exclude_from_sim no) (in_bom {"no" if dnp else "yes"}) (on_board yes)'
+        f'{" (dnp yes)" if dnp else ""} (uuid "{uid()}")',
         f'    (property "Reference" "{ref}" (at {x} {y - s.h / 2 - 2.54} 0)'
         ' (effects (font (size 1.27 1.27))))',
         f'    (property "Value" "{value}" (at {x} {y - s.h / 2 - 5.08} 0)'
