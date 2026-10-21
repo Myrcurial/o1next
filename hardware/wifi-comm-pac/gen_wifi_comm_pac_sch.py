@@ -395,6 +395,12 @@ FOOTPRINTS = {
     'U4':  'Package_SO:SOIC-16_3.9x9.9mm_P1.27mm',
     'U6':  'Package_DFN_QFN:QFN-24-1EP_4x4mm_P0.5mm_EP2.6x2.6mm',
     'U7':  'Package_DFN_QFN:QFN-24-1EP_4x4mm_P0.5mm_EP2.6x2.6mm',
+    # U8 is a TQFN-16, 3 x 3 mm, 0.5 mm pitch -- decided on #324.  **The one
+    # variable is the exposed thermal pad**: KiCad carries 1.6, 1.7 and 1.75 mm
+    # and neither vendor's package drawing could be fetched from here (analog.com
+    # and farnell.com both refused), so 1.6 is *chosen*, not checked.  It affects
+    # solderability and not pin compatibility, and it is one word to change.
+    'U8':  'Package_DFN_QFN:TQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm',
     'U9':  'Package_SO:SOIC-8_3.9x4.9mm_P1.27mm',
     'U10': 'Package_TO_SOT_SMD:SOT-23-5',
     'R':   'Resistor_SMD:R_0603_1608Metric',
@@ -409,20 +415,33 @@ FOOTPRINTS = {
 # fit -- which is worse than a blank one, because a blank one is visibly undone.
 # The generator prints this list on every run so it cannot be forgotten.
 FOOTPRINT_OPEN = {
-    'U5':  'ESP32-S2-MINI-2U.  KiCad carries ESP32-S2-MINI-1 and -1U and NO -2U, '
-           'and the -2 series is a different pad layout, so this needs a footprint '
-           'drawn from the Espressif datasheet -- a library lookup cannot supply it.',
-    'U8':  'MAX98357A.  TQFN-16 3x3 mm or WLP; KiCad has both shapes and which is '
-           'right depends on the ordering part number.',
-    'J2':  'speaker connector -- no part chosen yet.',
-    'J3':  'USB-C receptacle.  The symbol has 7 pins (VBUS, CC1, CC2, D+, D-, GND, '
-           'SHIELD); every 16P footprint has more pads than that, so assigning one '
-           'here leaves pads unconnected on the board. The symbol needs the doubled '
-           'VBUS/GND pins added first.',
-    'SW1': 'slide switch, latching -- no part chosen yet.',
-    'LED': '3.5 x 2.8 mm (3528).  KiCad carries only *vendor-specific* 3528 '
-           'footprints (Everlight 67-21ST, Foshan NTD3528, Kingbright AAA3528), so '
-           'this needs the LED part number.',
+    'U5':  'ESP32-S2-MINI-2U.  **The Espressif KiCad library does not carry this '
+           'module.**  It has ESP32-S2-MINI-1, -1U and SOLO-2U only -- and MINI-1 '
+           'and -1U are NRND, which is why this board uses the -2U.  The MINI-2U '
+           'land pattern (12.3 x 15.4 mm outline) is a *different* land pattern, '
+           'so the -1U footprint is not a substitute.  Espressif publishes source '
+           'files and a .STEP model for it in the datasheet, section 10.1, so this '
+           'is drawable -- it just is not in the library.',
+    'J2':  'speaker connector -- 2-pin through hole, pins 5.00 mm apart.  Farnell '
+           'datasheet 2891582 would not download from here, so which *family* it '
+           'is has not been confirmed: a 5.00 mm terminal block and a 5.08 mm '
+           'wire-to-board header are both 2-pin THT at ~5 mm and have different '
+           'footprints.',
+    'J3':  'USB-C receptacle, Same Sky UJ32-C-H-G-DSMT-1-P24-TR.  Two changes are '
+           'needed and they are one job: the SYMBOL has 7 pins and the part has '
+           '24 (A1-A12, B1-B12, plus shield), so the symbol must be rebuilt with '
+           'the real pin map before a footprint means anything.  Same Sky '
+           'publishes a PCB footprint alongside the datasheet.',
+    'SW1': 'slide switch, latching -- SparkFun COM-10860.  The SparkFun KiCad '
+           'library carries SparkFun-Switch:Slide_SPDT_PTH_11.6x4.0mm, which looks '
+           'like the part; it needs confirming against the COM-10860 page rather '
+           'than assuming.',
+    'LED': '**The schematic calls this "3528" and the chosen part is not one.** '
+           'SunLED XZM2CRK168WA is a 1.8 x 0.6 mm right-angle chip LED, so the '
+           'VALUE is wrong as well as the footprint.  The nearest KiCad footprint '
+           'is LED_Kingbright_APA1606_1.6x0.6mm_Horizontal -- a different part, and '
+           'close enough is exactly what we are avoiding.  Draw it from the '
+           'datasheet, which carries the land pattern.',
     'LEDR': 'same as LED.',
 }
 
