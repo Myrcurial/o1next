@@ -224,7 +224,7 @@
       "internal_id": "",
       "mfg": "",
       "mpn": "",
-      "sch_revision": ""
+      "sch_revision": "A"
     },
     "layer_pairs": [],
     "layer_presets": [],
@@ -638,13 +638,18 @@
       {
         "filename": "wifi-comm-pac.kicad_sch",
         "name": "wifi-comm-pac",
-        "uuid": "00000000-0000-0000-0000-000000000000"
+        "uuid": "5fe72bac-4c97-4045-a3ae-a38b841056e6"
       }
     ],
     "used_designators": "",
     "variants": []
   },
-  "sheets": [],
+  "sheets": [
+    [
+      "5fe72bac-4c97-4045-a3ae-a38b841056e6",
+      "wifi-comm-pac"
+    ]
+  ],
   "text_variables": {},
   "tuning_profiles": {
     "meta": {

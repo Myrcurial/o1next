@@ -1,33 +1,55 @@
 #!/usr/bin/env python3
 """Generate the wifi-comm-pac Rev A schematic for issues #324 / #325.
 
-This sheet is **wired**, not label-connected: every net is drawn as orthogonal
-wire segments between the pins it joins, and the supply rails use power symbols
-(the ordinary way a schematic shows GND/3V3/5V).  One net label is still placed
-per signal net, so the net *names* survive -- and because the labels are singular
-per net, `tools/check_schematics.py` fails if a wire is missing or mis-routed,
-rather than being fooled by a label doing the connecting.
+**Two directories, and the generator only ever writes into one of them.**
+
+    wifi-comm-pac-generated/   the generator's output.  Regenerated at will.
+    wifi-comm-pac-edited/      the copy a person works on.
+
+The generator is the *first take* -- the mathematical proof that the circuit is
+what the netlist says it is.  It is not a finished drawing, and it cannot be one:
+turning it into something a person can read and work on takes a person.  So both
+exist, and the rule between them is one line:
+
+    if -edited/ holds a schematic, the copy is ABORTED and the generator says so.
+    if -edited/ is empty, the generated schematic is copied across.
+
+That way a regeneration can never overwrite somebody's work, and the first time
+anyone picks the board up they get a starting point without having to run
+anything.  To deliberately re-seed from a fresh generation, empty -edited/ first
+-- and know that doing so discards whatever was in it.
 
 Geometry: KiCad stores symbol pins with Y up and the sheet with Y down, so a
 placed symbol's pin lands at (x + px, y - py).  check_schematics.py asserts the
 resulting nets.
 
-Routing: a tiny Manhattan router.  For each net the pins are joined in a star
-from the first pin, trying L routes, then Z routes with a growing offset, and
-rejecting any candidate that crosses a symbol body, overlaps another net's wire
-collinearly, or lands an endpoint on one.  Perpendicular crossings are allowed
-(and are unambiguous in KiCad: no junction, no connection).
+Routing: signal nets are wired, not label-connected, and the wiring is a
+**spanning tree** whose segments are then normalised so that no two ever overlap
+and every pin that lands mid-wire gets a junction.  That normalisation is not
+cosmetic: the earlier star router emitted overlapping collinear segments, KiCad
+tidied them on its first save, and the tidying disconnected 14 pins across 10
+nets.  Anything KiCad would rewrite is a wire we have drawn wrong.
 
 NOTE ON PIN NUMBERS: for the multi-pin ICs the numbers are *logical*, not the
 vendor footprint's.  They exist so the netlist checker can name a pin; the real
 assignment is made at footprint annotation, as the floppy adapter's relay does.
-The connectors and the two AW9523B parts use their real numbering.
+The connectors and the two AW9523B parts use their real numbering, and J3 uses
+the USB-C part's own (A1-A12, B1-B12, SH1-SH6).  See pin_partial in
+tools/check_schematics.py for which parts are still logical and why.
 
-Regenerate: python3 gen_wifi_comm_pac_sch.py   (writes wifi-comm-pac.kicad_sch)
+Regenerate: python3 gen_wifi_comm_pac_sch.py   (writes into -generated/)
 """
 import datetime
 import re
+import shutil
 import uuid
+from collections import Counter, defaultdict
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+BOARD = 'wifi-comm-pac'
+GEN_DIR = HERE / (BOARD + '-generated')
+EDIT_DIR = HERE / (BOARD + '-edited')
 
 
 def uid():
@@ -329,82 +351,108 @@ NET_SW1 = {1: '+12V', 2: '+12V_SW'}
 NET_J2 = {1: 'SPK_P', 2: 'SPK_N'}
 
 # --------------------------------------------------------------- placement
+# Four sections, and a part goes in the one it belongs to **and next to what it
+# connects to**.  The sheet is A1 (841 x 594 mm) and it is divided like this:
+#
+#     POWER    the machine rail and USB   x  30-830, y 400-580   (bottom band)
+#     LOGIC    machine interface, level stage, modem, expanders
+#                                         x  30-600, y  40-390
+#     PANEL    the 11 lamps               x 600-830, y  40-330
+#     AUDIO    amp and speaker            x 600-830, y 360-560
+#
+# The rule the sections exist to serve: a part sits near the pins it shares a net
+# with, so the wire between them is short enough to follow.  That is what the
+# "it is only notionally connected" complaint was about -- not the connection,
+# the distance.
+SECTIONS = [
+    ('POWER', '12.6 V from P1 and 5 V from USB-C -- diode-OR, buck, LDO',
+     30, 400),
+    ('LOGIC', 'machine interface, level stage, ESP32, both expanders',
+     30, 40),
+    ('PANEL', 'the 11 lamps: 8 sourced by the panel expander, 3 sunk by it',
+     600, 40),
+    ('AUDIO', 'I2S class-D amp and the speaker', 600, 360),
+]
+
 PLACE = [
-    # the machine connector and the level stage
-    ('J1', 'J1', 'Conn_02x05 IDC (P1 MODEM)', 60, 150, NET_J1),
-    ('U1', 'U1', '74LVC4T245 (TXD/MCB)', 150, 105, NET_U1),
-    ('U3', 'U3', '74LVC1G07 (MSB)', 150, 160, NET_U3),
-    ('U4', 'U4', 'MAX3232 (RXD)', 150, 225, NET_U4),
-    ('U2', 'U2', '74LVC4T245 (CTS/RI)', 150, 320, NET_U2),
-    # interface expander, below the stage
-    ('U7', 'U7', 'AW9523B interface 0x59', 265, 330, NET_U7),
-    # the modem
-    ('U5', 'U5', 'ESP32-S2-MINI-2U', 370, 150, NET_U5),
-    # panel expander
-    ('U6', 'U6', 'AW9523B panel 0x58', 480, 130, NET_U6),
-    # audio
-    ('U8', 'U8', 'MAX98357A', 620, 400, NET_U8),
-    ('J2', 'J2', 'CMS-151103-088SP', 710, 400, NET_J2),
-    # power
-    ('SW1', 'SW1', 'Slide switch, latching', 450, 45, NET_SW1),
-    ('U9', 'U9', 'TPS54331 buck 12.6->5', 520, 55, NET_U9),
-    ('U10', 'U10', 'AP2112K-3.3 LDO', 650, 95, NET_U10),
-    ('J3', 'J3', 'USB-C sink', 100, 500, NET_J3),
+    # --- LOGIC: the machine connector and the level stage, left to right -------
+    ('J1', 'J1', 'Conn_02x05 IDC (P1 MODEM)', 75, 120, NET_J1),
+    ('U1', 'U1', '74LVC4T245 (TXD/MCB)', 180, 70, NET_U1),
+    ('U3', 'U3', '74LVC1G07 (MSB)', 180, 145, NET_U3),
+    ('U4', 'U4', 'MAX3232 (RXD)', 180, 235, NET_U4),
+    ('U2', 'U2', '74LVC4T245 (CTS/RI)', 180, 355, NET_U2),
+    # the modem, and its support parts immediately to its left
+    ('U5', 'U5', 'ESP32-S2-MINI-2U', 370, 130, NET_U5),
+    # the panel expander, at the PANEL boundary because that is what it drives
+    ('U6', 'U6', 'AW9523B panel 0x58', 470, 130, NET_U6),
+    # the interface expander, beside the level stage it talks to
+    ('U7', 'U7', 'AW9523B interface 0x59', 320, 355, NET_U7),
+    # --- PANEL: the lamps, in two columns, resistors inside -------------------
+    # --- AUDIO ---------------------------------------------------------------
+    ('U8', 'U8', 'MAX98357A', 680, 420, NET_U8),
+    ('J2', 'J2', 'CMS-151103-088SP', 762, 420, NET_J2),
+    # --- POWER: the 12.6 V chain along the top of the band, USB below it ------
+    ('SW1', 'SW1', 'Slide switch, latching', 400, 445, NET_SW1),
+    ('U9', 'U9', 'TPS54331 buck 12.6->5', 470, 450, NET_U9),
+    ('U10', 'U10', 'AP2112K-3.3 LDO', 770, 440, NET_U10),
+    ('J3', 'J3', 'USB-C sink', 75, 498, NET_J3),
 ]
 
 # two-terminal parts: (symbol type, ref, value, x, y, net1, net2)
 TWO = [
-    # buck and its parts
-    ('C', 'C1', '220u', 405, 45, '+12V_SW', 'GND'),
-    ('C', 'C2', '100n', 455, 92, 'BOOT_N', 'PH_N'),
-    ('C', 'C3', '10n', 490, 100, 'SS_N', 'GND'),
-    ('L', 'L1', '10uH', 585, 40, 'PH_N', '+5V_P1'),
-    ('D', 'D12', 'SS34 catch', 585, 70, 'GND', 'PH_N'),
-    ('R', 'R12', '10k', 600, 145, '+5V_P1', 'FB_N'),
-    ('R', 'R13', '1k91', 635, 145, 'FB_N', 'GND'),
-    ('C', 'C4', '1n', 600, 175, 'COMP_N', 'GND'),
-    ('R', 'R14', '10k', 635, 175, 'COMP_N', 'GND'),
-    ('C', 'C5', '22u', 620, 40, '+5V_P1', 'GND'),
-    ('C', 'C7', '10u', 690, 95, '+3V3', 'GND'),
-    # diode-OR and USB
-    ('D', 'D13', 'SS14 OR', 350, 470, '+5V_P1', '+5V'),
-    ('D', 'D14', 'SS14 OR', 395, 470, '+5V_USB', '+5V'),
-    ('C', 'C6', '22u', 440, 470, '+5V', 'GND'),
-    ('F', 'F1', 'polyfuse 1A', 165, 500, 'VBUS_IN', '+5V_USB'),
-    ('R', 'R15', '5k1', 225, 500, 'USB_CC1', 'GND'),
-    ('R', 'R16', '5k1', 225, 528, 'USB_CC2', 'GND'),
-    ('R', 'R17', '22R', 292, 500, 'USB_DP_ESP', 'USB_DP_CON'),
-    ('R', 'R18', '22R', 292, 528, 'USB_DM_ESP', 'USB_DM_CON'),
-    # MAX3232 charge pump
-    ('C', 'C8', '100n', 235, 210, 'C1P', 'C1N'),
-    ('C', 'C9', '100n', 235, 232, 'C2P', 'C2N'),
-    ('C', 'C10', '100n', 235, 254, 'VP', 'GND'),
-    ('C', 'C11', '100n', 235, 276, 'VN', 'GND'),
-    ('C', 'C12', '100n', 235, 298, '+3V3', 'GND'),
-    # ESP32 support
-    ('R', 'R19', '10k', 330, 210, 'ESP_EN', '+3V3'),
-    ('C', 'C13', '1u', 330, 236, 'ESP_EN', 'GND'),
-    ('R', 'R20', '4k7', 330, 262, 'I2C_SDA', '+3V3'),
-    ('R', 'R21', '4k7', 330, 288, 'I2C_SCL', '+3V3'),
-    # expander support
-    ('R', 'R22', '10k', 430, 300, 'INT_PANEL', '+3V3'),
-    ('R', 'R23', '10k', 466, 300, 'INT_IF', '+3V3'),
-    ('R', 'R24', '10k', 502, 300, 'EXP_RSTN', '+3V3'),
-    ('C', 'C14', '100n', 538, 300, 'EXP_RSTN', 'GND'),
-    ('R', 'R25', '10k', 470, 380, 'IF_CTS', '+3V3'),
-    ('R', 'R26', '10k', 506, 380, 'IF_RI', '+3V3'),
-    ('R', 'R27', '10k', 542, 380, 'IF_MSB', '+3V3'),
+    # --- POWER: the buck and everything hanging off it -----------------------
+    ('C', 'C1', '220u', 400, 490, '+12V_SW', 'GND'),
+    ('C', 'C2', '100n', 470, 490, 'BOOT_N', 'PH_N'),
+    ('C', 'C3', '10n', 540, 490, 'SS_N', 'GND'),
+    ('L', 'L1', '10uH', 600, 440, 'PH_N', '+5V_P1'),
+    ('D', 'D12', 'SS34 catch', 600, 470, 'GND', 'PH_N'),
+    ('R', 'R12', '10k', 660, 440, '+5V_P1', 'FB_N'),
+    ('R', 'R13', '1k91', 700, 440, 'FB_N', 'GND'),
+    ('C', 'C4', '1n', 660, 470, 'COMP_N', 'GND'),
+    ('R', 'R14', '10k', 700, 470, 'COMP_N', 'GND'),
+    ('C', 'C5', '22u', 740, 490, '+5V_P1', 'GND'),
+    ('C', 'C7', '10u', 810, 440, '+3V3', 'GND'),
+    # --- POWER: the diode-OR and the USB-C front end, below the rail ---------
+    ('D', 'D13', 'SS14 OR', 290, 500, '+5V_P1', '+5V'),
+    ('D', 'D14', 'SS14 OR', 290, 530, '+5V_USB', '+5V'),
+    ('C', 'C6', '22u', 350, 515, '+5V', 'GND'),
+    ('F', 'F1', 'polyfuse 1A', 145, 495, 'VBUS_IN', '+5V_USB'),
+    ('R', 'R15', '5k1', 190, 490, 'USB_CC1', 'GND'),
+    ('R', 'R16', '5k1', 190, 520, 'USB_CC2', 'GND'),
+    ('R', 'R17', '22R', 240, 490, 'USB_DP_ESP', 'USB_DP_CON'),
+    ('R', 'R18', '22R', 240, 520, 'USB_DM_ESP', 'USB_DM_CON'),
+    # --- LOGIC: the MAX3232 charge pump, right beside U4 ---------------------
+    ('C', 'C8', '100n', 255, 210, 'C1P', 'C1N'),
+    ('C', 'C9', '100n', 255, 232, 'C2P', 'C2N'),
+    ('C', 'C10', '100n', 255, 254, 'VP', 'GND'),
+    ('C', 'C11', '100n', 255, 276, 'VN', 'GND'),
+    ('C', 'C12', '100n', 255, 298, '+3V3', 'GND'),
+    # --- LOGIC: ESP32 support, between U5 and the level stage ----------------
+    ('R', 'R19', '10k', 300, 215, 'ESP_EN', '+3V3'),
+    ('C', 'C13', '1u', 300, 237, 'ESP_EN', 'GND'),
+    ('R', 'R20', '4k7', 300, 259, 'I2C_SDA', '+3V3'),
+    ('R', 'R21', '4k7', 300, 281, 'I2C_SCL', '+3V3'),
+    # --- LOGIC: expander support, beside the expander each one serves --------
+    ('R', 'R22', '10k', 555, 100, 'INT_PANEL', '+3V3'),
+    ('R', 'R23', '10k', 555, 130, 'INT_IF', '+3V3'),
+    ('R', 'R24', '10k', 555, 160, 'EXP_RSTN', '+3V3'),
+    ('C', 'C14', '100n', 555, 190, 'EXP_RSTN', 'GND'),
+    ('R', 'R25', '10k', 390, 335, 'IF_CTS', '+3V3'),
+    ('R', 'R26', '10k', 426, 335, 'IF_RI', '+3V3'),
+    ('R', 'R27', '10k', 462, 335, 'IF_MSB', '+3V3'),
 ]
 
 # lamps: source side (pin -> R -> LED -> GND) and sink side (3V3 -> LED -> R -> pin)
+# Eleven rows in one block, resistors on the left, so the pair for each lamp reads
+# as one line.  Rows 1-8 are the sourced lamps, 9-11 the sunk ones.
 for _i, (_net, _pin) in enumerate(LED_SRC):
-    _y = 90 + _i * 16
-    TWO.append(('R', f'R{_i + 1}', '470R', 545, _y, _net, _net + '_A'))
-    TWO.append(('LED', f'D{_i + 1}', '3528', 560.24, _y, _net + '_A', 'GND'))
+    _y = 60 + _i * 22
+    TWO.append(('R', f'R{_i + 1}', '470R', 640, _y, _net, _net + '_A'))
+    TWO.append(('LED', f'D{_i + 1}', '3528', 676, _y, _net + '_A', 'GND'))
 for _i, (_net, _pin) in enumerate(LED_SINK):
-    _y = 230 + _i * 16
-    TWO.append(('LEDR', f'D{_i + 9}', '3528', 560.24, _y, '+3V3', _net + '_A'))
-    TWO.append(('R', f'R{_i + 9}', '470R', 545, _y, _net + '_K', _net + '_A'))
+    _y = 60 + (len(LED_SRC) + _i) * 22
+    TWO.append(('LEDR', f'D{_i + 9}', '3528', 676, _y, '+3V3', _net + '_A'))
+    TWO.append(('R', f'R{_i + 9}', '470R', 640, _y, _net + '_K', _net + '_A'))
 
 NOTES = [
     'wifi-comm-pac Rev A - O1NEXT WiFi COMM PAC (issues #324, #325, part of #56)',
@@ -807,7 +855,10 @@ for net in sorted(POWER_NETS):
             '  )',
         ]))
 
-# signal nets: a wired star from the first pin, and one label for the name
+# signal nets: a **spanning tree**, not a star.  Each pin is joined to the nearest
+# point already on the net, so branches share a trunk instead of every one of them
+# running the whole way back to the first pin -- which is what produced overlapping
+# collinear segments, and what KiCad then rewrote.
 def _span(n):
     pts = pinpts[n]
     xs = [p[2] for p in pts]
@@ -815,26 +866,111 @@ def _span(n):
     return (max(xs) - min(xs)) + (max(ys) - min(ys))
 
 
+def _mh(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
 for net in sorted(pinpts, key=_span, reverse=True):
     if net in POWER_NETS:
         continue
     pts = pinpts[net]
-    a = (pts[0][2], pts[0][3])
+    tree = [(pts[0][2], pts[0][3])]
     for (_ref, _pin, X, Y, _side) in pts[1:]:
-        route(net, a, (X, Y))
-    labels.append((net, a[0], a[1]))
+        near = min(tree, key=lambda c: _mh(c, (X, Y)))
+        route(net, near, (X, Y))
+        tree.append((X, Y))
+    labels.append((net, pts[0][2], pts[0][3]))
+
+
+# --------------------------------------------------------------- normalise wires
+# Split every segment wherever any point of the same net lies on it, then drop the
+# duplicates that leaves.  Two collinear wires that overlap become one wire; a pin
+# that sat in the middle of a wire becomes a wire *end*, which is the only place
+# KiCad connects a pin.  Then a junction wherever three or more wire ends meet.
+#
+# This is the fix for the defect that cost 14 pins and 10 nets: the old star
+# router emitted 17 overlapping collinear pairs, KiCad normalised them on its
+# first save, and the pins that had been attached only by sitting inside an
+# overlap came adrift.  Doing the normalisation ourselves means KiCad has nothing
+# left to rewrite.
+def normalise(raw, net_pins):
+    fixed = []
+    by_net = defaultdict(list)
+    for (net, a, b) in raw:
+        by_net[net].append((a, b))
+    for net, ss in by_net.items():
+        marks = set()
+        for (a, b) in ss:
+            marks.add(a)
+            marks.add(b)
+        marks |= set(net_pins.get(net, ()))
+        pieces = set()
+        for (a, b) in ss:
+            if a[0] == b[0]:                       # vertical
+                lo, hi = sorted((a[1], b[1]))
+                cuts = sorted({p[1] for p in marks
+                               if p[0] == a[0] and lo <= p[1] <= hi})
+                for i in range(len(cuts) - 1):
+                    if cuts[i] != cuts[i + 1]:
+                        pieces.add(((a[0], cuts[i]), (a[0], cuts[i + 1])))
+            elif a[1] == b[1]:                     # horizontal
+                lo, hi = sorted((a[0], b[0]))
+                cuts = sorted({p[0] for p in marks
+                               if p[1] == a[1] and lo <= p[0] <= hi})
+                for i in range(len(cuts) - 1):
+                    if cuts[i] != cuts[i + 1]:
+                        pieces.add(((cuts[i], a[1]), (cuts[i + 1], a[1])))
+        for p in sorted(pieces):
+            fixed.append((net, p[0], p[1]))
+    return fixed
+
+
+def junction_points(normalised):
+    ends = Counter()
+    for (net, a, b) in normalised:
+        ends[(net, a)] += 1
+        ends[(net, b)] += 1
+    return sorted((pt for (net, pt), c in ends.items() if c >= 3), key=lambda p: (p[1], p[0]))
+
+
+NET_PINS = {net: [(X, Y) for (_r, _p, X, Y, _s) in pts]
+            for net, pts in pinpts.items()}
+segs = normalise(segs, NET_PINS)
+juncs = junction_points(segs)
+
+# every pin must be attached: a wire end, or a deliberate no-connect.  A pin that
+# is neither is a part floating on the sheet, which is what "it just shows a label
+# and isn't connected to anything" looks like from the other side.
+_wire_ends = set()
+for (_net, a, b) in segs:
+    _wire_ends.add(a)
+    _wire_ends.add(b)
+_nc_pts = set(ncs)
+_floating = []
+for net, pts in pinpts.items():
+    for (ref, pin, X, Y, _side) in pts:
+        if (X, Y) not in _wire_ends and (X, Y) not in _nc_pts:
+            _floating.append((ref, pin, X, Y))
+_floating.sort()
 
 for (net, a, b) in segs:
     insts.append(f'  (wire (pts (xy {a[0]} {a[1]}) (xy {b[0]} {b[1]}))'
                  f' (stroke (width 0) (type default)) (uuid "{uid()}"))')
+for (x, y) in juncs:
+    insts.append(f'  (junction (at {x} {y}) (diameter 0) (color 0 0 0 0)'
+                 f' (uuid "{uid()}"))')
 for (net, x, y) in labels:
     insts.append(f'  (label "{net}" (at {x} {y} 0)'
                  f' (effects (font (size 1.27 1.27)) (justify left bottom))'
                  f' (uuid "{uid()}"))')
 for (x, y) in ncs:
     insts.append(f'  (no_connect (at {x} {y}) (uuid "{uid()}"))')
+for (title, subtitle, sx, sy) in SECTIONS:
+    insts.append(f'  (text "{title} -- {subtitle}" (at {sx} {sy - 12} 0)'
+                 f' (effects (font (size 2.5 2.5) (thickness 0.4) bold) (justify left))'
+                 f' (uuid "{uid()}"))')
 for i, note in enumerate(NOTES):
-    insts.append(f'  (text "{note}" (at 30 {535 + i * 6} 0)'
+    insts.append(f'  (text "{note}" (at 30 {545 + i * 6} 0)'
                  f' (effects (font (size 1.6 1.6)) (justify left)) (uuid "{uid()}"))')
 
 out.extend(insts)
@@ -847,10 +983,90 @@ si += ')'
 out.append(si)
 out.append(')')
 
-with open('wifi-comm-pac.kicad_sch', 'w') as f:
-    f.write('\n'.join(out) + '\n')
+# --------------------------------------------------------------- write it out
+# The generator writes into -generated/ and nowhere else.  -edited/ is a person's
+# copy and is only ever seeded, never overwritten -- see the docstring.
+GEN_DIR.mkdir(exist_ok=True)
+EDIT_DIR.mkdir(exist_ok=True)
+out_path = GEN_DIR / (BOARD + '.kicad_sch')
+out_path.write_text('\n'.join(out) + '\n')
+
+# The project-local footprint library lives one level up, beside the generator, so
+# both directories need their own fp-lib-table pointing at it.  Without this the
+# o1next: footprints stop resolving the moment the schematic moves into a
+# subdirectory -- ${KIPRJMOD} becomes that subdirectory.
+FP_TABLE = (
+    '(fp_lib_table\n'
+    '  (version 7)\n'
+    '  (lib (name "o1next")(type "KiCad")(uri "${KIPRJMOD}/../footprints/o1next.pretty")'
+    '(options "")(descr "Footprints this board needs that no library carries -- '
+    'see the README beside them"))\n'
+    ')\n'
+)
+for d in (GEN_DIR, EDIT_DIR):
+    t = d / 'fp-lib-table'
+    if not t.exists() or t.read_text() != FP_TABLE:
+        t.write_text(FP_TABLE)
+    # A project file, because ${KIPRJMOD} is the *project* directory: without one
+    # KiCad cannot resolve ${KIPRJMOD}/../footprints and every o1next: footprint
+    # comes back as a footprint_link_issue.  Written only if absent, so a fuller
+    # file KiCad has saved over it is never clobbered.
+    p = d / (BOARD + '.kicad_pro')
+    if not p.exists():
+        p.write_text('{\n  "board": { "design_settings": {}, "layers": [] }\n}\n')
+
+seed = sorted(EDIT_DIR.glob('*.kicad_sch'))
+if seed:
+    print()
+    print('ABORTED the copy into %s/ -- it already holds a schematic:' % BOARD + '-edited')
+    for s in seed:
+        print('    %s  (%d bytes, %s)' % (s.name, s.stat().st_size,
+                                          datetime.datetime.fromtimestamp(
+                                              s.stat().st_mtime).strftime('%Y-%m-%d %H:%M')))
+    print('  Nothing was touched.  Empty that directory to re-seed from a fresh')
+    print('  generation -- which discards what is in it, so know that first.')
+else:
+    shutil.copy2(out_path, EDIT_DIR / out_path.name)
+    print()
+    print('COPIED the generated schematic into %s/ (it was empty)' % (BOARD + '-edited'))
 if fallbacks:
     print('WARNING', len(fallbacks), 'unroutable nets:', fallbacks)
+
+if _floating:
+    print()
+    print('FLOATING -- %d pin(s) with no wire and no no-connect marker:' % len(_floating))
+    for ref, pin, X, Y in _floating:
+        print('  %-6s pin %-4s at (%s, %s)' % (ref, pin, X, Y))
+    print('  Every pin must reach something.  A part that reaches nothing is the')
+    print('  "it just shows a label" complaint, from the other side.')
+
+# a wire KiCad would rewrite is a wire we drew wrong: overlapping collinear
+# segments are exactly what its own cleaner removes, and the pins attached only
+# through the overlap come adrift when it does.  Segments that merely *touch*
+# end-to-end are fine -- that is what a split wire looks like -- so this counts
+# strict overlap and duplicate only.
+def _overlaps(ss):
+    groups = defaultdict(list)
+    for (_net, a, b) in ss:
+        if a[0] == b[0]:
+            groups[('V', a[0])].append(tuple(sorted((a[1], b[1]))))
+        elif a[1] == b[1]:
+            groups[('H', a[1])].append(tuple(sorted((a[0], b[0]))))
+    strict = dupe = 0
+    for iv in groups.values():
+        iv.sort()
+        for i in range(len(iv) - 1):
+            if iv[i] == iv[i + 1]:
+                dupe += 1
+            elif iv[i][1] > iv[i + 1][0]:
+                strict += 1
+    return strict, dupe
+
+
+_ov, _dup = _overlaps(segs)
+print()
+print('wires: %d segments, %d junctions, %d overlapping, %d duplicate '
+      '(both must be 0)' % (len(segs), len(juncs), _ov, _dup))
 
 comp = [ref for ref, _ in sinst if not ref.startswith('#')]
 missing = [ref for ref in comp if not ref_fp.get(ref)]
@@ -870,7 +1086,8 @@ print('UNCONFIRMED -- footprint assigned, but a dimension in it was placed, not 
 for _k in sorted(FOOTPRINT_UNCONFIRMED):
     print('  %-5s %s' % (_k, FOOTPRINT_UNCONFIRMED[_k]))
 
-print('wrote wifi-comm-pac.kicad_sch:',
-      len(segs), 'wire segments,', len(labels), 'labels,',
-      len(ncs), 'no-connects,', len(sinst), 'symbols,',
-      len(rects), 'bodies')
+print()
+print('wrote %s: %d wire segments, %d junctions, %d labels, %d no-connects, '
+      '%d symbols, %d bodies'
+      % (out_path.relative_to(HERE), len(segs), len(juncs), len(labels),
+         len(ncs), len(sinst), len(rects)))

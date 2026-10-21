@@ -223,8 +223,21 @@ def check() -> list:
                             f"belong to any shortform")
 
     # -- and no schematic in the tree is left unchecked --------------------
-    checked_dirs = {b.sch.parent for b in check_schematics.BOARDS}
+    # A board's two-step directories both count as the board: the generator's
+    # output in <board>-generated/ and the person's copy in <board>-edited/.  The
+    # copy is the same board and must not read as an unchecked stray.
+    checked_dirs = set()
+    for b in check_schematics.BOARDS:
+        d = b.sch.parent
+        checked_dirs.add(d)
+        if d.name.endswith("-generated"):
+            checked_dirs.add(d.parent / (d.name[: -len("-generated")] + "-edited"))
     for sch in sorted((REPO / "hardware").rglob("*.kicad_sch")):
+        # KiCad writes its own backups into .history/ and *-backups/ beside a
+        # schematic the first time it is opened.  They are gitignored, they are
+        # not boards, and they should not be mistaken for strays.
+        if ".history" in sch.parts or sch.parent.name.endswith("-backups"):
+            continue
         if sch.parent not in checked_dirs:
             failures.append(f"{sch.relative_to(REPO)} belongs to no board in "
                             f"tools/check_schematics.py")

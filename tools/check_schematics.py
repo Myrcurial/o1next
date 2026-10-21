@@ -330,7 +330,13 @@ def regenerate_nets(cli: str, board: Board, tmp: Path):
     work.mkdir(exist_ok=True)
     shutil.copy(gen, work / gen.name)
     proc = run([sys.executable, gen.name], cwd=str(work))
-    out = work / board.sch.name
+    # The generator writes into <board>-generated/ rather than beside itself, so
+    # the regenerated schematic is in that subdirectory of the scratch dir.  It
+    # also tries to seed <board>-edited/, which in a scratch dir is empty and so
+    # gets copied -- harmless, and exactly what the copy rule is meant to do.
+    out = work / board.sch.parent.name / board.sch.name
+    if not out.exists():
+        out = work / board.sch.name          # generators that write in place
     if not out.exists():
         return None, (f"generator produced no {board.sch.name}: "
                       f"{(proc.stderr or proc.stdout).strip()[:200]}")
@@ -728,7 +734,7 @@ J3_UNUSED = ["A2", "A3", "A10", "A11", "B2", "B3", "B10", "B11", "A8", "B8"]
 # 12.6 V rail stops at the buck.
 WIFI_COMM_PAC = Board(
     name="wifi-comm-pac",
-    sch="hardware/wifi-comm-pac/wifi-comm-pac.kicad_sch",
+    sch="hardware/wifi-comm-pac/wifi-comm-pac-generated/wifi-comm-pac.kicad_sch",
     gen="hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py",
     # 179, and the number is derived rather than fudged: **every** violation this
     # board produces is the one kind -- "The current configuration does not include

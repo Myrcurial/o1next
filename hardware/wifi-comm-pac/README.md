@@ -173,37 +173,73 @@ MCKPT-G1340-3917 piezo buzzer; that footprint has been deleted.
 Dial tone, DTMF and ring cadence are in #322; prior art is `na103/zimodem`
 (CC BY 4.0 — method only).
 
-## The schematic
+## The schematic — two directories
 
-`wifi-comm-pac.kicad_sch` (KiCad 7 format, A1) — **Rev A, captured**, which is
-what the case STL and the placement drawing are sized against. It is
-**generated**, not hand-drawn: `gen_wifi_comm_pac_sch.py` emits the sheet, and
-`tools/check_schematics.py` re-generates it and asserts the invariant nets (which
-P1 pin carries which signal, that the machine's 5 V never reaches a 3.3 V pin,
-that the 12.6 V rail stops at the buck, and that no symbol or label collides).
+**Two directories, and the generator writes into only one of them.**
 
-**The nets are wired, not label-connected.** Every signal net is drawn as
-orthogonal wire segments between the pins it joins; the supply rails use power
-symbols, which is how a schematic normally shows GND/3V3/5V. Exactly **one net
-label per net** is kept, so the net *names* survive — and because it is one
-label and not fifteen, a missing or mis-routed wire breaks the netlist instead of
-being papered over by a label.
+| | |
+|---|---|
+| `wifi-comm-pac-generated/` | the generator's output. Regenerated at will. |
+| `wifi-comm-pac-edited/` | the copy a person works on. Never written by the generator. |
 
-A small Manhattan router does the drawing, on a 1.27 mm grid:
+`gen_wifi_comm_pac_sch.py` is the **first take** — the mathematical proof that the
+circuit is what the netlist says it is. It is not a finished drawing and it cannot
+be one: turning it into something a person can read and work on takes a person.
+So both exist, and the rule between them is one line:
 
-- symbol bodies are impassable;
-- another net's wire may be **crossed** but not travelled **along** (that would be
-  a collinear overlap, i.e. a short), and may not be **ended on** (that would make
-  a junction);
-- **another component's pin is impassable** — a wire routed through a pin is a
-  short that no label ever reveals, and it is what the first wiring pass did wrong;
-- nets are routed longest-first, so the long runs get the open corridors.
+> if `-edited/` holds a schematic, **the copy is aborted** and the generator says
+> so; if `-edited/` is empty, the generated schematic is copied across.
 
-It is a *first-draft* drawing: correct, complete and readable in blocks, but the
-long runs (USB to the MCU, the interface expander to the level stage) are routed
-for clearance rather than for beauty. A placement pass — moving the USB block
-next to the ESP32 — is what would make it read like a finished drawing, and it is
-cosmetic, not electrical.
+A regeneration therefore cannot overwrite anybody's work, and the first person to
+pick the board up gets a starting point without running anything. To deliberately
+re-seed, empty `-edited/` first — which discards what is in it.
+
+`tools/check_schematics.py` asserts the **generated** file: the invariant nets
+(which P1 pin carries which signal, that the machine's 5 V never reaches a 3.3 V
+pin, that the 12.6 V rail stops at the buck), that no symbol or label collides,
+that no symbol pin is without a footprint pad, and that the file matches a fresh
+regeneration.
+
+### Four sections, and parts sit next to what they connect to
+
+The sheet is A1 (841 × 594 mm) divided into four regions, because the complaint a
+reader actually has is not that things are unconnected — it is that they are
+connected *across the page* and so cannot be followed:
+
+| Section | Holds |
+|---|---|
+| **POWER** (bottom band) | the P1 12.6 V rail and the USB-C front end — diode-OR, buck, LDO, polyfuse, the CC pulldowns |
+| **LOGIC** (left, upper) | J1, the level stage, the ESP32 and its support parts, both expanders |
+| **PANEL** (right, upper) | the 11 lamps, one row each: resistor and LED side by side |
+| **AUDIO** (right, lower) | the MAX98357A and the speaker |
+
+### The wiring, and the defect it fixes
+
+Every signal net is drawn as orthogonal wire segments; the rails use power
+symbols; every pin ends on a wire, a power symbol, or a deliberate no-connect
+marker. Nothing floats — the generator fails loudly if a pin does.
+
+The router builds a **spanning tree** per net (each pin joined to the nearest
+point already on the net, so branches share a trunk) and then **normalises** the
+result: every segment is split wherever any point of the same net lies on it, the
+duplicates that leaves are dropped, and a junction is placed wherever three or
+more wire ends meet.
+
+That normalisation is not cosmetic, and it is the answer to a real failure. The
+earlier **star** router drew each pin back to the first pin, which produced
+**overlapping collinear segments** — 15 of them, plus 2 exact duplicates. KiCad
+tolerates that until it saves the file, at which point its own cleaner normalises
+the geometry, and pins that had been attached *only* by sitting inside an overlap
+come adrift, because a pin in the middle of a wire is not connected without a
+junction. That cost **14 pins across 10 nets** the first time anybody opened the
+sheet in KiCad. **A wire KiCad would rewrite is a wire drawn wrong**, so the
+generator now does the normalisation itself.
+
+It is checked, not asserted: `kicad-cli sch upgrade` re-saves the schematic in the
+current format — the operation that broke the old file — and the netlist before
+and after is identical (70 nets, 248 nodes, 0 single-node nets, 317 wires and 8
+junctions unchanged). The old file went from 15 overlaps to a broken netlist under
+the same operation.
 
 ```sh
 python3 hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py

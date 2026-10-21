@@ -1,4 +1,0 @@
-(fp_lib_table
-  (version 7)
-  (lib (name "o1next")(type "KiCad")(uri "${KIPRJMOD}/footprints/o1next.pretty")(options "")(descr "Footprints this board needs that no library carries -- see the README beside them"))
-)
