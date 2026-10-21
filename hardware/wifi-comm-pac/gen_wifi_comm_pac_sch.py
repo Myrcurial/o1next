@@ -395,19 +395,37 @@ FOOTPRINTS = {
     'U4':  'Package_SO:SOIC-16_3.9x9.9mm_P1.27mm',
     'U6':  'Package_DFN_QFN:QFN-24-1EP_4x4mm_P0.5mm_EP2.6x2.6mm',
     'U7':  'Package_DFN_QFN:QFN-24-1EP_4x4mm_P0.5mm_EP2.6x2.6mm',
-    # U8 is a TQFN-16, 3 x 3 mm, 0.5 mm pitch -- decided on #324.  **The one
-    # variable is the exposed thermal pad**: KiCad carries 1.6, 1.7 and 1.75 mm
-    # and neither vendor's package drawing could be fetched from here (analog.com
-    # and farnell.com both refused), so 1.6 is *chosen*, not checked.  It affects
-    # solderability and not pin compatibility, and it is one word to change.
-    'U8':  'Package_DFN_QFN:TQFN-16-1EP_3x3mm_P0.5mm_EP1.6x1.6mm',
+    # U8 is a TQFN-16, 3 x 3 mm, 0.5 mm pitch.  The exposed pad is **1.1 x 1.1 mm**,
+    # taken from the SnapEDA model for the MAX98357AETE_T rather than guessed --
+    # which is what settles the 1.6/1.7/1.75 question, and means KiCad's own
+    # library carries it after all.
+    'U8':  'Package_DFN_QFN:VQFN-16-1EP_3x3mm_P0.5mm_EP1.1x1.1mm',
     'U9':  'Package_SO:SOIC-8_3.9x4.9mm_P1.27mm',
     'U10': 'Package_TO_SOT_SMD:SOT-23-5',
+    # U5: the module.  Espressif's KiCad library has MINI-1/-1U and SOLO-2U and no
+    # -2U, so this one is ours -- see footprints/o1next.pretty/README.md, which is
+    # where it should be published from.  SnapEDA's model, checked against the
+    # datasheet: 0.85 mm pad pitch, rows at +/-7.0 mm, 0.8 x 0.4 mm pads.
+    'U5':  'o1next:ESP32-S2-MINI-2U',
     'R':   'Resistor_SMD:R_0603_1608Metric',
     'C':   'Capacitor_SMD:C_0603_1608Metric',
     'L':   'Inductor_SMD:L_1210_3225Metric',
     'D':   'Diode_SMD:D_SMA',
     'F':   'Fuse:Fuse_1206_3216Metric',
+    # J2 is a **piezo buzzer**, not a speaker: Multicomp Pro MCKPT-G1340-3917,
+    # 12 Vp-p, 4 kHz, 80 dB, 9.5 nF.  Pin pitch 5.08 mm, measured by seating it in
+    # a breadboard.  Its own footprint, in the library above.
+    'J2':  'o1next:Piezo_Buzzer_Multicomp_MCKPT-G1340-3917',
+    # SW1 is SparkFun COM-10860, the Surface Mount Right Angle Switch -- SPST,
+    # 6.7 x 2.6 mm.  SparkFun's library is CC BY 4.0, so the footprint is copied
+    # into ours *with attribution* rather than referenced: the board then needs no
+    # external library, and CI has nothing extra to install.
+    'SW1': 'o1next:Slide_SPST_SMD_6.7x2.6mm',
+    # The LED is SunLED XZM2CRK168WA: 1.8 x 0.6 mm right-angle, two 0.8 mm square
+    # pads 1.8 mm apart on centre.  Drawn, because KiCad's nearest 1.6 x 0.6 mm
+    # right-angle is a different part.
+    'LED':  'o1next:LED_SunLED_XZM2CRK168WA',
+    'LEDR': 'o1next:LED_SunLED_XZM2CRK168WA',
 }
 
 # **Open, and deliberately not guessed.**  Each needs a part decision that
@@ -415,41 +433,14 @@ FOOTPRINTS = {
 # fit -- which is worse than a blank one, because a blank one is visibly undone.
 # The generator prints this list on every run so it cannot be forgotten.
 FOOTPRINT_OPEN = {
-    'U5':  'ESP32-S2-MINI-2U.  **The Espressif KiCad library does not carry this '
-           'module.**  It has ESP32-S2-MINI-1, -1U and SOLO-2U only -- and MINI-1 '
-           'and -1U are NRND, which is why this board uses the -2U.  The land '
-           'pattern is datasheet section 10.1 (v1.4) / 7.2 (v1.1); Espressif '
-           'publishes source files for it.  SnapEDA carries a finished KiCad '
-           'footprint for the -2U-N4.  **The footprint belongs in '
-           'footprints/o1next.pretty/ so it can be published back to '
-           'espressif/kicad-libraries** -- see the README there.',
-    'J2':  'speaker connector -- 2-pin through hole, **5.08 mm pitch confirmed** '
-           '(it seats in a breadboard).  The open question is the *family*: a '
-           '5.08 mm terminal block and a 5.08 mm wire-to-board header are both '
-           '2-pin THT at that pitch and their footprints differ in pad shape, '
-           'hole size and courtyard.',
-    'J3':  'USB-C receptacle, Same Sky UJ32-C-H-G-DSMT-1-P24-TR -- buyable, and it '
-           'carries data and not only power.  We do not need every pin, but the '
-           'SYMBOL has 7 pins against the 24 the part has (A1-A12, B1-B12, plus '
-           'shield), so the symbol must be rebuilt with the real pin map -- the '
-           'unused ones carried and marked no-connect, or the board has pads with '
-           'no net.  That changes the netlist, which the checker asserts, so it is '
-           'its own job.',
-    'SW1': 'slide switch, latching -- SparkFun COM-10860, which is the **Surface '
-           'Mount Right Angle Switch** (4 V, 300 mA, 70 mOhm, 10,000 cycles): a '
-           '**SMD right-angle** part, for access from the edge of the board.  The '
-           'earlier PTH guess was wrong.  The SparkFun KiCad library carries five '
-           'SMD slide switches (SPST 6.7x2.6, SP3T 9.7x2.6, DPDT 7.2x3.5, DPDT '
-           '9.0x3.6, DP3T 9.8x3.5) and **none of them names the SKU**, so the right '
-           'one has to be matched to the COM-10860 datasheet.',
-    'LED': '**The part is right and the VALUE is wrong.**  SunLED XZM2CRK168WA is '
-           'a 1.8 x 0.6 mm right-angle chip LED, chosen for the front edge of the '
-           'board -- perpendicular to the front panel -- so the emission axis is '
-           'the intent and "3528" was only a placeholder.  The footprint is not in '
-           'KiCad (the nearest, LED_Kingbright_APA1606_1.6x0.6mm_Horizontal, is a '
-           'different part); datasheet page 3 has the recommended soldering '
-           'pattern, units mm, tolerance +/-0.1.',
-    'LEDR': 'same as LED.',
+    'J3':  'USB-C receptacle, Same Sky UJ32-C-H-G-DSMT-1-P24-TR.  The footprint is '
+           'ready -- o1next:USB_C_SameSky_UJ32-C-H-G-DSMT-1-P24-TR, all 24 contacts '
+           'plus six shield pads -- but **it cannot be assigned until the SYMBOL is '
+           'rebuilt**: the symbol has 7 pins against the 24 the part has, so assigning it '
+           'now would leave 17 pads with no net.  The rebuild is A1-A12 and B1-B12 '
+           'with the real signal names, the ten unused contacts carried and marked '
+           'no-connect, and it changes the netlist, which check_schematics.py '
+           'asserts.  That is why it is its own job and not a footnote here.',
 }
 
 for _k, _s in SYMS.items():
