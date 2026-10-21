@@ -97,6 +97,16 @@ The **module's own pin numbers are deliberately not restated here** — they are
 the MINI-2 datasheet's §3.2 pin layout, and a secondary source for them is a way
 to lose a board. This file fixes *functions*; the layout fixes geometry.
 
+**The schematic now carries the pad numbers**, in `U5`'s symbol: 73 pins numbered
+with the module's own pads, taken from the datasheet and cross-checked against
+SnapEDA's symbol for the part. That is deliberate and it is not a restatement of
+this file — this file says *which GPIO*, the schematic says *which pad*, and the
+two only agree because someone checked. The 26 GPIO left free here are carried in
+the symbol and marked no-connect rather than omitted, so their pads are visibly
+unused instead of silently floating. The 33 ground pads are stacked behind one
+visible pin — the vendor's own convention, and the reason a 73-pad module is a
+readable symbol.
+
 ## What is left free, and why
 
 The module brings out 37 GPIO. Fourteen are allocated. **The other 23 are left

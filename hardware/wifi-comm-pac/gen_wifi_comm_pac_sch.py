@@ -74,16 +74,16 @@ class Symbol:
         self.name = name
         self.ref_letter = ref_letter
         self.w, self.h = w, h
-        self.pins = []          # (number, name, side, offset_from_bottom)
+        self.pins = []          # (number, name, side, offset_from_bottom, hide)
         self.lib_id = 'local:' + name
         self.footprint = ''     # set from FOOTPRINTS below, keyed by SYMS key
 
-    def add(self, num, pname, side, off):
-        self.pins.append((num, pname, side, off))
+    def add(self, num, pname, side, off, hide=False):
+        self.pins.append((num, pname, side, off, hide))
         return self
 
     def _find(self, num):
-        for n, p, side, off in self.pins:
+        for n, p, side, off, _hide in self.pins:
             if n == num:
                 return p, side, off
         raise KeyError(num)
@@ -112,10 +112,11 @@ class Symbol:
         s += (f'      (rectangle (start {-hw} {hh}) (end {hw} {-hh})'
               ' (stroke (width 0.254) (type default)) (fill (type background))))\n')
         s += f'    (symbol "{self.name}_1_1"\n'
-        for n, p, side, off in self.pins:
+        for n, p, side, off, hide in self.pins:
             ax, ay = self.pin_sym(n)
             rot = 0 if side == 'L' else 180
-            s += (f'      (pin passive line (at {ax} {ay} {rot}) (length 2.54)'
+            hid = ' hide' if hide else ''
+            s += (f'      (pin passive line (at {ax} {ay} {rot}) (length 2.54){hid}'
                   f' (name "{p}" (effects (font (size 1.27 1.27))))'
                   f' (number "{n}" (effects (font (size 1.27 1.27)))))\n')
         s += '    )\n  )'
@@ -194,6 +195,27 @@ def two_pin(name, ref, w=10.16):
     return s
 
 
+def stack_onto(sym, anchor, nums, name):
+    """Hide *nums* behind *anchor*, on the same symbol point.
+
+    A module brings out pads a symbol does not want to draw.  The
+    ESP32-S2-MINI-2U has **33 ground pads** -- GND1, GND2 and GND3 in the
+    module's own grouping -- and the footprint has a pad for every one, so every
+    one has to land on a net or `Update PCB from Schematic` leaves it floating.
+    Drawing 33 GND pins would make the symbol 84 mm tall and cover the sheet in
+    ground symbols, so they are stacked: one visible pin carries the name, the
+    rest sit behind it and are hidden.  KiCad connects stacked pins, so the
+    netlist still carries all 33 numbers.
+
+    This is the vendor's own convention -- SnapEDA's symbol for this module does
+    exactly this -- and it is why a 73-pad module is a readable symbol.
+    """
+    _p, side, off = sym._find(anchor)
+    for n in nums:
+        sym.add(n, name, side, off, hide=True)
+    return sym
+
+
 # --------------------------------------------------------------- symbols
 # Pin sides follow the signal flow left -> right: the machine (J1) on the left,
 # then the level stage, then the ESP32, then the expanders and the panel.
@@ -217,11 +239,47 @@ SYMS = {
               (4, 'C2+'), (5, 'C2-'), (2, 'V+'), (6, 'V-'),
               (7, 'T2OUT'), (8, 'R2IN'), (9, 'R2OUT'), (10, 'T2IN'),
               (12, 'R1OUT'), (13, 'R1IN')]),
+    # ---- U5: the module, with the part's OWN pin numbers --------------------
+    # U5 is the second symbol here that uses the part's real numbering, for the
+    # same reason J3 does: its footprint has 73 pads and every one must land on a
+    # net, or `Update PCB from Schematic` leaves it floating.  The old symbol had
+    # 18 pins numbered 1..18 and the numbers **collided by name while disagreeing
+    # in meaning** -- symbol pin 1 was +3V3 and the module's pad 1 is GND1, so a
+    # transfer shorted 3.3 V to ground.
+    #
+    # The map is the module's, from the datasheet's pin layout, and it is
+    # cross-checked against SnapEDA's own symbol for the part -- a second source
+    # for the same table rather than a substitute for it:
+    #
+    #     pad  3     3V3          pad 45       EN
+    #     pads 4-25  IO0-IO21     pads 1,2,30,42,43,46-55  GND1
+    #     pad  26    IO26         pads 56-60,62,61_1-61_9  GND2
+    #     pad  27    the module's own NC   pads 63-65       GND3
+    #     pads 28,29 IO33,IO34
+    #     pads 31-41 IO35-IO45    pad 44       IO46
+    #
+    # The thirteen used pins are **pinmap.md's allocation, not a fresh choice**:
+    # IO15/IO16 UART1, IO33/IO34 I2C, IO35/36/37 I2S, IO38 panel INTN, IO21
+    # interface INTN, IO19/IO20 USB D-/D+, and EN.  The other 26 GPIO are carried
+    # and marked no-connect rather than omitted, so their pads are visibly unused
+    # instead of silently floating -- and so ERC has 27 pins to *not* complain
+    # about rather than 27 pin_not_connected errors.
     'U5': ic('ESP32-S2-MINI-2U', 'U',
-             [(5, 'IO15'), (6, 'IO16'), (7, 'IO33'), (8, 'IO34'),
-              (9, 'IO35'), (10, 'IO36'), (11, 'IO37'), (12, 'IO38'),
-              (13, 'IO21'), (14, 'IO19'), (15, 'IO20'), (3, 'EN'), (4, 'IO0')],
-             [(1, '3V3'), (16, 'IO43'), (17, 'IO44'), (18, 'GND'), (2, 'GND')],
+             [('3', '3V3'), ('45', 'EN'),
+              ('19', 'IO15'), ('20', 'IO16'),
+              ('28', 'IO33'), ('29', 'IO34'),
+              ('31', 'IO35'), ('32', 'IO36'), ('33', 'IO37'),
+              ('34', 'IO38'), ('25', 'IO21'),
+              ('23', 'IO19'), ('24', 'IO20'),
+              ('1', 'GND')],
+             [('4', 'IO0'), ('5', 'IO1'), ('6', 'IO2'), ('7', 'IO3'),
+              ('8', 'IO4'), ('9', 'IO5'), ('10', 'IO6'), ('11', 'IO7'),
+              ('12', 'IO8'), ('13', 'IO9'), ('14', 'IO10'), ('15', 'IO11'),
+              ('16', 'IO12'), ('17', 'IO13'), ('18', 'IO14'),
+              ('21', 'IO17'), ('22', 'IO18'), ('26', 'IO26'),
+              ('27', 'NC'),
+              ('35', 'IO39'), ('36', 'IO40'), ('37', 'IO41'), ('38', 'IO42'),
+              ('39', 'IO43'), ('40', 'IO44'), ('41', 'IO45'), ('44', 'IO46')],
              w=35.56),
     'U6': ic('AW9523B_PANEL', 'U',
              [(1, 'VDD'), (2, 'GND'), (3, 'SDA'), (4, 'SCL'), (5, 'AD0'),
@@ -280,6 +338,27 @@ SYMS = {
     'LEDR': two_pin('LED', 'D', 7.62),
     'F': two_pin('FUSE', 'F', 7.62),
 }
+
+# ------------------------------------------------- U5's pads, named once
+# The module's 33 ground pads, its 26 unused GPIO, and its own pad 27.  Named here
+# rather than repeated, so the symbol, the net map and the checker cannot drift
+# apart -- and so the arithmetic is checkable: 13 used + 33 ground + 27 unused is
+# exactly the 73 pads the footprint has.
+U5_GND = (['1', '2', '30', '42', '43'] + [str(p) for p in range(46, 56)]
+          + ['56', '57', '58', '59', '60', '62']
+          + [f'61_{i}' for i in range(1, 10)]
+          + ['63', '64', '65'])
+U5_FREE = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15',
+           '16', '17', '18', '21', '22', '26', '35', '36', '37', '38',
+           '39', '40', '41', '44']
+U5_NC = ['27'] + U5_FREE
+U5_USED = ['3', '45', '19', '20', '28', '29', '31', '32', '33', '34', '25',
+           '23', '24']
+U5_PADS = U5_USED + U5_GND + U5_NC
+
+# 33 ground pads behind one visible pin, which is what makes a 73-pad module a
+# readable symbol.  See stack_onto.
+stack_onto(SYMS['U5'], '1', U5_GND[1:], 'GND')
 # --------------------------------------------------------------- net maps
 LED_SRC = [                       # constant-current source, P0
     ('LED_RADIO', 17), ('LED_CONN', 18), ('LED_HS', 19), ('LED_AA', 20),
@@ -299,10 +378,22 @@ NET_U3 = {1: 'NC', 2: 'IF_MSB', 3: 'GND', 4: 'P1_MSB', 5: '+3V3'}
 NET_U4 = {1: 'C1P', 2: 'VP', 3: 'C1N', 4: 'C2P', 5: 'C2N', 6: 'VN', 7: 'NC',
           8: 'GND', 9: 'NC', 10: 'GND', 11: 'UART1_TX', 12: 'NC', 13: 'GND',
           14: 'P1_RXD', 15: 'GND', 16: '+3V3'}
-NET_U5 = {1: '+3V3', 2: 'GND', 3: 'ESP_EN', 4: 'NC', 5: 'UART1_TX',
-          6: 'O1_TXD_3V3', 7: 'I2C_SDA', 8: 'I2C_SCL', 9: 'I2S_BCLK',
-          10: 'I2S_LRCLK', 11: 'I2S_DIN', 12: 'INT_PANEL', 13: 'INT_IF',
-          14: 'USB_DM_ESP', 15: 'USB_DP_ESP', 16: 'NC', 17: 'NC', 18: 'GND'}
+# U5, all 73 pads.  The numbers are the module's own (see the symbol above), so
+# this reads as a pinout rather than as a list of indices -- and because the pin
+# count and the pad count now agree, `Update PCB from Schematic` puts every net on
+# the pad it actually belongs to.  It used to put +3V3 on pad 1, which is GND1.
+NET_U5 = {
+    '3': '+3V3', '45': 'ESP_EN',
+    '19': 'UART1_TX', '20': 'O1_TXD_3V3',
+    '28': 'I2C_SDA', '29': 'I2C_SCL',
+    '31': 'I2S_BCLK', '32': 'I2S_LRCLK', '33': 'I2S_DIN',
+    '34': 'INT_PANEL', '25': 'INT_IF',
+    '23': 'USB_DM_ESP', '24': 'USB_DP_ESP',
+}
+for _p in U5_GND:
+    NET_U5[_p] = 'GND'
+for _p in U5_NC:
+    NET_U5[_p] = 'NC'
 NET_U6 = {1: '+3V3', 2: 'GND', 3: 'I2C_SDA', 4: 'I2C_SCL', 5: 'GND', 6: 'GND',
           7: 'INT_PANEL', 8: 'EXP_RSTN', 12: 'NC', 13: 'NC', 14: 'NC',
           15: 'NC', 16: 'NC'}
@@ -624,7 +715,7 @@ def emit_symbol(key, ref, value, x, y, netmap):
         ' (effects (font (size 1.27 1.27)) (hide yes)))',
         '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
     ]
-    for n, pname, side, off in s.pins:
+    for n, pname, side, off, _hide in s.pins:
         body.append(f'    (pin "{n}" (uuid "{uid()}"))')
         sx, sy = s.pin_sym(n)
         X, Y = snap(x + sx), snap(y - sy)     # symbol Y-up -> sheet Y-down
@@ -831,7 +922,14 @@ for _key, _ref, _val, _x, _y, _n1, _n2 in TWO:
 # power nets: one power symbol per pin, joined by a short stub
 for net in sorted(POWER_NETS):
     first = None
+    seen = set()
     for (_ref, _pin, X, Y, side) in pinpts.get(net, []):
+        # Stacked pins share one point on the sheet -- U5's 33 ground pads are one
+        # visible pin with 32 hidden behind it -- so they are one connection and
+        # want one symbol, not 33 on top of each other.
+        if (X, Y) in seen:
+            continue
+        seen.add((X, Y))
         dx = 5.08 if side == 'R' else -5.08
         fx = snap(X + dx)
         emit_power(net, fx, Y)

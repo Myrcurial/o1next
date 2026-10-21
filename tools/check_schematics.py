@@ -716,6 +716,25 @@ REV0 = Board(
     passthrough=[("J1", "J2", range(1, 41), set())],
 )
 
+# U5 is the ESP32-S2-MINI-2U module, and like J3 it uses the **part's own** pin
+# numbers, because its footprint has 73 pads and a net has to land on each.  These
+# three lists mirror the generator's; the pin-versus-pad audit below is what
+# guarantees they stay honest, since it checks all 73 against the footprint.
+U5_GND = (["1", "2", "30", "42", "43"] + [str(p) for p in range(46, 56)]
+          + ["56", "57", "58", "59", "60", "62"]
+          + [f"61_{i}" for i in range(1, 10)]
+          + ["63", "64", "65"])
+U5_USED = ["3", "45", "19", "20", "28", "29", "31", "32", "33", "34", "25",
+           "23", "24"]
+# 26 GPIO this board leaves free, plus the module's own pad 27.  Carried in the
+# symbol and marked no-connect rather than omitted -- an omitted pad is a pad with
+# no net, which is how a module footprint ends up half-wired, and ERC would then
+# report 27 pin_not_connected errors instead of staying quiet about them.
+U5_NC = ["4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
+         "16", "17", "18", "21", "22", "26", "35", "36", "37", "38",
+         "39", "40", "41", "44", "27"]
+U5_PADS = U5_USED + U5_GND + U5_NC
+
 # J3 is the USB-C receptacle, and it uses the part's **real** pin numbers -- A1-A12,
 # B1-B12 and SH1-SH6 -- because its footprint has 30 pads and a net has to land on
 # each.  Named once here, because these assertions are the only thing keeping 30
@@ -736,15 +755,14 @@ WIFI_COMM_PAC = Board(
     name="wifi-comm-pac",
     sch="hardware/wifi-comm-pac/wifi-comm-pac-generated/wifi-comm-pac.kicad_sch",
     gen="hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py",
-    # 179, and the number is derived rather than fudged: **every** violation this
+    # 178, and the number is derived rather than fudged: **every** violation this
     # board produces is the one kind -- "The current configuration does not include
     # the symbol library 'local'" -- and there is exactly one per *placed symbol*.
-    # The generator emits 179 of them.  J3's rebuild is what moved it from 171:
-    # its GND and shield pins went from 2 to 10 (A1/A12/B1/B12 plus SH1-SH6, since
-    # the shell is the ground path), so 8 more power symbols are drawn, and each
-    # draws one warning.  Verified with `kicad-cli sch erc --severity-all`: 179
-    # messages, 179 of this type, 0 of any other.
-    erc_allowance={"lib_symbol_issues": 179},
+    # The generator emits 178 of them.  Verified with
+    # `kicad-cli sch erc --severity-all`: 178 messages, 178 of this type, 0 of any
+    # other.  It was 179 before U5 was rebuilt: its 33 ground pads stack behind one
+    # visible pin, so two ground symbols became one.
+    erc_allowance={"lib_symbol_issues": 178},
     pinout=[("J1", {1: "GND", 2: "P1_TXD", 4: "P1_MSB", 5: "P1_CTS",
                     6: "P1_RXD", 7: "+12V", 8: "P1_MCB", 9: "P1_RI"})],
     exact_nets={
@@ -755,7 +773,7 @@ WIFI_COMM_PAC = Board(
         "P1_RI": {("J1", "9"), ("U2", "9")},
         "P1_MCB": {("J1", "8"), ("U1", "9")},
         # the translated machine side: TXD lands on UART1 RX, MCB on the expander
-        "O1_TXD_3V3": {("U1", "3"), ("U5", "6")},
+        "O1_TXD_3V3": {("U1", "3"), ("U5", "20")},
         "O1_MCB_3V3": {("U1", "4"), ("U7", "12")},
         # the interface expander's three outputs are open-drain, hence the pulls
         "IF_CTS": {("U2", "3"), ("U7", "9"), ("R25", "1")},
@@ -778,11 +796,11 @@ WIFI_COMM_PAC = Board(
     excludes_nets={
         # 5 V must never touch the 3.3 V-only parts (all of the ESP32, both
         # expanders, the MAX3232 and the audio amp's logic pins)
-        "+5V": (pins("U5", range(1, 19)) | pins("U6", range(1, 25))
+        "+5V": (pins("U5", U5_PADS) | pins("U6", range(1, 25))
                 | pins("U7", range(1, 25)) | pins("U4", range(1, 17))),
         # the machine's 12.6 V stops at the buck
         "+12V": (pins("U10", range(1, 6)) | pins("U8", range(1, 10))
-                 | pins("U5", range(1, 19)) | pins("J3", J3_PINS)),
+                 | pins("U5", U5_PADS) | pins("J3", J3_PINS)),
         # and USB VBUS is not the machine rail
         "+5V_USB": pins("J1", range(1, 11)) | pins("U9", range(1, 9)),
     },
@@ -792,7 +810,9 @@ WIFI_COMM_PAC = Board(
         "U2": {5, 6, 10, 11},
         "U3": {1},
         "U4": {7, 9, 12},
-        "U5": {4, 16, 17},
+        # U5's 26 free GPIO plus the module's own pad 27.  Carried in the symbol
+        # and marked no-connect, so this asserts the no-connect is real.
+        "U5": U5_NC,
         "U6": {12, 13, 14, 15, 16},
         "U7": set(range(13, 17)) | set(range(17, 25)),
         "U10": {5},
@@ -805,17 +825,17 @@ WIFI_COMM_PAC = Board(
     # these are the parts whose symbols use **logical pin numbers** or model only
     # the channels the board uses, so the pads are real package pins that no net
     # reaches yet.  Declaring them here keeps them visible instead of silent, and
-    # binding them is the first layout task.  U5 is the one that is actively
-    # dangerous -- symbol pin 1 is +3V3 and the module's pin 1 is GND1.
+    # binding them is the first layout task.
+    #
+    # U5 and J3 have left this list, and that is the shape of the fix: both now use
+    # the part's own pin numbers, so every pad they have lands on a net.  U5 was
+    # the dangerous one -- symbol pin 1 was +3V3 and the module's pad 1 is GND1, so
+    # a transfer put 3.3 V on a ground pad.  The rest are merely incomplete.
     pin_partial={
         "U1": "74LVC4T245: 9 pins against 16 pads. Two of the four channels are "
               "modelled and the numbers are logical, not the TSSOP-16 pinout",
         "U2": "74LVC4T245: same as U1",
         "U3": "74LVC1G07: 5 pins against 6 pads (SOT-23-6); pad 6 has no pin",
-        "U5": "ESP32-S2-MINI-2U: 18 pins against 73 pads, and the numbers collide "
-              "in meaning. Symbol pin 1 is +3V3; the module's pin 1 is GND1, so a "
-              "transfer today shorts 3.3 V to ground. Needs the real pin map, which "
-              "is a GPIO allocation decision, not a lookup",
         "U6": "AW9523B: 24 pins against 25 pads; pad 25 is the exposed pad",
         "U7": "AW9523B: same as U6",
         "U8": "MAX98357A: 9 pins against 17 pads (TQFN-16 + EP); the numbers are "
