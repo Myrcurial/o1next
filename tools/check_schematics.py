@@ -299,12 +299,23 @@ def check_mech(board: Board):
 # --------------------------------------------------------------------------
 # Every generated sheet declares its format in the first line, and KiCad trusts
 # it.  Ours lied: all four generators wrote `(version 20230121)` -- KiCad 7 --
-# while emitting `exclude_from_sim`, which is a KiCad 8 token.  So the sheets were
-# not KiCad 7 files and KiCad 7 was right to refuse them; the failure looked like a
-# broken schematic and was really a wrong header.  The header is checked against
-# the tokens actually present, which is the only way it stays honest.
+# while emitting `exclude_from_sim` (a KiCad 8 token) and `generator_version`
+# (which is not in the documented schematic format at all, at any version).  So
+# the sheets were not KiCad 7 files and KiCad 7 was right to refuse them with
+# "Failed to load schematic file"; the failure looked like a broken schematic and
+# was really a wrong header.
+#
+# The second one is worth spelling out, because it is the one that is easy to miss:
+# the documented header is `(kicad_sch (version VERSION) (generator GENERATOR))`,
+# and KiCad 7's parser knows nothing else.  Modern KiCad *writes* a
+# `generator_version` alongside the generator, so copying a header out of a recent
+# KiCad is how it gets in -- and it makes the file unreadable to the version the
+# header claims.
+#
+# `generator_version` maps to None: not version-gated, simply absent.
 FORMAT_TOKENS = {
     "exclude_from_sim": 20231120,   # KiCad 8
+    "generator_version": None,      # not in the documented format, any version
     "embedded_fonts": 20250114,     # KiCad 9
 }
 
@@ -316,8 +327,15 @@ def check_format_version(board: Board):
     if not m:
         return [f"{board.sch.name}: no (version ...) header in the first line"]
     declared = int(m.group(1))
-    for token, since in sorted(FORMAT_TOKENS.items()):
-        if f"({token}" in text and declared < since:
+    for token, since in sorted(FORMAT_TOKENS.items(), key=lambda kv: str(kv[1])):
+        if f"({token}" not in text:
+            continue
+        if since is None:
+            failures.append(
+                f"{board.sch.name} declares format {declared} but uses `{token}`, "
+                f"which is not in the documented schematic format at any version -- "
+                f"KiCad will refuse the whole file rather than guess")
+        elif declared < since:
             failures.append(
                 f"{board.sch.name} declares format {declared} but uses "
                 f"`{token}`, which arrived in {since} -- the header is a lie, and "

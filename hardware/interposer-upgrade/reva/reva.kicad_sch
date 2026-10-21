@@ -1,4 +1,4 @@
-(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")
+(kicad_sch (version 20230121) (generator "o1next-gen")
   (uuid "449c1375-022c-4efd-883b-8470aac454a8")
   (paper "A2")
   (title_block (title "o1next interposer Rev A engineering sample") (date "2026-10-10") (rev "A-ES")

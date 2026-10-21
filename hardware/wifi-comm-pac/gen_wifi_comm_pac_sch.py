@@ -784,7 +784,7 @@ ref_fp = {}          # ref -> footprint, for symbol_instances
 
 # --------------------------------------------------------------- emitter
 out = [
-    '(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
+    '(kicad_sch (version 20230121) (generator "o1next-gen")',
     f'  (uuid "{uid()}")',
     '  (paper "A1")',
     '  (title_block (title "o1next wifi-comm-pac - O1NEXT WiFi COMM PAC")'
