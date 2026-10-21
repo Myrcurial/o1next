@@ -225,9 +225,29 @@ SYMS = {
     'U10': ic('AP2112K-3.3', 'U',
               [(1, 'VIN'), (3, 'EN'), (2, 'GND')],
               [(4, 'VOUT'), (5, 'NC')], w=17.78),
+    # J3 is the USB-C receptacle, and it is the one symbol here whose pin numbers
+    # are the **real ones** rather than logical: A1-A12 and B1-B12 are the contacts
+    # and SH1-SH6 the shield pads, exactly as Same Sky numbers them, because the
+    # footprint has 30 pads and a net has to land on every one.  The ten contacts
+    # this board does not use -- the eight SuperSpeed pairs and both SBU -- are
+    # **carried and marked no-connect rather than omitted**: an omitted pin is a pad
+    # with no net, which is how a USB-C footprint ends up half-wired, and the ERC
+    # then has nothing to complain about.  Pin map from SnapEDA's
+    # UJ32-C-H-G-DSMT-1-P24-TR.kicad_sym, which is the part's own symbol; the used
+    # pins are on the left where the wires go, the unused on the right.
     'J3': ic('USB_C_SINK', 'J',
-             [(1, 'VBUS'), (2, 'CC1'), (3, 'CC2'), (4, 'D+'), (5, 'D-')],
-             [(6, 'GND'), (7, 'SHIELD')], w=20.32),
+             [('A4', 'VBUS'), ('A9', 'VBUS'), ('B4', 'VBUS'), ('B9', 'VBUS'),
+              ('A5', 'CC1'), ('B5', 'CC2'),
+              ('A6', 'DP1'), ('B6', 'DP2'), ('A7', 'DN1'), ('B7', 'DN2'),
+              ('A1', 'GND'), ('A12', 'GND'), ('B1', 'GND'), ('B12', 'GND'),
+              ('SH1', 'SHIELD'), ('SH2', 'SHIELD'), ('SH3', 'SHIELD'),
+              ('SH4', 'SHIELD'), ('SH5', 'SHIELD'), ('SH6', 'SHIELD')],
+             [('A2', 'SSTXP1'), ('A3', 'SSTXN1'),
+              ('A10', 'SSRXN2'), ('A11', 'SSRXP2'),
+              ('B2', 'SSTXP2'), ('B3', 'SSTXN2'),
+              ('B10', 'SSRXN1'), ('B11', 'SSRXP1'),
+              ('A8', 'SBU1'), ('B8', 'SBU2')],
+             w=25.4, pitch=2.54),
     'SW1': two_pin('SW_LATCH', 'SW', 12.7),
     'J2': two_pin('SPEAKER', 'J', 10.16),
     'R': two_pin('R', 'R', 7.62),
@@ -278,8 +298,30 @@ NET_U8 = {1: '+5V', 2: 'GND', 3: 'I2S_BCLK', 4: 'I2S_LRCLK', 5: 'I2S_DIN',
 NET_U9 = {1: 'BOOT_N', 2: '+12V_SW', 3: '+12V_SW', 4: 'SS_N', 5: 'FB_N',
           6: 'COMP_N', 7: 'GND', 8: 'PH_N'}
 NET_U10 = {1: '+5V', 2: 'GND', 3: '+5V', 4: '+3V3', 5: 'NC'}
-NET_J3 = {1: 'VBUS_IN', 2: 'USB_CC1', 3: 'USB_CC2', 4: 'USB_DP_CON',
-          5: 'USB_DM_CON', 6: 'GND', 7: 'GND'}
+# J3, all 30 pins accounted for.  VBUS is all four VBUS contacts (A4/A9/B4/B9)
+# because a sink draws on whichever pair the cable presents; GND is the four
+# ground returns **plus all six shield pads**, since the shell is the ground path
+# on a receptacle this small.  DP1/DP2 and DN1/DN2 are the two halves of the USB
+# 2.0 pair and **both are wired** -- that is what makes the connector
+# orientation-independent, and wiring only one half is the classic way to get a
+# port that works with the cable upside down and not right way up.  CC1 and CC2
+# go to 5k1 pulldowns (R15/R16), which is the sink's Rd.
+#
+# The ten unused contacts are 'NC' rather than absent, so each gets a no-connect
+# marker on its pad.  Eight are the SuperSpeed pairs -- this is a USB 2.0 sink, so
+# they are genuinely unused -- and two are SBU, which a plain sink does not need.
+NET_J3 = {
+    'A4': 'VBUS_IN', 'A9': 'VBUS_IN', 'B4': 'VBUS_IN', 'B9': 'VBUS_IN',
+    'A5': 'USB_CC1', 'B5': 'USB_CC2',
+    'A6': 'USB_DP_CON', 'B6': 'USB_DP_CON',
+    'A7': 'USB_DM_CON', 'B7': 'USB_DM_CON',
+    'A1': 'GND', 'A12': 'GND', 'B1': 'GND', 'B12': 'GND',
+    'SH1': 'GND', 'SH2': 'GND', 'SH3': 'GND',
+    'SH4': 'GND', 'SH5': 'GND', 'SH6': 'GND',
+    'A2': 'NC', 'A3': 'NC', 'A10': 'NC', 'A11': 'NC',
+    'B2': 'NC', 'B3': 'NC', 'B10': 'NC', 'B11': 'NC',
+    'A8': 'NC', 'B8': 'NC',
+}
 NET_SW1 = {1: '+12V', 2: '+12V_SW'}
 # Pin 1 is the '+' terminal.  The datasheet gives the polarity: the cone moves
 # forward with positive dc on '+'.  SPK_P is the amplifier's OUT+, so pin 1 takes
@@ -416,13 +458,13 @@ FOOTPRINTS = {
     'D':   'Diode_SMD:D_SMA',
     'F':   'Fuse:Fuse_1206_3216Metric',
     # J2 is a **real speaker**, not a piezo buzzer: Same Sky CMS-151103-088SP,
-    # 15 x 11 x 3 mm rectangular frame, 0.7 W (1.0 W max), 8 ohm, 90 dB at
-    # 0.7 W/10 cm, PEEK cone, Nd-Fe-B magnet, solder-pad terminals.  Note the
-    # datasheet measures in a **1 cc box** (Fo 680-850 Hz, the 90 dB); this board
-    # runs it in **free air**, unsealed case, perforated front panel, so the
-    # datasheet's free-air row applies instead -- Fo 440-660 Hz, and less SPL.
-    # Neither number is designed around; it is recorded so the box measurement is
-    # not mistaken for the board's specification.
+    # 15 x 11 x 3 mm rectangular frame, 0.7 W (1.0 W max), 8 ohm, PEEK cone,
+    # Nd-Fe-B magnet, solder-pad terminals.  Only the **8 ohm** is load-bearing --
+    # it is what the MAX98357A wants.  The panel is a noise generator, not a hi-fi:
+    # it runs in free air in an unsealed case with a perforated front panel, and
+    # nothing here is designed around a response curve.  So the datasheet's Fo and
+    # its SPL are deliberately not repeated anywhere as if they were the board's
+    # specification -- they are 1 cc-box figures, and the box is not ours.
     # The part was chosen on 2026-10-21 (the piezo it replaces --
     # Multicomp Pro MCKPT-G1340-3917 -- is out; its footprint has been deleted).
     #
@@ -434,9 +476,14 @@ FOOTPRINTS = {
     #
     # The footprint is ours, and its geometry is read off the datasheet's
     # mechanical drawing: 15 x 11 x 3 mm body, two **0.6 mm square** solder pads on
-    # the left and right sides.  The only inference left is the pad-to-edge offset,
-    # taken as flush -- see FOOTPRINT_UNCONFIRMED below.
+    # the left and right sides, and the pads **flush with the frame edge**.
     'J2':  'o1next:Speaker_SameSky_CMS-151103-088SP',
+    # J3 is Same Sky UJ32-C-H-G-DSMT-1-P24-TR, and this one is the vendor's own
+    # footprint from SnapEDA -- all 24 contacts (A1-A12, B1-B12) plus the six shield
+    # pads.  It could not be assigned until the **symbol** had 30 pins to match, so
+    # that every pad got a net; before the rebuild 17 of them would have been left
+    # with none.  See the symbol above.
+    'J3':  'o1next:USB_C_SameSky_UJ32-C-H-G-DSMT-1-P24-TR',
     # SW1 is SparkFun COM-10860, the Surface Mount Right Angle Switch -- SPST,
     # 6.7 x 2.6 mm.  SparkFun's library is CC BY 4.0, so the footprint is copied
     # into ours *with attribution* rather than referenced: the board then needs no
@@ -453,29 +500,27 @@ FOOTPRINTS = {
 # changes the board, and a plausible-but-wrong footprint is a board that does not
 # fit -- which is worse than a blank one, because a blank one is visibly undone.
 # The generator prints this list on every run so it cannot be forgotten.
-FOOTPRINT_OPEN = {
-    'J3':  'USB-C receptacle, Same Sky UJ32-C-H-G-DSMT-1-P24-TR.  The footprint is '
-           'ready -- o1next:USB_C_SameSky_UJ32-C-H-G-DSMT-1-P24-TR, all 24 contacts '
-           'plus six shield pads -- but **it cannot be assigned until the SYMBOL is '
-           'rebuilt**: the symbol has 7 pins against the 24 the part has, so assigning it '
-           'now would leave 17 pads with no net.  The rebuild is A1-A12 and B1-B12 '
-           'with the real signal names, the ten unused contacts carried and marked '
-           'no-connect, and it changes the netlist, which check_schematics.py '
-           'asserts.  That is why it is its own job and not a footnote here.',
-}
+#
+# **Empty as of 2026-10-21: J3 was the last entry.**  It waited on the symbol
+# rebuild above, not on a part decision, and it is now assigned.  The dict stays
+# because the mechanism is the point: a footprint that cannot be assigned yet is
+# recorded here rather than silently left blank, and a schematic with an empty
+# footprint transfers nothing to the PCB.
+FOOTPRINT_OPEN = {}
 
 # A third category, and a different failure: the part is decided and the footprint
 # **is** assigned, but some dimension in it was placed rather than read, because
 # the source gives it only as a figure.  That is not the same as FOOTPRINT_OPEN --
 # the board is complete and opens -- but it is not finished either, so it is
 # printed on every run beside it.
-FOOTPRINT_UNCONFIRMED = {
-    'J2':  'Same Sky CMS-151103-088SP speaker.  Body 15 x 11 x 3 mm and both pads '
-           '0.6 mm square on the left and right sides are **read from the drawing**.  '
-           'One inference is left: the pad-to-edge offset is taken as flush, so the '
-           'pad centres are at +/-7.2 mm (14.4 mm apart).  If the drawing insets them '
-           'instead, that is the single number to change.',
-}
+#
+# **Empty as of 2026-10-21.**  J2 was the only entry: its pads were placed at
+# 2.0 x 2.0 mm, 5.08 mm apart, because the speaker datasheet's mechanical drawing
+# is a figure and does not extract as text.  The drawing was then read by eye and
+# the values corrected (0.6 mm square, 14.4 mm apart), and the pad-to-edge offset
+# -- the one remaining inference, taken as flush -- was confirmed.  So the
+# category is empty and the mechanism stays.
+FOOTPRINT_UNCONFIRMED = {}
 
 for _k, _s in SYMS.items():
     _s.footprint = FOOTPRINTS.get(_k, '')

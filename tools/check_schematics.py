@@ -444,7 +444,9 @@ def check_board(cli: str, board: Board, tmp: Path, verbose: bool):
             failures.append(f"{ref}.{pin} is on net {got!r}, expected {want!r}")
 
     for ref, unused in sorted(board.unused_pins.items()):
-        for pin in sorted(unused, key=int):
+        # str(), not int(): J3 on the wifi-comm-pac uses the USB-C part's own pin
+        # numbers (A1, B12, SH3), so an int key would raise rather than check.
+        for pin in sorted(unused, key=str):
             got = net_of(nets, ref, pin)
             if got is not None:
                 failures.append(f"{ref}.{pin} must be unconnected, but is on {got!r}")
@@ -592,6 +594,17 @@ REV0 = Board(
     passthrough=[("J1", "J2", range(1, 41), set())],
 )
 
+# J3 is the USB-C receptacle, and it uses the part's **real** pin numbers -- A1-A12,
+# B1-B12 and SH1-SH6 -- because its footprint has 30 pads and a net has to land on
+# each.  Named once here, because these assertions are the only thing keeping 30
+# pads honest: `pins("J3", range(1, 8))` was what this read before the rebuild, and
+# against A1/B1-style numbers it matches nothing at all -- the check would pass
+# while asserting nothing, which is worse than failing.
+J3_PINS = [f"{s}{n}" for s in "AB" for n in range(1, 13)] + [f"SH{i}" for i in range(1, 7)]
+# the ten contacts a USB 2.0 sink does not use: eight SuperSpeed, two SBU.  Carried
+# in the symbol and marked no-connect, so their pads are not silently left floating.
+J3_UNUSED = ["A2", "A3", "A10", "A11", "B2", "B3", "B10", "B11", "A8", "B8"]
+
 # O1NEXT WiFi COMM PAC (issues #324, #325, part of #56).  J1 is the 2x5 IDC on
 # the board end of the 10-conductor pigtail; pin n is DE-9 pin n for 1..9, and
 # pin 10 is spare.  The 6850 and the PIA are +5 V parts, so the nets are checked
@@ -601,7 +614,15 @@ WIFI_COMM_PAC = Board(
     name="wifi-comm-pac",
     sch="hardware/wifi-comm-pac/wifi-comm-pac.kicad_sch",
     gen="hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py",
-    erc_allowance={"lib_symbol_issues": 171},   # embedded symbols, no sym-lib-table
+    # 179, and the number is derived rather than fudged: **every** violation this
+    # board produces is the one kind -- "The current configuration does not include
+    # the symbol library 'local'" -- and there is exactly one per *placed symbol*.
+    # The generator emits 179 of them.  J3's rebuild is what moved it from 171:
+    # its GND and shield pins went from 2 to 10 (A1/A12/B1/B12 plus SH1-SH6, since
+    # the shell is the ground path), so 8 more power symbols are drawn, and each
+    # draws one warning.  Verified with `kicad-cli sch erc --severity-all`: 179
+    # messages, 179 of this type, 0 of any other.
+    erc_allowance={"lib_symbol_issues": 179},
     pinout=[("J1", {1: "GND", 2: "P1_TXD", 4: "P1_MSB", 5: "P1_CTS",
                     6: "P1_RXD", 7: "+12V", 8: "P1_MCB", 9: "P1_RI"})],
     exact_nets={
@@ -621,6 +642,16 @@ WIFI_COMM_PAC = Board(
         # the port's 12.6 V reaches the switch and nothing else before it
         "+12V": {("J1", "7"), ("SW1", "1")},
         "+5V_USB": {("F1", "2"), ("D14", "1")},
+        # J3, and these are the ones worth having: **both halves of the USB 2.0
+        # pair must be wired** (A6/B6 and A7/B7).  Wiring only one half is the
+        # classic way to get a port that works with the cable one way up and not
+        # the other, and it looks fine on the sheet either way.
+        "VBUS_IN": {("J3", "A4"), ("J3", "A9"), ("J3", "B4"), ("J3", "B9"),
+                    ("F1", "1")},
+        "USB_CC1": {("J3", "A5"), ("R15", "1")},
+        "USB_CC2": {("J3", "B5"), ("R16", "1")},
+        "USB_DP_CON": {("J3", "A6"), ("J3", "B6"), ("R17", "2")},
+        "USB_DM_CON": {("J3", "A7"), ("J3", "B7"), ("R18", "2")},
     },
     excludes_nets={
         # 5 V must never touch the 3.3 V-only parts (all of the ESP32, both
@@ -629,7 +660,7 @@ WIFI_COMM_PAC = Board(
                 | pins("U7", range(1, 25)) | pins("U4", range(1, 17))),
         # the machine's 12.6 V stops at the buck
         "+12V": (pins("U10", range(1, 6)) | pins("U8", range(1, 10))
-                 | pins("U5", range(1, 19)) | pins("J3", range(1, 8))),
+                 | pins("U5", range(1, 19)) | pins("J3", J3_PINS)),
         # and USB VBUS is not the machine rail
         "+5V_USB": pins("J1", range(1, 11)) | pins("U9", range(1, 9)),
     },
@@ -643,6 +674,10 @@ WIFI_COMM_PAC = Board(
         "U6": {12, 13, 14, 15, 16},
         "U7": set(range(13, 17)) | set(range(17, 25)),
         "U10": {5},
+        # J3's ten unused USB-C contacts.  They are in the symbol and marked
+        # no-connect rather than omitted, so this asserts that the no-connect is
+        # real -- a pad accidentally on a net is exactly what this catches.
+        "J3": J3_UNUSED,
     },
 )
 
