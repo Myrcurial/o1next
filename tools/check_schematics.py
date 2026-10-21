@@ -207,7 +207,17 @@ KICAD_FP_ROOTS = [
 
 
 def footprint_pads(fpid: str, repo: Path):
-    """Pad names of a footprint, or None if the file cannot be found."""
+    """Pad names of a footprint, or None if the file cannot be found.
+
+    The pad number is **quoted in some KiCad releases and not in others** -- KiCad
+    10's own libraries write `(pad "1" ...)` while the KiCad 9 libraries installed
+    on the CI runner write `(pad 1 ...)`.  A regex that assumed quotes returned an
+    empty list there, and an empty list read as "this symbol's pins have no pads",
+    which is a *board defect* -- so every KiCad-standard footprint on the board was
+    reported as unwired and the check failed for a reason that had nothing to do
+    with the board.  Both forms are accepted, and an empty result is treated as
+    "not audited" rather than as a mismatch.
+    """
     if not fpid:
         return None
     if fpid.startswith("o1next:"):
@@ -218,7 +228,8 @@ def footprint_pads(fpid: str, repo: Path):
         cands = [r / (lib + ".pretty") / (nm + ".kicad_mod") for r in KICAD_FP_ROOTS]
     for c in cands:
         if c.exists():
-            return re.findall(r'\(pad "([^"]+)"', c.read_text(errors="replace"))
+            pads = re.findall(r'\(pad\s+"?([^\s")]+)"?', c.read_text(errors="replace"))
+            return pads or None      # a footprint with no readable pads is not a mismatch
     return None
 
 
