@@ -54,6 +54,7 @@ class Symbol:
         self.w, self.h = w, h
         self.pins = []          # (number, name, side, offset_from_bottom)
         self.lib_id = 'local:' + name
+        self.footprint = ''     # set from FOOTPRINTS below, keyed by SYMS key
 
     def add(self, num, pname, side, off):
         self.pins.append((num, pname, side, off))
@@ -81,7 +82,8 @@ class Symbol:
               ' (effects (font (size 1.27 1.27))))\n')
         s += (f'    (property "Value" "{self.name}" (at 0 {-self.h/2 - 5.08} 0)'
               ' (effects (font (size 1.27 1.27))))\n')
-        s += '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
+        s += (f'    (property "Footprint" "{self.footprint}" (at 0 0 0)'
+              ' (effects (font (size 1.27 1.27)) (hide yes)))\n')
         s += '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
         hw, hh = self.w / 2, self.h / 2
         s += f'    (symbol "{self.name}_0_1"\n'
@@ -369,6 +371,67 @@ NOTES = [
     'Both expanders are fitted: neither is full, so the pin budget is closed.',
     'Power is diode-OR: 12.6 V -> 5 V path, and USB-C 5 V for bench work.',
 ]
+# --------------------------------------------------------------- footprints
+# **A schematic with no footprints cannot become a board.**  Every symbol's
+# Footprint field was empty in the first revision of this file, on the theory
+# that the assignment happens later, at annotation.  That theory does not survive
+# contact: `Update PCB from Schematic` transfers *nothing* when the field is
+# empty, so the board could not be started at all without hand-assigning 71
+# footprints in KiCad -- which is exactly the hand transcription this generator
+# exists to avoid.
+#
+# **Every name below was checked against KiCad's own libraries before it was
+# written here** -- confirmed to exist as
+# `<kicad>/footprints/<lib>.pretty/<name>.kicad_mod`.  A footprint that does not
+# exist is worse than an empty one, because it *looks* assigned.
+#
+# Keyed by SYMS key, so one line covers every instance of a template part: `R`
+# is 27 resistors and `C` is 14 capacitors.
+FOOTPRINTS = {
+    'J1':  'Connector_PinHeader_2.54mm:PinHeader_2x05_P2.54mm_Vertical',
+    'U1':  'Package_SO:TSSOP-16_4.4x5mm_P0.65mm',
+    'U2':  'Package_SO:TSSOP-16_4.4x5mm_P0.65mm',
+    'U3':  'Package_TO_SOT_SMD:SOT-23-6',
+    'U4':  'Package_SO:SOIC-16_3.9x9.9mm_P1.27mm',
+    'U6':  'Package_DFN_QFN:QFN-24-1EP_4x4mm_P0.5mm_EP2.6x2.6mm',
+    'U7':  'Package_DFN_QFN:QFN-24-1EP_4x4mm_P0.5mm_EP2.6x2.6mm',
+    'U9':  'Package_SO:SOIC-8_3.9x4.9mm_P1.27mm',
+    'U10': 'Package_TO_SOT_SMD:SOT-23-5',
+    'R':   'Resistor_SMD:R_0603_1608Metric',
+    'C':   'Capacitor_SMD:C_0603_1608Metric',
+    'L':   'Inductor_SMD:L_1210_3225Metric',
+    'D':   'Diode_SMD:D_SMA',
+    'F':   'Fuse:Fuse_1206_3216Metric',
+}
+
+# **Open, and deliberately not guessed.**  Each needs a part decision that
+# changes the board, and a plausible-but-wrong footprint is a board that does not
+# fit -- which is worse than a blank one, because a blank one is visibly undone.
+# The generator prints this list on every run so it cannot be forgotten.
+FOOTPRINT_OPEN = {
+    'U5':  'ESP32-S2-MINI-2U.  KiCad carries ESP32-S2-MINI-1 and -1U and NO -2U, '
+           'and the -2 series is a different pad layout, so this needs a footprint '
+           'drawn from the Espressif datasheet -- a library lookup cannot supply it.',
+    'U8':  'MAX98357A.  TQFN-16 3x3 mm or WLP; KiCad has both shapes and which is '
+           'right depends on the ordering part number.',
+    'J2':  'speaker connector -- no part chosen yet.',
+    'J3':  'USB-C receptacle.  The symbol has 7 pins (VBUS, CC1, CC2, D+, D-, GND, '
+           'SHIELD); every 16P footprint has more pads than that, so assigning one '
+           'here leaves pads unconnected on the board. The symbol needs the doubled '
+           'VBUS/GND pins added first.',
+    'SW1': 'slide switch, latching -- no part chosen yet.',
+    'LED': '3.5 x 2.8 mm (3528).  KiCad carries only *vendor-specific* 3528 '
+           'footprints (Everlight 67-21ST, Foshan NTD3528, Kingbright AAA3528), so '
+           'this needs the LED part number.',
+    'LEDR': 'same as LED.',
+}
+
+for _k, _s in SYMS.items():
+    _s.footprint = FOOTPRINTS.get(_k, '')
+
+ref_fp = {}          # ref -> footprint, for symbol_instances
+
+
 # --------------------------------------------------------------- emitter
 out = [
     '(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
@@ -403,6 +466,7 @@ def emit_symbol(key, ref, value, x, y, netmap):
     s = SYMS[key]
     x, y = snap(x), snap(y)
     sinst.append((ref, value))
+    ref_fp[ref] = s.footprint
     rects.append((x - s.w / 2 - 0.6, y - s.h / 2 - 0.6,
                   x + s.w / 2 + 0.6, y + s.h / 2 + 0.6))
     body = [
@@ -412,7 +476,8 @@ def emit_symbol(key, ref, value, x, y, netmap):
         ' (effects (font (size 1.27 1.27))))',
         f'    (property "Value" "{value}" (at {x} {y - s.h / 2 - 5.08} 0)'
         ' (effects (font (size 1.27 1.27))))',
-        '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
+        f'    (property "Footprint" "{s.footprint}" (at 0 0 0)'
+        ' (effects (font (size 1.27 1.27)) (hide yes)))',
         '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
     ]
     for n, pname, side, off in s.pins:
@@ -680,7 +745,8 @@ out.extend(insts)
 out.append('  (sheet_instances (path "/" (page "1")))')
 si = '  (symbol_instances'
 for ref, val in sinst:
-    si += f' (path "/" (reference "{ref}") (unit 1) (value "{val}") (footprint ""))'
+    si += (f' (path "/" (reference "{ref}") (unit 1) (value "{val}")'
+           f' (footprint "{ref_fp.get(ref, "")}"))')
 si += ')'
 out.append(si)
 out.append(')')
@@ -689,6 +755,20 @@ with open('wifi-comm-pac.kicad_sch', 'w') as f:
     f.write('\n'.join(out) + '\n')
 if fallbacks:
     print('WARNING', len(fallbacks), 'unroutable nets:', fallbacks)
+
+comp = [ref for ref, _ in sinst if not ref.startswith('#')]
+missing = [ref for ref in comp if not ref_fp.get(ref)]
+print('footprints: %d of %d component symbols have one; %d do not'
+      % (len(comp) - len(missing), len(comp), len(missing)))
+if missing:
+    print()
+    print('OPEN -- no footprint, and each is a part decision rather than a lookup:')
+    for _k in sorted(FOOTPRINT_OPEN):
+        print('  %-5s %s' % (_k, FOOTPRINT_OPEN[_k]))
+    print()
+    print('  A schematic with empty footprints transfers NOTHING to the PCB.')
+    print('  Fill FOOTPRINTS above; every name there is checked against the library.')
+
 print('wrote wifi-comm-pac.kicad_sch:',
       len(segs), 'wire segments,', len(labels), 'labels,',
       len(ncs), 'no-connects,', len(sinst), 'symbols,',
