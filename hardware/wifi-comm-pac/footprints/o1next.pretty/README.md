@@ -22,7 +22,7 @@ does not fit, which is worse than a missing one — a missing one is visibly und
 | `ESP32-S2-MINI-2U` | Espressif ESP32-S2-MINI-2U-N4 | SnapEDA. Checked against the datasheet: 0.85 mm pad pitch, rows at ±7.0 mm, 0.8 × 0.4 mm pads | **`espressif/kicad-libraries`** — this is the one that should go back. Their library carries `ESP32-S2-MINI-1`, `-1U` and `SOLO-2U` and **no `-2U`**, while MINI-1/-1U are NRND, which is why this board uses the -2U |
 | `LED_SunLED_XZM2CRK168WA` | SunLED XZM2CRK168WA | **Drawn here**, from the dimensions in the datasheet: two 0.8 mm square pads, 1.8 mm apart on centre, 1.8 × 0.6 × 1.5 mm package | `LED_SMD`, if the naming convention is met. KiCad's nearest 1.6 × 0.6 mm right-angle is a *different part* |
 | `Speaker_SameSky_CMS-151103-088SP` | Same Sky CMS-151103-088SP | **Drawn here from the datasheet's mechanical drawing.** Body 15 × 11 × 3 mm, two **0.6 mm square** solder pads on the left and right sides, 14.4 mm apart (pad outer edge flush with the 15 mm body end) | unlikely to be wanted upstream; it is a house part |
-| `USB_C_SameSky_UJ32-C-H-G-DSMT-1-P24-TR` | Same Sky UJ32-C-H-G-DSMT-1-P24-TR | SnapEDA. All 24 contacts (A1–A12, B1–B12) plus six shield pads | possibly `Connector_USB` |
+| `USB_C_SameSky_UJ32-C-H-G-DSMT-1-P24-TR` | Same Sky UJ32-C-H-G-DSMT-1-P24-TR | SnapEDA. All 24 contacts (A1–A12, B1–B12) plus six shield pads. Its **symbol** is SnapEDA's too, and was used to rebuild `J3` to 30 pins | possibly `Connector_USB` |
 | `Slide_SPST_SMD_6.7x2.6mm` | SparkFun COM-10860 | **Copied** from `github.com/sparkfun/SparkFun-KiCad-Libraries`, which is **CC BY 4.0** — attribution is the licence, and it is recorded in the footprint's own `descr`. Copied rather than referenced so the board needs no external library and CI has nothing extra to install | stays SparkFun's |
 
 Two are ours to give away and one already is somebody else's; the README says which
@@ -30,13 +30,17 @@ is which so a future reader does not have to guess where a file came from.
 
 ## What is still open
 
-**`J3` — the footprint is here, the symbol is not.** The USB-C receptacle's
-footprint has 24 contacts and the *symbol* has 7 pins, so assigning it now would
-leave 17 pads with no net. The symbol has to be rebuilt first: A1–A12 and B1–B12
-with the real signal names, and the ten unused contacts carried and marked
-no-connect rather than omitted. That changes the netlist, which
-`tools/check_schematics.py` asserts, so it is a piece of work rather than a
-one-line change.
+**Nothing.** The last entry was `J3` — the USB-C receptacle's footprint was here
+while its *symbol* had 7 pins against the footprint's 24 contacts, so assigning it
+would have left 17 pads with no net. The symbol has been rebuilt: **A1–A12 and
+B1–B12 with the real signal names from the part's own SnapEDA symbol, plus SH1–SH6
+for the shield pads**, with the ten contacts this board does not use (eight
+SuperSpeed, two SBU) carried and marked no-connect rather than omitted. 20 of the
+30 pads are wired; the other 10 are explicitly no-connect, so none is silently
+floating.
+
+Every one of the **71** component symbols on `wifi-comm-pac` now carries a
+footprint.
 
 ## The board this is for
 

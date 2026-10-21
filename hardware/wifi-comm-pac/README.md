@@ -149,20 +149,18 @@ non-linear and thin across the band, where the panel has to make **the noise a
 modem makes**.
 
 **J2 is Same Sky CMS-151103-088SP** — 15 × 11 × 3 mm rectangular frame, 0.7 W
-(1.0 W max), **8 Ω**, 90 dB at 0.7 W / 10 cm, PEEK cone, Nd-Fe-B magnet, solder-pad
-terminals. 8 Ω is the load the amp wants, and the part is small enough to sit
-inside the COMM PAC's floppy-pocket envelope. Pin 1 is the **`+`** terminal (the
+(1.0 W max), **8 Ω**, PEEK cone, Nd-Fe-B magnet, solder-pad terminals. **8 Ω is the
+only number that matters** — it is the load the MAX98357A wants — and the part is
+small enough for the floppy-pocket envelope. Pin 1 is the **`+`** terminal (the
 datasheet's polarity: the cone moves forward with positive dc on `+`), so it takes
 `SPK_P`.
 
-**It is free air, and that is a decision rather than an omission.** The case is
-unsealed and the front panel is perforated, so there is no chamber, no gasket and
-no port to dimension — the speaker is not acoustically loaded. That matters for
-reading the datasheet, which measures **in a 1 cc box**: its Fo of 680–850 Hz and
-its 90 dB are box figures. In free air the datasheet's own other row applies —
-**Fo 440–660 Hz** — and the SPL will be lower than 90 dB. Nothing is designed
-around either number; it is recorded so a later reader does not treat the box
-measurement as the board's specification.
+**Audio quality is explicitly not a requirement.** The panel is a noise generator:
+it has to make dial tone, DTMF and a ring cadence, and nothing more. It runs in
+**free air** in an unsealed case with a perforated front panel — no chamber, no
+gasket, no port — and no response curve, resonance or SPL figure is designed
+around. The datasheet's Fo and SPL are 1 cc-box measurements and are deliberately
+not repeated here as if they described this board.
 
 Its footprint is ours (`o1next:Speaker_SameSky_CMS-151103-088SP`), and its geometry
 comes off the datasheet's mechanical drawing: the 15 × 11 × 3 mm body, and **two
@@ -224,8 +222,14 @@ python3 tools/check_schematics.py --board wifi-comm-pac
 | U9, U10 | TPS54331, AP2112K | 12.6 V → 5 V → 3.3 V |
 | D13, D14 | Schottky pair | the diode-OR between the port and USB |
 
-**What it does not fix yet:** footprints are unassigned and the IC pin numbers in
-the netlist are logical placeholders — binding them is the first layout task.
+**Footprints are now all assigned** — **71 of 71** component symbols carry one, so
+`Update PCB from Schematic` transfers the whole board rather than nothing. What is
+still true is that the **multi-pin ICs' pin numbers are logical placeholders**,
+not the vendor footprints': they exist so the netlist checker can name a pin, and
+binding them to the real package pinout is the first layout task. **J3 is the
+exception** — it now uses the part's own numbers (A1–A12, B1–B12, SH1–SH6), because
+its footprint has 30 pads and every one of them needed a net.
+
 The 2×5 orientation and the RXD swing are the two hardware confirmations (#324).
 
 ## Enclosure

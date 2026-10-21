@@ -228,17 +228,14 @@ and the SFF each carry their own populated copy.
 3. **There is no DCD line on P1.** The DE-9 carries MSB (one status bit), CTS and
    RI — so the panel's **CD lamp is socket state**, and the machine-visible carrier
    indication is **MSB**.
-4. **The speaker's pad-to-edge offset** — J2 is settled as Same Sky
-   CMS-151103-088SP (15 × 11 × 3 mm, 8 Ω, 0.7 W). The body and the two
-   **0.6 mm square pads on the left and right sides** are read off the
-   datasheet's mechanical drawing; the pads are drawn 14.4 mm apart with their
-   outer edges flush with the 15 mm body end. Only the *flush* is an
-   assumption — if the drawing insets the pads, that one number moves.
-   **Settled, and no longer open: acoustics.** The case is unsealed with a
-   perforated front panel, so the speaker runs in free air — no chamber, no
-   gasket, no port, and no acoustic reason to care which way it faces. What is
-   left of "where does it point" is only **mechanical**: that it clears the
-   other parts and looks at a hole (#325).
+4. **The speaker's placement** — J2 is settled as Same Sky CMS-151103-088SP
+   (15 × 11 × 3 mm, 8 Ω, 0.7 W) and its footprint is **complete**, read off the
+   datasheet's mechanical drawing: two **0.6 mm square pads on the left and right
+   sides, flush with the frame edge**, 14.4 mm apart. **Audio quality is not a
+   requirement** — the panel only has to make dial tone, DTMF and a ring cadence,
+   and it runs in free air in an unsealed, perforated case, so there is no
+   chamber, gasket or port to design. What is left is purely mechanical: that the
+   speaker clears the other parts and faces a hole in the panel (#325).
 
 ## References
 
