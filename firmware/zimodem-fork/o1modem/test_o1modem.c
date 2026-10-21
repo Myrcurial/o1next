@@ -1369,6 +1369,91 @@ static void test_dial(void)
           "a zero-digit request was not clamped to %u", O1_DTMF_DIGITS_MIN);
 }
 
+/* The speaker (#322): Hayes `ATM`, and the `T` in `ATDT`.
+ *
+ * The whole truth table is written out below, independently of the
+ * implementation, and every cell of it is checked in both `T` states.  That is
+ * the point of the test: this policy is the one place in the project where a
+ * *taste* decision -- which sounds a call makes -- is encoded, so what is worth
+ * asserting is not that the code runs, but that the code agrees with the table.
+ */
+static void test_speaker(void)
+{
+    static const struct {
+        o1_speaker m;
+        int        tones;
+        int        dial, connect, ring, drop;
+    } want[] = {
+        /*  mode                   T   dial connect ring drop */
+        { O1_SPK_OFF,              0,    0,     0,    0,   0 },
+        { O1_SPK_OFF,              1,    0,     0,    0,   0 },
+        { O1_SPK_UNTIL_CARRIER,    0,    0,     0,    1,   0 },
+        { O1_SPK_UNTIL_CARRIER,    1,    1,     1,    1,   0 },
+        { O1_SPK_ALWAYS,           0,    0,     0,    1,   1 },
+        { O1_SPK_ALWAYS,           1,    1,     1,    1,   1 },
+        { O1_SPK_DIAL_ONLY,        0,    0,     0,    0,   0 },
+        { O1_SPK_DIAL_ONLY,        1,    1,     0,    0,   0 }
+    };
+    static const char *const names[] = { "M0", "M1", "M2", "M3" };
+    o1_sound_policy p;
+    o1_speaker      m;
+    unsigned        i;
+
+    note("--- the speaker: Hayes ATM, and the T in ATDT");
+
+    /* The power-up state: M1, and a call that has not asked for anything. */
+    o1_sound_policy_init(&p);
+    CHECK(o1_sound_policy_mode(&p) == O1_SPK_UNTIL_CARRIER,
+          "the speaker powers up as %s, not M1",
+          o1_speaker_name(o1_sound_policy_mode(&p)));
+    CHECK(!o1_sound_policy_tones(&p), "a fresh policy says the call asked for tones");
+    CHECK(!o1_sound_wants_dial(&p), "a plain ATD dialled audibly");
+    CHECK(!o1_sound_wants_connect(&p), "a plain ATD made a connect sound");
+    CHECK(o1_sound_wants_ring(&p), "M1 did not ring, and a ring is not a dial");
+    CHECK(!o1_sound_wants_disconnect(&p),
+          "M1 made a disconnect sound -- the speaker is off once the carrier is up");
+
+    /* Every cell of the table. */
+    for (i = 0u; i < (unsigned)(sizeof want / sizeof want[0]); i++) {
+        o1_sound_policy_set_mode(&p, want[i].m);
+        o1_sound_policy_set_tones(&p, want[i].tones);
+
+        CHECK(o1_sound_wants_dial(&p) == want[i].dial,
+              "%s%s: the dial should be %s", names[want[i].m],
+              want[i].tones ? "+T" : "", want[i].dial ? "audible" : "silent");
+        CHECK(o1_sound_wants_connect(&p) == want[i].connect,
+              "%s%s: the connect should be %s", names[want[i].m],
+              want[i].tones ? "+T" : "", want[i].connect ? "audible" : "silent");
+        CHECK(o1_sound_wants_ring(&p) == want[i].ring,
+              "%s%s: the ring should be %s", names[want[i].m],
+              want[i].tones ? "+T" : "", want[i].ring ? "audible" : "silent");
+        CHECK(o1_sound_wants_disconnect(&p) == want[i].drop,
+              "%s%s: the disconnect should be %s", names[want[i].m],
+              want[i].tones ? "+T" : "", want[i].drop ? "audible" : "silent");
+    }
+
+    /* `ATM<n>`: four digits, four names, and a refusal for anything else. */
+    for (i = 0u; i < 4u; i++) {
+        CHECK(o1_speaker_from_digit((int)i, &m), "ATM%u was refused", i);
+        CHECK((int)m == (int)i, "ATM%u became %s", i, o1_speaker_name(m));
+        CHECK(strcmp(o1_speaker_name(m), names[i]) == 0,
+              "mode %u is called \"%s\", not \"%s\"", i, o1_speaker_name(m), names[i]);
+    }
+    CHECK(!o1_speaker_from_digit(4, &m), "ATM4 was accepted");
+    CHECK(!o1_speaker_from_digit(9, &m), "ATM9 was accepted");
+    CHECK(!o1_speaker_from_digit(-1, &m), "ATM-1 was accepted");
+    CHECK(!o1_speaker_from_digit(14, &m), "ATM14 was accepted");
+
+    /* A NULL policy is the power-up state, not a fault: the sound path asks these
+     * from a hot path, and a null dereference there is a reset rather than a
+     * missing beep. */
+    CHECK(o1_sound_policy_mode(0) == O1_SPK_UNTIL_CARRIER,
+          "a NULL policy is not the power-up state");
+    CHECK(!o1_sound_wants_dial(0), "a NULL policy dialled audibly");
+    CHECK(o1_sound_wants_ring(0), "a NULL policy did not ring");
+    CHECK(o1_speaker_name(O1_SPK_OFF) != 0, "the name of M0 is NULL");
+}
+
 int main(int argc, char **argv)
 {
     int i;
@@ -1395,6 +1480,7 @@ int main(int argc, char **argv)
     test_dtmf();
     test_fingerprint();
     test_dial();
+    test_speaker();
 
     if (failures == 0) {
         printf("o1modem: all checks passed\n");

@@ -658,6 +658,111 @@ int o1_dial_gate_armed(const o1_dial_gate *g)
     return (g != 0 && g->armed) ? 1 : 0;
 }
 
+/* ----------------------------------------------------------------- the speaker */
+
+void o1_sound_policy_init(o1_sound_policy *p)
+{
+    if (p == 0)
+        return;
+    p->mode  = O1_SPK_UNTIL_CARRIER;   /* M1: what a modem powers up as */
+    p->tones = 0;                      /* and a plain `ATD` is silent */
+}
+
+void o1_sound_policy_set_mode(o1_sound_policy *p, o1_speaker m)
+{
+    if (p != 0)
+        p->mode = m;
+}
+
+void o1_sound_policy_set_tones(o1_sound_policy *p, int tones)
+{
+    if (p != 0)
+        p->tones = tones ? 1 : 0;
+}
+
+o1_speaker o1_sound_policy_mode(const o1_sound_policy *p)
+{
+    /* A NULL policy reads as the power-up state rather than as a crash, because
+     * the three questions below are asked from a hot path that must not fault. */
+    return (p != 0) ? p->mode : O1_SPK_UNTIL_CARRIER;
+}
+
+int o1_sound_policy_tones(const o1_sound_policy *p)
+{
+    return (p != 0 && p->tones) ? 1 : 0;
+}
+
+/* The table from tone.h, spelled once.  `needs_tones` is the `T` column; the
+ * rows that are not per-call pass 0 and are decided by the mode alone. */
+static int o1_sound_speaks(const o1_sound_policy *p, int needs_tones)
+{
+    if (o1_sound_policy_mode(p) == O1_SPK_OFF)
+        return 0;                      /* a mute is a mute, `T` or no `T` */
+    if (needs_tones && !o1_sound_policy_tones(p))
+        return 0;                      /* `ATD` is silent */
+    return 1;
+}
+
+int o1_sound_wants_dial(const o1_sound_policy *p)
+{
+    /* Every non-mute mode includes the dial -- M3 is *only* the dial. */
+    return o1_sound_speaks(p, 1);
+}
+
+int o1_sound_wants_connect(const o1_sound_policy *p)
+{
+    /* M3 stops at the dial: "on during the dial, and not after". */
+    if (o1_sound_policy_mode(p) == O1_SPK_DIAL_ONLY)
+        return 0;
+    return o1_sound_speaks(p, 1);
+}
+
+int o1_sound_wants_ring(const o1_sound_policy *p)
+{
+    /* A ring is not a dial, so there is no `T` to ask with -- and M3, which is on
+     * for the dial only, is off for it. */
+    if (o1_sound_policy_mode(p) == O1_SPK_DIAL_ONLY)
+        return 0;
+    return o1_sound_speaks(p, 0);
+}
+
+int o1_sound_wants_disconnect(const o1_sound_policy *p)
+{
+    /* "Always on" is the only mode still on *after* the carrier, and a disconnect
+     * happens after the carrier -- which is the whole of the difference between
+     * M1 and M2, and the reason M2 exists here at all. */
+    return (o1_sound_policy_mode(p) == O1_SPK_ALWAYS) ? 1 : 0;
+}
+
+const char *o1_speaker_name(o1_speaker m)
+{
+    switch (m) {
+    case O1_SPK_OFF:           return "M0";
+    case O1_SPK_UNTIL_CARRIER: return "M1";
+    case O1_SPK_ALWAYS:        return "M2";
+    case O1_SPK_DIAL_ONLY:     return "M3";
+    default:                   break;
+    }
+    return "M?";
+}
+
+int o1_speaker_from_digit(int d, o1_speaker *out)
+{
+    o1_speaker m;
+
+    switch (d) {
+    case 0: m = O1_SPK_OFF;           break;
+    case 1: m = O1_SPK_UNTIL_CARRIER; break;
+    case 2: m = O1_SPK_ALWAYS;        break;
+    case 3: m = O1_SPK_DIAL_ONLY;     break;
+    default:
+        return 0;
+    }
+    if (out != 0)
+        *out = m;
+    return 1;
+}
+
 /* ------------------------------------------------------------- the bit source */
 
 uint8_t o1_bitpat_bit(o1_bitpat pat, unsigned *idx)

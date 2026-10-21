@@ -426,6 +426,83 @@ does not decide when to give up.
 caller that trims whitespace has to trim it the same way every time. A leading
 space is a different destination, and it is the only way this can be subtly wrong.
 
+### When it makes a sound: `ATM`, and the `T` in `ATDT`
+
+**The sound is a command, not a default.** Two axes, and they are deliberately
+separate:
+
+- **`ATM` is Hayes' monitor-speaker control** — a *setting*, which survives from
+  one call to the next. Zimodem already *accepted* `ATM<n>` and threw it away
+  (`zcommand.ino`, `case 'm': result = isNumber ? ZOK : ZERROR;`), so the command
+  existed and did nothing. This fork is the first thing in the tree that can make
+  a sound, so it now does the thing it says.
+- **The `T` in `ATDT` is the per-call request.** `ATD` is silent and `ATDT` is
+  not, which makes "do I want to hear this one" the operator's decision on the
+  line rather than a configuration somebody has to find first.
+
+| | M0 off | M1 until carrier | M2 always | M3 dial only |
+|---|---|---|---|---|
+| the dial | no | if `T` | if `T` | if `T` |
+| the connect | no | if `T` | if `T` | no |
+| a ring | no | yes | yes | no |
+| the disconnect | no | no | yes | no |
+
+**A mute wins**: `M0` silences a `T`, because a mute that a per-call flag can
+override is not a mute. **A ring or a disconnect needs no `T`**, because neither
+is a dial — there is nothing to ask for.
+
+**`M1` and `M2` differ, and the difference is the disconnect.** "On until
+carrier" means exactly that: once the carrier is up the speaker is off, so the
+sound of the call *ending* is silent under M1 and audible under M2. That is the
+one place on this panel where the two modes part, and the reason to choose M2 if
+you want to hear the line drop. There is no data-mode noise in either — a real
+"M2" means the data is audible for the whole session, and this panel plays a
+finite score and stops, so M2 buys the disconnect and not a carrier hiss. Saying
+that is better than inventing a sound nobody asked for.
+
+**`M3` is the mode the sources disagree about**, and it is recorded rather than
+smoothed over: [Lammert Bies](https://www.lammertbies.nl/comm/info/hayes-at-commands)
+has "speaker on only while answering (not on all modems)",
+[modemhelp.net](https://www.modemhelp.net/basicatcommand.shtml) has "enable
+speaker after dialing but disable after a carrier signal is detected", and
+[w4zt.com](https://w4zt.com/testeqdocs/hayes.html) says outright that "M3 is also
+common, but different on many brands". We take the modemhelp reading, because it
+is the one that describes something a *dialling* panel can actually do. **M0, M1
+and M2 agree in all three sources.**
+
+**Option (c): what "admitted" means, and what waits.** `ATDT` opens the socket,
+switches the stream and returns `CONNECT` **while the tones are still playing** —
+the machine gets its carrier immediately and nothing stalls. What waits is the two
+things that mean "the connection exists" to everything *watching*:
+
+- **the CD lamp** and the connect sound, held in `checkOpenConnections()`;
+- **the `CONNECT` text**, which `case ZCONNECT:` skips while a dial is running.
+
+`loop()` releases both, through `o1nextDialPoll()`, the moment the gate admits —
+and it runs the same steps in the same order those two places would have, so an
+admitted dial and a connection that was never dialled are indistinguishable
+afterwards. A dial that fails aborts the gate (`o1nextDialFailed()`), so there is
+nothing left to wait for and the next attempt starts clean.
+
+**A mute in the middle of a dial does not hang the connection.** Every way a dial
+can end — the score finishing, a new sound replacing it, or `ATM0` cutting it
+short — goes through one place that marks the gate's "the tones have finished"
+fact. A gate left waiting for tones that will never resume would hold the
+connection open for the rest of the session.
+
+**Two consequences worth knowing.**
+
+- **A phonebook dial hashes the *resolved* address.** `ATDT 5` looks entry 5 up
+  and dials *its* address, so the fingerprint identifies the destination rather
+  than the number — the same host sounds the same whether it was typed out or
+  dialled by number. That is the better of the two readings for a sound whose job
+  is "you can hear which one you dialled", and it is a choice rather than an
+  accident. The caller's `T` survives the lookup: whether this operator wants to
+  hear the dial is a property of the *call*, not of the entry.
+- **The speaker mode is per-session.** `ATM` sets it and nothing writes it to the
+  config, so it is M1 again after a reboot. It does survive `ATZ`, because nothing
+  here resets it — a mute that survives a reboot is still open work on #322.
+
 
 ## 10. What is ours, and what is deliberately absent
 
@@ -440,6 +517,8 @@ a standard:
 | The **two independent bit streams** in a full-duplex phase | a real call has two senders; identical streams make both carriers move in lockstep, which sounds like one modem with an echo |
 | The **payload text** | it is scrambled, so nobody can hear it — but a capture that is decoded later should explain itself |
 | Connect / disconnect chirps | see §9 |
+| The **speaker policy** — M1 by default, `ATD` silent, `M3` read as "dial only" | see §9; the sources disagree about M3, and a mute beats a `T` |
+| The **phonebook dial hashing the resolved address** | so one host sounds the same typed out or dialled by number — see §9 |
 
 Deliberately **absent**, because none of it changes the sound and all of it is
 work:
@@ -470,6 +549,7 @@ work:
 | wavecom, [Handshaking](https://www.wavecom.ch/content/ext/DecoderOnlineHelp/worddocuments/handshaking.htm) | the 12-phase annotated V.32 call |
 | eeterms, [V-series definitions](https://www.eeterms.com/terms/v.html) | the two **scrambler polynomials** |
 | Awinic **AW9523B** datasheet table 13, via Adafruit's `Adafruit_AW9523` and the Linux `pinctrl-aw9523` driver | the panel's dim-register map — in `panel.c`, not here |
+| Hayes' **`M`** command — [Lammert Bies](https://www.lammertbies.nl/comm/info/hayes-at-commands) · [modemhelp.net](https://www.modemhelp.net/basicatcommand.shtml) · [w4zt.com](https://w4zt.com/testeqdocs/hayes.html) | the speaker modes **M0 / M1 / M2 / M3**, and the **M3 disagreement** between the three — see §9 |
 
 ## 12. The code, and how to hear it
 
@@ -478,6 +558,7 @@ work:
 | The generator | `firmware/zimodem-fork/o1modem/tone.c` — an integer phase accumulator, a quarter-wave table, two modulators; no floats and no libm |
 | The scores | the same file: four `o1_phase[]` tables and the `o1_handshake` structs over them |
 | The dial | the same file: `o1_fnv1a64`, `o1_dtmf_fingerprint`, `o1_dtmf_dial_build` and `o1_dial_gate` — the `ATDT` fingerprint and the rule that a connection is not admitted until it has finished |
+| The speaker | the same file: `o1_sound_policy` — Hayes' four modes and the `T` in `ATDT`, as one table in one place, so the sound is decided in one place rather than at eleven call sites |
 | The proof | `firmware/zimodem-fork/o1modem/run_tests.sh` — measures the *rendered output*: zero crossings for the four answer tones (2225 / 2250 / 2250 / 2100 Hz to ±2%), and a Goertzel filter for the DTMF (both tones present, the three they do not use down by 500×) |
 | The ear | `firmware/zimodem-fork/o1modem/render_wav.sh` — writes nine `.wav` files to `build/modem-tones/` (gitignored), including one dial, so the sound can be tuned before any hardware exists |
 

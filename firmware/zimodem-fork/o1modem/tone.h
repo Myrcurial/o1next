@@ -351,6 +351,90 @@ int o1_dial_gate_admitted(const o1_dial_gate *g);
  * and the one a support call is about. */
 int o1_dial_gate_armed(const o1_dial_gate *g);
 
+/* ----------------------------------------------------------------- the speaker
+ *
+ * **The speaker is Hayes' `ATM`, and the `T` in `ATDT` is what asks for it.**
+ * Two axes, and they are separate on purpose:
+ *
+ *   * `mode` is the monitor-speaker setting -- a *setting*, which survives from
+ *     one call to the next;
+ *   * `tones` is the `T` in `ATDT` -- a *per-call request*.  `ATD` is silent and
+ *     `ATDT` is not, so whether a call makes a noise is the operator's decision
+ *     made on the line rather than buried in a configuration.
+ *
+ * A call makes a sound when the mode permits it **and** the call asked.  And a
+ * **mute wins**: `M0` silences a `T`, because a mute that a per-call flag can
+ * override is not a mute.
+ *
+ * What the four modes mean here
+ * -----------------------------
+ * M0, M1 and M2 agree in every source consulted.  **M3 does not**, and the
+ * divergence is recorded rather than smoothed over: Lammert Bies
+ * (`lammertbies.nl`) has "speaker on only while answering (not on all modems)",
+ * `modemhelp.net` has "enable speaker after dialing but disable after a carrier
+ * signal is detected", and `w4zt.com` says outright that "M3 is also common, but
+ * different on many brands".  This file takes the modemhelp reading, because it
+ * is the one that describes something a *dialling* panel can actually do.
+ *
+ *                  M0 off   M1 until carrier   M2 always   M3 dial only
+ *   the dial        no        if `T`            if `T`      if `T`
+ *   the connect     no        if `T`            if `T`      no
+ *   a ring          no        yes               yes         no
+ *   the disconnect  no        no                yes         no
+ *
+ * **`M1` and `M2` differ, and the difference is the disconnect.**  "On until
+ * carrier" means exactly that: once the carrier is up the speaker is off, so the
+ * sound of the call *ending* is silent under M1 and audible under M2.  That is
+ * the one place on this panel where the two modes part, and it is the reason to
+ * choose M2 if you want to hear the line drop.
+ *
+ * There is no data-mode noise in either mode.  "Always on" on a real modem means
+ * the data is audible for the whole session; this panel plays a finite score and
+ * stops, so M2 buys the disconnect and not a carrier hiss.  That is stated rather
+ * than modelled -- inventing data-mode noise would be inventing a sound nobody
+ * asked for.
+ *
+ * A ring and a disconnect need no `T`, because neither is a dial: there is
+ * nothing to ask for.  Under M1 a ring is audible (the speaker is on until
+ * carrier, and a ring comes before that) and a disconnect is not; under M3
+ * neither is, because the speaker is on during the dial and neither is a dial.
+ */
+typedef enum {
+    O1_SPK_OFF = 0,        /* M0 -- the speaker is off */
+    O1_SPK_UNTIL_CARRIER,  /* M1 -- on until carrier detected.  The default. */
+    O1_SPK_ALWAYS,         /* M2 -- always on */
+    O1_SPK_DIAL_ONLY       /* M3 -- on during the dial, and not after */
+} o1_speaker;
+
+typedef struct {
+    o1_speaker mode;
+    int        tones;      /* the `T` in `ATDT`: *this call* asked for tones */
+} o1_sound_policy;
+
+/* M1 and a silent call -- the state a modem powers up in. */
+void o1_sound_policy_init(o1_sound_policy *p);
+
+void o1_sound_policy_set_mode(o1_sound_policy *p, o1_speaker m);
+void o1_sound_policy_set_tones(o1_sound_policy *p, int tones);
+
+o1_speaker o1_sound_policy_mode(const o1_sound_policy *p);
+int        o1_sound_policy_tones(const o1_sound_policy *p);
+
+/* The three questions the sound path asks.  Each is a row of the table above,
+ * and each is a *function* so that the table lives in one place rather than as
+ * three `if`s at three call sites that will drift apart. */
+int o1_sound_wants_dial(const o1_sound_policy *p);
+int o1_sound_wants_connect(const o1_sound_policy *p);
+int o1_sound_wants_ring(const o1_sound_policy *p);
+int o1_sound_wants_disconnect(const o1_sound_policy *p);
+
+/* "M0".."M3", for the console and for `ATM` with no digit.  Never NULL. */
+const char *o1_speaker_name(o1_speaker m);
+
+/* Parse the digit of `ATM<n>`.  Returns 1 and writes `*out` for 0..3, and 0 for
+ * anything else -- which is the `ERROR` the command answers with. */
+int o1_speaker_from_digit(int d, o1_speaker *out);
+
 /* -------------------------------------------------------------- the generator
  *
  * Two modulators, because **full duplex is the sound**.  A 300-baud Bell 103

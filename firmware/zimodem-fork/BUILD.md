@@ -625,6 +625,29 @@ Apache-2.0 §4(b): a modified file carries a **prominent notice** that it was
 changed. Put it at the top of the file, on the branch — not only in the commit
 message.
 
+The list, so it can be checked rather than trusted:
+
+| File | What the fork changes |
+|---|---|
+| `zimodem.ino` | `O1NEXT_BOARD`, the board-profile branch, the CDC half of `debugPrintf`, two fixed arrays, the console call, three lines in `setup()`/`loop()` for the panel and the sound, and — for the dial — one guard in `checkOpenConnections()` plus `o1nextDialPoll()` |
+| `zcommand.h` | `reSaveConfig` made public (#334); three accessors and one method for the panel and the dial (#322) |
+| `zcommand.ino` | `case 'm'` — the `ATM<n>` speaker command; the dial in `doDialStreamCommand()`; one guard in `case ZCONNECT:`; `ZCommand::o1nextDialAdmit()` |
+| `zstream.ino` | the RD/SD monostable pulses for the panel |
+| `o1next.h`, `o1next_panel.*`, `o1next_sound.*`, `o1next_console.*` | new files, not modifications |
+
+**The `ATM` row is the interesting one.** Upstream already *had* the command —
+`case 'm': result = isNumber ? ZOK : ZERROR;` — so `ATM0` has always answered
+`OK` and done nothing, which is exactly what a modem with no speaker should do.
+This fork is the first thing in the tree that can make a sound, so the stub is
+where the behaviour belongs, and it is the same command name and the same result
+codes. `case 'y'` shared that body and now has its own, so `ATY` keeps the
+behaviour it had.
+
+The command is `ATM`, and the reason it is `ATM` rather than something new is
+§9 of [`../../docs/modem-tones.md`](../../docs/modem-tones.md): Hayes' `M` *is*
+speaker control, `M0`–`M3` are its four modes, and the `T` in `ATDT` is the
+per-call request that composes with them.
+
 ## References
 
 - #317 (the fork), #318–#326 (the work)
