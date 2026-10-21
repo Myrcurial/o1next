@@ -233,8 +233,12 @@ and the SFF each carry their own populated copy.
    **0.6 mm square pads on the left and right sides** are read off the
    datasheet's mechanical drawing; the pads are drawn 14.4 mm apart with their
    outer edges flush with the 15 mm body end. Only the *flush* is an
-   assumption — if the drawing insets the pads, that one number moves. Also
-   still open: **where the speaker points** once the case is closed (#325).
+   assumption — if the drawing insets the pads, that one number moves.
+   **Settled, and no longer open: acoustics.** The case is unsealed with a
+   perforated front panel, so the speaker runs in free air — no chamber, no
+   gasket, no port, and no acoustic reason to care which way it faces. What is
+   left of "where does it point" is only **mechanical**: that it clears the
+   other parts and looks at a hole (#325).
 
 ## References
 

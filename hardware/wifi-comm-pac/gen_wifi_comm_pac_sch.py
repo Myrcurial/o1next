@@ -417,8 +417,13 @@ FOOTPRINTS = {
     'F':   'Fuse:Fuse_1206_3216Metric',
     # J2 is a **real speaker**, not a piezo buzzer: Same Sky CMS-151103-088SP,
     # 15 x 11 x 3 mm rectangular frame, 0.7 W (1.0 W max), 8 ohm, 90 dB at
-    # 0.7 W/10 cm, PEEK cone, Nd-Fe-B magnet, solder-pad terminals, Fo 680-850 Hz
-    # in a 1 cc box.  The part was chosen on 2026-10-21 (the piezo it replaces --
+    # 0.7 W/10 cm, PEEK cone, Nd-Fe-B magnet, solder-pad terminals.  Note the
+    # datasheet measures in a **1 cc box** (Fo 680-850 Hz, the 90 dB); this board
+    # runs it in **free air**, unsealed case, perforated front panel, so the
+    # datasheet's free-air row applies instead -- Fo 440-660 Hz, and less SPL.
+    # Neither number is designed around; it is recorded so the box measurement is
+    # not mistaken for the board's specification.
+    # The part was chosen on 2026-10-21 (the piezo it replaces --
     # Multicomp Pro MCKPT-G1340-3917 -- is out; its footprint has been deleted).
     #
     # Why a speaker and not a buzzer: the panel has to make **the noise a modem

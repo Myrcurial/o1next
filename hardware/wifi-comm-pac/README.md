@@ -150,10 +150,19 @@ modem makes**.
 
 **J2 is Same Sky CMS-151103-088SP** — 15 × 11 × 3 mm rectangular frame, 0.7 W
 (1.0 W max), **8 Ω**, 90 dB at 0.7 W / 10 cm, PEEK cone, Nd-Fe-B magnet, solder-pad
-terminals, Fo 680–850 Hz in a 1 cc box. 8 Ω is the load the amp wants, and the
-part is small enough to sit inside the COMM PAC's floppy-pocket envelope. Pin 1
-is the **`+`** terminal (the datasheet's polarity: the cone moves forward with
-positive dc on `+`), so it takes `SPK_P`.
+terminals. 8 Ω is the load the amp wants, and the part is small enough to sit
+inside the COMM PAC's floppy-pocket envelope. Pin 1 is the **`+`** terminal (the
+datasheet's polarity: the cone moves forward with positive dc on `+`), so it takes
+`SPK_P`.
+
+**It is free air, and that is a decision rather than an omission.** The case is
+unsealed and the front panel is perforated, so there is no chamber, no gasket and
+no port to dimension — the speaker is not acoustically loaded. That matters for
+reading the datasheet, which measures **in a 1 cc box**: its Fo of 680–850 Hz and
+its 90 dB are box figures. In free air the datasheet's own other row applies —
+**Fo 440–660 Hz** — and the SPL will be lower than 90 dB. Nothing is designed
+around either number; it is recorded so a later reader does not treat the box
+measurement as the board's specification.
 
 Its footprint is ours (`o1next:Speaker_SameSky_CMS-151103-088SP`), and its geometry
 comes off the datasheet's mechanical drawing: the 15 × 11 × 3 mm body, and **two
