@@ -244,7 +244,7 @@ syms = {'Z80': make_z80('Z80_DIP40','J'), 'Z84': make_z84(), '165': make_165('74
         '595': make_595(), '244': make_244(), 'PICO': make_pico(), 'ESP': make_esp32c3(),
         'FLASH': make_flash(), 'LDO': make_ldo(), 'CAP': make_cap(), 'PWR': make_pwr()}
 
-out = ['(kicad_sch (version 20230121) (generator "o1next-gen")',
+out = ['(kicad_sch (version 20231120) (generator "o1next-gen")',
        f'  (uuid "{uid()}")', '  (paper "A2")',
        f'  (title_block (title "o1next interposer Rev A engineering sample") (date "{datetime.date.today()}") (rev "A-ES")',
        '    (comment 1 "Active interposer: bus mastering via /BUSRQ, SR-based drive+capture, SMT Z84C00, RP2354B + ESP32-C3. Engineering sample - 2 off."))',

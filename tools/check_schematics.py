@@ -309,10 +309,15 @@ def check_mech(board: Board):
 # the documented header is `(kicad_sch (version VERSION) (generator GENERATOR))`,
 # and KiCad 7's parser knows nothing else.  Modern KiCad *writes* a
 # `generator_version` alongside the generator, so copying a header out of a recent
-# KiCad is how it gets in -- and it makes the file unreadable to the version the
+# KiCad is how it got in -- and it makes the file unreadable to the version the
 # header claims.
 #
-# `generator_version` maps to None: not version-gated, simply absent.
+# **And correcting those two was still not enough to make them KiCad 7.**  KiCad
+# 7.0.11 was tried against the corrected sheets and refused all four, so whatever
+# else they use is newer than 7 too.  The header now declares 8, which is the
+# earliest release consistent with everything known about them: they load in 9 and
+# in 10, and 7 is *proven* not to load them.  Whether 8 loads them is unverified --
+# there is no KiCad 8 on this machine -- and that is stated rather than assumed.
 FORMAT_TOKENS = {
     "exclude_from_sim": 20231120,   # KiCad 8
     "generator_version": None,      # not in the documented format, any version

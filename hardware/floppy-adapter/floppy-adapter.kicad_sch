@@ -1,4 +1,4 @@
-(kicad_sch (version 20230121) (generator "o1next-gen")
+(kicad_sch (version 20231120) (generator "o1next-gen")
   (uuid "886e1098-852c-42f8-ab4a-05037ee0bcc6")
   (paper "A3")
   (title_block (title "o1next floppy-adapter - switchable Gotek / physical drives") (date "2026-10-10") (rev "A")

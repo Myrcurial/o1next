@@ -155,7 +155,7 @@ syms = {'Z80': make_z80('Z80_DIP40','J'), '165': make_165('74AHCT165'),
         'PICO': make_pico(), 'CAP': make_cap(), 'PWR': make_pwr()}
 
 out = []
-out.append('(kicad_sch (version 20230121) (generator "o1next-gen")')
+out.append('(kicad_sch (version 20231120) (generator "o1next-gen")')
 out.append(f'  (uuid "{uid()}")')
 out.append('  (paper "A3")')
 out.append(f'  (title_block (title "o1next interposer Rev 0 test probe") (date "{datetime.date.today()}") (rev "0.1") (comment 1 "Snoop-only Z80 bus probe: pass-through socket, 4x 74AHCT165 PISO snapshot front end, Pico 2 W. NOT the production interposer."))')

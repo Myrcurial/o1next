@@ -242,7 +242,7 @@ NOTES = [
 
 # --------------------------------------------------------------- emit
 out = [
-    '(kicad_sch (version 20230121) (generator "o1next-gen")',
+    '(kicad_sch (version 20231120) (generator "o1next-gen")',
     f'  (uuid "{uid()}")',
     '  (paper "A3")',
     f'  (title_block (title "o1next floppy-adapter - switchable Gotek / physical drives") (date "{TODAY}") (rev "A")',
