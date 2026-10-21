@@ -172,7 +172,7 @@ def place(symkey, ref, value, x, y, netmap):
     # raw layout numbers below are only nominal).  Netlist is unaffected.
     x, y = round(round(x / 1.27) * 1.27, 2), round(round(y / 1.27) * 1.27, 2)
     sinst.append((ref, value))
-    body = [f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (uuid "{uid()}")',
+    body = [f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (in_bom yes) (on_board yes) (uuid "{uid()}")',
             f'    (property "Reference" "{ref}" (at {x} {y - s.h/2 - 2.54} 0) (effects (font (size 1.27 1.27))))',
             f'    (property "Value" "{value}" (at {x} {y - s.h/2 - 5.08} 0) (effects (font (size 1.27 1.27))))',
             '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',

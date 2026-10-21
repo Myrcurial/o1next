@@ -294,6 +294,37 @@ def check_mech(board: Board):
     return failures
 
 
+# --------------------------------------------------------------------------
+# the format version has to be true
+# --------------------------------------------------------------------------
+# Every generated sheet declares its format in the first line, and KiCad trusts
+# it.  Ours lied: all four generators wrote `(version 20230121)` -- KiCad 7 --
+# while emitting `exclude_from_sim`, which is a KiCad 8 token.  So the sheets were
+# not KiCad 7 files and KiCad 7 was right to refuse them; the failure looked like a
+# broken schematic and was really a wrong header.  The header is checked against
+# the tokens actually present, which is the only way it stays honest.
+FORMAT_TOKENS = {
+    "exclude_from_sim": 20231120,   # KiCad 8
+    "embedded_fonts": 20250114,     # KiCad 9
+}
+
+
+def check_format_version(board: Board):
+    failures = []
+    text = board.sch.read_text(errors="replace")
+    m = re.search(r"\(kicad_sch\s*\(version\s+(\d+)", text)
+    if not m:
+        return [f"{board.sch.name}: no (version ...) header in the first line"]
+    declared = int(m.group(1))
+    for token, since in sorted(FORMAT_TOKENS.items()):
+        if f"({token}" in text and declared < since:
+            failures.append(
+                f"{board.sch.name} declares format {declared} but uses "
+                f"`{token}`, which arrived in {since} -- the header is a lie, and "
+                f"KiCad will refuse the whole file rather than guess")
+    return failures
+
+
 def find_overlaps(placed):
     """Symbol bodies that overlap -- always a drawing bug, usually a short."""
     hits = []
@@ -555,6 +586,9 @@ def check_board(cli: str, board: Board, tmp: Path, verbose: bool):
 
     # -- mechanical footprint choices ---------------------------------------
     failures += check_mech(board)
+
+    # -- the declared format version has to be true --------------------------
+    failures += check_format_version(board)
 
     # -- sheet geometry -----------------------------------------------------
     hits = find_overlaps(placed)

@@ -41,52 +41,66 @@ jobs:
       # kicad-cli is headless; no xvfb or display is needed for sch export /
       # sch erc.  Bump the PPA major here when a newer KiCad lands.
       #
-      # **And the version is asserted, because "install kicad" can quietly give
-      # you a different KiCad.**  On 2026-10-21 Launchpad returned 503 for this
-      # PPA, apt reported it as a *warning* rather than an error, and the install
-      # fell back to Ubuntu 24.04's own KiCad 7.0.11 -- two majors older than the
-      # 9.0.9 the previous run had used.  The job then failed with "Failed to load
-      # schematic file" on all four boards, three of which nobody had touched:
-      # a failure that reads like a broken schematic and is really a wrong tool.
-      # (It is not only a version-number mismatch: the generated sheets carry
-      # `exclude_from_sim`, a KiCad 8 token, under a KiCad 7 version header.)
+      # **Why this job broke on 2026-10-21, and what was really wrong.**
+      # Launchpad served 503 for the KiCad PPAs, apt reported it as a *warning*
+      # rather than an error, and the install fell back to Ubuntu 24.04's own
+      # KiCad 7.0.11.  The job then failed with "Failed to load schematic file" on
+      # all four boards, three of which nobody had touched -- a failure that reads
+      # like a broken schematic and is really a wrong tool.  A version assertion
+      # was added, which turned that into an honest failure at the install step.
       #
-      # The package version is the contract, so it is checked rather than printed.
+      # But the assertion was treating a symptom.  **The files were mislabelled**:
+      # all four generators declared `(version 20230121)` -- KiCad 7 -- while
+      # writing `exclude_from_sim`, which is a KiCad 8 token.  Every generated
+      # sheet lied about its format, so KiCad 7 was right to refuse them.  That is
+      # fixed at source: `exclude_from_sim no` is the default and is no longer
+      # written, so the files now really are KiCad 7 and any KiCad from 7 up can
+      # load them.
       #
-      # **And the install is retried, because Launchpad is a third party that
-      # goes down.**  A 503 is transient and whole-site: on 2026-10-21 the 9.0 and
-      # 7.0 PPAs served 503 for over half an hour while the 8.0 one flapped between
-      # 200 and 503.  A single attempt turns somebody else's outage into a red
-      # check on an unrelated pull request, which is how a real failure gets
-      # ignored.  Retrying keeps the assertion honest -- a wrong KiCad still
-      # fails, it just takes a few minutes of trying first.
-      - name: Install KiCad (official stable PPA)
+      # Which is what makes this job survive a Launchpad outage.  The PPA is still
+      # tried first and preferred, because the ERC counts are asserted and a
+      # version change can move them -- but a 503 no longer blocks a pull request.
+      #
+      # **And the install is retried**, because Launchpad is a third party that
+      # goes down: on 2026-10-21 the 9.0 and 7.0 PPAs served 503 for over half an
+      # hour while the 8.0 one flapped between 200 and 503.
+      - name: Install KiCad (official stable PPA, falling back to the distro's)
         env:
           KICAD_MAJOR: 9
         run: |
           set -u
           ppa="ppa:kicad/kicad-${KICAD_MAJOR}.0-releases"
           got=""
-          for attempt in 1 2 3 4 5; do
-            echo "::group::attempt $attempt"
+          for attempt in 1 2 3; do
+            echo "::group::PPA attempt $attempt"
             sudo add-apt-repository --yes "$ppa" || true
-            # apt-get update exits non-zero when *any* source 404s or 503s, and
-            # the PPA is the only one we care about -- so the failure is ignored
-            # here and the version check below is what decides.
+            # apt-get update exits non-zero when *any* source 503s, and the PPA is
+            # the only one we care about -- so the failure is ignored here and the
+            # version check below is what decides.
             sudo apt-get update || true
             sudo apt-get install --yes --allow-downgrades kicad || true
             got="$(kicad-cli --version 2>/dev/null || echo none)"
             echo "kicad-cli: $got"
             echo "::endgroup::"
             case "$got" in
-              "${KICAD_MAJOR}".*) echo "ok: kicad-cli $got on attempt $attempt"; exit 0 ;;
+              "${KICAD_MAJOR}".*) echo "ok: kicad-cli $got from the PPA on attempt $attempt"; exit 0 ;;
             esac
-            if [ "$attempt" -lt 5 ]; then
-              echo "not ${KICAD_MAJOR}.x yet -- Launchpad is probably 503ing; waiting 30s"
-              sleep 30
-            fi
+            [ "$attempt" -lt 3 ] && { echo "not ${KICAD_MAJOR}.x yet -- Launchpad is probably 503ing; waiting 30s"; sleep 30; }
           done
-          echo "::error::kicad-cli is $got after 5 attempts, expected ${KICAD_MAJOR}.x -- the PPA did not serve.  A distro fallback cannot load these schematics: it fails as 'Failed to load schematic file' on every board, which reads like a broken schematic rather than a wrong tool.  Check https://ppa.launchpadcontent.net/kicad/kicad-${KICAD_MAJOR}.0-releases/ubuntu/dists/noble/Release -- a 503 there is Launchpad, not this repository."
+
+          # The PPA did not serve.  The files are KiCad 7 format, so the distro's
+          # own KiCad is a legitimate fallback -- but only if it is really 7 or
+          # newer, and the version is still printed loudly because the ERC counts
+          # are asserted and a version change can move them.
+          major="${got%%.*}"
+          case "$major" in
+            ''|*[!0-9]*) major=0 ;;
+          esac
+          if [ "$major" -ge 7 ]; then
+            echo "::warning::kicad-cli $got is not ${KICAD_MAJOR}.x -- the PPA did not serve, so this run used the distro's KiCad.  That is a valid fallback now that the sheets are honestly KiCad 7, but the ERC counts are asserted and a version change can move them.  Check https://ppa.launchpadcontent.net/kicad/kicad-${KICAD_MAJOR}.0-releases/ubuntu/dists/noble/Release -- a 503 there is Launchpad, not this repository."
+            exit 0
+          fi
+          echo "::error::kicad-cli is $got, and no KiCad 7 or newer is available.  KiCad 6 and older cannot load these schematics at all, so there is nothing to check with."
           exit 1
 
       - name: Check schematics

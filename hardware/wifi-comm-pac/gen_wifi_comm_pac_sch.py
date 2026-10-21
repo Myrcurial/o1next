@@ -835,7 +835,7 @@ def emit_symbol(key, ref, value, x, y, netmap):
                   x + s.w / 2 + 0.6, y + s.h / 2 + 0.6))
     body = [
         f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1)'
-        f' (exclude_from_sim no) (in_bom {"no" if dnp else "yes"}) (on_board yes)'
+        f' (in_bom {"no" if dnp else "yes"}) (on_board yes)'
         f'{" (dnp yes)" if dnp else ""} (uuid "{uid()}")',
         f'    (property "Reference" "{ref}" (at {x} {y - s.h / 2 - 2.54} 0)'
         ' (effects (font (size 1.27 1.27))))',
@@ -864,7 +864,7 @@ def emit_power(net, x, y):
     sinst.append((ref, net))
     insts.append('\n'.join([
         f'  (symbol (lib_id "{PowerSym(net).lib_id}") (at {x} {y} 0) (unit 1)'
-        f' (exclude_from_sim no) (in_bom yes) (on_board yes) (uuid "{uid()}")',
+        f' (in_bom yes) (on_board yes) (uuid "{uid()}")',
         f'    (property "Reference" "{ref}" (at {x} {y - 6.35} 0)'
         ' (effects (font (size 1.27 1.27)) (hide yes)))',
         f'    (property "Value" "{net}" (at {x} {y + 3.81} 0)'
@@ -1072,7 +1072,7 @@ for net in sorted(POWER_NETS):
         sinst.append((ref, 'PWR_FLAG'))
         insts.append('\n'.join([
             f'  (symbol (lib_id "local:PWR_FLAG") (at {first[0]} {first[1]} 180) (unit 1)'
-            f' (exclude_from_sim no) (in_bom yes) (on_board yes) (uuid "{uid()}")',
+            f' (in_bom yes) (on_board yes) (uuid "{uid()}")',
             f'    (property "Reference" "{ref}" (at {first[0]} {first[1] + 5.08} 0)'
             ' (effects (font (size 1.27 1.27)) (hide yes)))',
             f'    (property "Value" "PWR_FLAG" (at {first[0]} {first[1] - 5.08} 0)'
