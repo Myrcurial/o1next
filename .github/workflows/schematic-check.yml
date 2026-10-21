@@ -90,7 +90,7 @@ jobs:
           while [ "$SECONDS" -lt "$deadline" ]; do
             attempt=$((attempt + 1))
             echo "::group::PPA attempt $attempt, ${SECONDS}s elapsed"
-            timeout 60  sudo add-apt-repository --yes --no-update "$ppa" || true
+            timeout 60  sudo add-apt-repository --yes "$ppa" || true
             # apt-get update exits non-zero when *any* source 503s, and the PPA is
             # the only one we care about -- so the failure is ignored here and the
             # version check below is what decides.
