@@ -4,10 +4,12 @@ title: floppy-adapter
 subtitle: O1NEXT Floppy Adapter — a switchable Gotek / physical-drive daughter card
 ---
 
-**Status:** design settled; **the Floppy Adapter's Rev A schematic captured**,
-ready for footprint and routing review. Tracks **#62**, and the floppy interposer
-personality **#20**. Source: `hardware/floppy-adapter/`,
-`docs/floppy-adapter-design.md`. Board register:
+**Status:** design settled; **the Floppy Adapter's Rev A schematic captured, wired
+and footprinted** — every net drawn, every part given a footprint except the
+switch, which is a purchase decision rather than a drawing one: the 4PDT relay
+this design named is obsolete, and the recommendation is two DPDT DIP-8 parts.
+Tracks **#62**, and the floppy interposer personality **#20**. Source:
+`hardware/floppy-adapter/`, `docs/floppy-adapter-design.md`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 *This board's own Rev A / Rev B are unrelated to the interposer's Rev A / Rev B —
@@ -56,7 +58,11 @@ trusting a prior adapter's transcription.
 
 ## Still to do
 
-- Footprint and routing review, then fabrication.
+- **Choose the switch part** — the 4PDT DIP relay this design named is obsolete,
+  and the board's one open decision is between two DPDT DIP-8 relays (recommended,
+  ~$4–12), the solid-state build (~$3), and a socketed industrial 4PDT (35 mm
+  tall). Then assign its footprint and rebind the symbol's pin numbers.
+- Routing and fabrication.
 - The front-panel switch wiring, which is also the point at which this card and
   the [control pod]({{ '/hardware/interposer-upgrade/' | relative_url }}) have to agree on
   a physical interface.

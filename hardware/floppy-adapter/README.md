@@ -93,34 +93,96 @@ bus to be safe.)
 
 ## KiCad capture (Rev A)
 
-- `floppy-adapter.kicad_sch` (+ `.kicad_pro`) — structural Rev A schematic.
+- `floppy-adapter.kicad_sch` (+ `.kicad_pro`) — the Rev A schematic, **rewired and
+  footprinted 2026-10-22** with the same treatment the WiFi COMM PAC got (#347).
 - `gen_floppy_adapter_sch.py` — generator; edit the net tables and re-run
-  (`python3 gen_floppy_adapter_sch.py`), then open/re-save in KiCad to
-  normalise.
+  (`python3 gen_floppy_adapter_sch.py`), then open/re-save in KiCad to normalise.
 - **J1** female 2x17 socket (O1 logic-board P8), **J2** pass-through header to
   the OEM cable, **J3** Gotek signal header, **J4** switched Gotek power,
   **J5** panel switch, **K1** 4PDT relay, **D1/R1** flyback + coil pull-down,
-  **R3/R4** DS-A pull-up, **R2+D2** optional indicator.
-- Validated with `kicad-cli sch export netlist` (netlist matches the design
-  doc's net table) and `kicad-cli sch erc` (0 errors).
-- Layout follow-ups: the relay pin numbers are **DIP-14 logical placeholders**;
-  assign footprints at layout (KiCad ships no G6A-434P footprint).
+  **R3/R4** DS-A pull-up, **R2+D2** optional indicator (R2, D2 and R4 are `dnp`).
 
-## Settled decisions (2026-10-10)
+**Every net is drawn.** The first capture attached a net *label* to every pin and
+drew no wire between any two parts: a correct netlist and a drawing a reader could
+not follow. Now the 24 nets are routed as orthogonal segments on a 1.27 mm grid,
+the three rails are wired too (with **one power symbol each** and a `PWR_FLAG`,
+because a symbol per pin would stack glyphs 2.54 mm apart on J1's eleven ground
+pins), and **one label per signal net** keeps the names — one label, not fifteen,
+so a missing wire *breaks* the netlist instead of being hidden by a label doing
+the connecting.
+
+**Footprints are assigned for everything except K1** (see below), from KiCad's own
+libraries, through-hole throughout because this is the board a person builds by
+hand. `Update PCB from Schematic` transfers nothing for a symbol with an empty
+Footprint field, so this is what makes the board startable at all.
+
+Verified rather than asserted:
+
+```sh
+python3 hardware/floppy-adapter/gen_floppy_adapter_sch.py
+python3 tools/check_schematics.py --board floppy-adapter
+python3 tools/check_boards.py
+```
+
+- **The netlist is unchanged** from the label-based version (24 nets, 0 added, 0
+  lost, 0 altered) — the evidence that the wires connect what the labels did.
+- `kicad-cli sch erc --severity-all`: **0 errors**, 18 violations, all of them the
+  one kind (embedded `local:` symbols, one per placed symbol).
+- `kicad-cli sch upgrade` — the re-save that detached 14 pins on the WiFi board —
+  leaves the netlist identical, and the generator emits 0 overlapping and 0
+  duplicate collinear segments.
+- `tools/check_schematics.py` now asserts the **pinout of J1 and J2** against the
+  interface table, the five connector footprints, and the switched nets.
+
+Two defects came out of doing it, both found by comparing netlists rather than by
+looking at the sheet: a wire ended on a **no-connect pin** (J3.14 and K1.11 got
+pulled onto `FLP_DS_A_GOTEK` — the router blocked other nets' pins but not the
+ones marked no-connect), and the checker was carrying a **pinout table that read
+pins 4 and 6 as GND** while the design says TG43 and EARLY. Both are fixed, and
+the sibling generator in `hardware/wifi-comm-pac/` has the first one fixed too.
+
+## The switch part is open (2026-10-22)
+
+**The 4PDT relay this design named is obsolete, and so is its whole class.** The
+part was Omron **G6A-434P** / **G6A-474P**; both went out with a last-buy date of
+2010-06-29, and the other 4-pole DIP signal relays followed — Panasonic
+**TQ4-5V** and **DS4E-S-DC5V** are broker-only at $20–190 a piece. That is a
+finding, not a preference, and it reopens one of the seven "settled" decisions
+(`docs/floppy-adapter-design.md` §4.3, §8.3):
+
+| Option | Parts | Cost | Verdict |
+|---|---|---|---|
+| **Two DPDT DIP-8** | Omron **G6S-2 DC5** (Newark $6.00 @1 / $4.65 @100; LCSC $0.99) or Hongfa **HFD2/005-S-L2** ($2.20 @1 / $1.66 @100) | **~$4–12 the pair** | **Recommended** — same three switches, fail-safe as before, and 56 mA of coil against the 4PDT's 73 mA |
+| **Solid-state** | SN74CBT3257 (DS-A) + TPS22918 (+5 V) + N-MOSFET (GND), or 2 × AQY212GS | **~$3** | Real option now: silent, no coil, low profile; more parts and more 5 V-level care |
+| **Industrial 4PDT on a socket** | Omron MY4N-DC5(S) on PY14-02, or Finder 55.34 | $8–15 + socket | Works, and **35 mm tall** — wrong shape for a mezzanine card |
+
+K1 therefore carries **no footprint**: the symbol's pin numbers change with the
+answer, and a footprint for the wrong package is a board that does not fit. The
+generator prints the open item on every run, so it cannot be forgotten.
+
+## Settled decisions (2026-10-10, relay reopened 2026-10-22)
 
 The seven design questions are closed — see
 [`docs/floppy-adapter-design.md`](../../docs/floppy-adapter-design.md) §8 for
 the evidence behind each. Highlights:
 
 - O1 floppy header is **male** (logic-board P8), so **J1 is a female socket**.
-- **Relay** (not solid-state) for Rev A.
+- **Relay, not silicon — but the *part* is open**: the 4PDT it named is obsolete
+  (see above). Two DPDT DIP-8 is the recommendation.
 - Switch **DS-A + both power rails** only — Loxley's proven minimum.
 - **1 kΩ** DS-A pull-up default, **150 Ω** alternative footprint.
 - Gotek drive-select jumper: **S1 first, S0 fallback** (bench-verify).
 - Gotek sits in the **right-hand** pocket on a reduced ~12-line pigtail.
 
+
 ## Open items (not blocking capture)
 
+- **The switch part** — see above. Everything else on this board is a drawing
+  decision; this one is a purchase.
+- The **relay's pin numbers** are DIP-14 logical placeholders and must be rebound
+  to the chosen part's terminal arrangement when the footprint is assigned. That
+  is not bookkeeping: on the WiFi COMM PAC, a symbol whose pin 1 was `+3V3`
+  against a package whose pin 1 was `GND1` put 3.3 V on a ground pad.
 - Mounting: piggyback footprint vs. standoffs over the DD board; confirm
   keep-outs against the mainboard schematic
   (`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`) and host photos
@@ -129,6 +191,7 @@ the evidence behind each. Highlights:
   which device owns the bus in each configuration.
 - G2 upgrade (#30): believed BIOS/DPB-only, nothing at the connector —
   confirm.
+
 
 ## References
 
