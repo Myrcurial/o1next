@@ -231,37 +231,73 @@ def make_conn(name, ref, side, names):
     return s
 
 
-def make_relay():
-    """4PDT relay, coil on the left, four changeover poles on the right.
+def make_bus_switch():
+    """NC7SB3157P6X: single 2:1 analog/bus switch, SC70-6 (SOT-363).
 
-    Pin numbers are DIP-14 *logical placeholders* -- confirm against the chosen
-    4PDT relay's real terminal arrangement at footprint assignment (same
-    convention as the interposer Rev A U1 note).  Mapping used here:
-      1 = coil+ (A1), 14 = coil- (A2),
-      pole1 2/3/4 = COM/NC/NO, pole2 5/6/7, pole3 8/9/10, pole4 11/12/13.
+    Pin numbers are the **part's own**, taken from Fairchild's datasheet and
+    cross-checked against KiCad's symbol for the same part: 1 = B1, 2 = GND,
+    3 = B0, 4 = A (the common), 5 = V+, 6 = S.  The truth table is what makes
+    this the right switch for DS-A:
 
-    **And the part itself is now the open question**, which is why K1 carries no
-    footprint.  The part this design cited -- Omron **G6A-434P** (and its 4-pole
-    sibling G6A-474P) -- went obsolete in 2010 (LTB 2010-06-29), and the whole
-    4-pole DIP signal-relay class went with it: Panasonic TQ4-5V and DS4E-S-DC5V
-    are broker-only at $20-$190 a piece.  So Rev A has three buyable answers and
-    the maintainer picks one: **two DPDT DIP-8 relays** (Omron G6S-2 DC5, ~$4.65
-    @100 at Newark; Hongfa HFD2/005-S-L2, $1.66 @100), which is the same three
-    switches and the same 56-73 mA of coil; the **solid-state** build in
-    docs/floppy-adapter-design.md sec.4.4 (~$3 in silicon); or an **industrial
-    4PDT** on a PY14-02 socket (Omron MY4N-DC5 + socket, ~$10-15, 35 mm tall).
-    The research and prices are in that document and on issue #62.
+        S = low   ->  B0 connected to A
+        S = high  ->  B1 connected to A
+
+    So **B0 is the physical drive and B1 is the Gotek**: a low, floating or
+    unplugged control parks the machine on the real drive, which is the same
+    fail-safe the relay's NC contact gave.  The part also has
+    **break-before-make** select circuitry, so the two devices are never both
+    connected to DS-A even momentarily -- the property the relay gave for free.
     """
-    s = Symbol('RELAY_4PDT', 'K', 30.48, 45.72)
-    s.add(1, 'COIL+', 'L', 15.24)
-    s.add(14, 'COIL-', 'L', 25.40)
-    base = 5.08
-    for pole in range(4):
-        top = base + pole * 10.16
-        s.add(2 + pole * 3, f'P{pole+1}_COM', 'R', top)
-        s.add(3 + pole * 3, f'P{pole+1}_NC', 'R', top + 2.54)
-        s.add(4 + pole * 3, f'P{pole+1}_NO', 'R', top + 5.08)
+    s = Symbol('BUS_SW_2TO1', 'U', 25.4, 25.4)
+    s.add(4, 'A_COM', 'L', 5.08)
+    s.add(6, 'S', 'L', 12.70)
+    s.add(2, 'GND', 'L', 20.32)
+    s.add(3, 'B0_PHY', 'R', 5.08)
+    s.add(1, 'B1_GOTEK', 'R', 10.16)
+    s.add(5, 'V+', 'R', 20.32)
     return s
+
+
+def make_load_switch():
+    """TPS22918 DBV: 1 VIN, 2 GND, 3 ON, 4 CT, 5 QOD, 6 VOUT.
+
+    Pin numbers are the part's own, and the pinout is the DBV-6 one KiCad's own
+    library carries for TPS22917DBV -- the 80 mohm sibling in the same family,
+    same package, same six functions.  52 mohm at 5 V, 2 A, and an N-channel
+    switch with a charge pump, so the ON input is a logic pin rather than a gate
+    to drive.
+
+    **CT and QOD are deliberately left open.**  CT sets the rise time (open is
+    fastest); QOD is the configurable quick-output-discharge *terminal*, and
+    leaving it open disables it.  Neither is needed: what turns the Gotek off is
+    the **GND** switch, not a discharge path, exactly as it was with the relay.
+    If the bench shows the Gotek lingering, QOD is the pin to come back to.
+    """
+    s = Symbol('LOAD_SW', 'U', 25.4, 25.4)
+    s.add(1, 'VIN', 'L', 5.08)
+    s.add(3, 'ON', 'L', 12.70)
+    s.add(2, 'GND', 'L', 20.32)
+    s.add(6, 'VOUT', 'R', 5.08)
+    s.add(5, 'QOD', 'R', 12.70)
+    s.add(4, 'CT', 'R', 20.32)
+    return s
+
+
+def make_nfet():
+    """AO3400A SOT-23: 1 = gate, 2 = source, 3 = drain (KiCad's Q_NMOS_GSD).
+
+    28 mohm at Vgs = 4.5 V, so the Gotek's ground return sits 14 mV above the
+    board's ground at half an amp.  That number is the reason this is a MOSFET
+    and not a second PhotoMOS: an AQY212GS would put 0.7 ohm in the return path,
+    which is 0.35 V of ground offset between the Gotek and the machine's TTL
+    signals -- half the noise margin, on the read-data line.
+    """
+    s = Symbol('NFET_GSD', 'Q', 20.32, 15.24)
+    s.add(1, 'G', 'L', 5.08)
+    s.add(2, 'S', 'L', 12.70)
+    s.add(3, 'D', 'R', 5.08)
+    return s
+
 
 
 def make_2pin(name, ref, n1, n2):
@@ -289,12 +325,15 @@ SYMS = {
     # J3 is the Gotek signal header, below J2 with its pins facing left as well.
     'J3': make_conn('CONN_GOTEK_HDR', 'J', 'L',
                     {n: O1_SHORT[n] for n in GOTEK_SIG} | {10: 'DS_A'}),
-    'K1': make_relay(),
+    # The switching is three silicon parts now, not a relay: U1 picks which
+    # device owns DS-A, U2 and Q1 switch the Gotek's two rails together.
+    'U1': make_bus_switch(),
+    'U2': make_load_switch(),
+    'Q1': make_nfet(),
     'R': make_2pin('RES', 'R', '1', '2'),
-    'D': make_2pin('DIODE', 'D', 'A', 'K'),
     'LED': make_2pin('LED', 'D', 'A', 'K'),
-    'J4': make_hdr('HDR_1x04', 'J', 4, 'L'),      # Gotek power, pins at K1
-    'J5': make_hdr('HDR_1x02', 'J', 2, 'R'),      # panel switch, pins at K1
+    'J4': make_hdr('HDR_1x04', 'J', 4, 'L'),      # Gotek power, pins at U2/Q1
+    'J5': make_hdr('HDR_1x02', 'J', 2, 'R'),      # panel switch, pins at R1/U1/U2
 }
 
 # --------------------------------------------------------------- net maps
@@ -318,26 +357,30 @@ for n in range(1, 35):
     else:
         NET_J3[n] = 'NC'
 
-# K1 relay: pole 1 switches +5V, pole 2 switches GND, pole 3 switches DS-A,
-# pole 4 is spare.  De-energised (panel switch open / lead unplugged) = the NC
-# contacts, i.e. the physical drives (fail-safe).
-NET_K1 = {
-    1: 'COIL_PLUS', 14: 'GND',
-    2: '+5V',        3: 'NC',  4: '+5V_SW',       # pole 1: +5V -> Gotek
-    5: 'GND',        6: 'NC',  7: 'GND_SW',       # pole 2: GND -> Gotek
-    8: 'FLP_DS_A',   9: 'FLP_DS_A_PHY', 10: 'FLP_DS_A_GOTEK',  # pole 3: DS-A
-    11: 'NC',        12: 'NC', 13: 'NC',          # pole 4: spare
-}
+# U1 = the DS-A 2:1 switch (NC7SB3157P6X).  Its **common** is the machine's
+# DS-A, its **B0** is the physical drive and its **B1** is the Gotek -- because
+# the part's own truth table is "S low -> B0", so a low, floating or unplugged
+# control is the fail-safe.  V+ is the board's +5 V and S is the control.
+NET_U1 = {4: 'FLP_DS_A', 3: 'FLP_DS_A_PHY', 1: 'FLP_DS_A_GOTEK',
+          6: 'CTRL', 5: '+5V', 2: 'GND'}
+
+# U2 = the +5 V side of the Gotek's supply (TPS22918).  CT (rise time) and QOD
+# (quick output discharge) are left open -- see the symbol.
+NET_U2 = {1: '+5V', 3: 'CTRL', 2: 'GND', 6: '+5V_SW', 4: 'NC', 5: 'NC'}
+
+# Q1 = the GND side (AO3400A).  Both rails are switched because switching only
+# +5 V leaves the Gotek parasitically powered through the pulled-up signal
+# lines, and switching only GND upsets the other drive (sec.4.2).
+NET_Q1 = {1: 'CTRL', 2: 'GND', 3: 'GND_SW'}
 
 NET = {
-    'D1': {1: 'GND', 2: 'COIL_PLUS'},             # flyback, cathode to coil+
-    'R1': {1: 'COIL_PLUS', 2: 'GND'},             # 10k coil-node pull-down
-    'R2': {1: 'COIL_PLUS', 2: 'LED_A'},           # optional indicator dropper
+    'R1': {1: 'CTRL', 2: 'GND'},                  # 10k control pull-down
+    'R2': {1: 'CTRL', 2: 'LED_A'},                # optional indicator dropper
     'D2': {1: 'LED_A', 2: 'GND'},                 # optional "Gotek active" LED
     'R3': {1: 'FLP_DS_A_GOTEK', 2: '+5V'},        # DS-A pull-up, 1k default
     'R4': {1: 'FLP_DS_A_GOTEK', 2: '+5V'},        # DS-A pull-up, 150R option (DNP)
     'J4': {1: '+5V_SW', 2: 'GND_SW', 3: 'GND_SW', 4: 'NC'},   # Gotek power
-    'J5': {1: '+5V', 2: 'COIL_PLUS'},             # panel switch -> relay coil
+    'J5': {1: '+5V', 2: 'CTRL'},                  # panel switch -> control node
 }
 
 # --------------------------------------------------------------- placement
@@ -349,11 +392,12 @@ PLACE = [  # (symbol type, ref, value, x, y, netmap)
     ('J1', 'J1', 'Conn_02x17 socket (O1 side)',    50.80,  76.20, NET_J1),
     ('J2', 'J2', 'Conn_02x17 header (OEM cable)', 198.12,  76.20, NET_J2),
     ('J3', 'J3', 'Conn_02x17 header (Gotek)',     198.12, 215.90, NET_J3),
-    ('K1', 'K1', '4PDT relay, 5V coil',            95.25, 215.90, NET_K1),
-    ('D',  'D1', '1N4148',                         50.80, 223.52, NET['D1']),
-    ('R',  'R1', '10k',                            50.80, 236.22, NET['R1']),
-    ('R',  'R2', '1k (DNP)',                       50.80, 248.92, NET['R2']),
-    ('LED','D2', 'LED (DNP)',                      68.58, 248.92, NET['D2']),
+    ('U1', 'U1', 'NC7SB3157P6X DS-A switch',       95.25, 203.20, NET_U1),
+    ('U2', 'U2', 'TPS22918 +5V switch',            95.25, 241.30, NET_U2),
+    ('Q1', 'Q1', 'AO3400A GND switch',            127.00, 254.00, NET_Q1),
+    ('R',  'R1', '10k (CTRL pull-down)',           50.80, 223.52, NET['R1']),
+    ('R',  'R2', '1k (DNP)',                       50.80, 236.22, NET['R2']),
+    ('LED','D2', 'LED (DNP)',                      68.58, 236.22, NET['D2']),
     ('R',  'R3', '1k',                            142.24, 203.20, NET['R3']),
     ('R',  'R4', '150R (DNP)',                    142.24, 213.36, NET['R4']),
     ('J5', 'J5', 'Panel switch',                   50.80, 203.20, NET['J5']),
@@ -392,22 +436,26 @@ FOOTPRINTS = {
     'J4':  'Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Horizontal',
     # J5 is the panel-switch lead: two pins, vertical, into a 2-way shell.
     'J5':  'Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical',
-    'D':   'Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal',
+    # The three switches.  **These three are SMD and there is no through-hole
+    # alternative**: the 5 V-capable analog/bus switches in DIP (CD4053, 74HC4053)
+    # are 70-120 ohm, which in series with a 1 kohm pull-up puts the DS-A low
+    # level at 0.7-0.9 V against a 0.8 V TTL threshold -- a part that "works" on
+    # paper and fails on a machine.  Everything else on the card stays
+    # through-hole.  Each footprint is the one KiCad's own symbol for the same
+    # part carries.
+    'U1':  'Package_TO_SOT_SMD:SOT-363_SC-70-6',
+    'U2':  'Package_TO_SOT_SMD:SOT-23-6',
+    'Q1':  'Package_TO_SOT_SMD:SOT-23',
     'LED': 'LED_THT:LED_D5.0mm',
     'R':   'Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal',
 }
 
-# **Open, and deliberately not guessed.**  K1 is the board's only active part
-# and the one part whose *part number* is still a decision (see make_relay):
-# there is no 4-pole DIP signal relay in production to point a footprint at, and
-# a plausible-but-wrong footprint is a board that does not fit -- worse than a
-# blank one, because a blank one is visibly undone.  The generator prints this
-# on every run so it cannot be forgotten.
-FOOTPRINT_OPEN = {
-    'K1': "the 4PDT relay: G6A-434P/474P, TQ4-5V and DS4E are all obsolete. "
-          "Two DPDT DIP-8 (G6S-2 DC5, HFD2/005-S-L2), the solid-state build, "
-          "or an industrial 4PDT on a PY14-02 socket -- decide, then assign.",
-}
+# **Empty, and that is the point of the entry.**  K1's footprint could not be
+# assigned while the switch was an *undecided part*; the part is now decided
+# (solid state, three parts, all three assigned above), so there is nothing
+# waiting.  The mechanism stays: a footprint that cannot be assigned yet is
+# recorded here rather than silently left blank, and the generator prints it.
+FOOTPRINT_OPEN = {}
 
 for _k, _s in SYMS.items():
     _s.footprint = FOOTPRINTS.get(_k, '')
@@ -418,15 +466,20 @@ NOTES = [
     'floppy-adapter: switchable Gotek / physical-drive daughter card (issue #62)',
     'J1 (female 2x17 socket) mates the O1 logic-board 34-pin MALE header (P8).',
     'J2 passes every pin but DS-A straight through to the OEM cable.',
-    'K1 4PDT: pole1 = +5V, pole2 = GND, pole3 = DS-A (NC=physical, NO=Gotek).',
-    'De-energised = physical drives (fail-safe).  J5 carries coil current only.',
+    'U1 = NC7SB3157P6X 2:1 switch: DS-A goes to B0 (physical) when S is LOW,',
+    'and to B1 (Gotek) when S is HIGH.  Low/float/unplugged = physical drives.',
+    'U2 = TPS22918 switches the Gotek +5V; Q1 = AO3400A switches its GND.',
+    'Both rails, always: +5V alone leaves the Gotek parasitically powered,',
+    'GND alone upsets the other drive (design doc sec.4.2).  CT and QOD are open.',
+    'De-energised = physical drives (fail-safe).  J5 now carries microamps,',
+    'not the 73 mA a relay coil wanted.',
     'Gotek +5V and GND reach it ONLY via J4, never through the J3 signal header.',
+    'R1 = 10k control pull-down, so a broken or unplugged switch lead is safe.',
     'R3 = 1k DS-A pull-up on the Gotek side; R4 = 150R alternative (fit one).',
     'O1 150R terminator, and the Gotek has no pull-up on its select lines.',
     'Set the Gotek select jumper to the position that answers the O1 drive-A',
     'select (pin 10) - see docs/floppy-adapter-design.md sec. 8.',
     'Pins 4 (TG43) and 6 (EARLY) carry live FDC outputs: pass through, never GND.',
-    'K1 has NO footprint yet: no 4-pole DIP signal relay is in production.',
     'GND/+5V/+12V are wired like any other net, with one power symbol per rail.',
 ]
 
@@ -437,7 +490,7 @@ NOTES = [
 # is crossed by the J2 -> J3 bundle).  What each region *means* is in the notes.
 SECTIONS = [
     ('PASS-THROUGH', 40.00, 20.00),
-    ('GOTEK SIGNALS', 80.00, 130.00),
+    ('GOTEK SIGNALS', 40.00, 130.00),
     ('SWITCHING', 40.00, 146.00),
     ('GOTEK POWER', 117.50, 146.00),
 ]
@@ -450,10 +503,10 @@ out = [
     f'  (uuid "{uid()}")',
     '  (paper "A3")',
     f'  (title_block (title "o1next floppy-adapter - switchable Gotek / physical drives") (date "{TODAY}") (rev "A")',
-    '    (comment 1 "Issue #62. J1 2x17 socket on the O1 logic-board P8 header; J2 pass-through to the OEM cable; J3 Gotek signals; J4 switched Gotek power; J5 panel switch; K1 4PDT relay. Drive B is never switched."))',
+    '    (comment 1 "Issue #62. J1 2x17 socket on the O1 logic-board P8 header; J2 pass-through to the OEM cable; J3 Gotek signals; J4 switched Gotek power; J5 panel switch. DS-A, +5V and GND are switched by U1/U2/Q1, solid state: no relay, because the case has no height for one. Drive B is never switched."))',
     '  (lib_symbols',
 ]
-for _k in ['J1', 'J2', 'J3', 'K1', 'R', 'D', 'LED', 'J4', 'J5']:
+for _k in ['J1', 'J2', 'J3', 'U1', 'U2', 'Q1', 'R', 'LED', 'J4', 'J5']:
     out.append(SYMS[_k].lib_sexpr())
 for _n in sorted(RAIL_NETS):
     out.append(PowerSym(_n).lib_sexpr())

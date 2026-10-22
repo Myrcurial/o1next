@@ -763,15 +763,15 @@ FLOPPY = Board(
     name="floppy-adapter",
     sch="hardware/floppy-adapter/floppy-adapter.kicad_sch",
     gen="hardware/floppy-adapter/gen_floppy_adapter_sch.py",
-    # 18, and the number is derived rather than fudged: **every** violation this
+    # 19, and the number is derived rather than fudged: **every** violation this
     # board produces is the one kind -- "The current configuration does not
     # include the symbol library 'local'" -- and there is exactly one per *placed
-    # symbol*.  The generator emits 18 of them: 12 component symbols, the 3 rail
+    # symbol*.  The generator emits 19 of them: 13 component symbols, the 3 rail
     # power symbols and the 3 PWR_FLAGs.  It moves whenever a part is added,
     # which is why the derivation is written down rather than the number.
-    # Verified with `kicad-cli sch erc --severity-all`: 18 messages, 18 of this
+    # Verified with `kicad-cli sch erc --severity-all`: 19 messages, 19 of this
     # type, 0 of any other, and **0 errors**.
-    erc_allowance={"lib_symbol_issues": 18},
+    erc_allowance={"lib_symbol_issues": 19},
     # The interface itself, both ends: J1 is what the machine drives, and J2 is
     # the same table with DS-A intercepted.  This is the check that the pinout
     # transcription is right, and the one that would have caught the table above
@@ -798,11 +798,41 @@ FLOPPY = Board(
         "J5": ("Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
                "the panel-switch lead comes down onto the card from the front "
                "panel, so its 2-way shell sits vertical"),
+        # The three switches: SMD, and the packages are the parts' own -- the
+        # switches have no through-hole equivalent that works on a 5 V bus.
+        "U1": ("Package_TO_SOT_SMD:SOT-363_SC-70-6",
+               "the 6-lead SC70 the NC7SB3157 comes in, and the only 5 V-capable "
+               "2:1 in this size class"),
+        "U2": ("Package_TO_SOT_SMD:SOT-23-6",
+               "DBV -- the only package the TPS22918 is offered in"),
+        "Q1": ("Package_TO_SOT_SMD:SOT-23",
+               "the AO3400A's package; the part is chosen for 28 mohm at "
+               "Vgs = 4.5 V, which is 14 mV of ground offset at half an amp"),
     },
     exact_nets={
-        "FLP_DS_A": {("J1", "10"), ("K1", "8")},
-        "FLP_DS_A_PHY": {("J2", "10"), ("K1", "9")},
-        "FLP_DS_A_GOTEK": {("J3", "10"), ("K1", "10"), ("R3", "1"), ("R4", "1")},
+        # The switch *is* the design, so these are the assertions that matter:
+        # which throw of U1 is which device, and that all three switch parts hang
+        # off the one control node.
+        #
+        # U1's own truth table is "S low -> B0, S high -> B1", so **B0 is the
+        # physical drive**: a low, floating or unplugged control parks the machine
+        # on the real drive.  Swapping these two inverts the fail-safe and still
+        # looks right on the sheet, which is exactly why it is asserted.
+        "FLP_DS_A": {("J1", "10"), ("U1", "4")},
+        "FLP_DS_A_PHY": {("J2", "10"), ("U1", "3")},
+        "FLP_DS_A_GOTEK": {("J3", "10"), ("U1", "1"), ("R3", "1"), ("R4", "1")},
+        # one control node, three parts: the switch's select, the load switch's
+        # ON and the low-side FET's gate -- plus the pull-down that makes a
+        # broken or unplugged switch lead safe
+        "CTRL": {("J5", "2"), ("R1", "1"), ("R2", "1"), ("U1", "6"),
+                 ("U2", "3"), ("Q1", "1")},
+        # the switched rails, and only downstream of the switches
+        "+5V_SW": {("U2", "6"), ("J4", "1")},
+        "GND_SW": {("Q1", "3"), ("J4", "2"), ("J4", "3")},
+        # the cable's +5 V feeds the switches themselves as well as the drives
+        "+5V": (pins("J1", (21, 23, 25)) | pins("J2", (21, 23, 25))
+                | {("J5", "1"), ("R3", "2"), ("R4", "2"), ("U1", "5"),
+                   ("U2", "1")}),
         "FLP_DS_B": {("J1", "12"), ("J2", "12")},
         "FLP_4MHZ": {("J1", "16"), ("J2", "16")},
         # Pins 4 and 6 carry the FDC's TG43 and EARLY: they pass through and are
@@ -810,22 +840,26 @@ FLOPPY = Board(
         "FLP_TG43": {("J1", "4"), ("J2", "4")},
         "FLP_EARLY": {("J1", "6"), ("J2", "6")},
         "+12V": pins("J1", (11, 13, 15, 17)) | pins("J2", (11, 13, 15, 17)),
-        "+5V_SW": {("J4", "1"), ("K1", "4")},
-        "GND_SW": {("J4", "2"), ("J4", "3"), ("K1", "7")},
-        # the coil circuit: +5V through the panel switch to coil+, coil- to GND,
-        # with the flyback and pull-down across it
-        "COIL_PLUS": {("K1", "1"), ("J5", "2"), ("D1", "2"), ("R1", "1"), ("R2", "1")},
         "LED_A": {("R2", "2"), ("D2", "1")},
+    },
+    # The ground tree spans the whole sheet, so it is asserted by *what it must
+    # contain* rather than in full: every switch part's ground, and both
+    # connectors'.
+    contains_nets={
+        "GND": {("Q1", "2"), ("U1", "2"), ("U2", "2"), ("R1", "2"), ("D2", "2"),
+                ("J1", "1"), ("J2", "1")},
     },
     excludes_nets={
         # the Gotek header carries signals only -- never a power rail or 4 MHz
         "+12V": pins("J3", range(1, 35)) | pins("J4", range(1, 5)),
         "+5V": pins("J3", range(1, 35)) | pins("J4", range(1, 5)),
         "FLP_4MHZ": pins("J3", range(1, 35)) | pins("J4", range(1, 5)),
-        # and the OEM cable never sees the switched rails: they exist only on the
-        # Gotek side of the relay, which is what makes the switch a switch
-        "+5V_SW": pins("J1", range(1, 35)) | pins("J2", range(1, 35)),
-        "GND_SW": pins("J1", range(1, 35)) | pins("J2", range(1, 35)),
+        # and neither switched rail reaches the machine side: they exist only
+        # downstream of the switches, which is what makes the switch a switch
+        "+5V_SW": (pins("J1", range(1, 35)) | pins("J2", range(1, 35))
+                   | pins("J3", range(1, 35))),
+        "GND_SW": (pins("J1", range(1, 35)) | pins("J2", range(1, 35))
+                   | pins("J3", range(1, 35))),
     },
     passthrough=[
         # the cable passes straight through except the switched line and NC
@@ -837,8 +871,10 @@ FLOPPY = Board(
         # Loxley's 11-line audit: exactly these J3 pins, nothing else
         "J3": set(range(1, 35)) - {8, 10, 18, 20, 22, 24, 26, 28, 30, 32, 34},
         "J4": {4},
-        # the relay's fourth pole is spare, and pin 14 is not a driven signal
-        "K1": {11, 12, 13},
+        # U2's CT (rise time) and QOD (quick output discharge) are left open --
+        # open CT is the fastest rise, and open QOD disables the discharge
+        "U2": {4, 5},
+        # pin 14 is not a driven signal on either drawing
         "J1": {14},
         "J2": {14},
     },
