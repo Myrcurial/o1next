@@ -1,26 +1,68 @@
 #!/usr/bin/env python3
 """Generate the floppy-adapter (switchable Gotek / physical-drive daughter card)
-KiCad 7 schematic for issue #62.
+KiCad schematic for issue #62.
 
-Structural schematic for routing, in the same spirit as
-../interposer-upgrade/reva/gen_reva_sch.py: symbols are placed and pins are tied to
-nets by labels, so the pin/relay mapping can be edited without re-routing.
+Regenerate: python3 gen_floppy_adapter_sch.py   (writes floppy-adapter.kicad_sch)
+KiCad is not required to generate; open/re-save in KiCad 8+ to normalise.
+
+Three things this file does that its first version did not.  All three are the
+"mechanical" half of a schematic that survives KiCad -- the netlist was right
+before, and the *drawing* was not:
+
+1. **Every net is drawn as wires.**  The first version attached a net *label* to
+   every pin and drew no wire between any two parts.  KiCad connected it; a
+   reader saw a pile of disconnected stubs and had to trust the labels.  Now
+   every signal net is routed as orthogonal segments on a 1.27 mm grid, and
+   **exactly one label per net** survives, so the net *names* are still in the
+   file.  One label and not fifteen is also the safety property: with a single
+   label, a missing wire *breaks* the netlist instead of being hidden by a label
+   doing the connecting.
+
+2. **Every symbol carries a footprint** except K1 -- see FOOTPRINTS and
+   FOOTPRINT_OPEN.  `Update PCB from Schematic` transfers **nothing** for a
+   symbol whose Footprint field is empty, so a schematic without them cannot
+   become a board at all, which is the one thing this board has to become.
+
+3. **The rails are wired too, not stacked under a glyph per pin.**  GND lands on
+   eleven pins of each 34-pin connector and +12 V on four consecutive ones; a
+   power symbol per pin would put 3.81 mm glyphs 2.54 mm apart, on top of each
+   other.  So GND/+5V/+12V are routed like any other net -- the comb of taps is
+   what the ground topology actually looks like -- and each rail gets **one**
+   power symbol, which is also what names the net.
+
+The router is a deliberate copy of the one in
+../wifi-comm-pac/gen_wifi_comm_pac_sch.py.  The copy is not an oversight:
+`tools/check_schematics.py` regenerates each board's schematic by running its
+generator **alone, in a scratch directory**, so a generator cannot import a
+shared module -- there is nothing beside it to import.  Same algorithm, same
+rules, same normalisation; the comments at the router say why each rule exists.
 
 NOTE ON GEOMETRY: KiCad stores symbol pin coordinates with Y up, but the
 sheet has Y down, so a placed symbol's pin lands at (x + px, y - py).  The
 older generators added py instead, which silently netted pins to their
 mirror-image partners; this script uses the correct `y - py` convention.
-
-Regenerate: python3 gen_floppy_adapter_sch.py  (writes floppy-adapter.kicad_sch)
-KiCad is not required to generate; open/re-save in KiCad 7+ to normalize.
 """
-import uuid
 import datetime
+import heapq
+import re
+import uuid
+from collections import Counter, defaultdict
+
 
 def uid():
     return str(uuid.uuid4())
 
+
+def snap(v):
+    """KiCad wants wire and label ends on the 1.27 mm grid."""
+    return round(round(v / 1.27) * 1.27, 3)
+
+
 TODAY = str(datetime.date.today())
+
+# The three rails.  They are routed like signals (see the header) and each gets
+# one power symbol, which is what names the net -- so they carry no label.
+RAIL_NETS = {'GND', '+5V', '+12V'}
 
 # --------------------------------------------------------------- O1 floppy pinout
 # 34-pin Shugart-like interface; +5V and +12V are carried on the cable (the O1
@@ -62,15 +104,18 @@ O1_SHORT = {  # cosmetic pin names drawn inside the connector box
 # Signals routed to the Gotek header J3 (Loxley's 11-line audit, on drive A):
 GOTEK_SIG = {8, 18, 20, 22, 24, 26, 28, 30, 32, 34}
 
+
 # --------------------------------------------------------------- symbols
 class Symbol:
     """Minimal KiCad symbol builder (rectangle body, L/R pins)."""
+
     def __init__(self, name, ref_letter, w, h):
         self.name = name
         self.ref_letter = ref_letter
         self.w, self.h = w, h
         self.pins = []          # (number, name, side, offset_from_top)
         self.lib_id = 'local:' + name
+        self.footprint = ''     # set from FOOTPRINTS below, keyed by SYMS key
 
     def add(self, num, pname, side, off):
         self.pins.append((num, pname, side, off))
@@ -94,13 +139,17 @@ class Symbol:
 
     def lib_sexpr(self):
         s = f'  (symbol "{self.lib_id}" (pin_names (offset 0.508)) (in_bom yes) (on_board yes)\n'
-        s += f'    (property "Reference" "{self.ref_letter}" (at 0 {-self.h/2 - 2.54} 0) (effects (font (size 1.27 1.27))))\n'
-        s += f'    (property "Value" "{self.name}" (at 0 {-self.h/2 - 5.08} 0) (effects (font (size 1.27 1.27))))\n'
-        s += '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
+        s += (f'    (property "Reference" "{self.ref_letter}" (at 0 {-self.h/2 - 2.54} 0)'
+              ' (effects (font (size 1.27 1.27))))\n')
+        s += (f'    (property "Value" "{self.name}" (at 0 {-self.h/2 - 5.08} 0)'
+              ' (effects (font (size 1.27 1.27))))\n')
+        s += (f'    (property "Footprint" "{self.footprint}" (at 0 0 0)'
+              ' (effects (font (size 1.27 1.27)) (hide yes)))\n')
         s += '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
         hw, hh = self.w / 2, self.h / 2
         s += f'    (symbol "{self.name}_0_1"\n'
-        s += f'      (rectangle (start {-hw} {hh}) (end {hw} {-hh}) (stroke (width 0.254) (type default)) (fill (type background))))\n'
+        s += (f'      (rectangle (start {-hw} {hh}) (end {hw} {-hh})'
+              ' (stroke (width 0.254) (type default)) (fill (type background))))\n')
         s += f'    (symbol "{self.name}_1_1"\n'
         for n, p, side, off in self.pins:
             ax, ay = self.pin_sym(n)
@@ -112,9 +161,68 @@ class Symbol:
         return s
 
 
+class PowerSym:
+    """A one-pin power symbol; its Value is the net name, as KiCad expects."""
+
+    def __init__(self, net):
+        self.net = net
+        self.name = 'PWR_' + re.sub(r'\W', '_', net)
+        self.lib_id = 'local:' + self.name
+
+    def lib_sexpr(self):
+        down = self.net == 'GND'
+        bar = -1.27 if down else 1.27
+        s = (f'  (symbol "{self.lib_id}" (power) (pin_names (offset 0))'
+             ' (in_bom yes) (on_board yes)\n')
+        s += ('    (property "Reference" "#PWR" (at 0 -6.35 0)'
+              ' (effects (font (size 1.27 1.27)) (hide yes)))\n')
+        s += (f'    (property "Value" "{self.net}" (at 0 3.81 0)'
+              ' (effects (font (size 1.27 1.27))))\n')
+        s += '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
+        s += '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
+        s += f'    (symbol "{self.name}_0_1"\n'
+        s += ('      (polyline (pts (xy 0 0) (xy 0 ' + f'{bar}' + '))'
+              ' (stroke (width 0.254) (type default)) (fill (type none)))\n')
+        s += (f'      (polyline (pts (xy -1.27 {bar}) (xy 1.27 {bar}))'
+              ' (stroke (width 0.254) (type default)) (fill (type none))))\n')
+        s += f'    (symbol "{self.name}_1_1"\n'
+        s += (f'      (pin power_in line (at 0 0 90) (length 0)'
+              f' (name "{self.net}" (effects (font (size 1.27 1.27))))'
+              ' (number "1" (effects (font (size 1.27 1.27)))))\n')
+        s += '    )\n  )'
+        return s
+
+
+class FlagSym:
+    """PWR_FLAG: tells ERC that a rail is driven, so power_in pins are satisfied."""
+
+    name = 'PWR_FLAG'
+    lib_id = 'local:PWR_FLAG'
+
+    def lib_sexpr(self):
+        s = '  (symbol "local:PWR_FLAG" (power) (pin_names (offset 0)) (in_bom yes) (on_board yes)\n'
+        s += '    (property "Reference" "#FLG" (at 0 -3.81 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
+        s += '    (property "Value" "PWR_FLAG" (at 0 5.08 0) (effects (font (size 1.27 1.27))))\n'
+        s += '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
+        s += '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))\n'
+        s += '    (symbol "PWR_FLAG_0_1"\n'
+        s += '      (polyline (pts (xy 0 0) (xy 0 1.27) (xy -1.27 2.54) (xy 0 3.81) (xy 1.27 2.54) (xy 0 1.27)) (stroke (width 0.254) (type default)) (fill (type none))))\n'
+        s += '    (symbol "PWR_FLAG_1_1"\n'
+        s += '      (pin power_out line (at 0 0 90) (length 0) (name "pwr" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27)))))\n'
+        s += '    )\n  )'
+        return s
+
+
+
 # --------------------------------------------------------------- symbol builders
 def make_conn(name, ref, side, names):
-    """34-pin (2x17) connector; pins in numeric order, 1 at the top."""
+    """34-pin (2x17) connector; pins in numeric order, 1 at the top.
+
+    *side* is which edge the pins are drawn on, and it is a routing decision as
+    much as a drawing one: two connectors whose pins face each other are joined
+    by straight wires, and a connector whose pins face away from its neighbour
+    forces every net around its body.
+    """
     s = Symbol(name, ref, 15.24, 96.52)
     for i in range(34):
         n = i + 1
@@ -122,14 +230,27 @@ def make_conn(name, ref, side, names):
         s.add(n, names.get(n, str(n)), side, off)
     return s
 
+
 def make_relay():
     """4PDT relay, coil on the left, four changeover poles on the right.
 
-    Pin numbers are DIP-14 *logical placeholders* - confirm against the chosen
+    Pin numbers are DIP-14 *logical placeholders* -- confirm against the chosen
     4PDT relay's real terminal arrangement at footprint assignment (same
     convention as the interposer Rev A U1 note).  Mapping used here:
       1 = coil+ (A1), 14 = coil- (A2),
       pole1 2/3/4 = COM/NC/NO, pole2 5/6/7, pole3 8/9/10, pole4 11/12/13.
+
+    **And the part itself is now the open question**, which is why K1 carries no
+    footprint.  The part this design cited -- Omron **G6A-434P** (and its 4-pole
+    sibling G6A-474P) -- went obsolete in 2010 (LTB 2010-06-29), and the whole
+    4-pole DIP signal-relay class went with it: Panasonic TQ4-5V and DS4E-S-DC5V
+    are broker-only at $20-$190 a piece.  So Rev A has three buyable answers and
+    the maintainer picks one: **two DPDT DIP-8 relays** (Omron G6S-2 DC5, ~$4.65
+    @100 at Newark; Hongfa HFD2/005-S-L2, $1.66 @100), which is the same three
+    switches and the same 56-73 mA of coil; the **solid-state** build in
+    docs/floppy-adapter-design.md sec.4.4 (~$3 in silicon); or an **industrial
+    4PDT** on a PY14-02 socket (Omron MY4N-DC5 + socket, ~$10-15, 35 mm tall).
+    The research and prices are in that document and on issue #62.
     """
     s = Symbol('RELAY_4PDT', 'K', 30.48, 45.72)
     s.add(1, 'COIL+', 'L', 15.24)
@@ -142,29 +263,38 @@ def make_relay():
         s.add(4 + pole * 3, f'P{pole+1}_NO', 'R', top + 5.08)
     return s
 
+
 def make_2pin(name, ref, n1, n2):
+    """Horizontal two-terminal part: pin 1 left, pin 2 right."""
     s = Symbol(name, ref, 10.16, 5.08)
     s.add(1, n1, 'L', 2.54)
     s.add(2, n2, 'R', 2.54)
     return s
 
-def make_hdr(name, ref, n):
+
+def make_hdr(name, ref, n, side='R'):
     s = Symbol(name, ref, 12.7, 5.08 + n * 2.54)
     for i in range(n):
-        s.add(i + 1, str(i + 1), 'R', 5.08 + i * 2.54)
+        s.add(i + 1, str(i + 1), side, 5.08 + i * 2.54)
     return s
 
+
 SYMS = {
-    'J1': make_conn('CONN_O1_SOCK', 'J', 'R', O1_SHORT),          # O1-side socket
-    'J2': make_conn('CONN_O1_HDR', 'J', 'R', O1_SHORT),           # pass-through
-    'J3': make_conn('CONN_GOTEK_HDR', 'J', 'R',
+    # J1 is the socket that mates the O1 logic-board P8 header; its pins face
+    # right, into the corridor the pass-through runs down.
+    'J1': make_conn('CONN_O1_SOCK', 'J', 'R', O1_SHORT),
+    # J2 is the pass-through to the OEM cable: pins face *left*, back at J1, so
+    # the 24 nets that only pass through are straight horizontal wires.
+    'J2': make_conn('CONN_O1_HDR', 'J', 'L', O1_SHORT),
+    # J3 is the Gotek signal header, below J2 with its pins facing left as well.
+    'J3': make_conn('CONN_GOTEK_HDR', 'J', 'L',
                     {n: O1_SHORT[n] for n in GOTEK_SIG} | {10: 'DS_A'}),
     'K1': make_relay(),
     'R': make_2pin('RES', 'R', '1', '2'),
     'D': make_2pin('DIODE', 'D', 'A', 'K'),
     'LED': make_2pin('LED', 'D', 'A', 'K'),
-    'J4': make_hdr('HDR_1x04', 'J', 4),                            # Gotek power
-    'J5': make_hdr('HDR_1x02', 'J', 2),                            # panel switch
+    'J4': make_hdr('HDR_1x04', 'J', 4, 'L'),      # Gotek power, pins at K1
+    'J5': make_hdr('HDR_1x02', 'J', 2, 'R'),      # panel switch, pins at K1
 }
 
 # --------------------------------------------------------------- net maps
@@ -211,20 +341,78 @@ NET = {
 }
 
 # --------------------------------------------------------------- placement
-PLACE = [  # (symbol type, ref, value, x, y, netmap); x/y on the 1.27 mm grid
-    ('J1', 'J1', 'Conn_02x17 socket (O1 side)',    55.88,  78.74, NET_J1),
-    ('J2', 'J2', 'Conn_02x17 header (OEM cable)', 165.10,  78.74, NET_J2),
-    ('J3', 'J3', 'Conn_02x17 header (Gotek)',     274.32,  78.74, NET_J3),
-    ('K1', 'K1', '4PDT relay, 5V coil',           110.49, 210.82, NET_K1),
-    ('D',  'D1', '1N4148',                         50.80, 180.34, NET['D1']),
-    ('R',  'R1', '10k',                            50.80, 195.58, NET['R1']),
-    ('R',  'R2', '1k (DNP)',                       50.80, 210.82, NET['R2']),
-    ('LED','D2', 'LED (DNP)',                      50.80, 226.06, NET['D2']),
-    ('R',  'R3', '1k',                             50.80, 245.11, NET['R3']),
-    ('R',  'R4', '150R (DNP)',                     50.80, 260.35, NET['R4']),
-    ('J5', 'J5', 'Panel switch',                  210.82, 175.26, NET['J5']),
-    ('J4', 'J4', 'Gotek power',                   210.82, 245.11, NET['J4']),
+# x/y are on the 1.27 mm grid and the *layout is a routing decision*: J1 and J2
+# face each other across the pass-through corridor, J3 sits below J2 with its
+# pins on the same column, and K1 sits in the open space between the connectors
+# and the small parts so the switched nets stay short.
+PLACE = [  # (symbol type, ref, value, x, y, netmap)
+    ('J1', 'J1', 'Conn_02x17 socket (O1 side)',    50.80,  76.20, NET_J1),
+    ('J2', 'J2', 'Conn_02x17 header (OEM cable)', 198.12,  76.20, NET_J2),
+    ('J3', 'J3', 'Conn_02x17 header (Gotek)',     198.12, 215.90, NET_J3),
+    ('K1', 'K1', '4PDT relay, 5V coil',            95.25, 215.90, NET_K1),
+    ('D',  'D1', '1N4148',                         50.80, 223.52, NET['D1']),
+    ('R',  'R1', '10k',                            50.80, 236.22, NET['R1']),
+    ('R',  'R2', '1k (DNP)',                       50.80, 248.92, NET['R2']),
+    ('LED','D2', 'LED (DNP)',                      68.58, 248.92, NET['D2']),
+    ('R',  'R3', '1k',                            142.24, 203.20, NET['R3']),
+    ('R',  'R4', '150R (DNP)',                    142.24, 213.36, NET['R4']),
+    ('J5', 'J5', 'Panel switch',                   50.80, 203.20, NET['J5']),
+    ('J4', 'J4', 'Gotek power',                   160.02, 236.22, NET['J4']),
 ]
+
+
+# --------------------------------------------------------------- footprints
+# **A schematic with no footprints cannot become a board.**  Every Footprint
+# field was empty in the first revision of this file, on the theory that the
+# assignment happens later, at annotation.  It does not: `Update PCB from
+# Schematic` transfers *nothing* when the field is empty, so the board could not
+# be started at all without hand-assigning every footprint in KiCad -- which is
+# the hand transcription this generator exists to avoid.
+#
+# **Every name below was checked against KiCad's own libraries before it was
+# written here** -- confirmed to exist as
+# `<kicad>/footprints/<lib>.pretty/<name>.kicad_mod`, and confirmed to carry the
+# pads this symbol's pin numbers need (34, 34, 34, 4, 2 and 2x2).  A footprint
+# that does not exist is worse than an empty one, because it *looks* assigned.
+#
+# Through-hole throughout, and that is a decision rather than an omission: this
+# is the project's first deliverable and the board a person builds by hand, so
+# the parts are the parts somebody can solder.  It is also why the series parts
+# are axial and the connectors are the plain vertical/right-angle ones.
+FOOTPRINTS = {
+    # J1 mates the logic board's P8 header, so it is a **socket** -- 2x17 pins,
+    # 2.54 mm, vertical, and it has to be a socket rather than a header because
+    # P8 is male (FSM 2F00040: "be careful not to bend any pins").
+    'J1':  'Connector_PinSocket_2.54mm:PinSocket_2x17_P2.54mm_Vertical',
+    # J2/J3 are headers the OEM cable and the Gotek pigtail push onto.
+    'J2':  'Connector_IDC:IDC-Header_2x17_P2.54mm_Vertical',
+    'J3':  'Connector_IDC:IDC-Header_2x17_P2.54mm_Vertical',
+    # J4 is the switched Gotek power lead: right angle, because the lead leaves
+    # the card the way the Gotek pigtail does.
+    'J4':  'Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Horizontal',
+    # J5 is the panel-switch lead: two pins, vertical, into a 2-way shell.
+    'J5':  'Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical',
+    'D':   'Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal',
+    'LED': 'LED_THT:LED_D5.0mm',
+    'R':   'Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal',
+}
+
+# **Open, and deliberately not guessed.**  K1 is the board's only active part
+# and the one part whose *part number* is still a decision (see make_relay):
+# there is no 4-pole DIP signal relay in production to point a footprint at, and
+# a plausible-but-wrong footprint is a board that does not fit -- worse than a
+# blank one, because a blank one is visibly undone.  The generator prints this
+# on every run so it cannot be forgotten.
+FOOTPRINT_OPEN = {
+    'K1': "the 4PDT relay: G6A-434P/474P, TQ4-5V and DS4E are all obsolete. "
+          "Two DPDT DIP-8 (G6S-2 DC5, HFD2/005-S-L2), the solid-state build, "
+          "or an industrial 4PDT on a PY14-02 socket -- decide, then assign.",
+}
+
+for _k, _s in SYMS.items():
+    _s.footprint = FOOTPRINTS.get(_k, '')
+
+ref_fp = {}          # ref -> footprint, for symbol_instances
 
 NOTES = [
     'floppy-adapter: switchable Gotek / physical-drive daughter card (issue #62)',
@@ -237,10 +425,26 @@ NOTES = [
     'O1 150R terminator, and the Gotek has no pull-up on its select lines.',
     'Set the Gotek select jumper to the position that answers the O1 drive-A',
     'select (pin 10) - see docs/floppy-adapter-design.md sec. 8.',
+    'Pins 4 (TG43) and 6 (EARLY) carry live FDC outputs: pass through, never GND.',
+    'K1 has NO footprint yet: no 4-pole DIP signal relay is in production.',
+    'GND/+5V/+12V are wired like any other net, with one power symbol per rail.',
+]
+
+# Region titles, so the sheet says what each cluster is for.  **Short, and placed
+# in clear space**: the four anchors below were each checked against the routed
+# wires and the symbol bodies (a longer "PASS-THROUGH -- J1 -> J2, every pin but
+# DS-A" has nowhere to sit near its cluster, because the lower half of the sheet
+# is crossed by the J2 -> J3 bundle).  What each region *means* is in the notes.
+SECTIONS = [
+    ('PASS-THROUGH', 40.00, 20.00),
+    ('GOTEK SIGNALS', 80.00, 130.00),
+    ('SWITCHING', 40.00, 146.00),
+    ('GOTEK POWER', 117.50, 146.00),
 ]
 
 
-# --------------------------------------------------------------- emit
+
+# --------------------------------------------------------------- emitter
 out = [
     '(kicad_sch (version 20231120) (generator "o1next-gen")',
     f'  (uuid "{uid()}")',
@@ -251,57 +455,467 @@ out = [
 ]
 for _k in ['J1', 'J2', 'J3', 'K1', 'R', 'D', 'LED', 'J4', 'J5']:
     out.append(SYMS[_k].lib_sexpr())
+for _n in sorted(RAIL_NETS):
+    out.append(PowerSym(_n).lib_sexpr())
+out.append(FlagSym().lib_sexpr())
 out.append('  )')
 
-wires, labels, ncs, insts, sinst = [], [], [], [], []
+insts = []          # placed symbol sexprs
+sinst = []          # (ref, value) for symbol_instances
+rects = []          # symbol bodies, for the router
+pinpts = {}         # net -> [(ref, pin, x, y, side)]
+ncs = []            # no-connect points
+segs = []           # (net, (x1,y1), (x2,y2))
+labels = []         # (net, x, y)
+pwr_no = [0]
+flag_no = [0]
 
-def place(key, ref, value, x, y, netmap):
+# Parts that are on the schematic and on the board but deliberately **not
+# fitted**: R4 is the 150 ohm alternative to the 1 kohm DS-A pull-up (fit one of
+# R3/R4), and R2+D2 are the optional front-panel "Gotek active" indicator.  `dnp`
+# is what says so to KiCad -- it keeps them out of the BOM and off the placement
+# file, which is the difference between "left unfitted on purpose" and "we forgot
+# to order it".  The pads stay, so either can be fitted later.
+DNP = {'R2', 'D2', 'R4'}
+
+
+def emit_symbol(key, ref, value, x, y, netmap):
     s = SYMS[key]
+    x, y = snap(x), snap(y)
     sinst.append((ref, value))
+    ref_fp[ref] = s.footprint
+    dnp = ref in DNP
+    rects.append((x - s.w / 2 - 0.6, y - s.h / 2 - 0.6,
+                  x + s.w / 2 + 0.6, y + s.h / 2 + 0.6))
     body = [
-        f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (in_bom yes) (on_board yes) (uuid "{uid()}")',
-        f'    (property "Reference" "{ref}" (at {x} {y - s.h/2 - 2.54} 0) (effects (font (size 1.27 1.27))))',
-        f'    (property "Value" "{value}" (at {x} {y - s.h/2 - 5.08} 0) (effects (font (size 1.27 1.27))))',
-        '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
+        f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1)'
+        f' (in_bom {"no" if dnp else "yes"}) (on_board yes)'
+        f'{" (dnp yes)" if dnp else ""} (uuid "{uid()}")',
+        f'    (property "Reference" "{ref}" (at {x} {y - s.h / 2 - 2.54} 0)'
+        ' (effects (font (size 1.27 1.27))))',
+        f'    (property "Value" "{value}" (at {x} {y - s.h / 2 - 5.08} 0)'
+        ' (effects (font (size 1.27 1.27))))',
+        f'    (property "Footprint" "{s.footprint}" (at 0 0 0)'
+        ' (effects (font (size 1.27 1.27)) (hide yes)))',
         '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
     ]
     for n, pname, side, off in s.pins:
         body.append(f'    (pin "{n}" (uuid "{uid()}"))')
         sx, sy = s.pin_sym(n)
-        X, Y = x + sx, y - sy            # symbol Y-up -> sheet Y-down (correct)
+        X, Y = snap(x + sx), snap(y - sy)     # symbol Y-up -> sheet Y-down
         net = netmap.get(n)
         if not net or net == 'NC':
             ncs.append((X, Y))
-            continue
-        dx = -5.08 if side == 'L' else 5.08
-        wires.append((X, Y, X + dx, Y))
-        labels.append((net, X + dx, Y, 'right' if side == 'L' else 'left'))
+        else:
+            pinpts.setdefault(net, []).append((ref, str(n), X, Y, side))
     body.append('  )')
     insts.append('\n'.join(body))
 
-for _key, _ref, _val, _x, _y, _net in PLACE:
-    place(_key, _ref, _val, _x, _y, _net)
 
-for (x1, y1, x2, y2) in wires:
-    insts.append(f'  (wire (pts (xy {x1} {y1}) (xy {x2} {y2})) (stroke (width 0) (type default)) (uuid "{uid()}"))')
-for (net, x, y, just) in labels:
-    insts.append(f'  (label "{net}" (at {x} {y} 0) (effects (font (size 1.27 1.27)) (justify {just} bottom)) (uuid "{uid()}"))')
+def emit_power(net, x, y):
+    pwr_no[0] += 1
+    ref = f'#PWR{pwr_no[0]:02d}'
+    sinst.append((ref, net))
+    insts.append('\n'.join([
+        f'  (symbol (lib_id "{PowerSym(net).lib_id}") (at {x} {y} 0) (unit 1)'
+        f' (in_bom yes) (on_board yes) (uuid "{uid()}")',
+        f'    (property "Reference" "{ref}" (at {x} {y - 6.35} 0)'
+        ' (effects (font (size 1.27 1.27)) (hide yes)))',
+        f'    (property "Value" "{net}" (at {x} {y + 3.81} 0)'
+        ' (effects (font (size 1.27 1.27))))',
+        '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
+        '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
+        '    (pin "1" (uuid "' + uid() + '"))',
+        '  )',
+    ]))
+
+
+def emit_flag(ref, x, y):
+    """PWR_FLAG: one per rail, so ERC knows the rail is driven."""
+    sinst.append((ref, 'PWR_FLAG'))
+    insts.append('\n'.join([
+        f'  (symbol (lib_id "local:PWR_FLAG") (at {x} {y} 180) (unit 1)'
+        f' (in_bom yes) (on_board yes) (uuid "{uid()}")',
+        f'    (property "Reference" "{ref}" (at {x} {y + 5.08} 0)'
+        ' (effects (font (size 1.27 1.27)) (hide yes)))',
+        f'    (property "Value" "PWR_FLAG" (at {x} {y - 5.08} 0)'
+        ' (effects (font (size 1.27 1.27))))',
+        '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
+        '    (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
+        '    (pin "1" (uuid "' + uid() + '"))',
+        '  )',
+    ]))
+
+
+for _key, _ref, _val, _x, _y, _net in PLACE:
+    emit_symbol(_key, _ref, _val, _x, _y, _net)
+
+
+# --------------------------------------------------------------- router
+# A* on a 1.27 mm grid.  Symbols are blocked; another net's wire blocks travel
+# *along* it (collinear overlap would short) but not across it (a crossing is
+# unambiguous in KiCad: no junction, no connection).  Cells that hold another
+# net's wire end are blocked outright, because an endpoint touching a wire is a
+# junction.  Another component's **pin** is blocked too: a wire through a pin is
+# a short no label reveals.
+GRID = 1.27
+XMAX = int(420 / GRID)          # the sheet is A3
+YMAX = int(297 / GRID)
+
+
+def cell(p):
+    return (int(round(p[0] / GRID)), int(round(p[1] / GRID)))
+
+
+def pt(c):
+    return (round(c[0] * GRID, 2), round(c[1] * GRID, 2))
+
+
+blocked = None
+
+
+def build_blocked():
+    """Symbol bodies, as grid cells -- computed once, after placement."""
+    global blocked
+    if blocked is not None:
+        return
+    blocked = set()
+    for (rx1, ry1, rx2, ry2) in rects:
+        for cx in range(int(rx1 / GRID), int(rx2 / GRID) + 1):
+            for cy in range(int(ry1 / GRID), int(ry2 / GRID) + 1):
+                blocked.add((cx, cy))
+
+
+h_own = {}      # cell -> net, for horizontal wire cells
+v_own = {}      # cell -> net, for vertical wire cells
+endp = {}       # cell -> net, for wire ends
+pin_own = {}
+fallbacks = []
+
+
+def mark(net, a, b):
+    ca, cb = cell(a), cell(b)
+    if ca[1] == cb[1]:
+        key = h_own
+    else:
+        key = v_own
+    lo, hi = (ca, cb) if ca <= cb else (cb, ca)
+    if lo[0] == hi[0]:
+        for cy in range(lo[1], hi[1] + 1):
+            key[(lo[0], cy)] = net
+    else:
+        for cx in range(lo[0], hi[0] + 1):
+            key[(cx, lo[1])] = net
+    endp[ca] = net
+    endp[cb] = net
+
+
+def build_pins():
+    """A wire must never pass through another component's pin.
+
+    **Including the no-connect pins.**  They are not in ``pinpts`` -- they carry
+    no net -- so they are easy to forget, and the first run of this router proved
+    the cost: a wire ended on J3.14 and K1.11 and the netlist grew two pins on
+    FLP_DS_A_GOTEK.  A no-connect marker is a statement that the pin goes
+    *nowhere*; a wire through it says otherwise, and the netlist believes the
+    wire.
+    """
+    if pin_own:
+        return
+    for n, pts in pinpts.items():
+        for (_r, _p, x, y, _s) in pts:
+            pin_own[cell((x, y))] = n
+    for (x, y) in ncs:
+        pin_own[cell((x, y))] = None     # None matches no net, so nothing may reach it
+
+
+def astar(net, s, g, limit=3000000):
+    """A* over (cell, heading).
+
+    Other nets' wires are expensive, not impossible: travel along them would
+    short, so it costs 200; ending on one would make a junction, so it costs 400.
+    Symbol bodies, other nets' pins and other nets' wire ends stay impassable.
+    """
+    DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
+
+    def penalty(c, d):
+        p = 0
+        if d < 2:            # horizontal move
+            if c in h_own and h_own[c] != net:
+                p += 200
+        else:
+            if c in v_own and v_own[c] != net:
+                p += 200
+        if c in endp and endp[c] != net:
+            p += 400
+        return p
+
+    start = (s, 4)       # heading 4 = no heading yet
+    dist = {start: 0}
+    prev = {}
+    pq = [(abs(s[0] - g[0]) + abs(s[1] - g[1]), 0, s, 4)]
+    seen = set()
+    while pq:
+        _f, cost, c, d = heapq.heappop(pq)
+        if (c, d) in seen:
+            continue
+        seen.add((c, d))
+        if c == g:
+            state = (c, d)
+            path = [c]
+            while state[0] != s or state[1] != 4:
+                state = prev[state]
+                path.append(state[0])
+            path.reverse()
+            return path
+        if len(seen) > limit:
+            return None
+        for nd, (dx, dy) in enumerate(DIRS):
+            n = (c[0] + dx, c[1] + dy)
+            if not (0 <= n[0] <= XMAX and 0 <= n[1] <= YMAX):
+                continue
+            if n in blocked:
+                continue
+            if n in endp and endp[n] != net:
+                continue
+            if n in pin_own and pin_own[n] != net:
+                continue
+            if nd < 2 and n in h_own and h_own[n] != net:
+                continue
+            if nd >= 2 and n in v_own and v_own[n] != net:
+                continue
+            step = 1 + (0 if d == 4 or nd == d else 2)
+            nc = cost + step + penalty(n, nd)
+            key = (n, nd)
+            if nc < dist.get(key, 1 << 30):
+                dist[key] = nc
+                prev[key] = (c, d)
+                heapq.heappush(pq, (nc + abs(n[0] - g[0]) + abs(n[1] - g[1]), nc, n, nd))
+    return None
+
+
+def simplify(path):
+    """Drop the points in the middle of a straight run."""
+    if len(path) < 3:
+        return path
+    keep = [path[0]]
+    for i in range(1, len(path) - 1):
+        a, b, c = path[i - 1], path[i], path[i + 1]
+        if (b[0] - a[0]) * (c[1] - b[1]) != (b[1] - a[1]) * (c[0] - b[0]):
+            keep.append(b)
+    keep.append(path[-1])
+    return keep
+
+
+def route(net, a, b):
+    build_blocked()
+    build_pins()
+    s, g = cell(a), cell(b)
+    path = astar(net, s, g)
+    if path is None:
+        # No legal route.  Fall back to an L, record it, and let the report and
+        # the netlist check say so -- a silent wrong answer is worse.
+        fallbacks.append((net, a, b))
+        path = [s, (g[0], s[1]), g]
+    else:
+        path = simplify(path)
+    pts = [a] + [pt(c) for c in path[1:-1]] + [b]
+    for i in range(len(pts) - 1):
+        if pts[i] != pts[i + 1]:
+            mark(net, pts[i], pts[i + 1])
+            segs.append((net, pts[i], pts[i + 1]))
+
+
+# --------------------------------------------------------------- route every net
+# A **spanning tree**, not a star.  Each pin is joined to the nearest point
+# already on the net, so branches share a trunk instead of every one of them
+# running the whole way back to the first pin -- which is what produced
+# overlapping collinear segments, and what KiCad then rewrote.
+def _span(n):
+    pts = pinpts[n]
+    xs = [p[2] for p in pts]
+    ys = [p[3] for p in pts]
+    return (max(xs) - min(xs)) + (max(ys) - min(ys))
+
+
+def _mh(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
+for net in sorted(pinpts, key=_span, reverse=True):
+    pts = pinpts[net]
+    tree = [(pts[0][2], pts[0][3])]
+    for (_ref, _pin, X, Y, _side) in pts[1:]:
+        near = min(tree, key=lambda c: _mh(c, (X, Y)))
+        route(net, near, (X, Y))
+        tree.append((X, Y))
+    if net in RAIL_NETS:
+        # One power symbol per rail, at the first pin, which is what names the
+        # net -- so a rail carries no label.  The stub is **marked** as well as
+        # emitted, so the router treats it as an obstacle: an unmarked stub is a
+        # wire another net can be routed along, which is a short.
+        _r, _p, X, Y, side = pts[0]
+        dx = 5.08 if side == 'R' else -5.08
+        fx = snap(X + dx)
+        emit_power(net, fx, Y)
+        mark(net, (X, Y), (fx, Y))
+        segs.append((net, (X, Y), (fx, Y)))
+        flag_no[0] += 1
+        emit_flag(f'#FLG{flag_no[0]:02d}', fx, Y)
+    else:
+        labels.append((net, pts[0][2], pts[0][3]))
+
+
+# --------------------------------------------------------------- normalise wires
+# Split every segment wherever any point of the same net lies on it, then drop
+# the duplicates that leaves.  Two collinear wires that overlap become one wire;
+# a pin that sat in the middle of a wire becomes a wire *end*, which is the only
+# place KiCad connects a pin.  Then a junction wherever three or more wire ends
+# meet.
+#
+# This is the fix for the defect that cost wifi-comm-pac 14 pins and 10 nets: a
+# star router emitted 17 overlapping collinear pairs, KiCad normalised them on
+# its first save, and the pins that had been attached only by sitting inside an
+# overlap came adrift.  Doing the normalisation ourselves means KiCad has nothing
+# left to rewrite.  **A wire KiCad would rewrite is a wire drawn wrong.**
+def normalise(raw, net_pins):
+    fixed = []
+    by_net = defaultdict(list)
+    for (net, a, b) in raw:
+        by_net[net].append((a, b))
+    for net, ss in by_net.items():
+        marks = set()
+        for (a, b) in ss:
+            marks.add(a)
+            marks.add(b)
+        marks |= set(net_pins.get(net, ()))
+        pieces = set()
+        for (a, b) in ss:
+            if a[0] == b[0]:                       # vertical
+                lo, hi = sorted((a[1], b[1]))
+                cuts = sorted({p[1] for p in marks
+                               if p[0] == a[0] and lo <= p[1] <= hi})
+                for i in range(len(cuts) - 1):
+                    if cuts[i] != cuts[i + 1]:
+                        pieces.add(((a[0], cuts[i]), (a[0], cuts[i + 1])))
+            elif a[1] == b[1]:                     # horizontal
+                lo, hi = sorted((a[0], b[0]))
+                cuts = sorted({p[0] for p in marks
+                               if p[1] == a[1] and lo <= p[0] <= hi})
+                for i in range(len(cuts) - 1):
+                    if cuts[i] != cuts[i + 1]:
+                        pieces.add(((cuts[i], a[1]), (cuts[i + 1], a[1])))
+        for p in sorted(pieces):
+            fixed.append((net, p[0], p[1]))
+    return fixed
+
+
+def junction_points(normalised):
+    ends = Counter()
+    for (net, a, b) in normalised:
+        ends[(net, a)] += 1
+        ends[(net, b)] += 1
+    return sorted((pt for (net, pt), c in ends.items() if c >= 3),
+                  key=lambda p: (p[1], p[0]))
+
+
+NET_PINS = {net: [(X, Y) for (_r, _p, X, Y, _s) in pts]
+            for net, pts in pinpts.items()}
+segs = normalise(segs, NET_PINS)
+juncs = junction_points(segs)
+
+# Every pin must be attached: a wire end, or a deliberate no-connect.  A pin that
+# is neither is a part floating on the sheet, which is what "it just shows a label
+# and isn't connected to anything" looks like from the other side.
+_wire_ends = set()
+for (_net, a, b) in segs:
+    _wire_ends.add(a)
+    _wire_ends.add(b)
+_nc_pts = set(ncs)
+_floating = []
+for net, pts in pinpts.items():
+    for (ref, pin, X, Y, _side) in pts:
+        if (X, Y) not in _wire_ends and (X, Y) not in _nc_pts:
+            _floating.append((ref, pin, X, Y))
+_floating.sort()
+
+
+# --------------------------------------------------------------- write it out
+for (net, a, b) in segs:
+    insts.append(f'  (wire (pts (xy {a[0]} {a[1]}) (xy {b[0]} {b[1]}))'
+                 f' (stroke (width 0) (type default)) (uuid "{uid()}"))')
+for (x, y) in juncs:
+    insts.append(f'  (junction (at {x} {y}) (diameter 0) (color 0 0 0 0)'
+                 f' (uuid "{uid()}"))')
+for (net, x, y) in labels:
+    insts.append(f'  (label "{net}" (at {x} {y} 0)'
+                 f' (effects (font (size 1.27 1.27)) (justify left bottom))'
+                 f' (uuid "{uid()}"))')
 for (x, y) in ncs:
     insts.append(f'  (no_connect (at {x} {y}) (uuid "{uid()}"))')
+for (title, sx, sy) in SECTIONS:
+    insts.append(f'  (text "{title}" (at {sx} {sy} 0)'
+                 f' (effects (font (size 2.5 2.5) (thickness 0.4) bold)'
+                 f' (justify left)) (uuid "{uid()}"))')
 for i, note in enumerate(NOTES):
-    insts.append(f'  (text "{note}" (at 320 {160 + i * 6} 0) (effects (font (size 1.6 1.6))) (uuid "{uid()}"))')
+    insts.append(f'  (text "{note}" (at 232 {30 + i * 6} 0)'
+                 f' (effects (font (size 1.6 1.6)) (justify left))'
+                 f' (uuid "{uid()}"))')
 
 out.extend(insts)
 out.append('  (sheet_instances (path "/" (page "1")))')
 si = '  (symbol_instances'
 for ref, val in sinst:
-    si += f' (path "/" (reference "{ref}") (unit 1) (value "{val}") (footprint ""))'
+    si += (f' (path "/" (reference "{ref}") (unit 1) (value "{val}")'
+           f' (footprint "{ref_fp.get(ref, "")}"))')
 si += ')'
 out.append(si)
 out.append(')')
 
 with open('floppy-adapter.kicad_sch', 'w') as f:
     f.write('\n'.join(out) + '\n')
-print('wrote floppy-adapter.kicad_sch:',
-      len(wires), 'wires,', len(labels), 'labels,',
-      len(ncs), 'no-connects,', len(sinst), 'symbols')
+
+
+# --------------------------------------------------------------- report
+# a wire KiCad would rewrite is a wire we drew wrong: overlapping collinear
+# segments are exactly what its own cleaner removes, and the pins attached only
+# through the overlap come adrift when it does.  Segments that merely *touch*
+# end-to-end are fine -- that is what a split wire looks like -- so this counts
+# strict overlap and duplicate only.
+def _overlaps(ss):
+    groups = defaultdict(list)
+    for (_net, a, b) in ss:
+        if a[0] == b[0]:
+            groups[('V', a[0])].append(tuple(sorted((a[1], b[1]))))
+        elif a[1] == b[1]:
+            groups[('H', a[1])].append(tuple(sorted((a[0], b[0]))))
+    strict = dupe = 0
+    for iv in groups.values():
+        iv.sort()
+        for i in range(len(iv) - 1):
+            if iv[i] == iv[i + 1]:
+                dupe += 1
+            elif iv[i][1] > iv[i + 1][0]:
+                strict += 1
+    return strict, dupe
+
+
+_ov, _dup = _overlaps(segs)
+comp = [ref for ref, _ in sinst if not ref.startswith('#')]
+missing = [ref for ref in comp if not ref_fp.get(ref)]
+print('wrote floppy-adapter.kicad_sch: %d nets, %d symbols, %d wire segments, '
+      '%d junctions, %d labels, %d no-connects'
+      % (len(pinpts), len(comp), len(segs), len(juncs), len(labels), len(ncs)))
+print('wires: %d overlapping, %d duplicate (both must be 0)' % (_ov, _dup))
+print('footprints: %d of %d component symbols have one; %d do not'
+      % (len(comp) - len(missing), len(comp), len(missing)))
+for _ref in sorted(FOOTPRINT_OPEN):
+    print('  OPEN  %-4s %s' % (_ref, FOOTPRINT_OPEN[_ref]))
+if fallbacks:
+    print('WARNING %d unroutable net(s): %s' % (len(fallbacks), fallbacks))
+if _floating:
+    print('FLOATING -- %d pin(s) with no wire and no no-connect marker:' % len(_floating))
+    for ref, pin, X, Y in _floating:
+        print('  %-6s pin %-4s at (%s, %s)' % (ref, pin, X, Y))
+    print('  Every pin must reach something.  A part that reaches nothing is the')
+    print('  "it just shows a label" complaint, from the other side.')
