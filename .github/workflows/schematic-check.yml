@@ -34,9 +34,12 @@ jobs:
   netlist:
     name: netlist + ERC invariants
     runs-on: ubuntu-24.04
-    # 45, because the install step may spend up to 18 minutes riding out a
-    # flapping Launchpad and the check itself takes about two.  The original 30
-    # left too little room once the retry was time-bounded rather than counted.
+    # 45, because the install step may spend up to nine minutes retrying the
+    # repository and then up to twenty-six downloading, and the check itself takes
+    # about two.  The original 30 left too little room once the retry was
+    # time-bounded rather than counted; the step below sizes its own two budgets
+    # to fit inside this one, so a broken Launchpad still fails the job rather
+    # than the runner.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
@@ -52,17 +55,29 @@ jobs:
       # like a broken schematic and is really a wrong tool.  A version assertion
       # was added, which turned that into an honest failure at the install step.
       #
-      # But the assertion was treating a symptom.  **The files were mislabelled**:
-      # all four generators declared `(version 20230121)` -- KiCad 7 -- while
-      # writing `exclude_from_sim`, which is a KiCad 8 token.  Every generated
-      # sheet lied about its format, so KiCad 7 was right to refuse them.  That is
-      # fixed at source: `exclude_from_sim no` is the default and is no longer
-      # written, so the files now really are KiCad 7 and any KiCad from 7 up can
-      # load them.
+      # But the assertion was treating a symptom, and the symptom had two
+      # causes.  **The files were mislabelled**: all four generators declared
+      # `(version 20230121)` -- KiCad 7 -- while writing `exclude_from_sim`, a
+      # KiCad 8 token, so KiCad 7 was right to refuse them.  The stray token is
+      # gone and the header now declares `20231120`, which is what these files
+      # really are: they load in KiCad 9 and 10, KiCad 7.0.11 refused all four
+      # *even after that correction*, and whether 8 loads them is unverified.
+      # **So the floor is 8.**  Ubuntu 24.04 ships 7, the PPA is therefore the
+      # only source of 8 or newer on this runner, and a Launchpad outage does
+      # block this job.  Saying otherwise is what cost three earlier attempts
+      # their time.
       #
-      # Which is what makes this job survive a Launchpad outage.  The PPA is still
-      # tried first and preferred, because the ERC counts are asserted and a
-      # version change can move them -- but a 503 no longer blocks a pull request.
+      # **And the third cause is the one that was still failing: the install
+      # timeout.**  `kicad` Recommends `kicad-libraries`, which Recommends
+      # `kicad-packages3d` -- 280 MB of 3D models in an install of 483 MB, for a
+      # job that exports a netlist and runs ERC and never opens a 3D view.  This
+      # runner pulls it from Launchpad at well under 1 MB/s, so the download wants
+      # ten minutes; `timeout 300` killed `apt-get install` mid-download on four
+      # consecutive attempts (23:06, 23:12, 23:18, 23:23 -- each exactly five
+      # minutes after it started); the loop then expired with `kicad-cli: none`
+      # and the step failed **blaming a Launchpad that had been serving all
+      # along** -- the 9.0 PPA was a `Hit` at 23:13:03 and apt was actively
+      # fetching 9.0.9.
       #
       # **And the install is retried**, because Launchpad is a third party that
       # goes down: on 2026-10-21 the 9.0 and 7.0 PPAs served 503 for over half an
@@ -71,47 +86,86 @@ jobs:
       # retry hung for fifteen minutes: `add-apt-repository` runs an update of its
       # own with no timeout, and against a 503ing Launchpad it simply waited.  A
       # job that hangs is worse than one that fails -- it holds the runner and the
-      # pull request.  So the update is split out and every step gets `timeout`.
+      # pull request.
       #
-      # The retry is bounded by **time**, not by a count, because Launchpad flaps:
-      # on 2026-10-21 it served 503 for the 9.0 and 7.0 PPAs, then 200, then 503
-      # again within minutes, and three attempts missed a window that a longer
-      # loop would have caught.  Eighteen minutes of trying leaves the check its
-      # own window inside the job's 45-minute timeout.
-      - name: Install KiCad (official stable PPA, falling back to the distro's)
+      # So the step below keeps **two budgets, because the two things it does fail
+      # differently**: the repository goes 503 and is worth retrying every few
+      # minutes, and the download is merely slow and *resumes*, so it wants one
+      # long window rather than many short ones.  Nine minutes go to the
+      # repository and twenty-six to the download, which fits the job's 45-minute
+      # timeout with room for the check.  The retry is still bounded by **time**
+      # rather than by a count, because Launchpad flaps: on 2026-10-21 it served
+      # 503 for the 9.0 and 7.0 PPAs, then 200, then 503 again within minutes, and
+      # three counted attempts missed a window that a longer loop would have
+      # caught.
+      - name: Install KiCad (official stable PPA)
         env:
           KICAD_MAJOR: 9
         run: |
           set -u
           ppa="ppa:kicad/kicad-${KICAD_MAJOR}.0-releases"
           got=""
+
+          # **Not the full `kicad` metapackage set.**  `--no-install-recommends`
+          # drops `kicad-packages3d` -- 280 MB of the 483 MB install, and the
+          # reason the download outlived its timeout.  The docs, the demos and
+          # unixodbc go with it.
+          #
+          # `kicad-symbols` and `kicad-footprints` are **Recommends too, and are
+          # named explicitly**, because tools/check_schematics.py needs them:
+          # `footprint_pads()` reads `/usr/share/kicad/footprints` to check every
+          # symbol pin against its footprint's pads, and with the library absent it
+          # reports each KiCad-standard footprint as "not found, not audited".  That
+          # does not fail -- it silently stops doing the audit that caught U5's
+          # 3V3-to-GND short (#325), which is worse than failing.  2.5 MB and
+          # 6.9 MB.
+          #
+          # Phase 1 -- the repository, which is the part Launchpad breaks and the
+          # part that is cheap to retry (~260 s a round).  The probe is the
+          # *candidate version*, not an exit status, because apt-get update exits
+          # non-zero when *any* source 503s and the PPA is the only one we care
+          # about.
           attempt=0
-          deadline=$((SECONDS + 1080))
+          deadline=$((SECONDS + 480))
           while [ "$SECONDS" -lt "$deadline" ]; do
             attempt=$((attempt + 1))
             echo "::group::PPA attempt $attempt, ${SECONDS}s elapsed"
             timeout 60  sudo add-apt-repository --yes "$ppa" || true
-            # apt-get update exits non-zero when *any* source 503s, and the PPA is
-            # the only one we care about -- so the failure is ignored here and the
-            # version check below is what decides.
             timeout 180 sudo apt-get update -o Acquire::Retries=1 || true
-            timeout 300 sudo apt-get install --yes --allow-downgrades kicad || true
-            got="$(kicad-cli --version 2>/dev/null || echo none)"
-            echo "kicad-cli: $got"
+            cand="$(apt-cache policy kicad 2>/dev/null | awk '/Candidate:/{print $2}')"
+            echo "candidate: ${cand:-none}"
             echo "::endgroup::"
-            case "$got" in
-              "${KICAD_MAJOR}".*) echo "ok: kicad-cli $got from the PPA on attempt $attempt"; exit 0 ;;
+            case "$cand" in
+              "${KICAD_MAJOR}".*) echo "ok: the ${KICAD_MAJOR}.x PPA is in the index (attempt $attempt)"; break ;;
             esac
-            echo "not ${KICAD_MAJOR}.x yet -- Launchpad is probably flapping; waiting 20s"
+            echo "the ${KICAD_MAJOR}.x PPA is not in the index yet -- Launchpad is probably flapping; waiting 20s"
             sleep 20
           done
 
-          # The PPA did not serve.  **KiCad 7 is not a fallback**: it was tried,
-          # on 2026-10-21, against sheets whose header had just been corrected to
-          # the documented form with both stray tokens removed -- and it still
-          # refused all four with "Failed to load schematic file".  Whatever else
-          # these files use, they are not KiCad 7, so the floor is 8 and the only
-          # source of KiCad 8 or newer on this runner is the PPA.
+          # Phase 2 -- the download, which is slow rather than broken.  Thirteen
+          # minutes an attempt, and two attempts, because apt keeps what it has
+          # already fetched in /var/cache/apt/archives/partial and so the second
+          # one resumes instead of starting over.
+          for attempt in 1 2; do
+            timeout 780 sudo apt-get install --yes --allow-downgrades \
+              --no-install-recommends -o Acquire::Retries=3 \
+              kicad kicad-symbols kicad-footprints || true
+            got="$(kicad-cli --version 2>/dev/null || echo none)"
+            echo "kicad-cli: $got"
+            case "$got" in
+              "${KICAD_MAJOR}".*) echo "ok: kicad-cli $got from the PPA on attempt $attempt"; exit 0 ;;
+            esac
+            echo "the install did not land kicad-cli ${KICAD_MAJOR}.x (got ${got}); retrying"
+          done
+
+          # Neither the PPA nor the download delivered.  **KiCad 7 is not a
+          # fallback**: it was tried, on 2026-10-21, against sheets whose header
+          # had just been corrected to the documented form with both stray tokens
+          # removed -- and it still refused all four with "Failed to load schematic
+          # file".  Whatever else these files use, they are not KiCad 7, so the
+          # floor is 8 and the only source of KiCad 8 or newer on this runner is
+          # the PPA.  This stays because a future runner may ship a distro KiCad
+          # that is new enough.
           major="${got%%.*}"
           case "$major" in
             ''|*[!0-9]*) major=0 ;;
@@ -120,7 +174,7 @@ jobs:
             echo "::warning::kicad-cli $got is not ${KICAD_MAJOR}.x -- the PPA did not serve, so this run used a distro KiCad.  The ERC counts are asserted and a version change can move them."
             exit 0
           fi
-          echo "::error::kicad-cli is $got and the PPA would not serve.  These sheets need KiCad 8 or newer -- KiCad 7 was tried and refused all four -- so this run had no tool that could read them.  Check https://ppa.launchpadcontent.net/kicad/kicad-${KICAD_MAJOR}.0-releases/ubuntu/dists/noble/Release -- a 503 there is Launchpad, not this repository."
+          echo "::error::kicad-cli is ${got} -- these sheets need KiCad 8 or newer and this run had no tool that could read them.  If the PPA was serving, the download ran out of its 13-minute window; if it was not, check https://ppa.launchpadcontent.net/kicad/kicad-${KICAD_MAJOR}.0-releases/ubuntu/dists/noble/Release -- a 503 there is Launchpad, not this repository."
           exit 1
 
       - name: Check schematics
