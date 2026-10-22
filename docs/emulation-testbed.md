@@ -1,17 +1,18 @@
 # The emulation testbed — MAME, picoem, and the RP2354B firmware (#192)
 
-**Status: the loop closes.** A real RP2354B firmware binary runs in `picoem`;
-`osborne1nx`'s I/O cycles reach its pins; and **the guest reads the answer** —
-`picoem-guest-check.sh` runs a Z80 `OUT`/`IN` pair in the card's window and
-asserts the byte the firmware drove, read back out of the guest's own memory
-(12 PASS / 0 FAIL). This document is the single place that says what the testbed
-is, what is missing from it, who owns each missing piece, and what "done" means
-for each one.
+**Status: Partially solved.** The loop closes — a real RP2354B firmware binary runs
+in `picoem`, `osborne1nx`'s I/O cycles reach its pins, and **the guest reads the
+answer**: `picoem-guest-check.sh` runs a Z80 `OUT`/`IN` pair in the card's window
+and asserts the byte the firmware drove, read back out of the guest's own memory
+(12 PASS / 0 FAIL). What is left is M5 — a personality cannot yet tell *which
+register* a cycle is for (§4.1) — and the pad mux (P5). This document is the single
+place that says what the testbed is, what is missing from it, who owns each missing
+piece, and what "done" means for each one.
 
-It is also the **gap register** for both emulators. Two lists existed before this
-document and neither was complete: `docs/picoem-bridge.md` §5 has the picoem
-gaps, `docs/mame-emulation.md` §7 has MAME's open items, and several of the
-statements in both are stale relative to the code. §4 is the one list.
+It is also the **gap register** for both emulators. `docs/picoem-bridge.md` §5 has
+the picoem gaps and `docs/mame-emulation.md` §7 has MAME's open items, but neither
+list is complete, and several of the statements in both contradict the code at the
+pinned commit. §4 is the one list.
 
 > **Vocabulary:** `Rev B` in this document is the **interposer's** Rev B — the
 > `O1NEXT Upgrade`'s production revision (`hardware/interposer-upgrade/revb/README.md`),
@@ -29,8 +30,8 @@ gap register and the plan. It does not restate measurements that live elsewhere:
 | `docs/rom-pico-protocol.md` | the ROM↔Pico door, and the two doors' addresses |
 | **this document** | **the loop, the gap register, the plan, and what cannot be emulated at all** |
 
-Where this document corrects one of them, the correction is marked, and the child
-document keeps its own measurement.
+Where this document's measurement disagrees with a child document's, §3 states the
+disagreement; the child document keeps its own measurement.
 
 ## 1. What the testbed is
 
@@ -94,23 +95,19 @@ distinction decides the plan. In order of how real they are:
 | **Not real** | The MAME-side stand-ins: `acb4000_host_adapter_device` is a C++ re-implementation of the ACB-4000, and `softrom_device` answers the ROM door out of a file | both are *good* — the card was read out of the driver and four handshake bugs were found against it — but they are not the firmware |
 | **Not real, and named as such** | The storage **transports**. `#285` delivered FatFS, the seam and three real FAT volumes; the SPI flash, microSD and USB devices behind `blockdev.h` do not exist, in emulation or on a board | this is the "fake storage" of the last few sessions, and §4.3 decides what to do about it |
 
-## 3. Four corrections to what the tree currently says
+## 3. Four facts about the pinned picoem, its tracker, and its peripherals
 
-These are the most valuable output of the survey that produced this document,
-because three of them are places where a document or an issue is **stale relative
-to the code**, and one of them changes the plan.
+Each of these is a measurement against the pinned commit. Three contradict what a
+document or an issue in this tree says; §3.1 changes the plan.
 
 ### 3.1 picoem's issue tracker is **disabled**, and PRs against it are refused
 
-**Corrected 2026-10-18.** This section previously said the tracker had "never had an
-issue filed — 0 open and 0 closed, for all time". That was an **inference from a
-disabled feature written down as a fact**: the GitHub API reports
-`has_issues: false` on `0x4D44/picoem`, so the Issues feature is switched off and
-the `0 open / 0 closed` count says nothing at all about the project's history.
-Nobody could have filed one.
+The GitHub API reports `has_issues: false` on `0x4D44/picoem`, so the Issues
+feature is switched off and the `0 open / 0 closed` count says nothing at all about
+the project's history — nobody could have filed one. A `0/0` count read as "no
+issues, ever" is an inference from a disabled feature, not a fact.
 
-The same check turned up the second half, which is the stronger fact: **a pull
-request cannot be opened against it either.** Measured:
+**A pull request cannot be opened against it either.** Measured:
 
 ```
 gh pr create --repo 0x4D44/picoem --base main --head Myrcurial:…
@@ -147,7 +144,7 @@ the `rev` in `tools/picoem-bridge/Cargo.toml` (2026-06-27, four months old).
 out.** `REQUIREMENTS.md`'s re-pin procedure has no candidate, so every gap in §4.2
 has to be fixed, forked around, or documented as permanent.
 
-### 3.3 "UART, SPI, I2C, DMA and timers are stubs" is stale — and the real gap is different
+### 3.3 UART, SPI, I2C, DMA and timers are **real** — the storage path is blocked by the pad mux instead
 
 `#192`'s plan comment and `firmware/library/README.md` both say the storage path
 *"can never be exercised in the emulator"* because those peripherals are stubs.
@@ -189,7 +186,7 @@ are invisible in emulation**. A personality that passes in picoem can still be
 wrong on silicon because two functions share a pad. That is a known
 **false-negative source**, not a bug.
 
-### 3.4 The picoem gap list was seven rows and two fixes were missing from it
+### 3.4 The picoem gap list: seven rows, and two fixes it was missing
 
 `docs/picoem-bridge.md` §5 lists seven gaps and then proposes a five-item patch
 list, of which item 1 is *"re-derive `cp0_mcr_mrc_family`'s table from
@@ -237,7 +234,7 @@ measured or read from a source.
 | **P6** | **No device behind any peripheral.** No microSD, no W25Q, no USB stick; SPI has loopback only | the transports cannot be exercised | medium (NOR + microSD) / **large** (USB MSC, and no controller model exists) | P5 |
 | **P7** | **The bootrom boot path does not complete** — `___step4_init_rcp_seeds`'s `rcp_iequal` mismatch; upstream's own `test_flash_boot_blinky` is `#[ignore]`d for it | nothing boots through the mask ROM; the bridge starts at the image's vector table | **unknown** — CP7 ancillary-state parity with silicon | open, and **not on the critical path** |
 | **P8** | **No HSTX**, so no display output | #277 (the RP2354B as the display) is gated on it | medium | open, and also a design question (#264) |
-| **P9** | ~~**The SIO's pin mask is thirty bits, so GP30 and GP31 are unreachable.**~~ **FIXED 2026-10-19.** picoem's own SIO modelled bank 0 as 30 pins — `PIN_MASK = 0x3FFF_FFFF` and ten `pin >= 30` guards in `sio/mod.rs`, **and the same guard in `cp0_bit_op`** — while the crate models the 48-GPIO part everywhere else (`read_all_gpio` returns a 48-bit mask). Bank 0 is **32** pins. The second site is the lesson: it is the path `gpio_set_dir` takes, so fixing only `sio/mod.rs` changed nothing measurable | **Rev B's `SR_RCK` is GP30 and `/OE_ADDR` is GP31 — two of the five fabric pins.** Measured (#304): the firmware shifted a match value in, the bridge counted all 8 `SR_SCK` edges and **0 latches**, because the pin that latches was not there to be seen. It fails as a *zero*, which reads like a firmware bug | — | **FIXED** — `rp2350-correctness.patch` commits 2–3, on `Myrcurial/picoem` `aebfd93`; `cargo test -p rp2350-emu` **3675 passed, 0 failed**, and the bridge's `--fabric-test` is 8 of 8 |
+| **P9** | **The SIO's pin mask is thirty bits, so GP30 and GP31 are unreachable.** picoem's own SIO modelled bank 0 as 30 pins — `PIN_MASK = 0x3FFF_FFFF` and ten `pin >= 30` guards in `sio/mod.rs`, **and the same guard in `cp0_bit_op`** — while the crate models the 48-GPIO part everywhere else (`read_all_gpio` returns a 48-bit mask). Bank 0 is **32** pins. The second site is the lesson: it is the path `gpio_set_dir` takes, so fixing only `sio/mod.rs` changed nothing measurable | **Rev B's `SR_RCK` is GP30 and `/OE_ADDR` is GP31 — two of the five fabric pins.** Measured (#304): the firmware shifted a match value in, the bridge counted all 8 `SR_SCK` edges and **0 latches**, because the pin that latches was not there to be seen. It fails as a *zero*, which reads like a firmware bug | — | **FIXED** — `rp2350-correctness.patch` commits 2–3, on `Myrcurial/picoem` `aebfd93`; `cargo test -p rp2350-emu` **3675 passed, 0 failed**, and the bridge's `--fabric-test` is 8 of 8 |
 
 ### 4.3 The storage question, decided
 
@@ -304,7 +301,8 @@ without them:        settled -> pc=0x10000260  sio_oe=0x07000000   echo ok  hear
 ```
 
 `sio_oe` being non-zero is the point: those bits are set by `gpio_set_dir`, which
-goes through **CP0** — the path that used to drop them.
+goes through **CP0** — the path that silently dropped them until the P1/P2 fixes
+(§4.2).
 
 What is left is the bootrom's own three, which are **one** gap (P7) and not three.
 
@@ -385,8 +383,8 @@ emulation, and they cost an afternoon between them.
 
 ## 7. The acceptance a personality must meet
 
-This is the thing that was missing: a definition of "the firmware works in
-emulation" that is automatable and falsifiable, rather than "it seemed to run".
+A definition of "the firmware works in emulation" that is automatable and
+falsifiable, rather than "it seemed to run":
 
 > **A personality is emulation-complete when the same guest reaches the same
 > result with its cycles answered by MAME's stand-in and by the real firmware in
