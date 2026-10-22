@@ -1,12 +1,17 @@
 # The MD-10's operating system, and the memory map that was missing (#179, #178)
 
-**Status: solved — the system boots to a prompt, with three partitions
-(2026-10-14).** The three-partition PYXIS27 drive of §3 was produced and booted:
-`A0>`, `B0>`, `C0>`, and a file written to `C:` and read back off it. That layout
-is the **floor pin** — it is the only one whose partitions match the driver's
-shared DPB (§9) — and it is what `tools/research/md10drive.py --layout md20`
-builds. The two-partition PYXIS13 drive the earlier sessions used boots
-`A0>`/`B0>` but is **not safe to write to** (§9).
+**Status: Solved.** The system boots to a prompt with three partitions, and the
+DPB and the drive tables are read out of `HARD.COM` rather than inferred (§9).
+What is left is narrow: who copies the static tables into the running system, and
+how to get a partition past `PREP.COM`'s 8 MiB ceiling.
+
+The three-partition PYXIS27 drive of §3 was produced by the vendor's own installer
+and booted: `A0>`, `B0>`, `C0>`, and a file written to `C:` and read back off it.
+That layout is the **floor pin** — it is the only one whose partitions match the
+driver's shared DPB (§9.1) — and it is what `tools/research/md10drive.py --layout
+md20` builds. The two-partition PYXIS13 drive boots `A0>`/`B0>` but is **not safe
+to write to**: the shared DPB's 7.5 MiB runs into `CP/M-B`'s own directory
+(§9.1).
 
 `PREP.COM`'s option 3 configures an operating system onto the drive; `HARD.COM`
 then boots it from the emulated hard disk: it installs the MD-10 BIOS at
@@ -17,11 +22,11 @@ synthesised.
 The last inch was a **re-relocation**. The image `PREP.COM` wrote has its
 addresses **0x100 bytes above the address `HARD.COM` loads it at**, so its CCP
 jumped into the middle of an instruction, ran garbage and warm-booted for ever —
-which is what "boots but never reaches its prompt" (#198) actually was. §7 is the
+which is what "boots but never reaches its prompt" (#198) was. §7 is the
 measurement; `tools/research/md10reloc.py` is the fix.
 
 This note also closes the question the hard-disk research left open twice over —
-**the MD-10's memory map**, and with it the meaning of the low-RAM block at
+**the MD-10's memory map**, and with it the meaning of the five-byte block at
 `0x0559`–`0x055D` that `docs/acb4000-host-adapter.md` §4 and
 `docs/harddisk-decision.md` §7.3 recorded as *written by nothing in the archive*.
 
@@ -173,12 +178,6 @@ and the operating system sits at LBA 5 — block 1 of that partition. The MD-10'
 two *logical drives* are `CP/M-A` and `CP/M-B`, which tile `20 … 23107`, the whole
 PYXIS13 drive bar the header. They are the `A0>` and `B0>` of §7.
 
-An earlier revision of this section had the records shifted by one — it read
-`CP/M-CCP` as the 11544-block record and dropped the 16-block O/S partition — and
-had the field offsets wrong, which put the start at +13 and the length at +16.
-The record *is* 28 bytes and *is* walked at `0x23E6` with `ADD IX,1Ch`; the walk
-stops on the `FFh` first byte, which is record 3.
-
 **LBA 4 is the runtime half of §9's table.** It is not an anonymous "table": it
 mirrors the partition geometry and then the **per-drive type bytes** the driver
 indexes —
@@ -241,9 +240,10 @@ after each stage.
    `0x0546` — so the copy is `0x053A…0x0AFF`, the whole embedded BIOS.
 4. It **patches the installed BIOS from the *running* BIOS**: 18 bytes from
    `(page zero+1)+3` to `0xD806`, then 21 to `0xD86A`, 3 to `0xD82D`, 3 to
-   `0xD87F`, 45 to `0xD833`. Page zero+1 before the run is `0xEFC1` — the ROM's
-   jump table — so what lands in the MD-10 BIOS's `CONST`/`CONIN`/`CONOUT`/… is
-   the **ROM's** console routines. The MD-10 BIOS is a partial BIOS: its own disk
+   `0xD87F`, 45 to `0xD833`. Page zero+1 is **`0E103H`, the CBIOS** — the CBIOS
+   writes page zero itself, as `JP BIOS+3` = `0E103H` (`occbio55.asm`, `BCCP`) —
+   so what lands in the MD-10 BIOS's `CONST`/`CONIN`/`CONOUT`/… is the
+   **machine's** console routines. The MD-10 BIOS is a partial BIOS: its own disk
    routines plus the machine's console and floppy, which is why it is only
    `0x5C5` bytes.
 5. It patches page zero and jumps to `0xD800` → the BIOS's `BOOT`.
@@ -260,19 +260,17 @@ Measured after the hand-off, on a run that reached the CCP:
 
 ```
 page zero   c3 03 d8 40 00 c3 06 ca      JP 0D803h, IOBYTE 40h, drive 0, JP 0CA06h
-0xD800      c3 82 d8 c3 86 d8 c3 2e e7 … the BIOS jump table, console -> the ROM
+0xD800      c3 82 d8 c3 86 d8 c3 2e e7 … the BIOS jump table, console -> the CBIOS
 0xC200      c3 c8 c5 c3 c4 c5 7f 00 …    the CCP, as the drive supplied it
 0xDD59      01 05 00 00 0b 00            select 01, LBA 5, count 11
 0xD9FA      08 00 00 05 0b 00            CDB: READ, LBA 5, 11 blocks
 ```
 
-**Correction (2026-10-14, #247): page zero+1 is `0E103H`, and the source is the
-CBIOS — not `0EFC1H`, and not the ROM's jump table.** The dump just above is the
-evidence: `0xD806` is `C3 2E E7`, and `C3 2E E7` is the CBIOS's vector 2, whose
-slot is at `0E106H` (`0E103H` holds `C3 13 E5`). The CBIOS writes page zero
-itself, as `JP BIOS+3` = `0E103H` (`occbio55.asm`, `BCCP`). `0EFC1H` is not a table
-at all: it is `ROMSTK`, the monitor's stack top (`rom144.asm`), and it is what a
-read of `0001H` returns **while the ROM is mapped** — the operand of the monitor's
+That dump is also the proof that step 4's source is the CBIOS: `0xD806` is
+`C3 2E E7`, and `C3 2E E7` is the CBIOS's vector 2, whose slot is at `0E106H`
+(`0E103H` holds `C3 13 E5`). **`0EFC1H` is not a jump table at all** — it is
+`ROMSTK`, the monitor's stack top (`rom144.asm`), and it is what a read of `0001H`
+returns **while the ROM is mapped**, because it is the operand of the monitor's
 own `LD SP,0EFC1H`. That is the bank-2 trap ROM 2.0's `HCBOOT` has to work around
 (`docs/o1-rom-2.0.md` §4.6): in bank 2 the monitor cannot read or write page zero.
 
@@ -317,10 +315,8 @@ transaction routine at `0xD985`. The drive's bytes are confirmed in memory: at
 **Does not — and the reason is the CCP, not the drive.** It never prompts because
 the CCP the loader installs is **relocated 0x100 bytes too high**, so its first
 instruction jumps into the middle of another one and the system warm-boots for
-ever. That is the whole of it, and it is worth stating plainly because the
-earlier reading of this section — "the BDOS is stuck in a drive login" — was
-**wrong**, and so was the hypothesis that opened #198 (that the driver's static
-table and the drive's partition table disagree).
+ever. Nothing is wrong with the card or the drive: every transaction the card is
+asked for succeeds (§10).
 
 A transaction-level trace of the card (#198) is what settles it. Every
 transaction is byte-for-byte identical, **1 303 of them in 150 emulated
@@ -461,51 +457,32 @@ loaded and executed out of it.
 ## 8. What this changes elsewhere
 
 - **#178's last open question is closed.** `0x0559`–`0x055D` is not an unwritten
-  block; it is a constant in `HARD.COM`'s embedded BIOS (§6). The DPB *values*
-  are still derived rather than tabulated, but nothing about the *system* is
+  block; it is a constant in `HARD.COM`'s embedded BIOS (§6), and the DPB and the
+  drive tables are read out of that same file (§9). Nothing about the *system* is
   missing any more.
 - **#179's acceptance has a drive to run against.** The firmware personality in
   `firmware/acb4000-scsi/` and this image are two halves of the same test; the
   commands the period software issues (`VERIFY` `2F`, `SEARCH DATA EQUAL` `31`)
   are implemented there.
-- **#191's `peek 0x055E`/`0x056E` is now reachable.** It needs an MD-10 *system* on
-  the drive, and the system now reaches its prompt (§7) — so the runtime tables
-  can be read against a *running* system rather than inferred. What that will
-  show is still open: the tables are static data in `HARD.COM` (§9), the drive's
-  LBA 4 carries its own copy of the geometry and type bytes (§3), and who copies
-  one into the other is not yet chased.
+- **#191's `peek 0x055E`/`0x056E` is answered without a peek.** Those are offsets
+  from the BIOS base, not low-RAM addresses, so the tables are at
+  `0xDD5E`/`0xDD6E` and are read straight out of `HARD.COM` (§9). What a read of
+  the *running* system still adds is which copy a boot uses: the drive's LBA 4
+  carries its own copy of the geometry and type bytes (§3), and who copies one
+  into the other is not yet chased.
 - **`docs/osborne1nx-machine.md` §5's "`HARD.COM` is a hard-disk boot loader"
-  is right, and now it is read end to end** — including that it *also carries the
+  is right, and it is read end to end** — including that it *also carries the
   BIOS*, which that section did not know.
 
 ## 9. The DPB and the drive table are *in the archive* after all (#178)
 
-`docs/harddisk-decision.md` §7.3 concluded that the DPB's values "are not
-obtainable from the files in the archive", because `tools/research/hardbios.py
-audit` found **no writer and no pointer** to the tables at `0x055E`/`0x056E`.
-
-The negative result was an artefact of two things, and both are now measured:
-
-1. **`0x055E` is not a low-RAM address. It is an offset from the BIOS's base.**
-   The MD-10 BIOS loads at `0xD800` (§4), so the per-drive type byte table is at
-   **`0xDD5E`** and the 24-byte descriptor table at **`0xDD6E`**. The audit
-   searched `0x0500`–`0x0700`, which is why it found only the *relocatable
-   operands* inside the overlay (`LD BC,055E` / `LD DE,056E` — the latter **is**
-   reported, at `hardbios.spr` offset `0x200`).
-2. **Both tables are static data inside the BIOS image**, so they are readable
-   from the file — in `HARD.COM`'s embedded copy at file offsets `0x998` and
-   `0x9A8` (addresses `0xDD5E`/`0xDD6E` less the loader's `0x0100` origin), and
-   at `0x9F0` for the DPB.
-
-   They are **not** in `HARDBIOS.SPR`, which an earlier revision of this section
-   claimed "at the matching offsets". A byte search for the 16-byte type run, the
-   `01 14 00 00 27 3C` descriptor prefix and the ten-byte DPB prefix finds all
-   three in `HARD.COM` and in **none** of `HARDBIOS.SPR`, `HARDBDOS.SPR` or
-   `HARDCCP.SPR`. The `.SPR` is a *different, larger* build — its body is `0x880`
-   bytes against the embedded copy's `0x5C5` — so it is the same BIOS at the same
-   entry points but not the same image. The driver's fallback table therefore
-   lives only in the loader that installs it, which is why #178's audit of the
-   `.SPR` files found no writer.
+**The answer.** `0x055E` and `0x056E` are **not low-RAM addresses** — they are
+offsets from the MD-10 BIOS's base, and the BIOS loads at `0xD800` (§4). The
+per-drive type byte table is therefore at **`0xDD5E`**, the 24-byte descriptor
+table at **`0xDD6E`** and the DPB at **`0xDDB6`**, and all three are **static data
+inside the BIOS image**, so they are read straight out of `HARD.COM` at file
+offsets **`0x998`**, **`0x9A8`** and **`0x9F0`** (each address less the loader's
+`0x0100` origin). No `peek` is needed: the values are in the file.
 
 Read out of `HARD.COM` (2.01), the tables are:
 
@@ -523,18 +500,37 @@ file 0x09F0   9C F0 05 1F 01 83 07 FF 03 FF 00 00 00 00 00
               ?     5   31  1   1923  1023  FF  00  0     0
 ```
 
-and **`DPB+3` is `31`** — which is exactly what §7.3 read out of the driver's
-*code* ("the driver reads `DPB+3` as `BLM`") before the data had been found. Two
+and **`DPB+3` is `31`** — which is exactly what `docs/harddisk-decision.md` §7.3
+read out of the driver's *code* ("the driver reads `DPB+3` as `BLM`"). Two
 independent readings agreeing is what makes `0xDDB6` the DPB rather than a
 lookalike.
+
+**Why the first search missed them.** `docs/harddisk-decision.md` §7.3's
+conclusion that the values "are not obtainable from the files in the archive" came
+from an audit (`tools/research/hardbios.py audit`) that found **no writer and no
+pointer** to `0x055E`/`0x056E`. Two things produced that negative result:
+
+1. **The audit read `0x055E` as an address rather than an offset.** It searched
+   low RAM, `0x0500`–`0x0700`, which is why it found only the *relocatable
+   operands* inside the overlay (`LD BC,055E` / `LD DE,056E` — the latter **is**
+   reported, at `hardbios.spr` offset `0x200`).
+2. **The tables are in the loader, not in the `.SPR` files.** A byte search for
+   the 16-byte type run, the `01 14 00 00 27 3C` descriptor prefix and the
+   ten-byte DPB prefix finds all three in `HARD.COM` and in **none** of
+   `HARDBIOS.SPR`, `HARDBDOS.SPR` or `HARDCCP.SPR`. The `.SPR` is a *different,
+   larger* build — its body is `0x880` bytes against the embedded copy's `0x5C5`
+   — so it is the same BIOS at the same entry points but not the same image. The
+   driver's fallback table therefore lives only in the loader that installs it,
+   which is why #178's audit of the `.SPR` files found no writer.
 
 `BLM = 31` gives 4096-byte blocks; `DSM = 1923` is therefore 7.88 MB per logical
 drive; `DRM = 1023` is 1024 directory entries; `AL0 = FFh` is the eight
 directory blocks; `CKS = 0` is a fixed disk, which is right. **`SPT` reads
 `F09Ch` — 61596 — and that is not a sector count: it is the partition measured in
 128-byte records.** `61596 × 128 = 7 884 288 = 15399 × 512`, exactly one
-15399-block partition (resolved 2026-10-14; §7.3's "patched at run time from
-`MODE SENSE`" reading is retired). So the DPB does not merely *describe* a
+15399-block partition. `docs/harddisk-decision.md` §7.3 read the same field as
+"patched at run time from `MODE SENSE`"; it is static data in the file, and the
+arithmetic is what settles it. So the DPB does not merely *describe* a
 partition size — it **is** the partition size, and it is the same 15399 blocks
 `PREP.COM` writes when it is given a PYXIS27 (§3).
 
@@ -563,9 +559,9 @@ Two consequences, both load-bearing:
 2. **The two-partition PYXIS13 drive is not safe to write to.** Its `CP/M-A` is
    11544 blocks (5.6 MiB) while the shared DPB tells CP/M it has 7.5 MiB, and the
    1.9 MiB difference runs straight into `CP/M-B` — starting with `B:`'s own
-   directory. Nothing caught this earlier because every earlier test only ever
-   *read*; the first write to a hard-disk partition was `SAVE 1 TEST.COM` on the
-   PYXIS27 drive (§7.2).
+   directory. The mismatch is invisible to a read-only test, and every test before
+   the first write to a hard-disk partition — `SAVE 1 TEST.COM` on the PYXIS27
+   drive (§7.2) — only ever read.
 
 Bigger partitions need the DPB, the ALV addresses and the descriptor table
 patched together — #247's driver step. CP/M 2.2's own ceilings are `DSM` at 16
@@ -605,13 +601,12 @@ The MD-10 claims three letters because its type table gives drives 0–2 the thr
 hard-disk descriptors (`00 01 02`, §7.1); the *drive* decides whether the third
 one has anything in it.
 
-**And the disagreement never mattered.** An earlier revision of this section
-concluded from it that the system could not prompt because the BDOS was logging in
-to the wrong directory. **That was wrong** (§7): there is no login at all before
-the prompt, the trace shows only the boot `READ LBA 5` with status GOOD, and the
-login that does happen — after the prompt, when `B:` is typed — reads LBA 83, the
-last block of drive A's own `E5h` directory. The fallback is never consulted on a
-drive that carries a label.
+**The fallback is never consulted on a drive that carries a label**, so the
+disagreement does not explain the missing prompt. The login-to-the-wrong-directory
+reading is refuted by the trace (§7, §10): there is no login at all before the
+prompt, only the boot `READ LBA 5` with status GOOD, and the login that does
+happen — after the prompt, when `B:` is typed — reads LBA 83, the last block of
+drive A's own `E5h` directory.
 
 ### 9.2 The driver patch: what a bigger partition costs, and what the installer allows (#247)
 
@@ -654,13 +649,12 @@ past them.
 partition** — and that is a property of the 4 KiB block rather than a coincidence
 of two unrelated limits: `ALV = disk / (8 x block)`, so 16 KiB blocks would put
 32 MiB partitions at 256 bytes each, inside the budget with room to spare.
-`--bsh` is in the tool for that day.
+`--bsh` is in the tool for that reason.
 
-One more field, and it turned out to be wrong in the *tool* rather than in the
-vendor. The shipped DPB has `EXM = 1` with `BSH = 5`, and an earlier revision of
-`md10dpb.py` recorded that as the vendor being internally inconsistent: the
-relation it knew — `EXM = 2^(BSH-3) - 1`, i.e. 16 block pointers must cover
-`(EXM+1) x 16 KiB` — gives **3**. It does not. Digital Research's own DPB
+**One more field, and the vendor is right about it.** The shipped DPB has
+`EXM = 1` with `BSH = 5`, and the naive relation — `EXM = 2^(BSH-3) - 1`, i.e. 16
+block pointers must cover `(EXM+1) x 16 KiB` — gives **3**, which would make the
+vendor internally inconsistent. It does not. Digital Research's own DPB
 generator settles it. `DISKDEF.LIB`, in the CP/M 2.2 sources
 (`UTILSRC/DISKDEF`):
 
@@ -678,10 +672,10 @@ so the mask is **halved once the disk is past 255 blocks**, because a directory
 entry then holds eight 16-bit block pointers instead of sixteen and one entry
 therefore covers half as many bytes. That is Alteration Guide Table 6-9 as well
 (BLS 8,192: 7 for `DSM < 256`, 3 for `DSM > 255`). **`EXM = 1` at
-`BSH = 5` / `DSM = 1923` is correct.** The tool had it right only because
-`BSH = 5` was hardcoded; at every other block size it wrote the `DSM < 256`
-value, which is 7 where `BSH = 6` wants 3. Fixed 2026-10-15 (§9.3); `--exm`
-still overrides.
+`BSH = 5` / `DSM = 1923` is correct.** `md10dpb.py` wrote the right value only
+because `BSH = 5` was hardcoded; at every other block size it wrote the
+`DSM < 256` value, which is 7 where `BSH = 6` wants 3 — fixed with the
+block-size work of §9.3, and `--exm` still overrides.
 
 **3. What `PREP.COM` will actually make.** Its partition menu has five entries,
 not three:
@@ -747,9 +741,10 @@ partition table written outside `PREP.COM`.
 
 ### 9.3 The block size: `BSH = 6`, measured (2026-10-15)
 
-§9.2 ends on `ALV = disk / (8 x block)` and notes that `--bsh` was in the tool
-"for that day". This is that day, and the day's result is that **the toolset
-already does 8 KiB blocks** — with one field wrong, now fixed.
+`ALV = disk / (8 x block)`, so the block size sets the per-drive cost that decides
+how many drives fit — which is why `--bsh` has been in the tool since §9.2. The
+result: **the toolset already does 8 KiB blocks** — with one field wrong, now
+fixed.
 
 **What it costs to change.** Nothing outside the DPB. The partition records in
 the label hold **512-byte sectors** (`CP/M-A start=20 length=15399`), not CP/M
@@ -811,7 +806,7 @@ done, 8 KiB blocks would cost density and buy nothing.
 A drive also needs its **24-byte descriptor**, and the driver's table is full at
 three: it sits at `DD6E` inside the BIOS image with the DPB immediately after it
 at `DDB6`, and the image itself ends at `DDC5` — Pocket A. So the descriptors need
-a home of their own. **Settled 2026-10-15: there is no fourth home to find.** The
+a home of their own. **There is no fourth home to find.** The
 one region the map above left as `?`, `EB00-EBFF`, is the *interior* of the
 monitor's own `HSTBUF` (see §9.2), so the free RAM is exactly the 1451 bytes, and
 the descriptors have to come out of it:
@@ -821,7 +816,7 @@ the descriptors have to come out of it:
 | their own 24 bytes, out of the 1451 | 152 B | **9** | 9 |
 | **a shared DPH**, 4-byte (DPB, ALV) pair each + one 18-byte DPH | 132 B | **10** | **11** |
 
-**And the shared-DPH question is answered — measured, 2026-10-15.** The type table at
+**And the shared-DPH question is answered — measured.** The type table at
 `DD5E` maps drive to descriptor, so one byte points drive 3 (`D:`) at descriptor 0 —
 the same one `A:` uses. That is the *extreme* case of sharing: two letters, one
 descriptor, one DPH, one ALV, one DPB. It works, both ways:
@@ -845,7 +840,7 @@ first physical floppy in that run, not `D:`.
 respectively — and **9** is the floor if the shared DPH turns out not to hold up
 under real traffic. What is left is implementing it, not deciding it.
 
-One trap worth recording, because it caught this session: a **stale ROM 2.0
+One trap: a **stale ROM 2.0
 monitor image** in a scratch directory (built before #247 step 4, so still
 `CP 1Bh` at `0x0048`) makes `rom2image.py` refuse with "the sign-on dispatch is
 not ROM 2.0's key map". That is the check working — rebuild with `rom2asm.sh`.
@@ -859,11 +854,10 @@ and not a field upgrade.
 
 
 
-### 9.4 The N-drive driver, built and measured — and the byte order that was wrong (2026-10-15)
+### 9.4 The N-drive driver, built and measured (2026-10-15)
 
-§9.3 decided the drive count and §9.2 built the DPB half of the patch. This is the
-other half: **`md10dpb.py --grow`**, which turns the vendor's three fixed
-descriptors into N, and the acceptance that says it works.
+`md10dpb.py --grow` is the other half of the patch §9.2 describes: it turns the
+vendor's three fixed descriptors into N, and the acceptance below says it works.
 
 **What it writes.** The three 24-byte descriptors at `DD6E` are the whole of
 `DD6E-DDC4`, so that region is the only home an N-drive table has. A drive costs
@@ -877,29 +871,30 @@ descriptor's prefix. The type table at `DD5E` becomes `00 01 .. 0(N-1)` and the
 floppies move up behind the disk, which is why eleven partitions put them at `L:`
 and `M:`.
 
-**The defect it shipped with, and what found it.** The first revision **booted** —
-the ROM handed over, `A0>` appeared with no floppy, and the type table, the
-per-drive table, the shared DPH, the DPB and every ALV were correct in RAM — and
-then could not read drive `A:`'s directory: `DIR A:` answered `No file` and `SAVE`
-answered `No space`, while `B:` worked. Every cell in RAM was **byte-identical**
-to the vendor's driver's, because nothing in RAM was wrong: the LBA routine stored
-the CDB's LBA **byte-swapped**.
-
-The card is a SCSI target, so the LBA lives in a `READ(6)`'s bytes 2 and 3 as
-`LBA[15:8]` then `LBA[7:0]` — **high byte first**. The CDB is at `D9FA`, so byte 2
-is `D9FC` and byte 3 is `D9FD`, and the *low* byte of the sum belongs at the
-*higher* address. `ld (0D9FCh),hl` writes `L` at `D9FC` and `H` at `D9FD`. The
+**The byte order, which is the one thing the vendor's driver has to be changed
+for.** The card is a SCSI target, so the LBA lives in a `READ(6)`'s bytes 2 and 3
+as `LBA[15:8]` then `LBA[7:0]` — **high byte first**. The CDB is at `D9FA`, so
+byte 2 is `D9FC` and byte 3 is `D9FD`, and the *low* byte of the sum belongs at
+the *higher* address. `ld (0D9FCh),hl` writes `L` at `D9FC` and `H` at `D9FD`. The
 vendor's routine instead does `ld d,l` / `ld e,h` / `ld (0D9FCh),de`, which puts
-`H` first; that is the idiom, and the fix costs the three bytes the slot had spare.
+`H` first; that is the idiom, and the fix costs the three bytes the slot had
+spare.
 
-**The instrument was the card's own CDB trace.** Run the machine with `-log` and
+A driver with that swap in place still **boots** — the ROM hands over, `A0>`
+appears with no floppy, and the type table, the per-drive table, the shared DPH,
+the DPB and every ALV are correct in RAM — and then cannot read drive `A:`'s
+directory: `DIR A:` answers `No file` and `SAVE` answers `No space`, while `B:`
+works. Every cell in RAM is **byte-identical** to the vendor's driver's, because
+nothing in RAM is wrong: only the LBA is.
+
+**The instrument is the card's own CDB trace.** Run the machine with `-log` and
 `[:acb4000] CDB ..` lines land in `error.log`. The vendor's own boot asks for LBA 5
-as `CDB 08 00 00 05 0B 00`; the broken build asked for drive `A:`'s first sector as
+as `CDB 08 00 00 05 0B 00`; a swapped build asks for drive `A:`'s first sector as
 `CDB 08 00 14 00 01 00` — LBA `0x1400` instead of `0x0014`. And the reason the
-symptom read as "`A:` only" is that a swapped LBA is not always a *wrong-looking*
-one: `B:`'s and `C:`'s swapped reads landed in drive `A:`'s `E5h` tail, where
-writes and reads agreed with each other and disagreed with the partition, so those
-two drives **appeared** to work. Two of the three also produced a byte-symmetric
+symptom reads as "`A:` only" is that a swapped LBA is not always a *wrong-looking*
+one: `B:`'s and `C:`'s swapped reads land in drive `A:`'s `E5h` tail, where
+writes and reads agree with each other and disagree with the partition, so those
+two drives **appear** to work. Two of the three also produce a byte-symmetric
 LBA (`0x3C3C`, `0x7878`), which is invisible in the value — so the harness compares
 the two CDB bytes **separately** against what the driver's own drive and sector
 cells imply, not the decoded LBA.
@@ -922,20 +917,19 @@ The negative control is the same harness against the pre-fix image: it fails on
 `A:`–`G:`, `J:` and `K:`, with `D:` reading LBA 8888 where the driver's cells say
 47138 — `22 B8` for `B8 22`, a textbook swap.
 
-**And the drive the eleven-drive acceptance runs against had to be corrected
-first** — `PREP.COM`'s relocation base is not constant. That is §9.5, and it is
-now understood rather than worked around.
+**The drive the eleven-drive acceptance runs against is corrected, not hand-made** —
+`PREP.COM`'s relocation base is not constant, and §9.5 derives it.
 
 ### 9.5 The relocation base, answered — and the v1.0 ceiling (2026-10-15)
 
 `PREP.COM` relocates `HARDCCP.SPR`/`HARDBDOS.SPR` before writing the O/S to a
-drive, and the base it picks is not constant. That was recorded as an open
-question and deliberately not chased; it then turned out to be on the critical
-path, because `md10prep.sh eq11` produces a drive that warm-boots for ever (#198).
+drive, and the base it picks is not constant. It is on the critical path rather
+than an idle question: `md10prep.sh eq11` produces a drive that warm-boots for
+ever (#198), which is what §9.4's acceptance needed answered.
 
-**It is not a stale capture, and it is not random — it is a function of the
-layout.** Measured by building each drive with `md10prep.sh` and reading the CCP's
-first instruction, which is `JP <base + 0x2C8>`:
+**It is a function of the layout, not a random or stale value.** Measured by
+building each drive with `md10prep.sh` and reading the CCP's first instruction,
+which is `JP <base + 0x2C8>`:
 
 | `md10prep.sh` | partitions | blocks each | base | pages below `0xC200` |
 |---|---|---|---|---|
@@ -1029,15 +1023,15 @@ estimate.
 
 ## 10. The test that was named, and its answer
 
-An earlier revision of this section named a test: watch the card's CDB while the
-guest is at the login, or build a drive whose partition table matches the driver's
-static descriptors. **Neither was needed, and the premise was wrong.** On a machine
-that never gets past the boot read the CDB is *always* `08 00 00 05 0b 00` — LBA 5,
-the boot read — and it comes back with status `00` (GOOD), so there is no login to
-watch and no partition-table disagreement to reconcile. (A machine that *does* get
-past it issues many, which is what §9.4's trace reads.) The blocker was in the
-operating system's relocation (§7), which no amount of drive-building would have
-fixed.
+**The blocker was the operating system's relocation (§7), not the drive and not
+the card** — no amount of drive-building would have fixed it. Two tests were
+proposed for it and neither was needed: watching the card's CDB while the guest
+sat at the login, and building a drive whose partition table matches the driver's
+static descriptors. On a machine that never gets past the boot read the CDB is
+*always* `08 00 00 05 0b 00` — LBA 5, the boot read — and it comes back with status
+`00` (GOOD), so there is no login to watch and no partition-table disagreement to
+reconcile. (A machine that *does* get past it issues many, which is what §9.4's
+trace reads.)
 
 The answer, in the order it was measured:
 
