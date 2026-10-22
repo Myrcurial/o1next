@@ -1,14 +1,13 @@
 # The ROM↔Pico channel, and the boot screen — ROM 2.0's client (#247 step 8)
 
-**Status: design — a proposal.** The ROM side of #247 is built and measured
-(steps 1–7: the banked window, `HCBOOT`, the hand-over, the 11-drive driver). The
-screen's *mechanism* is measured in the machine. **The firmware class is now written
-and host-tested** (`firmware/rom-service/`, #284), and this is the contract it is
-written against — while the *emulated* interposer still answers the door with
-`softrom_device`'s C++ stand-in (`romservice-check.sh`), so that the ROM's screen
-code can be written and proved against it and the firmware diffed against the
-stand-in (`docs/emulation-testbed.md`, Gate D). See §2 for the address, which the
-machine corrected, and §7 item 1 for what is left open.
+**Status: Partially solved.** The **ROM side of #247 is built and measured** —
+steps 1–7: the banked window, `HCBOOT`, the hand-over, and the 11-drive driver — and
+so is the screen's mechanism. The **firmware class that answers the door is written
+and host-tested** (`firmware/rom-service/`, #284), and this document is the contract
+it is written against; what is *not* closed is the swap: the emulated interposer
+still answers the door with `softrom_device`'s C++ stand-in (`romservice-check.sh`),
+so the firmware can be diffed against it (`docs/emulation-testbed.md`, Gate D). §7
+lists what is still undecided.
 
 Answers **#247 step 8**. Reads alongside `docs/mailbox-protocol.md` (the
 *host*↔firmware channel, #155 — this is a different client of the same firmware),
@@ -22,10 +21,13 @@ Answers **#247 step 8**. Reads alongside `docs/mailbox-protocol.md` (the
 
 ## 1. What this is, and what it is not
 
-The **ROM's** way to ask the Pico for something. `docs/mailbox-protocol.md`
-already defines one channel for a CP/M program; this defines the *second client*
-of the same firmware — the monitor, which runs before any CP/M exists, in a
-different address space, and whose first requirement is a **4096-byte picture**.
+The **ROM service**: the command class the monitor asks the Pico through, defined
+here because the monitor is the *second client* of the same firmware.
+`docs/mailbox-protocol.md` already defines one channel for a CP/M program; this
+defines the ROM's own door — the monitor runs before any CP/M exists, in a different
+address space, and its original requirement was a **4096-byte picture**. Since #278
+the ROM's own client does not drive the door at all (§4): the class stays, and it
+serves the userland client and the web UI (`firmware/rom-service/`).
 
 Two things are deliberately *not* here:
 
@@ -46,11 +48,10 @@ not a preference.
 | `MOUNT.COM` (#27), the clock publisher (#18) | **bank 1** — the TPA, at `0100h` | I/O ports only | **`0E7h`/`0EBh`** — `mailbox-protocol.md` §2 |
 | **ROM 2.0's monitor** | **bank 2**, with the window mapped over `0000–3FFF` | bank-2 memory, and I/O | **`2800h`/`2801h`** — a bank-2 register pair |
 
-**The pair was `2300h`/`2301h` in this document's first draft, and the machine
-corrected it (2026-10-15).** `o1-memory-io-map.md` §7 calls `2300–23FF` the
+**The pair is `2800h`/`2801h`.** `o1-memory-io-map.md` §7 calls `2300–23FF` the
 largest clean block, and the block's *edges* are clean — but the onboard selects
-check two address bits each, so `0x2301` is the floppy's **track register** as
-well as the keyboard's row 0, and `0x2300` is the floppy's command/status
+check two address bits each, so `0x2301` is the floppy's **track register** as well
+as the keyboard's row 0, and `0x2300` is the floppy's command/status
 register. That is measured, not inferred: `docs/o1-mainboard-schematic.md` §7a
 records it ("`0x2301` is keyboard *and* floppy"), `tools/o1_mame_probe.lua`'s C9
 report prints it, and `o1next-romservice.lua` re-measures it in the machine that
@@ -59,9 +60,9 @@ with a track register sitting at `00h` reads *not ready* for ever. **`2800h` is
 inside the same recommended region and is the part of it that nothing selects**:
 no device mask matches A11 set with A8/A9/A10 clear, so the stock decode reads
 `FFh` there and the door answers alone. §7 item 1 and `o1-memory-io-map.md` §7
-carry the same correction. (The other clean part of that region, `2400–27FF`, is
-the SCREEN-PAC's own decode — presence bit included — which the video
-personality needs.)
+carry the same measurement. (The other two blocks nothing selects are `2000–20FF`,
+free, and `2400–24FF` — the SCREEN-PAC's presence bit, inside the `2400–27FF` select
+its video personality needs; `2500–27FF` also aliases the floppy and the keyboard.)
 
 **And the door is not in Drive C's space, because Drive C has none.** Its
 exclusivity with the interposer is real (`mailbox-protocol.md` §1) and was checked
@@ -133,20 +134,24 @@ and does not require a protocol revision (`mailbox-protocol.md` §4).
 | `40h` | `PRESENT` | content id `u8` | — |
 | `41h` | `INFO` | — | format version `u8`, flags `u8` |
 
-**`PRESENT` is the whole of step 8.** It is the one command the monitor needs, and
-it is what ROM 2.0's `BANKSEL` extension (`o1-rom-2.0.md` §4.7, extension 1 —
-"`A` = the payload slot, write the selector", whose selector §4.1a left open)
-becomes. The content ids:
+**`PRESENT` is the whole of step 8.** It is the one command the boot screen needed
+while the ROM served the frame, and it is what ROM 2.0's `BANKSEL` extension
+(`o1-rom-2.0.md` §4.7, extension 1 — "`A` = the payload slot, write the selector")
+becomes. Since #278 the ROM's own client does not call it; a userland client that
+wants the payload in the window does. The content ids:
 
 | id | Content | Who needs it |
 |---|---|---|
-| `0` | **the payload** — CBIOS + MD-10 BIOS image + the hand-over stub, 3599 bytes | the hand-over, and `BANKSEL` generally |
-| `1` | ~~the frame's character half~~ | **retired (#278)** — the RP2354B reads the animation out of its own flash, so nothing asks for a frame; the id answers `09h` |
-| `2` | ~~the frame's attribute half, the 9th bit~~ | **retired (#278)**, as above |
-| `3` | ~~the screen's own code, one window page~~ | **retired (#278)**: the code is 26 bytes in the monitor's own tail (§4.1) |
+| `0` | **the payload** — CBIOS + MD-10 BIOS image + the hand-over stub, 3599 bytes | `BANKSEL`, and any client that wants the payload in the window |
+
+**Ids `1`, `2` and `3` are retired and answer `09h`** (#278). They were the frame's
+character half, the frame's attribute half, and the screen's own code served as a
+window page; the RP2354B reads the animation out of its own flash, so nothing asks
+for a frame, and the screen's code came back into the monitor's own tail as 26
+bytes (§4.1). A retired id leaves page 1 alone.
 
 `INFO` is for the web UI and for a human, not for the ROM: **the ROM asks the
-door for nothing at all now** (#278). It is here so that a firmware's version and
+door for nothing at all** (#278). It is here so that a firmware's version and
 its state can be read by something that is not the ROM; the flags byte is `00h`,
 because there is no asset slot left to report.
 
@@ -167,35 +172,39 @@ Everything below is measured on `osborne1nx` unless marked.
    message that does not is written to address 0 and never appears. Its dim runs are
    the vendor's `ESC,VSHI` … `ESC,VEHI` half-intensity mode.
 4. **Return.** That is the whole of it (#278): the ROM serves no frame and draws
-   none. Steps 4–7 used to be `PRESENT(1)`, the character half's trailer check, an
-   `LDIR` blit, `PRESENT(2)` and the attribute half, and `PRESENT(0)` to put the
-   payload back — 43 ms of copying, and most of the screen's 212 bytes. The RP2354B
-   is the display now, and the Z80's whole role is the trigger: the text below is
-   what it prints, and the Pico stops its animation on the Z80's first video-RAM
-   write.
+   none, and the RP2354B is the display. The Z80's whole role is the trigger — the
+   text above is what it prints, and the Pico stops its animation on the Z80's first
+   video-RAM write. The sequence used to continue through `PRESENT(1)`, the
+   character half's trailer check, an `LDIR` blit, `PRESENT(2)` and the attribute
+   half, and `PRESENT(0)` to put the payload back — 43 ms of copying, and most of
+   the screen's 212 bytes.
 
-**The cost, before and after (#278).** The frame path was 43 ms of copying and
-**212 bytes** of code against the **72** the 1.44 layout leaves above `HCBOOT` — the
-assembler's own guard is what said so (2026-10-15, #247 turn 3):
+**What the screen costs, before and after (#278).** The frame path was 43 ms of
+copying and **212 bytes** of code against the **72** the 1.44 layout leaves above
+`HCBOOT`, and the assembler's own guard is what said so (2026-10-15, #247 turn 3):
 
 ```
 I 1021  .9   ERROR   CODE TOO LARGE..      Program LWA = 1102h.
 ```
 
-That is the guard `IF RLWA > 0FFBH / .9 ERROR CODE TOO LARGE` doing its job. It
-was answered on 2026-10-15 with a third content id — `PRESENT(3)`, a 4096-byte page
-in the Pico's flash, copied to RAM at `4000h` by a 51-byte stub — and **#278 retired
-that home with the frame path**: with the trailer checks and the two blits gone, what
-is left is **26 bytes** — the bright fill, the print, the return — which fits the 72
-bytes the stub occupied. The monitor's new code now runs `0F67h`–`0FCDh`, **103 bytes
-of the tail's 149, with 46 free** to the vendor's guard at `0FFBh` (it was 21), and
-the message itself moved into `IMSG`'s own slot at `019Fh` — 72 bytes of text where
-the vendor's 182-byte sign-on message sat, at the vendor's own length, because
-nothing below `0F67h` may move (`docs/o1-rom-2.0.md` §4.2 and §4.9).
+That is the guard `IF RLWA > 0FFBH / .9 ERROR CODE TOO LARGE` doing its job. The
+answer was a third content id — `PRESENT(3)`, a 4096-byte page in the Pico's flash,
+copied to RAM at `4000h` by a 51-byte stub, which left the monitor's new code at
+`0F67h`–`0FE6h` (128 bytes, 21 free to the guard). **#278 retired that home with the
+frame path**: with the trailer checks and the two blits gone, what is left is **26
+bytes** — the bright fill, the print, the return — which fits the 72 bytes the stub
+occupied. The monitor's new code runs `0F67h`–`0FCDh`, **103 bytes of the tail's 149,
+with 46 free** to the vendor's guard at `0FFBh`, and the message itself moved into
+`IMSG`'s own slot at `019Fh` — 72 bytes of text where the vendor's 182-byte sign-on
+message sat, at the vendor's own length, because nothing below `0F67h` may move
+(`docs/o1-rom-2.0.md` §4.2, §4.7 and §4.9).
 
 The record is `research/source-code/BIOS-200-source/rom2-screen.asm`; the build is
-`tools/research/rom2asm.sh`, which reports both numbers and checks the 26 bytes *by
-value*.
+`tools/research/rom2asm.sh`, which reports the new code's extent against the
+vendor's guard and checks the screen's 26 bytes at `0FB4h` *by value* — a wrong
+byte there is a wrong machine, and the check exists because the emulator's floppy
+write-back can damage the assembler's own hex output
+(`docs/rom-13-reconstruction.md` §7).
 
 ### 4.2 Result codes
 
@@ -205,16 +214,16 @@ value*.
 |---|---|
 | `09h` | no such content — `PRESENT` with an id the firmware does not serve |
 
-`06h` (media error) covers a flash read that failed. The ROM treats any non-`OK`
-as "no frame" and keeps its text; it does not retry, because a boot screen is not
-worth a boot delay.
+`06h` (media error) covers a flash read that failed. A client treats any non-`OK`
+as "no such content" and keeps what it has; it does not retry, because a boot screen
+is not worth a boot delay. The ROM does not ask at all (#278).
 
 
 ## 5. The frame: 8192 bytes, and the 9th bit is real
 
 **The frame is two 4096-byte halves** — characters, then attributes — held in the
 **Pico's own flash**, compiled in as a firmware asset, and **read by the RP2354B**
-(#278). It is not served to the ROM any more: the Pico is the display, it plays the
+(#278). It is not served to the ROM at all: the Pico is the display, it plays the
 animation out of its own flash (§5.1), and the Z80's whole role is the trigger. The
 format is unchanged, and it is the RP2354B's — swapping the asset means rebuilding
 the firmware (which is the point: it is a product's face, not user data — but
@@ -236,11 +245,10 @@ video RAM. It lives in a *separate* 4K×1 array that `OUT (02h)` pages into
 
 So **"all bright" is not a limitation of the format** — it is a frame whose
 attribute half is `FFh`. The format retains the 9th bit by construction, and the
-animation carries real dim accents with **no ROM change at all** — which is now
-truer than it was: the ROM never touches the attribute plane after the fill, and the
-Pico draws both planes out of the frame it is playing. That is the answer to "we
-retain the ability to ship a frame that has a 9th bit": yes, and it costs the v1.0
-frame nothing.
+animation carries real dim accents with **no ROM change at all**: the ROM never
+touches the attribute plane after the fill, and the Pico draws both planes out of
+the frame it is playing. That is the answer to "we retain the ability to ship a
+frame that has a 9th bit": yes, and it costs the v1.0 frame nothing.
 
 **The trailer**, unchanged from `o1-rom-2.0.md` §4.9, at the **character half's**
 `0FF8h`:
@@ -251,18 +259,18 @@ frame nothing.
 | `0FFEh` | the 16-bit sum of `0000h–0FF7h`, little-endian |
 
 The attribute half carries the **same trailer at its own `0FF8h`**, so each half
-validates itself — and that is the *machine's* test now (#278), run by the RP2354B
+validates itself — and that is the *machine's* test (#278), run by the RP2354B
 before it draws a frame and by `tools/research/bootanim.py --check` over every frame
 of the animation. A bad half is a frame the machine will not draw; the ROM is not
 involved, and its fallback text stays on the screen while the Pico has nothing to
 play.
 
-**And the frame's bulk is why it was a page, not a port.** A 4096-byte half cannot
-cross a command door that carries commands and metadata by design, so the door named
-the content and the window carried it: `PRESENT(1)` put the character half at
-`1000h`, and one `LDIR` moved it to `F000h`. Both halves of that sentence retired
-with the frame path (#278) — nothing crosses the door now, and nothing is copied:
-the Pico draws.
+**And the frame's bulk is why the window, not a port, carried it.** A 4096-byte half
+cannot cross a command door that carries commands and metadata by design, so the
+door named the content and the window carried it: `PRESENT(1)` put the character
+half at `1000h`, and one `LDIR` moved it to `F000h`. That whole path retired with
+the frame (#278) — nothing crosses the door now, and nothing is copied: the Pico
+draws.
 
 **The frame is not the art.** `research/boot-screen/` holds the authored art
 (153 × 27 cells for the wordmark, or 125 × 28 for the 1NG one), and
@@ -270,19 +278,19 @@ the Pico draws.
 trailer — the art's rows 24–31 are off-screen and carry it. It writes **both
 halves**, each with its own trailer, so one command produces the whole 8192-byte
 artifact; `--half chars|attrs` writes one, `--verify` checks one or both off the
-disk with nothing but the file. **That artifact is no longer a committed asset:**
-the single frame at `firmware/rom-service/frame.bin` was retired on 2026-10-16, when
-the boot screen became the animation the RP2354B plays (§5.1, and #247's W5), and
-the byte-for-byte check that re-built it went with it. The art stays, because the
-site masthead is still drawn from it.
+disk with nothing but the file. **That artifact is not a committed asset:** what the
+firmware compiles in is `firmware/rom-service/boot-animation.bin`, the animation the
+RP2354B plays (§5.1, and #247's W5), and the single frame at
+`firmware/rom-service/frame.bin` is not in the tree. The art stays, because the site
+masthead is still drawn from it.
 
 ### 5.1 The animation: a container, and the two bits that pace it
 
 The screen above is **one** frame, and the frame format is settled. #247's last note
 hands the **pacing** to the RP2354B, so the asset becomes a *sequence*, and a
 sequence needs a container to say how long each frame lasts. The container is
-`tools/bootsplash/README.md`'s proposal — the firmware side of it is not written —
-and it is a 32-byte header and then the frames back to back, each already sealed, so
+`tools/bootsplash/README.md`'s proposal, and it is what the committed asset is built
+in — a 32-byte header and then the frames back to back, each already sealed, so
 frame *n* of a one-frame file **is** the 8192-byte asset above:
 
 | offset | bytes | what |
@@ -332,14 +340,13 @@ to frame 1 and the repeating one's is the wrap into the next cycle — the same
 transition, taken once either way. `tools/bootsplash/` counts all four modes, so the
 number a designer reads is the number the Pico is asked for.
 
-**And how the ROM asks for frame *n* is no longer a question (#278, 2026-10-17).**
-The answer that was being weighed — `PRESENT` growing a frame index, or the firmware
-advancing its own sequence — assumed the ROM asked at all. It does not: the Pico
-plays the animation out of its own flash, paced by its own clock, and stops on the
-Z80's first video-RAM write. So the *pacing* is entirely the RP2354B's, and the ROM
-side's only statement about the asset is that it is well-formed:
-`tools/research/bootanim.py --check` — the header's sum, the declared geometry and
-flags, and every frame's own trailer.
+**And how the ROM asks for frame *n*: it does not (#278).** The alternatives that
+were weighed — `PRESENT` growing a frame index, or the firmware advancing its own
+sequence — both assumed the ROM asked at all. The Pico plays the animation out of
+its own flash, paced by its own clock, and stops on the Z80's first video-RAM write.
+So the *pacing* is entirely the RP2354B's, and the ROM side's only statement about
+the asset is that it is well-formed: `tools/research/bootanim.py --check` — the
+header's sum, the declared geometry and flags, and every frame's own trailer.
 
 
 ## 6. The memory map at the moment the screen runs, and what happens when it fails
@@ -364,40 +371,41 @@ tune, and the screen shows the ROM's fallback, which is what the machine prints 
 the Pico has nothing to play.
 
 The recovery rule is `mailbox-protocol.md` §3's: an unknown opcode answers `01h`
-and resets the operand count, so a wedged ROM recovers with `NOP`.
+and resets the operand count, so a wedged client recovers with `NOP`.
 
-## 7. What is not decided
+## 7. What is settled, and what is not
 
-1. ~~**The two register addresses.**~~ **Settled by measurement (2026-10-15): the
-   door is at `2800h`/`2801h`, not `2300h`/`2301h`.** The first draft chose
-   `2300–23FF` on `o1-memory-io-map.md` §7's word that it was the largest clean
-   block. It is not clean: the onboard selects check two address bits, so
-   `0x2301` is the floppy's track register *and* the keyboard's row 0
-   (`docs/o1-mainboard-schematic.md` §7a, `tools/o1_mame_probe.lua` C9) — and a
-   reply ANDed with a track register reading `00h` never becomes ready, while a
-   request written to `0x2300` is a floppy command. `2800h` is the part of the
-   same recommended region that nothing selects. Measured in the emulated
-   interposer itself by `o1next-romservice.lua`, whose first check is exactly
-   that comparison; the protocol is base-relative, so the correction moved one
-   constant in the device, one in the machine's map, and the numbers here.
-2. ~~**Whether the attribute half wants a trailer.**~~ **Settled by #278:** it keeps
-   one, and it is the *RP2354B's* check rather than the ROM's. Eight bytes per frame
-   is nothing against a 8192-byte frame, and the alternative — trusting a half
-   because the other one validated — would put dim cells on the screen the artist
-   did not draw.
+1. **The two register addresses: settled — `2800h`/`2801h`.** `2300–23FF` was the
+   first choice, on `o1-memory-io-map.md` §7's word that it was the largest clean
+   block. It is not clean: the onboard selects check two address bits, so `0x2301` is
+   the floppy's track register *and* the keyboard's row 0
+   (`docs/o1-mainboard-schematic.md` §7a, `tools/o1_mame_probe.lua` C9) — and a reply
+   ANDed with a track register reading `00h` never becomes ready, while a request
+   written to `0x2300` is a floppy command. `2800h` is the part of the same
+   recommended region that nothing selects. Measured in the emulated interposer
+   itself by `o1next-romservice.lua`, whose first check is exactly that comparison;
+   the protocol is base-relative, so the address is one constant in the device, one
+   in the machine's map, and the numbers in §2.
+2. **Whether the attribute half wants a trailer: settled — it keeps one**, and it is
+   the *RP2354B's* check rather than the ROM's (#278). Eight bytes per frame is
+   nothing against a 8192-byte frame, and the alternative — trusting a half because
+   the other one validated — would put dim cells on the screen the artist did not
+   draw.
 3. **Whether `PRESENT` and `BANKSEL` stay separate.** `BANKSEL` is
    `o1-rom-2.0.md` §4.7's extension 1 and `PRESENT` is its implementation; a
    program that wants to page the payload in itself calls the extension, not the
    opcode. Whether the extension should expose the frame halves too is a
-   ROM-interface question, not a firmware one.
+   ROM-interface question, not a firmware one — and with the frame path retired
+   (#278) there is one content id to expose, not three.
 4. **Whether the frame's default art is the O1NEXT wordmark.**
    `research/boot-screen/` holds two, and the choice is a product decision.
-5. **The firmware's "from moment one" list.** The splash frame is one item; the
-   MD-10/ACB-4000 personality with two disks is the other, and it is larger. The
-   order they land in is #179's and the storage work's, not this document's.
+5. **The firmware's "from moment one" list.** The splash is one item — the asset is
+   committed and the renderer that plays it is #277 — and the MD-10/ACB-4000
+   personality with two disks is the other, and it is larger. The order they land in
+   is #179's and the storage work's, not this document's.
 6. **The viewport slide.** The hardware's default behaviour is that slide, and it
-   is **not** this channel's business: it is a video-personality feature, the
-   screen the ROM draws is static, and the trigger is a user's `CTRL`+arrow. See
+   is **not** this channel's business: it is a video-personality feature, the screen
+   is static, and the trigger is a user's `CTRL`+arrow. See
    `docs/virtual-peripherals-block-diagram.md` §5 and #24.
 
 ## Sources
