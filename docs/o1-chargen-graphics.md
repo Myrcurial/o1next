@@ -1,5 +1,11 @@
 # The character generator's graphics set (#97)
 
+**Status: Partially solved.** The set is identified and read straight off the
+ROM — 33 glyphs, and they are **block graphics, not line-drawing** — and the
+"64 columns" question is answered by the video geometry. The glyph-by-glyph
+mapping to Unicode codepoints is deliberately **not** written yet: it has to be
+measured glyph by glyph, not asserted (see *The mapping (open)*).
+
 The 2716 at **UA15** holds 128 glyphs of 8×10, and the first 32 of them
 (`0x00–0x1F`) plus `0x7F` are **graphics characters** rather than letters. They
 are the most stable thing in the ROM: the two char-gen variants differ in 93 of
@@ -43,14 +49,15 @@ frames and charts at all. Two consequences for this project:
 
 ## The mapping (open)
 
-The mapping table is **not written yet, on purpose**: the issue asks for each
-glyph to be identified by looking at it beside its candidate, and recorded with
-its evidence rather than asserted. The sheet is the evidence side of that — it
-is generated from the ROM, so it cannot drift from it.
+There is no codepoint table yet, and that is a method decision rather than a
+gap: each of the 33 glyphs is identified by looking at it beside its candidate
+and recording it with that evidence, not asserted from a description. The sheet
+is the evidence side of that work — `tools/romfont.py --glyph-sheet` renders it
+from the ROM, so it cannot drift from the ROM.
 
-Next: put the sheet beside a rendered Unicode Block Elements chart, identify
-each of the 33, then add the table to `tools/romfont.py` so the codepoints ship
-in the font.
+Next: render a Unicode Block Elements chart beside the sheet, identify each of
+the 33, then add the table to `tools/romfont.py` so the codepoints ship in the
+font.
 
 ## Why 64 columns (see also §2a)
 
