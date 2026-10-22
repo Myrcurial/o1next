@@ -1,11 +1,19 @@
 # Osborne 1 mainboard schematic — extraction, sheet index and pinouts (#64)
 
-`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf` is the primary source for
-the O1's logic board. Until now it was read by eye, page by page, in a PDF
-viewer: the scan is dense, the PDF's own text layer is unusable, and the 12
-pages are actually **two different drawing sets**, which is easy to get wrong.
-This document is the map of that archive item: what is in it, how to read it,
-and what has been extracted from it so far.
+**Status: Solved.** The archive item is indexed sheet by sheet, and every pinout
+the project builds against is read off the scan at native resolution and then
+cross-checked against the same board running under MAME: the Z80 socket (§4),
+the character-generator ROM (§4a), the ACIA clock and baud divider (§4b), the
+P8 floppy header (§5), and the machine-level oracle for the memory and I/O map
+(§6, §7, §7a). The one thing not extracted is the board's discrete glue logic —
+above all the wait-state generator on sheet 2/9, which is what MAME does not
+model (§8, §9).
+
+`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf` is the primary source for the
+O1's logic board. It is read one region at a time in a PDF viewer at native
+resolution: the scan is dense, the PDF's own text layer is unusable, and the 12
+pages are actually **two different drawing sets**, which is the first thing to
+get right (§1). Serves #62 and #64.
 
 ## 1. What the file actually contains
 
@@ -26,9 +34,9 @@ The 12 pages are **two drawing sets**:
 
 This distinction matters. The disk-electronics set (1A3004) is the *drive's
 own* board — read amplifier, data separator, write driver, head connectors.
-The mainboard set (1A2011) is the machine this project extends. Notes in this
-repo have cited "DWG 1A3004" for mainboard facts, including the floppy
-connector pinout; that citation is wrong (§5).
+The mainboard set (1A2011) is the machine this project extends. Cite 1A3004
+only for the drive: the **P8 floppy connector pinout is on 1A2011 sheet 9 of
+9**, and 1A3004 does not carry it (§5).
 
 `research/README.md` describes the split as "sheets 1–3 are the disk analog
 board (DWG 1A3004), sheet 4+ the main logic board" — correct in outline; the
@@ -59,9 +67,9 @@ complete in this scan.
 
 > **Read the device lists at native resolution before citing them.** The
 > *functions* in the last column are reliable; the part numbers came from a
-> whole-sheet pass and at least two are known wrong (§3). `UC11` in particular
-> appears twice — as the Z80 (sheet 3/9, verified at 600 dpi) and as a 74LS161
-> (sheet 1/9, overview pass); only one can be right.
+> whole-sheet pass and at least two are wrong (§3). `UC11` in particular is
+> listed twice — as the Z80 (sheet 3/9, verified at 600 dpi) and as a 74LS161
+> (sheet 1/9, overview pass). **The Z80 is the verified one.**
 
 ## 3. How to read a sheet
 
@@ -87,29 +95,23 @@ pixels at a given dpi. Both need poppler (`brew install poppler`), which
 `tools/ocr_pdf.sh` already depends on.
 
 **Read part numbers at native resolution, never from an overview.** At 300 dpi
-`LS00` and `LS08` are indistinguishable, and so are `LS138` and `LS139`. The
-first pass over this scan was done from whole-sheet views and got both of those
-wrong on sheet 2: at 600 dpi it plainly reads **`UC1 LS00`** (quad NAND) and
-**`UB1 LS139`** (dual 2-to-4 decoder — its pin numbers 15/14/13 for
-enable/A/B and 12/11/10/9 for Y0–Y3 are exactly the second half of a '139).
-The §2 device lists came from that first pass: treat the *functions* as
-reliable and the part numbers as needing a native-resolution check before
-anything is built on them. One conflict is already visible in them — `UC11`
-is listed as both the Z80 (sheet 3/9, read at 600 dpi, and it matches a
-standard DIP-40) and a 74LS161 (sheet 1/9, overview pass). The Z80 is the
-verified one.
+`LS00` and `LS08` are indistinguishable, and so are `LS138` and `LS139`. An
+overview pass over this scan got both of those wrong on sheet 2: at 600 dpi it
+plainly reads **`UC1 LS00`** (quad NAND) and **`UB1 LS139`** (dual 2-to-4
+decoder — its pin numbers 15/14/13 for enable/A/B and 12/11/10/9 for Y0–Y3 are
+exactly the second half of a '139). The §2 device lists came from that overview
+pass, so treat the *functions* as reliable and the part numbers as needing a
+native-resolution check before anything is built on them — the `UC11` conflict
+in §2 is one of them, and the Z80 reading is the verified side.
 
 `research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt` is a fresh OCR pass (per
 the `research/README.md` OCR convention) so the scan is greppable for component
 references. It is useful for *finding* things — "which sheet has the MB8877?" —
-and not trustworthy for pin-level detail. Everything in §4 and §5 was read by
-eye at 600–1200 dpi instead.
-
-`research/osborne1/OCC1_1A2011-00_Schem_RevE.ocr.txt` is a fresh OCR pass (per
-the `research/README.md` OCR convention) so the scan is greppable for component
-references. It is useful for *finding* things — "which sheet has the MB8877?" —
-and not trustworthy for pin-level detail. Everything in §4 and §5 was read by
-eye at 600–1200 dpi instead.
+and not trustworthy for pin-level detail: tesseract on native-resolution tiles
+mangles exactly the tokens that matter (`UC1 LS139` came back as `uct LSiss`,
+`LS32` as `L$3e2`, `LS00` as `tS0e`) and a 1200 dpi pass returned nothing usable
+at all. Everything in §4, §4a, §4b and §5 was read by eye at 600–1200 dpi
+instead.
 
 ## 4. Extracted: the Z80 socket (UC11) is a standard Z80 DIP-40
 
@@ -137,17 +139,15 @@ are the standard Zilog DIP-40 pinout, consistent with every pin that was read.
 **This closes the Z80 half of `docs/research-gaps.md` gap #3 from the primary
 source.** The O1's socket is wired as a plain Z80 DIP-40, so any board that
 mates with it can use the datasheet pinout — which is what
-`tools/check_schematics.py` asserts and what the interposer generators were
-corrected to use (#62). It also corroborates that fix: the generators had the
-pin table off by one across all 40 pins and were corrected to +5 V = 11 /
-GND = 29 / A0 = 30 from the databook — the sheet says exactly that.
+`tools/check_schematics.py` asserts, and what the interposer generators carry
+(#62): `+5 V` = 11, `GND` = 29, `A0` = 30, read from the databook. The sheet
+says exactly that.
 
-**Correction — both halves of that paragraph were wrong.** It read *"the
-char-gen socket (UA15) half of gap #3 is still open. UA15 is a 74S244 on sheet
-5 of 9."* UA15 is neither a 74S244 nor on sheet 5, and that mis-direction is
-why #24's second tap point sat unresolved. UA15 is the **2716
-character-generator ROM on sheet 4 of 9** (PDF page 7, title block `RAM`).
-Read it at 1200 dpi — §4a.
+The **other half of gap #3 is the character-generator socket**, and it is closed
+in §4a: `UA15` is the **2716 character-generator ROM on sheet 4 of 9** (PDF page
+7, title block `RAM`), read at 1200 dpi. It is neither a 74S244 nor on sheet 5 —
+a wrong entry in the §2 device list that is what left #24's second tap point
+unresolved.
 
 ## 4a. Extracted: the character-generator ROM socket (UA15) — gap #3 closed
 
@@ -184,7 +184,7 @@ The displayed cell is 8 wide x 10 high (24 rows x 10 = the 240-line video all
 three MAME drivers produce), so scan rows 10–15 of every character are stored
 but never shown.
 
-### Output path — the assumed one was wrong too
+### Output path — the pixel row leaves as one serial net
 
 `O0–O7` do **not** leave the sheet as eight parallel `CHAR0–CHAR7` lines. They
 drive the parallel inputs of **UA14 (74166)**, an 8-bit shift register on the
@@ -259,7 +259,7 @@ Advent Products' **Osbaud** solders to the ACIA's clock and supply pins (4 and
 12) and two ground pins, and substitutes the clock outright —
 `docs/o1-modem-serial.md`.
 
-## 5. Extracted: the P8 34-pin floppy connector — and a correction
+## 5. Extracted: the P8 34-pin floppy connector
 
 Read from sheet 9 of 9 (PDF page 12, DISC CONTROLLER) at 600–1200 dpi. Every
 pin label on the P8 symbol was read individually:
@@ -280,27 +280,21 @@ pin label on the P8 symbol was read individually:
 are driven by the FDC (UB7) through 7406 open-collector buffers (U9/U10) and
 routed to the connector. Pins 7 and 14 are not drawn on P8 at all.
 
-This contradicted `docs/floppy-adapter-design.md` §2, which listed
-`1,2,3,4,5,6,7,9,19,27,29,31,33` as GND "per DWG 1A3004". Two things were
-wrong with that:
+Two things follow, and both matter to the adapter card
+(`docs/floppy-adapter-design.md` §2, which carries the same pin assignment):
 
-- **The citation.** DWG 1A3004 is the *disk electronics* drawing (§1). P8 is on
-  the mainboard drawing, 1A2011-00 sheet 9. The right source was being
-  overlooked and the wrong one cited.
-- **The content.** The transcription that went into the generator and the doc
-  came from the archived Wayne Visser adapter
-  (`research/osborne1/floppy-adapter/FloppyAdapter.sch`), which ties pins
-  4, 6 and 7 to GND. That is safe for a passive Gotek-only adapter — a 7406
-  open-collector output pulled low is not damaged and a Gotek ignores TG43 and
-  EARLY — but it is not what the machine does, and this adapter switches the
-  OEM cable through to the physical drives, so it must not clamp two live
-  signals.
-
-**Fixed** in `hardware/floppy-adapter/gen_floppy_adapter_sch.py`: pins 4 and 6
-are now `FLP_TG43` / `FLP_EARLY` and pass straight through J1 → J2 like every
-other signal. Grounding TG43 is not merely untidy: it is the FDC's track > 43
-output, which is the drive's *write-current-reduce* input on 96 tpi drives, so
-clamping it low would assert reduced write current permanently.
+- **Grounding TG43 is not untidy, it is wrong.** It is the FDC's *track > 43*
+  output, which is the drive's **write-current-reduce** input on 96 tpi drives,
+  so clamping it low would assert reduced write current permanently.
+- **The archived third-party adapter ties it low.** The Wayne Visser schematic
+  the project archives (`research/osborne1/floppy-adapter/FloppyAdapter.sch`)
+  ties pins 4, 6 and 7 to GND. That is safe for a passive Gotek-only adapter — a
+  7406 open-collector output pulled low is not damaged, and a Gotek ignores TG43
+  and EARLY — but it is not what the machine does. A card that switches the OEM
+  cable through to the physical drives must not clamp two live signals, so
+  `hardware/floppy-adapter/gen_floppy_adapter_sch.py` carries pins 4 and 6 as
+  `FLP_TG43` / `FLP_EARLY`, passing straight through J1 → J2 like every other
+  signal.
 
 ### The 2-versus-7 discrepancy (harmless, recorded for completeness)
 
@@ -432,8 +426,7 @@ PASS  C9    nominally-dead bank-2 addresses alias real devices (sloppy decode)
 
 The page maps it prints are §2 of the map doc in machine form: in bank 2,
 ROM across `0000-1FFF`, devices across `2000-3FFF`, RAM from `4000` up; in
-bank 1, RAM across all 64K. Four things it established that the documents do
-not currently say:
+bank 1, RAM across all 64K. Four things it established beyond the tabulated map:
 
 - **The bank latch is real but does not persist.** `OUT (1),A` puts the machine
   in the RAM bank immediately, and 10 ms of emulated time later it is back in
@@ -474,12 +467,9 @@ only text object is a `HiddenHorzOCR` layer from an early-1990s pass that
 renders a sheet title as `J'U~ I 'IIS IO/OO-tOOnl`. Whatever "extraction" means
 here, it starts from pixels.
 
-**Re-OCRing the labels does not work either.** Tesseract on native-resolution
-tiles mangles exactly the tokens that matter — `UC1 LS139` came back as
-`uct LSiss`, `LS32` as `L$3e2`, `LS00` as `tS0e` — and a 1200 dpi pass returned
-nothing usable at all. A harvested label index would mislead more than it
-helped, so the reading stays manual and §3 is about making that fast and
-accurate.
+**Re-OCRing the labels does not work either** (§3 has the mangled tokens). A
+harvested label index would mislead more than it helped, so the reading stays
+manual and §3 is about making that fast and accurate.
 
 **The honest route to a netlist is manual capture**, and the only part worth
 capturing is the discrete glue. Most of these sheets are Z80, DRAM, FDCs and
