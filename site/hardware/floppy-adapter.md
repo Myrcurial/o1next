@@ -60,11 +60,17 @@ trusting a prior adapter's transcription.
 
 ## Still to do
 
-- **Physical design** — board outline and keep-outs, the Gotek mount and pigtail,
-  and the front-panel switch lead. **Height is the binding constraint**: it is what
-  decided the switch, and the three silicon parts are ~1.5 mm against a relay's
-  10 mm.
+- **Physical design** — board outline and keep-outs, the Gotek mount, and the
+  cable-egress route. **Height is the binding constraint**: it is what decided the
+  switch, and the three silicon parts are ~1.5 mm against a relay's 10 mm.
+- **Getting the cables out of the pocket**, two accepted routes: break the 34-pin run
+  into parts that pass the ventilation slots (Loxley's approach — nothing on the
+  machine is cut), or cut the case for a full-size 34-pin cable alongside the two
+  switch wires. The card is the same either way, which is why J3 is a full 2×17
+  header.
 - Routing and fabrication.
-- The front-panel switch wiring, which is also the point at which this card and
+- The front-panel switch, which is also the point at which this card and
   the [control pod]({{ '/hardware/interposer-upgrade/' | relative_url }}) have to agree on
-  a physical interface.
+  a physical interface. It is a **plain SPST flip switch: up = the physical drives,
+  down = the Gotek**, on a 2-wire lead with a series resistor — up is the fail-safe
+  position, because open leaves the control node pulled low.

@@ -379,8 +379,22 @@ NET = {
     'D2': {1: 'LED_A', 2: 'GND'},                 # optional "Gotek active" LED
     'R3': {1: 'FLP_DS_A_GOTEK', 2: '+5V'},        # DS-A pull-up, 1k default
     'R4': {1: 'FLP_DS_A_GOTEK', 2: '+5V'},        # DS-A pull-up, 150R option (DNP)
+    # R5 is the series resistor **in the switch lead**, and it is not optional
+    # reasoning: that lead leaves the board and goes to the front panel, so it is
+    # the one net here that can arrive carrying something the board never sent.
+    # 1 k in series limits what a transient can push into three CMOS gates, and
+    # the 630 pF gate of the FET turns in ~1 us through it -- irrelevant for a
+    # switch a hand moves.  R1 still pulls the *control* side down, so the
+    # fail-safe is unchanged: an unplugged lead is a low, and a low is the
+    # physical drives.
+    'R5': {1: 'SW_LEAD', 2: 'CTRL'},
     'J4': {1: '+5V_SW', 2: 'GND_SW', 3: 'GND_SW', 4: 'NC'},   # Gotek power
-    'J5': {1: '+5V', 2: 'CTRL'},                  # panel switch -> control node
+    # J5 is the panel switch: **UP = physical drives, DOWN = Gotek**.  The switch
+    # is a plain SPST in series between the cable's +5 V and the control node, so
+    # closed (down) is the Gotek and open (up) is the pull-down -- the physical
+    # drives.  Polarity of the two wires is therefore irrelevant, which is why a
+    # 2-pin header is enough (see the README for the shrouded alternative).
+    'J5': {1: '+5V', 2: 'SW_LEAD'},
 }
 
 # --------------------------------------------------------------- placement
@@ -396,6 +410,7 @@ PLACE = [  # (symbol type, ref, value, x, y, netmap)
     ('U2', 'U2', 'TPS22918 +5V switch',            95.25, 241.30, NET_U2),
     ('Q1', 'Q1', 'AO3400A GND switch',            127.00, 254.00, NET_Q1),
     ('R',  'R1', '10k (CTRL pull-down)',           50.80, 223.52, NET['R1']),
+    ('R',  'R5', '1k (lead series)',               50.80, 212.09, NET['R5']),
     ('R',  'R2', '1k (DNP)',                       50.80, 236.22, NET['R2']),
     ('LED','D2', 'LED (DNP)',                      68.58, 236.22, NET['D2']),
     ('R',  'R3', '1k',                            142.24, 203.20, NET['R3']),
@@ -466,15 +481,16 @@ NOTES = [
     'floppy-adapter: switchable Gotek / physical-drive daughter card (issue #62)',
     'J1 (female 2x17 socket) mates the O1 logic-board 34-pin MALE header (P8).',
     'J2 passes every pin but DS-A straight through to the OEM cable.',
+    'PANEL SWITCH: UP = physical drives, DOWN = Gotek.  It ties the lead to',
+    '+5V (down) or leaves it to R1 (up), so up is the fail-safe position.',
     'U1 = NC7SB3157P6X 2:1 switch: DS-A goes to B0 (physical) when S is LOW,',
     'and to B1 (Gotek) when S is HIGH.  Low/float/unplugged = physical drives.',
+    'R5 = 1k in series with the switch lead: it leaves the board, so it gets one.',
+    'R1 = 10k control pull-down, so a broken or unplugged switch lead is safe.',
     'U2 = TPS22918 switches the Gotek +5V; Q1 = AO3400A switches its GND.',
     'Both rails, always: +5V alone leaves the Gotek parasitically powered,',
     'GND alone upsets the other drive (design doc sec.4.2).  CT and QOD are open.',
-    'De-energised = physical drives (fail-safe).  J5 now carries microamps,',
-    'not the 73 mA a relay coil wanted.',
     'Gotek +5V and GND reach it ONLY via J4, never through the J3 signal header.',
-    'R1 = 10k control pull-down, so a broken or unplugged switch lead is safe.',
     'R3 = 1k DS-A pull-up on the Gotek side; R4 = 150R alternative (fit one).',
     'O1 150R terminator, and the Gotek has no pull-up on its select lines.',
     'Set the Gotek select jumper to the position that answers the O1 drive-A',

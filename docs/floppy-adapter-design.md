@@ -222,14 +222,42 @@ Both rails are still switched, and for the reason §4.2 gives: +5 V alone leaves
 Gotek parasitically powered through the pulled-up signal lines, and GND alone upsets
 the other drive. What changed is only *how* they are switched.
 
-Two consequences worth stating, because they are improvements rather than
-side-effects: **the panel-switch lead now carries microamps instead of 73 mA**, and
-**the lead leaving the board is a CMOS gate input rather than a coil**. A series
-resistor and a clamp on that lead (it goes to the front panel) is recorded as Rev B
-hardening, not Rev A scope — the same way §8.4 records full signal gating.
+### 4.5 The panel switch, and the one lead that leaves the board
+
+The panel end is a **flip switch: UP = the physical drives, DOWN = the Gotek.** It
+is a plain SPST in series between the cable's +5 V and the control node, so:
+
+| Switch | Lead | `CTRL` | DS-A goes to |
+|---|---|---|---|
+| **UP** (open) | floating, R1 pulls down | **low** | **the physical drive** |
+| **DOWN** (closed) | tied to +5 V | high | the Gotek |
+
+Up being the fail-safe position is not a coincidence of wiring — it is the same
+property the relay's de-energised contact had, and it is why R1 exists. The lead
+carries microamps (three CMOS inputs and a gate), where the relay's coil wanted
+73 mA, and the two wires are interchangeable: reversing them changes nothing,
+because an SPST in series with a gate input is symmetric.
+
+**R5 (1 kΩ) is in series in that lead, and it is fitted, not deferred.** The lead
+leaves the board and runs to the front panel, so it is the one net here that can
+arrive carrying something the board never sent — a transient, or a short to
+something else in the machine. 1 kΩ limits what that can push into three CMOS gates
+and a FET gate; the FET's ~630 pF gate then turns in about a microsecond, which is
+irrelevant for a switch a hand moves. R1 sits on the **control** side of R5, so the
+fail-safe is unchanged: an unplugged lead is still a low.
+
+The card-end connector is a **bare 2-pin 2.54 mm header**, expecting a female
+Dupont/crimp housing on the wire. That is a deliberate choice rather than a
+default: the lead is a series SPST, so there is no polarity to key, and the failure
+mode of a lead that works loose is the safe one. **The alternative, if the lead
+should match the panel leads elsewhere in the project, is a JST PH 2.00 mm**
+(`S2B-PH-SM4-TB`) — the same part the WiFi COMM PAC uses for its keyboard-adapter
+power port, where the shroud and polarising slot are what remove the reverse-voltage
+case. Shrouded means retained and no exposed 5 V pin; it also means the builder
+needs PH housings and a crimp for them. One footprint line either way.
 
 
-### 4.5 Termination and pull-ups (why drive A matters)
+### 4.6 Termination and pull-ups (why drive A matters)
 The O1 terminates the floppy bus with a **150 Ω resistor pack on every signal
 line, located in physical drive A** — the drive at the far end of the cable.
 Drive B has no termination (Loxley parts 5 and 12). Two consequences:
@@ -259,11 +287,12 @@ Components:
 | J2 | 2×17 header, 2.54 mm | top, OEM cable → physical drives |
 | J3 | 2×17 header, 2.54 mm | top, Gotek (signals only) |
 | J4 | 4-pin header (floppy power) | switched +5 V / GND to Gotek |
-| J5 | 2-pin header | front-panel switch lead |
+| J5 | 2-pin header | front-panel switch lead — bare 2.54 mm pins for a Dupont housing; JST PH alternative in §4.5 |
 | U1 | **NC7SB3157P6X**, SC70-6 | DS-A 2:1 switch (§4.4) |
 | U2 | **TPS22918**, SOT-23-6 | Gotek +5 V switch; `CT`/`QOD` open |
 | Q1 | **AO3400A**, SOT-23 | Gotek GND switch |
 | R1 | 10 kΩ | control-node pull-down (fail-safe) |
+| R5 | 1 kΩ | **in series in the switch lead** (§4.5) |
 | R3 | 1 kΩ | DS-A pull-up, Gotek side, default (§4.5) |
 | R4 | 150 Ω (DNP) | DS-A pull-up alternative — fit R3 **or** R4 (§4.5) |
 | R2, D2 | 1 kΩ + LED (optional) | front-panel "Gotek active" indicator |
@@ -280,9 +309,9 @@ Connections (pin n of J1 unless stated):
   → the matching pins of J3. J3 pins 12, 14, 16 and all GND/power pins are **NC**.
 - **Gotek +5 V:** J1 +5 V (21/23/25) → U2 `VIN`; U2 `VOUT` → J4 (+5 V).
 - **Gotek GND:** board GND → Q1 source; Q1 drain → J4 (GND).
-- **Control:** J1 +5 V → J5.1 → (panel switch) → J5.2 = `CTRL`, which drives
-  U1 `S`, U2 `ON` and Q1's gate. R1 pulls `CTRL` to GND. Optional R2+D2 from
-  `CTRL` to GND for the indicator.
+- **Control:** J1 +5 V → J5.1 → (panel switch) → J5.2 → **R5** → `CTRL`, which drives
+  U1 `S`, U2 `ON` and Q1's gate. R1 pulls `CTRL` to GND. **UP = physical drives,
+  DOWN = Gotek** (§4.5). Optional R2+D2 from `CTRL` to GND for the indicator.
 
 ## 6. BOM (Rev A)
 
@@ -296,6 +325,7 @@ Connections (pin n of J1 unless stated):
 | 1 | 4-pin header (floppy power) | Gotek power, right-angle |
 | 1 | 2-pin header | panel switch |
 | 1 | 10 kΩ TH | control-node pull-down (R1) |
+| 1 | 1 kΩ TH | series resistor in the switch lead (R5) |
 | 1 | 1 kΩ TH | DS-A pull-up (R3, default) |
 | 1 | 150 Ω TH (DNP) | DS-A pull-up alternative (R4) |
 | 1 | 1 kΩ + LED (DNP) | optional indicator |
@@ -329,13 +359,33 @@ Connections (pin n of J1 unless stated):
   right depth, exposes the USB port, and carries the panel switch. This is the
   "Modification to support Gotek drives with 3D-printed floppy-disk faceplate"
   write-up planned in `site/README.md`.
-- Cable egress: a full 34-pin ribbon will not pass the pocket vent slots. Run the
-  Gotek on a reduced signal set (the §5 lines + power) on a narrower cable, or
-  route through the "Ext Video" port as Loxley did.
+**Cable egress from the floppy pocket — two accepted routes.**
+
+The card itself sits at the logic-board connector, inside the machine. What has to
+leave is the **Gotek run** (signals + switched power) and the **2-wire switch lead**,
+and the pocket's ventilation slots are the constraint. Both of these are accepted,
+and the maintainer's guidance is to pick one:
+
+1. **Break the 34-pin run into parts that fit the ventilation slots** — Loxley's
+   approach. The full-size ribbon is split into narrower runs (or pulled down to the
+   reduced 12-line signal set of §5 plus the two power wires) so each part passes a
+   slot, and they are rejoined inside the pocket. **Nothing on the machine is cut.**
+   At the card end that is still a 34-way IDC socket onto J3, with only the needed
+   conductors fitted — the unused positions simply carry no wire.
+2. **Cut the case** to pass a full-size 34-pin cable, alongside the two switch wires.
+   More work, irreversible, and it gives a clean unbroken ribbon with no joints to
+   go intermittent.
+
+The switch lead is two wires and passes either way; it is the ribbon that decides
+which route is chosen. **Both routes need the same card**, so this does not change
+the PCB — it changes what the builder does at the pocket, and it is why J3 is a full
+2×17 header rather than a 12-pin one: the cable that arrives may be either.
 
 **Panel switch.**
-- Plain panel-mount SPST (or SPDT for an indicator). 2-wire lead to J5; no drive
-  power on the lead. Mount next to the Gotek pocket.
+- Plain panel-mount **SPST flip switch: UP = physical drives, DOWN = Gotek**
+  (§4.5). 2-wire lead to J5 through **R5**; the lead carries microamps, never drive
+  power. Mount next to the Gotek pocket so the up/down reading matches the
+  machine's own "which drive" convention.
 
 **Reversibility.** No cable or machine modification: unplug the card and the
 machine is stock.

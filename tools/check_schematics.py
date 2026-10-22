@@ -763,15 +763,15 @@ FLOPPY = Board(
     name="floppy-adapter",
     sch="hardware/floppy-adapter/floppy-adapter.kicad_sch",
     gen="hardware/floppy-adapter/gen_floppy_adapter_sch.py",
-    # 19, and the number is derived rather than fudged: **every** violation this
+    # 20, and the number is derived rather than fudged: **every** violation this
     # board produces is the one kind -- "The current configuration does not
     # include the symbol library 'local'" -- and there is exactly one per *placed
-    # symbol*.  The generator emits 19 of them: 13 component symbols, the 3 rail
+    # symbol*.  The generator emits 20 of them: 14 component symbols, the 3 rail
     # power symbols and the 3 PWR_FLAGs.  It moves whenever a part is added,
     # which is why the derivation is written down rather than the number.
-    # Verified with `kicad-cli sch erc --severity-all`: 19 messages, 19 of this
+    # Verified with `kicad-cli sch erc --severity-all`: 20 messages, 20 of this
     # type, 0 of any other, and **0 errors**.
-    erc_allowance={"lib_symbol_issues": 19},
+    erc_allowance={"lib_symbol_issues": 20},
     # The interface itself, both ends: J1 is what the machine drives, and J2 is
     # the same table with DS-A intercepted.  This is the check that the pinout
     # transcription is right, and the one that would have caught the table above
@@ -824,8 +824,12 @@ FLOPPY = Board(
         # one control node, three parts: the switch's select, the load switch's
         # ON and the low-side FET's gate -- plus the pull-down that makes a
         # broken or unplugged switch lead safe
-        "CTRL": {("J5", "2"), ("R1", "1"), ("R2", "1"), ("U1", "6"),
+        "CTRL": {("R1", "1"), ("R2", "1"), ("R5", "2"), ("U1", "6"),
                  ("U2", "3"), ("Q1", "1")},
+        # the switch lead itself, and R5 in series with it: this wire leaves the
+        # board for the front panel, so it is the one net that can arrive
+        # carrying something the board never sent
+        "SW_LEAD": {("J5", "2"), ("R5", "1")},
         # the switched rails, and only downstream of the switches
         "+5V_SW": {("U2", "6"), ("J4", "1")},
         "GND_SW": {("Q1", "3"), ("J4", "2"), ("J4", "3")},

@@ -101,8 +101,8 @@ bus to be safe.)
 - **J1** female 2x17 socket (O1 logic-board P8), **J2** pass-through header to
   the OEM cable, **J3** Gotek signal header, **J4** switched Gotek power,
   **J5** panel switch, **U1** NC7SB3157P6X (DS-A), **U2** TPS22918 (+5 V),
-  **Q1** AO3400A (GND), **R1** control pull-down, **R3/R4** DS-A pull-up,
-  **R2+D2** optional indicator (R2, D2 and R4 are `dnp`).
+  **Q1** AO3400A (GND), **R1** control pull-down, **R5** series in the switch lead,
+  **R3/R4** DS-A pull-up, **R2+D2** optional indicator (R2, D2 and R4 are `dnp`).
 
 **Every net is drawn.** The first capture attached a net *label* to every pin and
 drew no wire between any two parts: a correct netlist and a drawing a reader could
@@ -183,6 +183,45 @@ through-hole alternative that works — the 5 V-capable analog switches in DIP
 level at 0.7–0.9 V against a 0.8 V TTL threshold. Everything else on the card is
 through-hole, and SC70 is the smallest thing on it.
 
+## The panel switch, and the lead that leaves the board
+
+**UP = the physical drives. DOWN = the Gotek.** A plain panel-mount **SPST flip
+switch** in series between the cable's +5 V and the control node: closed (down) is
+the Gotek, open (up) leaves `R1` to pull the node low, which is the physical drives.
+**Up is the fail-safe position**, and the two wires are interchangeable — an SPST in
+series with a gate input is symmetric.
+
+- **`R5` (1 kΩ) is in series in that lead.** It leaves the board and runs to the
+  front panel, so it is the one net that can arrive carrying something the board
+  never sent; 1 kΩ limits what a transient or a short can push into three CMOS gates
+  and a FET gate. `R1` sits on the *control* side, so an unplugged lead is still a
+  low.
+- **The lead carries microamps**, where the relay's coil wanted 73 mA.
+- **J5 is a bare 2-pin 2.54 mm header** — pins, expecting a female Dupont/crimp
+  housing on the wire. That is deliberate: a series SPST has no polarity to key, and
+  a lead that works loose fails to the safe position. **If you would rather it match
+  the panel leads elsewhere in the project, the swap is one footprint line** to the
+  **JST PH 2.00 mm** (`S2B-PH-SM4-TB`) that the WiFi COMM PAC uses for its
+  keyboard-adapter power port — shrouded and polarised means retained and no exposed
+  5 V pin, and it needs PH housings plus a crimp for them. Say which and it changes.
+
+## Getting the cables out of the pocket
+
+The card sits at the logic-board connector, inside the machine. What has to leave is
+the **Gotek run** and the **2-wire switch lead**, and the pocket's ventilation slots
+are the constraint. Both accepted routes are in
+[`docs/floppy-adapter-design.md`](../../docs/floppy-adapter-design.md) §7, and the
+card is the same either way:
+
+1. **Break the 34-pin run into parts that fit the slots** (Loxley's approach) — a
+   reduced 12-line signal set plus power, split into runs that pass, rejoined inside
+   the pocket. **Nothing on the machine is cut.**
+2. **Cut the case** for a full-size 34-pin cable alongside the two switch wires —
+   irreversible, and no joints to go intermittent.
+
+J3 is a full 2×17 header for exactly that reason: the cable that arrives may be
+either, and the unused positions simply carry no wire.
+
 ## Settled decisions (2026-10-10, switch decided 2026-10-22)
 
 The seven design questions are closed — see
@@ -199,17 +238,17 @@ the evidence behind each. Highlights:
 
 ## Open items (not blocking capture)
 
-- **Physical design** — board outline and keep-outs, the Gotek mount, the pigtail
-  egress and the front-panel switch lead. **Height is the binding constraint**;
-  it is what decided the switch.
+- **Physical design** — board outline and keep-outs, the Gotek mount, and the
+  cable-egress route (above). **Height is the binding constraint**; it is what
+  decided the switch.
 - Mounting: piggyback footprint vs. standoffs over the DD board; confirm
   keep-outs against the mainboard schematic
   (`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`) and host photos
   (`research/pictures/`).
-- **Rev B hardening, recorded not done:** the control lead leaves the board for the
-  front panel and now feeds CMOS gates rather than a coil — a series resistor
-  and/or a clamp on that lead is the obvious next step, and so is using U2's `QOD`
-  pin if the Gotek proves slow to power down.
+- **One open choice on the lead:** keep the bare 2-pin header (Dupont) or move J5 to
+  a shrouded JST PH to match the modem's panel lead — one footprint line, either way.
+- **Rev B, recorded not done:** U2's `QOD` pin if the Gotek ever proves slow to power
+  down (it is left open, which disables the output discharge).
 - Interaction with the interposer's floppy personality (#20): document
   which device owns the bus in each configuration.
 - G2 upgrade (#30): believed BIOS/DPB-only, nothing at the connector —
