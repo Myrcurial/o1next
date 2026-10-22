@@ -1,16 +1,29 @@
 # Osborne 1 ROM 1.44 / CBIOS source — index, and what it confirms
 
-**Issue:** #72. **Status:** first pass, and the reassembly is done. The source has
-been indexed and its port/vector tables extracted; every one of them **agrees
-with** `docs/o1-memory-io-map.md` §3, which had been derived from the schematic
-and from the running machine. That is the headline result: the map survives
-contact with the primary source. And `rom144.asm` now **reassembles with the
-vendor's own assembler to the shipped ROM, byte for byte** (#203) — see
-"The 1.44 reassembly" below.
+**Issues:** #72, #40, #203. **Status: Solved.** The source is indexed and every
+port and vector table it holds **agrees with** `docs/o1-memory-io-map.md` §3,
+which had been derived from the schematic and from the running machine; and
+`rom144.asm` **reassembles with the vendor's own assembler to the shipped ROM,
+byte for byte** (*The 1.44 reassembly*, below). What is not done: the 1.41 CBIOS
+source has never been diffed against the CBIOS on a shipped system disk, and the
+video register semantics are still read from the schematic rather than from the
+source (*Open questions / next steps*).
 
-This is Osborne's own source for the machine's firmware — the thing the rest of
-the project had been inferring. It is a safety copy of material already public
-in several places; see "Provenance" at the end.
+Osborne's own source for the machine's firmware — the thing the rest of the
+project had been inferring — and the primary source for the interfaces the rest
+of `docs/` builds against:
+
+| Confirmed | Section |
+|---|---|
+| The five memory-mapped I/O bases — floppy `2100`, keyboard `2200`, IEEE-488 PIA `2900`, 6850 ACIA `2A00`, video `2C00` — agreeing with `docs/o1-memory-io-map.md` §3 entry for entry | *The memory-mapped I/O map, as the source states it* |
+| The monitor RAM map (`0EA80–0EFFF`) and the interrupt vector table at `0EFF0H` | *Monitor RAM and vectors* |
+| The WD179x floppy command set the BIOS issues (#20) | *Floppy command set* |
+| The IEEE-488 register programming, the GPIB command bytes, the inverted bus, and the *"IEEE always appears to be ready"* stub (#6/#22, #19) | *IEEE-488 — and the parallel printer is the same port* |
+| The video write pairs (`+1`→`+0`, `+3`→`+2`) and `ENADIM`/`DISDIM` through `OUT 2`/`OUT 3` | *Video, as the ROM drives it* |
+| A negative result: the firmware never selects its own bank — there is no `OUT 0` or `OUT 1` anywhere in the ROM | *Bank switching: what the ROM actually does* |
+
+It is a safety copy of material already public in several places; see
+*Provenance* at the end.
 
 ## The two components
 
@@ -240,10 +253,9 @@ records what the ROM does with them, not a re-derivation.
 
 **Measured 2026-10-13.** `rom144.asm` assembles with the vendor's own assembler —
 SORCIM's ACT80 — to an image **identical, byte for byte, to
-`research/roms/os1-144.rom` (CRC32 `c0596b14`)**. That is this document's open
-question 1 and #83's deliverable 2, and it settles both: the source in this
-repository *is* the source of the shipped 1.44 monitor ROM, and the toolchain
-that produced it runs under MAME.
+`research/roms/os1-144.rom` (CRC32 `c0596b14`)**. That settles #83's deliverable
+2: the source in this repository *is* the source of the shipped 1.44 monitor ROM,
+and the toolchain that produced it runs under MAME.
 
 | | |
 |---|---|
@@ -254,7 +266,7 @@ that produced it runs under MAME.
 | Image | 4096 bytes, CRC32 **`c0596b14`** — the shipped ROM |
 | Reproduce | `tools/research/rom144-reassemble.sh` — the happy path, end to end |
 
-**This is the happy path, and it is now self-contained in the repository.** The
+**This is the happy path, and it is self-contained in the repository.** The
 assembler is the vendor's own, the command is the vendor's own, and both live
 here: `research/act-assembler/ACT80.COM` and `tran.txt`. No substitution, no
 porting, no search for a missing version — the toolchain that built the part is
@@ -303,6 +315,27 @@ all is one line of the summary, where 3.2 says `8230h bytes not used` and 3.0
 says `8232h`; that is ACT's own bookkeeping, not the object code. So 3.0 is not
 merely "close enough" — for 1.44 it is exact, and the question of searching
 further for 3.5e can be closed as not-needed.
+
+So the reassembly needs neither `z80asm` — the wrong tool, because this is an ACT
+job and not an 8080-syntax one — nor ACT 3.5e: the vendor's own assembler was in
+the local archive all along, and 3.0 and 3.2 both give the object code exactly
+(`REQUIREMENTS.md`).
+
+**ROM 1.3 is the same exercise one revision earlier, and the assembler is the one
+thing that did not carry over.** The source disk reads — it is an 8-inch 77-track
+FM/MFM disk with CP/M skew 3, which `tools/research/o1imd8.py` handles — the
+source is extracted to `research/source-code/ROM-13-source/`, and the gap fill,
+the terminator and the CRLF handling all carried over from this build. But the
+1.3 source uses the `DBE`/`DCE` pseudo-ops, which only ACT **3.5E** has, and the
+archive holds 3.0/3.2. The bytes those pseudo-ops emit are recovered from the
+shipped rev-B ROM on `OCCROM.IMD`, and a 1.3 image can be built with a mechanical
+source rewrite, but it is **not certified** — see `docs/rom-13-reconstruction.md`
+and #205. The project still has no use for a 1.3 ROM — we build from the 1.44
+source — so this remains upstream's gain and nothing here depends on it.
+
+The caveats in *Four things the emulated build teaches about the source*, and the
+damaged-record handling below, are the ones to carry into any other Osborne
+source assembled this way.
 
 ### How the build is driven
 
@@ -387,36 +420,13 @@ Two things this pass adds that no existing doc had:
 
 ## Open questions / next steps
 
-1. ~~**Reassemble `rom144.asm` and compare against `research/roms/os1-144.rom`
-   (CRC32 `c0596b14`).**~~ **Done — see "The 1.44 reassembly" above.** The source
-   is the shipped ROM, byte for byte, assembled by the vendor's own ACT80 (3.0;
-   3.2 gives the same bytes), which is now a safety copy in
-   `research/act-assembler/`. Two wrong readings are retired with it: that this
-   needed `z80asm` taught ACT's macro layer, and that it needed ACT 3.5e. Neither
-   was true — the assembler was in the local archive all along — and `z80asm`
-   stays what it is, the tool for *writing* new code (`REQUIREMENTS.md`). The four
-   caveats above are the ones to carry into any other Osborne source assembled
-   this way.
-
-   **ROM 1.3 was the natural next step for the *toolchain*, and it is now
-   done as far as the toolchain allows — see `docs/rom-13-reconstruction.md`
-   and #205.** The source disk reads (it is an 8-inch 77-track FM/MFM disk
-   with CP/M skew 3, which `tools/research/o1imd8.py` handles), the 1.3 source
-   is extracted to `research/source-code/ROM-13-source/`, and the gap fill, the
-   terminator and the CRLF handling all carried over. What did **not** carry
-   over is the assembler: the 1.3 source uses `DBE`/`DCE`, which only ACT
-   **3.5E** has, and the archive holds 3.0/3.2. The bytes those pseudo-ops emit
-   are recovered from the shipped rev-B ROM on `OCCROM.IMD` and a 1.3 image can
-   be built with a mechanical rewrite, but it is not certified. The project
-   still has no use for a 1.3 ROM — we build from the 1.44 source — so this
-   remains upstream's gain and nothing here depends on it.
-2. **Does the 1.44 ROM's CBIOS match the 1.41 source?** The CBIOS is
+1. **Does the 1.44 ROM's CBIOS match the 1.41 source?** The CBIOS is
    disk-loaded, so extract it from a shipped system disk (`OS1SYSD.IMD` /
    `OS1SYSS.IMD`) and diff it against the 1.41 build.
-3. **Read the IEEE driver section (lines 3113–3400) against
+2. **Read the IEEE driver section (lines 3113–3400) against
    `docs/drive-c-protocol.md`** to confirm the exact handshake the Drive C
    firmware expects (#6/#22).
-4. **Pin down the video register semantics** from the ROM's write pairs
+3. **Pin down the video register semantics** from the ROM's write pairs
    (`+1`→`+0`, `+3`→`+2`) against the schematic (#24).
 
 ## Provenance
