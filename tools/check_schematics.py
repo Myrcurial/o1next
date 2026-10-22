@@ -91,6 +91,28 @@ def _val(node, key):
     return None
 
 
+def _all_kids(node, key):
+    """Every descendant named *key*, at any depth."""
+    found = []
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        for c in n[1:]:
+            if isinstance(c, list) and c:
+                if c[0] == key:
+                    found.append(c)
+                stack.append(c)
+    return found
+
+
+def _prop(node, name):
+    """A named property's value, e.g. _prop(sym, 'Reference') -> 'U5'."""
+    for c in _kids(node, "property"):
+        if len(c) > 2 and c[1] == name:
+            return c[2]
+    return None
+
+
 def normalise_net(name: str) -> str:
     """Netlist names carry the sheet path: label ``/WR`` on the root sheet
     exports as ``//WR`` (escaped ``/{slash}WR``), label ``A0`` as ``/A0``.
@@ -162,6 +184,181 @@ def parse_sheet(path: Path):
     return placed, labels
 
 
+# --------------------------------------------------------------------------
+# symbol pins vs footprint pads
+# --------------------------------------------------------------------------
+# A symbol pin with **no matching pad** is a net that cannot reach the board, and
+# it is never acceptable.  The reverse -- pads with no pin -- is sometimes
+# legitimate: mounting tabs, an exposed pad, channels a symbol does not model.
+#
+# But it is *also* what "logical pin numbers" looks like, and that is the trap.
+# A symbol numbers its pins 1..n for convenience; the footprint's pads 1..m are the
+# part's **real** pins.  The two then collide by name while disagreeing in meaning,
+# and a transfer puts the wrong net on the wrong pad with nothing to complain:
+# wifi-comm-pac's U5 had symbol pin 1 = +3V3 against the module's pin 1 = GND1, a
+# 3.3 V-to-ground short that every existing check passed.  So each component that
+# carries unaccounted pads is **declared below with its reason**, and an undeclared
+# one fails.
+KICAD_FP_ROOTS = [
+    Path("/Applications/KiCad/KiCad.app/Contents/SharedSupport/footprints"),
+    Path("/usr/share/kicad/footprints"),
+    Path("/usr/local/share/kicad/footprints"),
+]
+
+
+def footprint_pads(fpid: str, repo: Path):
+    """Pad names of a footprint, or None if the file cannot be found.
+
+    The pad number is **quoted in some KiCad releases and not in others** -- KiCad
+    10's own libraries write `(pad "1" ...)` while the KiCad 9 libraries installed
+    on the CI runner write `(pad 1 ...)`.  A regex that assumed quotes returned an
+    empty list there, and an empty list read as "this symbol's pins have no pads",
+    which is a *board defect* -- so every KiCad-standard footprint on the board was
+    reported as unwired and the check failed for a reason that had nothing to do
+    with the board.  Both forms are accepted, and an empty result is treated as
+    "not audited" rather than as a mismatch.
+    """
+    if not fpid:
+        return None
+    if fpid.startswith("o1next:"):
+        cands = [repo / "hardware" / "wifi-comm-pac" / "footprints" / "o1next.pretty"
+                 / (fpid.split(":", 1)[1] + ".kicad_mod")]
+    else:
+        lib, nm = fpid.split(":", 1)
+        cands = [r / (lib + ".pretty") / (nm + ".kicad_mod") for r in KICAD_FP_ROOTS]
+    for c in cands:
+        if c.exists():
+            pads = re.findall(r'\(pad\s+"?([^\s")]+)"?', c.read_text(errors="replace"))
+            return pads or None      # a footprint with no readable pads is not a mismatch
+    return None
+
+
+def check_pin_pad(board: Board, repo: Path):
+    """Every symbol pin must have a pad, and every unaccounted pad must be declared."""
+    failures, notes = [], []
+    root = sexpr(board.sch.read_text(errors="replace"))
+
+    libsyms: dict = {}
+    for blk in _kids(root, "lib_symbols"):
+        for sym in _kids(blk, "symbol"):
+            libsyms[sym[1]] = [p[1] for p in _all_kids(sym, "number")]
+
+    audited = 0
+    for node in root:
+        if not (isinstance(node, list) and node and node[0] == "symbol"):
+            continue
+        lib_id = _val(node, "lib_id")
+        if lib_id not in libsyms:
+            continue
+        ref = _prop(node, "Reference") or "?"
+        if ref.startswith("#"):          # power symbols and flags
+            continue
+        fpid = _prop(node, "Footprint") or ""
+        pins = libsyms[lib_id]
+        pads = footprint_pads(fpid, repo)
+        if pads is None:
+            notes.append(f"{ref}: footprint {fpid or '(none)'!r} not found, not audited")
+            continue
+        audited += 1
+        orphan = [p for p in pins if p not in pads]
+        if orphan:
+            failures.append(
+                f"{ref} ({lib_id}): symbol pin(s) {orphan} have no matching pad in "
+                f"{fpid} -- a net that cannot reach the board")
+        spare = [p for p in pads if p not in pins]
+        if spare:
+            why = board.pin_partial.get(ref)
+            if why is None:
+                failures.append(
+                    f"{ref} ({lib_id}): {len(spare)} footprint pad(s) with no symbol "
+                    f"pin ({spare[:8]}{'...' if len(spare) > 8 else ''}) and no entry "
+                    f"in pin_partial -- if this is a symbol using logical pin numbers, "
+                    f"its nets land on the wrong pads")
+            else:
+                notes.append(f"{ref}: {len(spare)} pad(s) unaccounted, declared: {why}")
+    notes.append(f"{audited} components' pins checked against their footprints")
+    return failures, notes
+
+
+def check_mech(board: Board):
+    """Footprint choices made for **mechanical** reasons, asserted by name.
+
+    Some part choices are forced by the case and not by the circuit: J1 is right
+    angle because the cable leaves the front of the floppy pocket, and shrouded
+    because that cable is keyed.  No net assertion can see either, so without this
+    the footprint could be swapped back to a plain vertical pin header and every
+    check would still pass.
+    """
+    failures = []
+    if not board.mech:
+        return failures
+    root = sexpr(board.sch.read_text(errors="replace"))
+    for ref, (want, why) in sorted(board.mech.items()):
+        got = None
+        for node in root:
+            if (isinstance(node, list) and node and node[0] == "symbol"
+                    and _prop(node, "Reference") == ref):
+                got = _prop(node, "Footprint")
+                break
+        if got != want:
+            failures.append(f"{ref} footprint is {got!r}, must be {want!r} -- {why}")
+    return failures
+
+
+# --------------------------------------------------------------------------
+# the format version has to be true
+# --------------------------------------------------------------------------
+# Every generated sheet declares its format in the first line, and KiCad trusts
+# it.  Ours lied: all four generators wrote `(version 20230121)` -- KiCad 7 --
+# while emitting `exclude_from_sim` (a KiCad 8 token) and `generator_version`
+# (which is not in the documented schematic format at all, at any version).  So
+# the sheets were not KiCad 7 files and KiCad 7 was right to refuse them with
+# "Failed to load schematic file"; the failure looked like a broken schematic and
+# was really a wrong header.
+#
+# The second one is worth spelling out, because it is the one that is easy to miss:
+# the documented header is `(kicad_sch (version VERSION) (generator GENERATOR))`,
+# and KiCad 7's parser knows nothing else.  Modern KiCad *writes* a
+# `generator_version` alongside the generator, so copying a header out of a recent
+# KiCad is how it got in -- and it makes the file unreadable to the version the
+# header claims.
+#
+# **And correcting those two was still not enough to make them KiCad 7.**  KiCad
+# 7.0.11 was tried against the corrected sheets and refused all four, so whatever
+# else they use is newer than 7 too.  The header now declares 8, which is the
+# earliest release consistent with everything known about them: they load in 9 and
+# in 10, and 7 is *proven* not to load them.  Whether 8 loads them is unverified --
+# there is no KiCad 8 on this machine -- and that is stated rather than assumed.
+FORMAT_TOKENS = {
+    "exclude_from_sim": 20231120,   # KiCad 8
+    "generator_version": None,      # not in the documented format, any version
+    "embedded_fonts": 20250114,     # KiCad 9
+}
+
+
+def check_format_version(board: Board):
+    failures = []
+    text = board.sch.read_text(errors="replace")
+    m = re.search(r"\(kicad_sch\s*\(version\s+(\d+)", text)
+    if not m:
+        return [f"{board.sch.name}: no (version ...) header in the first line"]
+    declared = int(m.group(1))
+    for token, since in sorted(FORMAT_TOKENS.items(), key=lambda kv: str(kv[1])):
+        if f"({token}" not in text:
+            continue
+        if since is None:
+            failures.append(
+                f"{board.sch.name} declares format {declared} but uses `{token}`, "
+                f"which is not in the documented schematic format at any version -- "
+                f"KiCad will refuse the whole file rather than guess")
+        elif declared < since:
+            failures.append(
+                f"{board.sch.name} declares format {declared} but uses "
+                f"`{token}`, which arrived in {since} -- the header is a lie, and "
+                f"KiCad will refuse the whole file rather than guess")
+    return failures
+
+
 def find_overlaps(placed):
     """Symbol bodies that overlap -- always a drawing bug, usually a short."""
     hits = []
@@ -223,7 +420,13 @@ def regenerate_nets(cli: str, board: Board, tmp: Path):
     work.mkdir(exist_ok=True)
     shutil.copy(gen, work / gen.name)
     proc = run([sys.executable, gen.name], cwd=str(work))
-    out = work / board.sch.name
+    # The generator writes into <board>-generated/ rather than beside itself, so
+    # the regenerated schematic is in that subdirectory of the scratch dir.  It
+    # also tries to seed <board>-edited/, which in a scratch dir is empty and so
+    # gets copied -- harmless, and exactly what the copy rule is meant to do.
+    out = work / board.sch.parent.name / board.sch.name
+    if not out.exists():
+        out = work / board.sch.name          # generators that write in place
     if not out.exists():
         return None, (f"generator produced no {board.sch.name}: "
                       f"{(proc.stderr or proc.stdout).strip()[:200]}")
@@ -360,7 +563,8 @@ class Board:
     def __init__(self, name, sch, gen, erc_allowance, exact_nets=None,
                  contains_nets=None, excludes_nets=None, pin_nets=None,
                  passthrough=None, pinout=None, unused_pins=None,
-                 allow_overlaps=0, allow_label_collisions=0):
+                 pin_partial=None, mech=None, allow_overlaps=0,
+                 allow_label_collisions=0):
         self.name = name
         self.sch = REPO / sch
         self.gen = gen
@@ -372,6 +576,8 @@ class Board:
         self.passthrough = passthrough or []
         self.pinout = pinout or []
         self.unused_pins = unused_pins or {}
+        self.pin_partial = pin_partial or {}
+        self.mech = mech or {}
         self.allow_overlaps = allow_overlaps
         self.allow_label_collisions = allow_label_collisions
 
@@ -403,6 +609,20 @@ def check_board(cli: str, board: Board, tmp: Path, verbose: bool):
 
     placed, labels = parse_sheet(board.sch)
     notes.append(f"{len(placed)} symbols, {len(labels)} labels")
+
+    # -- pins against footprint pads ----------------------------------------
+    # Run before the netlist checks: a symbol whose pins do not correspond to its
+    # footprint's pads makes every net assertion below true and the board wrong.
+    pin_fail, pin_notes = check_pin_pad(board, REPO)
+    failures += pin_fail
+    if verbose:
+        notes += pin_notes
+
+    # -- mechanical footprint choices ---------------------------------------
+    failures += check_mech(board)
+
+    # -- the declared format version has to be true --------------------------
+    failures += check_format_version(board)
 
     # -- sheet geometry -----------------------------------------------------
     hits = find_overlaps(placed)
@@ -444,7 +664,9 @@ def check_board(cli: str, board: Board, tmp: Path, verbose: bool):
             failures.append(f"{ref}.{pin} is on net {got!r}, expected {want!r}")
 
     for ref, unused in sorted(board.unused_pins.items()):
-        for pin in sorted(unused, key=int):
+        # str(), not int(): J3 on the wifi-comm-pac uses the USB-C part's own pin
+        # numbers (A1, B12, SH3), so an int key would raise rather than check.
+        for pin in sorted(unused, key=str):
             got = net_of(nets, ref, pin)
             if got is not None:
                 failures.append(f"{ref}.{pin} must be unconnected, but is on {got!r}")
@@ -592,6 +814,49 @@ REV0 = Board(
     passthrough=[("J1", "J2", range(1, 41), set())],
 )
 
+# U5's 26 free GPIO, as (pad, the module's own IO name) -- mirroring the
+# generator's table, which builds U5's symbol, names these nets, and labels J4.
+U5_FREE = [
+    ("4", "IO0"), ("5", "IO1"), ("6", "IO2"), ("7", "IO3"), ("8", "IO4"),
+    ("9", "IO5"), ("10", "IO6"), ("11", "IO7"), ("12", "IO8"), ("13", "IO9"),
+    ("14", "IO10"), ("15", "IO11"), ("16", "IO12"), ("17", "IO13"),
+    ("18", "IO14"), ("21", "IO17"), ("22", "IO18"), ("26", "IO26"),
+    ("35", "IO39"), ("36", "IO40"), ("37", "IO41"), ("38", "IO42"),
+    ("39", "IO43"), ("40", "IO44"), ("41", "IO45"), ("44", "IO46"),
+]
+# Only the module's own pad 27 is genuinely unconnected now.  The free GPIO used to
+# be here; they go to J4 instead.
+U5_NC = ["27"]
+U5_GND = (["1", "2", "30", "42", "43"] + [str(p) for p in range(46, 56)]
+          + ["56", "57", "58", "59", "60", "62"]
+          + [f"61_{i}" for i in range(1, 10)]
+          + ["63", "64", "65"])
+U5_USED = ["3", "45", "19", "20", "28", "29", "31", "32", "33", "34", "25",
+           "23", "24"]
+U5_PADS = U5_USED + U5_GND + U5_NC + [p for p, _ in U5_FREE]
+
+# The free-GPIO nets, each asserted as an **exact pair**: one U5 pad and one J4
+# pin.  This is the check that stops the header silk from lying -- a pin whose
+# label says IO1 but which is wired to IO2 fails here, rather than in somebody
+# else's project six months from now.
+GPIO_NETS = {}
+for _i, (_pad, _name) in enumerate(U5_FREE):
+    if _i < 13:
+        GPIO_NETS[_name] = {("U5", _pad), ("J4", str(2 * _i + 1))}
+    else:
+        GPIO_NETS[_name] = {("U5", _pad), ("J4", str(2 * (_i - 13) + 2))}
+
+# J3 is the USB-C receptacle, and it uses the part's **real** pin numbers -- A1-A12,
+# B1-B12 and SH1-SH6 -- because its footprint has 30 pads and a net has to land on
+# each.  Named once here, because these assertions are the only thing keeping 30
+# pads honest: `pins("J3", range(1, 8))` was what this read before the rebuild, and
+# against A1/B1-style numbers it matches nothing at all -- the check would pass
+# while asserting nothing, which is worse than failing.
+J3_PINS = [f"{s}{n}" for s in "AB" for n in range(1, 13)] + [f"SH{i}" for i in range(1, 7)]
+# the ten contacts a USB 2.0 sink does not use: eight SuperSpeed, two SBU.  Carried
+# in the symbol and marked no-connect, so their pads are not silently left floating.
+J3_UNUSED = ["A2", "A3", "A10", "A11", "B2", "B3", "B10", "B11", "A8", "B8"]
+
 # O1NEXT WiFi COMM PAC (issues #324, #325, part of #56).  J1 is the 2x5 IDC on
 # the board end of the 10-conductor pigtail; pin n is DE-9 pin n for 1..9, and
 # pin 10 is spare.  The 6850 and the PIA are +5 V parts, so the nets are checked
@@ -599,9 +864,16 @@ REV0 = Board(
 # 12.6 V rail stops at the buck.
 WIFI_COMM_PAC = Board(
     name="wifi-comm-pac",
-    sch="hardware/wifi-comm-pac/wifi-comm-pac.kicad_sch",
+    sch="hardware/wifi-comm-pac/wifi-comm-pac-generated/wifi-comm-pac.kicad_sch",
     gen="hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py",
-    erc_allowance={"lib_symbol_issues": 171},   # embedded symbols, no sym-lib-table
+    # 189, and the number is derived rather than fudged: **every** violation this
+    # board produces is the one kind -- "The current configuration does not include
+    # the symbol library 'local'" -- and there is exactly one per *placed symbol*.
+    # The generator emits 189 of them.  Verified with
+    # `kicad-cli sch erc --severity-all`: 189 messages, 189 of this type, 0 of any
+    # other.  It moves whenever a part is added, which is why the derivation is
+    # written down rather than the number.
+    erc_allowance={"lib_symbol_issues": 189},
     pinout=[("J1", {1: "GND", 2: "P1_TXD", 4: "P1_MSB", 5: "P1_CTS",
                     6: "P1_RXD", 7: "+12V", 8: "P1_MCB", 9: "P1_RI"})],
     exact_nets={
@@ -612,7 +884,7 @@ WIFI_COMM_PAC = Board(
         "P1_RI": {("J1", "9"), ("U2", "9")},
         "P1_MCB": {("J1", "8"), ("U1", "9")},
         # the translated machine side: TXD lands on UART1 RX, MCB on the expander
-        "O1_TXD_3V3": {("U1", "3"), ("U5", "6")},
+        "O1_TXD_3V3": {("U1", "3"), ("U5", "20")},
         "O1_MCB_3V3": {("U1", "4"), ("U7", "12")},
         # the interface expander's three outputs are open-drain, hence the pulls
         "IF_CTS": {("U2", "3"), ("U7", "9"), ("R25", "1")},
@@ -621,15 +893,32 @@ WIFI_COMM_PAC = Board(
         # the port's 12.6 V reaches the switch and nothing else before it
         "+12V": {("J1", "7"), ("SW1", "1")},
         "+5V_USB": {("F1", "2"), ("D14", "1")},
+        # J3, and these are the ones worth having: **both halves of the USB 2.0
+        # pair must be wired** (A6/B6 and A7/B7).  Wiring only one half is the
+        # classic way to get a port that works with the cable one way up and not
+        # the other, and it looks fine on the sheet either way.
+        "VBUS_IN": {("J3", "A4"), ("J3", "A9"), ("J3", "B4"), ("J3", "B9"),
+                    ("F1", "1"), ("D15", "1")},
+        "USB_CC1": {("J3", "A5"), ("R15", "1")},
+        "USB_CC2": {("J3", "B5"), ("R16", "1")},
+        "USB_DP_CON": {("J3", "A6"), ("J3", "B6"), ("R17", "2")},
+        "USB_DM_CON": {("J3", "A7"), ("J3", "B7"), ("R18", "2")},
+        # the 5 V out: the diode-OR output, through the current limit, to the
+        # keyed connector.  J5 pin 1 is +5 V and pin 2 is ground -- the shroud
+        # makes that not a choice, and this asserts it anyway.
+        "ILIM_5V": {("U11", "5"), ("R28", "1")},
+        "+5V_OUT": {("U11", "6"), ("J5", "1")},
+        # and the 26 free-GPIO nets, each an exact U5-pad / J4-pin pair
+        **GPIO_NETS,
     },
     excludes_nets={
         # 5 V must never touch the 3.3 V-only parts (all of the ESP32, both
         # expanders, the MAX3232 and the audio amp's logic pins)
-        "+5V": (pins("U5", range(1, 19)) | pins("U6", range(1, 25))
+        "+5V": (pins("U5", U5_PADS) | pins("U6", range(1, 25))
                 | pins("U7", range(1, 25)) | pins("U4", range(1, 17))),
         # the machine's 12.6 V stops at the buck
         "+12V": (pins("U10", range(1, 6)) | pins("U8", range(1, 10))
-                 | pins("U5", range(1, 19)) | pins("J3", range(1, 8))),
+                 | pins("U5", U5_PADS) | pins("J3", J3_PINS)),
         # and USB VBUS is not the machine rail
         "+5V_USB": pins("J1", range(1, 11)) | pins("U9", range(1, 9)),
     },
@@ -639,10 +928,52 @@ WIFI_COMM_PAC = Board(
         "U2": {5, 6, 10, 11},
         "U3": {1},
         "U4": {7, 9, 12},
-        "U5": {4, 16, 17},
+        # U5's 26 free GPIO plus the module's own pad 27.  Carried in the symbol
+        # and marked no-connect, so this asserts the no-connect is real.
+        "U5": U5_NC,
         "U6": {12, 13, 14, 15, 16},
         "U7": set(range(13, 17)) | set(range(17, 25)),
         "U10": {5},
+        # J3's ten unused USB-C contacts.  They are in the symbol and marked
+        # no-connect rather than omitted, so this asserts that the no-connect is
+        # real -- a pad accidentally on a net is exactly what this catches.
+        "J3": J3_UNUSED,
+    },
+    # Footprint pads with no symbol pin, declared one by one.  See check_pin_pad:
+    # these are the parts whose symbols use **logical pin numbers** or model only
+    # the channels the board uses, so the pads are real package pins that no net
+    # reaches yet.  Declaring them here keeps them visible instead of silent, and
+    # binding them is the first layout task.
+    #
+    # U5 and J3 have left this list, and that is the shape of the fix: both now use
+    # the part's own pin numbers, so every pad they have lands on a net.  U5 was
+    # the dangerous one -- symbol pin 1 was +3V3 and the module's pad 1 is GND1, so
+    # a transfer put 3.3 V on a ground pad.  The rest are merely incomplete.
+    pin_partial={
+        "U1": "74LVC4T245: 9 pins against 16 pads. Two of the four channels are "
+              "modelled and the numbers are logical, not the TSSOP-16 pinout",
+        "U2": "74LVC4T245: same as U1",
+        "U3": "74LVC1G07: 5 pins against 6 pads (SOT-23-6); pad 6 has no pin",
+        "U6": "AW9523B: 24 pins against 25 pads; pad 25 is the exposed pad",
+        "U7": "AW9523B: same as U6",
+        "U8": "MAX98357A: 9 pins against 17 pads (TQFN-16 + EP); the numbers are "
+              "logical, not the VQFN-16 pinout",
+        "SW1": "SparkFun COM-10860: 2 pins against 7 pads; the five extra are the "
+               "mounting tabs (MT1-MT4) and pad 3",
+        "J5": "JST PH S2B-PH-SM4-TB: 2 pins against 4 pads; the two named MP are "
+              "the board-retention mounting pegs, which are mechanical",
+    },
+    # Mechanical footprint choices, asserted by name.  These are forced by the case
+    # rather than by the circuit, so no net assertion can see them -- and that means
+    # without this they could silently regress.
+    mech={
+        "J1": ("Connector_IDC:IDC-Header_2x05_P2.54mm_Horizontal",
+               "right angle, because the P1 cable leaves the front of the floppy "
+               "pocket; shrouded, because that cable is keyed and a keyed socket "
+               "cannot go on plain pins. At rotation 0 the footprint's own geometry "
+               "puts the mating face at +X and pin 1 on the left facing it -- "
+               "verified from the pads (odd at x=0, even at x=2.54, running +Y) and "
+               "the shroud body (offset +X)"),
     },
 )
 

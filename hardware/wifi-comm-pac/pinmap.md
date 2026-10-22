@@ -97,6 +97,23 @@ The **module's own pin numbers are deliberately not restated here** — they are
 the MINI-2 datasheet's §3.2 pin layout, and a secondary source for them is a way
 to lose a board. This file fixes *functions*; the layout fixes geometry.
 
+**The schematic now carries the pad numbers**, in `U5`'s symbol: 73 pins numbered
+with the module's own pads, taken from the datasheet and cross-checked against
+SnapEDA's symbol for the part. That is deliberate and it is not a restatement of
+this file — this file says *which GPIO*, the schematic says *which pad*, and the
+two only agree because someone checked. The 33 ground pads are stacked behind one
+visible pin — the vendor's own convention, and the reason a 73-pad module is a
+readable symbol.
+
+**The 26 GPIO left free here are not wasted.** They come out to **`J4`, a 2×13
+header that is left unpopulated** — 2×13 because that is exactly 26, with the
+module's own IO names on the silk so `IO43` reads as UART0 TXD without a datasheet.
+That is what makes "left free" a decision rather than a dead end: the radio, the
+DACs, the touch channels and the second SPI set are all reachable by soldering a
+header on, without touching U5's footprint. `GPIO0`, `IO43` and `IO44` are among
+them — the BOOT strapping pin and the UART0 console, which this map allocates but
+the board does not otherwise wire.
+
 ## What is left free, and why
 
 The module brings out 37 GPIO. Fourteen are allocated. **The other 23 are left
@@ -219,17 +236,33 @@ and the SFF each carry their own populated copy.
 
 ## Open before layout
 
-1. **The 2×5 IDC orientation** — the only mechanical unknown on the board. The
-   cable is keyed, but which end is pin 1 is not in the schematic, so it is
-   confirmed against a real machine (#324).
+1. ~~**The 2×5 IDC orientation**~~ — **settled 2026-10-21.** It was the board's
+   one mechanical unknown: the cable is keyed, but which end was pin 1 was not in
+   the schematic. It is now fixed by the footprint, and the answer is written down
+   rather than left to whoever does layout — a **right-angle shrouded IDC box
+   header** (`IDC-Header_2x05_P2.54mm_Horizontal`), whose own geometry at rotation
+   0 puts the mating face at +X and **pin 1 on the left** when you face it.
+
+   The shroud is not decoration: the cable is keyed, and a keyed socket cannot go
+   on plain pins — which is exactly what the old footprint specified, so the
+   connector could not have accepted the cable it was chosen for. The key is a rib
+   inside the shroud between the third and fourth pin pairs, and the part must be
+   fitted **key down, toward the PCB**. That last one is a build instruction and
+   not a schematic fact: a footprint is 2D and has no "which way up".
 2. **The RXD negative swing**, in hardware: the MAX3232 gives ±5.5 V, which is
    inside the machine's −0.5…−10 V window, but the receiving front end is a
    comparator with a 5.1 V clamp and it wants measuring, not assuming (#324).
 3. **There is no DCD line on P1.** The DE-9 carries MSB (one status bit), CTS and
    RI — so the panel's **CD lamp is socket state**, and the machine-visible carrier
    indication is **MSB**.
-4. **The audio transducer** — passive piezo element or small speaker, and where
-   it points once the case is closed (#325).
+4. **The speaker's placement** — J2 is settled as Same Sky CMS-151103-088SP
+   (15 × 11 × 3 mm, 8 Ω, 0.7 W) and its footprint is **complete**, read off the
+   datasheet's mechanical drawing: two **0.6 mm square pads on the left and right
+   sides, flush with the frame edge**, 14.4 mm apart. **Audio quality is not a
+   requirement** — the panel only has to make dial tone, DTMF and a ring cadence,
+   and it runs in free air in an unsealed, perforated case, so there is no
+   chamber, gasket or port to design. What is left is purely mechanical: that the
+   speaker clears the other parts and faces a hole in the panel (#325).
 
 ## References
 

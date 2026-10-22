@@ -32,7 +32,7 @@ them goes stale on every other one.
 | `pandoc` | `brew install pandoc` | `tools/build_book.py` |
 | `typst` | `brew install typst` | `tools/build_book.py`, the PDF — `tectonic` or a LaTeX also work, and without any of them the pages are still written |
 | `fonttools` + `brotli` | `tools/bootstrap.sh` — the repo `.venv` | `tools/romfont.py` (build-time; CI installs both) |
-| KiCad ≥ 7 (`kicad-cli`) | KiCad app | `tools/check_schematics.py` |
+| KiCad ≥ 8 (`kicad-cli`) | KiCad app | `tools/check_schematics.py`. The generated sheets declare format `20231120` (KiCad 8) and **KiCad 7.0.11 refuses all four** — verified 2026-10-21, so 7 is not enough. The app here is 10.0.1; the CI runner installs 9 from the KiCad PPA |
 | poppler | `brew install poppler` | `schematic_render.sh`, `schematic_atlas.sh`, `ocr_pdf.sh` — `pdftoppm`, `pdfinfo`, `pdfimages`, `pdftotext` |
 | `tesseract` | `brew install tesseract` | `tools/ocr_pdf.sh` |
 | `mame` | `brew install mame` | `tools/check_o1_map.sh`, `tools/research/*.lua`; the ROMs are in-repo (`tools/emulator-setup/roms/`) |

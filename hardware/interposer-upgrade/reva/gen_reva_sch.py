@@ -244,7 +244,7 @@ syms = {'Z80': make_z80('Z80_DIP40','J'), 'Z84': make_z84(), '165': make_165('74
         '595': make_595(), '244': make_244(), 'PICO': make_pico(), 'ESP': make_esp32c3(),
         'FLASH': make_flash(), 'LDO': make_ldo(), 'CAP': make_cap(), 'PWR': make_pwr()}
 
-out = ['(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
+out = ['(kicad_sch (version 20231120) (generator "o1next-gen")',
        f'  (uuid "{uid()}")', '  (paper "A2")',
        f'  (title_block (title "o1next interposer Rev A engineering sample") (date "{datetime.date.today()}") (rev "A-ES")',
        '    (comment 1 "Active interposer: bus mastering via /BUSRQ, SR-based drive+capture, SMT Z84C00, RP2354B + ESP32-C3. Engineering sample - 2 off."))',
@@ -261,7 +261,7 @@ def place(symkey, ref, value, x, y, netmap):
     # raw layout numbers below are only nominal).  Netlist is unaffected.
     x, y = round(round(x / 1.27) * 1.27, 2), round(round(y / 1.27) * 1.27, 2)
     sinst.append((ref, value))
-    body = [f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (uuid "{uid()}")',
+    body = [f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (in_bom yes) (on_board yes) (uuid "{uid()}")',
             f'    (property "Reference" "{ref}" (at {x} {y - s.h/2 - 2.54} 0) (effects (font (size 1.27 1.27))))',
             f'    (property "Value" "{value}" (at {x} {y - s.h/2 - 5.08} 0) (effects (font (size 1.27 1.27))))',
             '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',

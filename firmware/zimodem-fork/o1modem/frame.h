@@ -34,6 +34,13 @@
 
 #include <stdint.h>
 
+/* The core is plain C and the sketch is C++: without this the linker looks for a
+ * mangled name and the whole core reads as undefined symbols, which looks like a
+ * missing file rather than a linkage mistake. */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Bits 0-1.  The machine uses /16 and /64 -- the factory default 55h/56h sit in
  * the /16 and /64 fields respectively, and the divider's clock is 16x the marked
  * rate on the /16 setting (docs/o1-memory-io-map.md, "6850 ACIA detail").  /1 is
@@ -82,5 +89,9 @@ unsigned o1_frame_bits(const o1_frame *f);
 /* "8N1", "7E1", "8N2" -- for logs and the web UI.  Writes at most `out_n`
  * including the terminator; `out_n` of 0 writes nothing. */
 void o1_frame_str(const o1_frame *f, char *out, unsigned out_n);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* O1_MODEM_FRAME_H */

@@ -7,6 +7,10 @@
 __pycache__/
 build/
 *.kicad_prl
+# KiCad's lock file, written beside a project while it is open.  It is named
+# ~<project>.kicad_pro.lck, and committing it would claim the file is open on
+# whichever machine last committed it.
+~*.lck
 # KiCad's own backup and history directories appear beside a schematic the first
 # time it is opened or exported, and a .kicad_sch inside either of them makes
 # tools/check_boards.py fail ("belongs to no board").

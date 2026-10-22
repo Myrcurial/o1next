@@ -1,10 +1,10 @@
 #!/bin/sh
-# Build and run the modem core's host tests (#318, #319, part of #56).
+# Build and run the modem core's host tests (#318, #319, #322, part of #56).
 #
-# No board, no SDK, no ESP32 core: the rate table, the 6850 frame decoder and the
-# double-sided buffer are plain C99 plus stdio, so the whole suite is a
-# seconds-long compile and run.  CI runs this, and so should you before touching
-# rate.c, frame.c or buffer.c.
+# No board, no SDK, no ESP32 core: the rate table, the 6850 frame decoder, the
+# double-sided buffer, the panel and the sound are plain C99 plus stdio, so the
+# whole suite is a seconds-long compile and run.  CI runs this, and so should you
+# before touching rate.c, frame.c, buffer.c, panel.c or tone.c.
 #
 #   firmware/zimodem-fork/o1modem/run_tests.sh        # tests only
 #   firmware/zimodem-fork/o1modem/run_tests.sh -v     # ... and print the notes
@@ -16,6 +16,11 @@ bin=$(mktemp)
 trap 'rm -f "$bin"' EXIT INT TERM
 
 "$cc" -std=c99 -Wall -Wextra -Werror -I"$here" -o "$bin" \
-    "$here/rate.c" "$here/frame.c" "$here/buffer.c" "$here/test_o1modem.c"
+    "$here/rate.c" "$here/frame.c" "$here/buffer.c" \
+    "$here/panel.c" "$here/tone.c" "$here/test_o1modem.c" -lm
+
+# `-lm` is for the *test*, not the core.  The suite filters the rendered DTMF to
+# prove the two tones are really there (a Goertzel, which wants a cosine), and the
+# core stays float-free and libm-free -- which is the property tone.h promises.
 
 "$bin" "$@"

@@ -155,7 +155,7 @@ syms = {'Z80': make_z80('Z80_DIP40','J'), '165': make_165('74AHCT165'),
         'PICO': make_pico(), 'CAP': make_cap(), 'PWR': make_pwr()}
 
 out = []
-out.append('(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")')
+out.append('(kicad_sch (version 20231120) (generator "o1next-gen")')
 out.append(f'  (uuid "{uid()}")')
 out.append('  (paper "A3")')
 out.append(f'  (title_block (title "o1next interposer Rev 0 test probe") (date "{datetime.date.today()}") (rev "0.1") (comment 1 "Snoop-only Z80 bus probe: pass-through socket, 4x 74AHCT165 PISO snapshot front end, Pico 2 W. NOT the production interposer."))')
@@ -172,7 +172,7 @@ def place(symkey, ref, value, x, y, netmap):
     # raw layout numbers below are only nominal).  Netlist is unaffected.
     x, y = round(round(x / 1.27) * 1.27, 2), round(round(y / 1.27) * 1.27, 2)
     sinst.append((ref, value))
-    body = [f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (uuid "{uid()}")',
+    body = [f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (in_bom yes) (on_board yes) (uuid "{uid()}")',
             f'    (property "Reference" "{ref}" (at {x} {y - s.h/2 - 2.54} 0) (effects (font (size 1.27 1.27))))',
             f'    (property "Value" "{value}" (at {x} {y - s.h/2 - 5.08} 0) (effects (font (size 1.27 1.27))))',
             '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',

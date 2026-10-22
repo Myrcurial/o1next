@@ -4,7 +4,7 @@
 **third deliverable**. See the register in [`../README.md`](../README.md). It
 closely models the original Osborne 1 COMM PAC 300-baud modem and lives in the
 left-hand floppy storage pocket, taking power and signal from the MODEM (P1)
-9-pin port. The PCB also hosts ~10 indicator LEDs, a piezo speaker, the aux power
+9-pin port. The PCB also hosts ~10 indicator LEDs, a 15 × 11 mm speaker, the aux power
 port for the keyboard adapter, and a USB-C port for programming or powering the
 ESP32.
 
@@ -143,41 +143,158 @@ LED states and semantics are #322; current is set to **2–3 mA** per lamp.
 
 An **I²S-input class-D amplifier with its own DAC** (MAX98357A class) on the
 **5 V** rail, three pins (BCLK/LRCLK/DIN) plus gain/mode straps, driving a
-**passive** transducer — an active buzzer is the wrong part (one tone, no dial
-tone, no DTMF, no ring cadence). Dial tone, DTMF and ring cadence are in #322;
-prior art is `na103/zimodem` (CC BY 4.0 — method only).
+**real speaker** — not a piezo buzzer, and not an active buzzer. Both are the
+wrong part: an active buzzer knows one note, and a bare piezo element is
+non-linear and thin across the band, where the panel has to make **the noise a
+modem makes**.
 
-## The schematic
+**J2 is Same Sky CMS-151103-088SP** — 15 × 11 × 3 mm rectangular frame, 0.7 W
+(1.0 W max), **8 Ω**, PEEK cone, Nd-Fe-B magnet, solder-pad terminals. **8 Ω is the
+only number that matters** — it is the load the MAX98357A wants — and the part is
+small enough for the floppy-pocket envelope. Pin 1 is the **`+`** terminal (the
+datasheet's polarity: the cone moves forward with positive dc on `+`), so it takes
+`SPK_P`.
 
-`wifi-comm-pac.kicad_sch` (KiCad 7 format, A1) — **Rev A, captured**, which is
-what the case STL and the placement drawing are sized against. It is
-**generated**, not hand-drawn: `gen_wifi_comm_pac_sch.py` emits the sheet, and
-`tools/check_schematics.py` re-generates it and asserts the invariant nets (which
-P1 pin carries which signal, that the machine's 5 V never reaches a 3.3 V pin,
-that the 12.6 V rail stops at the buck, and that no symbol or label collides).
+**Audio quality is explicitly not a requirement.** The panel is a noise generator:
+it has to make dial tone, DTMF and a ring cadence, and nothing more. It runs in
+**free air** in an unsealed case with a perforated front panel — no chamber, no
+gasket, no port — and no response curve, resonance or SPL figure is designed
+around. The datasheet's Fo and SPL are 1 cc-box measurements and are deliberately
+not repeated here as if they described this board.
 
-**The nets are wired, not label-connected.** Every signal net is drawn as
-orthogonal wire segments between the pins it joins; the supply rails use power
-symbols, which is how a schematic normally shows GND/3V3/5V. Exactly **one net
-label per net** is kept, so the net *names* survive — and because it is one
-label and not fifteen, a missing or mis-routed wire breaks the netlist instead of
-being papered over by a label.
+Its footprint is ours (`o1next:Speaker_SameSky_CMS-151103-088SP`), and its geometry
+comes off the datasheet's mechanical drawing: the 15 × 11 × 3 mm body, and **two
+0.6 mm square solder pads on the left and right sides**. They are drawn 14.4 mm
+apart, with each pad's outer edge flush with the 15 mm body end — that flush
+offset is the one number read rather than stated, and it is what would change if
+the drawing insets them. The part it replaced was a Multicomp Pro
+MCKPT-G1340-3917 piezo buzzer; that footprint has been deleted.
 
-A small Manhattan router does the drawing, on a 1.27 mm grid:
+Dial tone, DTMF and ring cadence are in #322; prior art is `na103/zimodem`
+(CC BY 4.0 — method only).
 
-- symbol bodies are impassable;
-- another net's wire may be **crossed** but not travelled **along** (that would be
-  a collinear overlap, i.e. a short), and may not be **ended on** (that would make
-  a junction);
-- **another component's pin is impassable** — a wire routed through a pin is a
-  short that no label ever reveals, and it is what the first wiring pass did wrong;
-- nets are routed longest-first, so the long runs get the open corridors.
+## The schematic — two directories
 
-It is a *first-draft* drawing: correct, complete and readable in blocks, but the
-long runs (USB to the MCU, the interface expander to the level stage) are routed
-for clearance rather than for beauty. A placement pass — moving the USB block
-next to the ESP32 — is what would make it read like a finished drawing, and it is
-cosmetic, not electrical.
+**Two directories, and the generator writes into only one of them.**
+
+| | |
+|---|---|
+| `wifi-comm-pac-generated/` | the generator's output. Regenerated at will. |
+| `wifi-comm-pac-edited/` | the copy a person works on. Never written by the generator. |
+
+`gen_wifi_comm_pac_sch.py` is the **first take** — the mathematical proof that the
+circuit is what the netlist says it is. It is not a finished drawing and it cannot
+be one: turning it into something a person can read and work on takes a person.
+So both exist, and the rule between them is one line:
+
+> if `-edited/` holds a schematic, **the copy is aborted** and the generator says
+> so; if `-edited/` is empty, the generated schematic is copied across.
+
+A regeneration therefore cannot overwrite anybody's work, and the first person to
+pick the board up gets a starting point without running anything. To deliberately
+re-seed, empty `-edited/` first — which discards what is in it.
+
+`tools/check_schematics.py` asserts the **generated** file: the invariant nets
+(which P1 pin carries which signal, that the machine's 5 V never reaches a 3.3 V
+pin, that the 12.6 V rail stops at the buck), that no symbol or label collides,
+that no symbol pin is without a footprint pad, and that the file matches a fresh
+regeneration.
+
+### Four sections, and parts sit next to what they connect to
+
+The sheet is A1 (841 × 594 mm) divided into four regions, because the complaint a
+reader actually has is not that things are unconnected — it is that they are
+connected *across the page* and so cannot be followed:
+
+| Section | Holds |
+|---|---|
+| **POWER** (bottom band) | the P1 12.6 V rail and the USB-C front end — diode-OR, buck, LDO, polyfuse, the CC pulldowns, the ESD clamp, and the 5 V out |
+| **LOGIC** (left, upper) | J1, the level stage, the ESP32 and its support parts, both expanders, and the free-GPIO header |
+| **PANEL** (right, upper) | the 11 lamps, one row each: resistor and LED side by side |
+| **AUDIO** (right, lower) | the MAX98357A and the speaker |
+
+### The free-GPIO header, J4 — and why it is 2×13
+
+U5 leaves **26 GPIO** unused. They were marked no-connect, which is correct but
+*terminal*: the pad is on the module's footprint, the header is not, and reaching
+it later means redoing the board. **J4** brings all 26 out to a **2×13 header** —
+2×13 exactly, because that is the 26 GPIO and not 2×14 with grounds.
+
+**It is left unpopulated, and marked `dnp`** so KiCad keeps it out of the BOM and
+off the placement file. That is the difference between "left unfitted on purpose"
+and "we forgot to order it". The pads cost nothing and mean somebody can solder a
+header on later and use the radio, the DACs, the touch channels and the second SPI
+set without touching U5's footprint.
+
+Pins are numbered the way a 2×13 is — odd on row 1, even on row 2 — and **named
+with the module's own IO names**, so the silk says `IO43` and that is UART0 TXD
+without a datasheet lookup:
+
+| | row 1 (odd) | row 2 (even) |
+|---|---|---|
+| | IO0 IO1 IO2 IO3 IO4 IO5 IO6 IO7 IO8 IO9 IO10 IO11 IO12 | IO13 IO14 IO17 IO18 IO26 IO39 IO40 IO41 IO42 IO43 IO44 IO45 IO46 |
+
+One table in the generator builds U5's symbol, names these nets, *and* labels the
+header, and `check_schematics.py` asserts each of the 26 as an **exact pair** — one
+U5 pad and one J4 pin. Three separate lists would drift, and the first thing to
+drift would be a header pin labelled `IO18` that is really `IO17`, which is the
+worst possible bug on a header a hobbyist is meant to use.
+
+### 5 V out to the keyboard adapter
+
+**J5** is a **JST PH, side entry, SMD** (`S2B-PH-SM4-TB`). It is fully shrouded
+with a polarising slot, so the plug cannot go in the wrong way round and **there is
+no reverse-voltage case to design for**. Side entry means the cable leaves parallel
+to the board, straight out the front of the floppy pocket. 2 A, 100 V, 2.0 mm
+pitch; KiCad carries the footprint, so nothing is drawn here.
+
+It is fed from the **diode-OR output** (`+5V`), so whichever source is present —
+the machine's 12.6 V through the buck, or USB VBUS — feeds the port. That is what
+lets the keyboard adapter drop its 12 V→5 V buck and keep only its LDO.
+
+**U11 is the current limit on it.** `D13`/`D14` are SS14 — **1 A each** — so the
+5 V rail cannot source more than about an amp, and a port labelled "5 V out"
+invites somebody to plug in a load that wants three. `U11` is a **TPS2553**
+current-limited power-distribution switch, and `R28` sets the limit: `I_OS = 25.6 /
+R_ILIM`, so **27 kΩ gives about 0.95 A** — under the diodes, and 15× the ~60 mA the
+adapter draws. It limits rather than latches, so nothing needs to know when it
+does; `FAULT` is unused for that reason.
+
+### ESD on the USB-C input
+
+**`D15`** is a `PESD5V0S1BA` on `VBUS_IN`, upstream of the diode-OR, so it is the
+first thing a transient meets. 5 V standoff, so it does not conduct on a 5.25 V
+VBUS, and it clamps low enough not to overstress the `AP2112K` downstream. The
+port is *meant* for a computer; "meant for" is not a protection.
+
+
+### The wiring, and the defect it fixes
+
+Every signal net is drawn as orthogonal wire segments; the rails use power
+symbols; every pin ends on a wire, a power symbol, or a deliberate no-connect
+marker. Nothing floats — the generator fails loudly if a pin does.
+
+The router builds a **spanning tree** per net (each pin joined to the nearest
+point already on the net, so branches share a trunk) and then **normalises** the
+result: every segment is split wherever any point of the same net lies on it, the
+duplicates that leaves are dropped, and a junction is placed wherever three or
+more wire ends meet.
+
+That normalisation is not cosmetic, and it is the answer to a real failure. The
+earlier **star** router drew each pin back to the first pin, which produced
+**overlapping collinear segments** — 15 of them, plus 2 exact duplicates. KiCad
+tolerates that until it saves the file, at which point its own cleaner normalises
+the geometry, and pins that had been attached *only* by sitting inside an overlap
+come adrift, because a pin in the middle of a wire is not connected without a
+junction. That cost **14 pins across 10 nets** the first time anybody opened the
+sheet in KiCad. **A wire KiCad would rewrite is a wire drawn wrong**, so the
+generator now does the normalisation itself.
+
+It is checked, not asserted: `kicad-cli sch upgrade` re-saves the schematic in the
+current format — the operation that broke the old file — and the netlist before
+and after is identical (70 nets, 248 nodes, 0 single-node nets, 317 wires and 8
+junctions unchanged). The old file went from 15 overlaps to a broken netlist under
+the same operation.
 
 ```sh
 python3 hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py
@@ -196,9 +313,30 @@ python3 tools/check_schematics.py --board wifi-comm-pac
 | U9, U10 | TPS54331, AP2112K | 12.6 V → 5 V → 3.3 V |
 | D13, D14 | Schottky pair | the diode-OR between the port and USB |
 
-**What it does not fix yet:** footprints are unassigned and the IC pin numbers in
-the netlist are logical placeholders — binding them is the first layout task.
-The 2×5 orientation and the RXD swing are the two hardware confirmations (#324).
+**Footprints are now all assigned** — **71 of 71** component symbols carry one, so
+`Update PCB from Schematic` transfers every part rather than nothing.
+
+**But the board is not yet correct, and this is the first layout task.** The
+**multi-pin ICs' pin numbers are logical placeholders**, not the vendor packages'.
+They exist so the netlist checker can name a pin. The footprints are real; the
+pin↔pad correspondence is not. **U5 is the dangerous one:** its symbol has 18
+pins numbered 1–18, the `ESP32-S2-MINI-2U` footprint has 73 pads numbered 1–65
+plus `61_1`…`61_9`, and the numbers *collide by name* while disagreeing in
+meaning — symbol pin 1 is `+3V3`, the module's pin 1 is **`GND1`**. So a transfer
+today puts 3.3 V on a ground pad. The other multi-pin parts are merely incomplete
+rather than wrong: U1/U2 (9 pins against 16 pads, two of four channels modelled),
+U8 (9 against 17), U3 (5 against 6), U6/U7 (24 against 25 — pad 25 is the exposed
+pad), SW1 (2 against 7 — the five mounting tabs). U4, U9 and U10 are exact.
+
+**J3 is the exception** that shows the fix: it now uses the part's own numbers
+(A1–A12, B1–B12, SH1–SH6) because its footprint has 30 pads and every one of them
+needed a net. Doing the same for the others means binding each signal to a real
+module pin, which is a **GPIO allocation decision** for U5 rather than a datasheet
+lookup.
+
+The RXD swing is the remaining hardware confirmation (#324), and the **2×5 IDC
+orientation is settled** — see `pinmap.md` §"Open before layout": right-angle and
+shrouded, pin 1 on the left facing it, key down toward the PCB.
 
 ## Enclosure
 

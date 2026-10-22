@@ -242,7 +242,7 @@ NOTES = [
 
 # --------------------------------------------------------------- emit
 out = [
-    '(kicad_sch (version 20230121) (generator "eeschema") (generator_version "7.0")',
+    '(kicad_sch (version 20231120) (generator "o1next-gen")',
     f'  (uuid "{uid()}")',
     '  (paper "A3")',
     f'  (title_block (title "o1next floppy-adapter - switchable Gotek / physical drives") (date "{TODAY}") (rev "A")',
@@ -259,7 +259,7 @@ def place(key, ref, value, x, y, netmap):
     s = SYMS[key]
     sinst.append((ref, value))
     body = [
-        f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (uuid "{uid()}")',
+        f'  (symbol (lib_id "{s.lib_id}") (at {x} {y} 0) (unit 1) (in_bom yes) (on_board yes) (uuid "{uid()}")',
         f'    (property "Reference" "{ref}" (at {x} {y - s.h/2 - 2.54} 0) (effects (font (size 1.27 1.27))))',
         f'    (property "Value" "{value}" (at {x} {y - s.h/2 - 5.08} 0) (effects (font (size 1.27 1.27))))',
         '    (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) (hide yes)))',
