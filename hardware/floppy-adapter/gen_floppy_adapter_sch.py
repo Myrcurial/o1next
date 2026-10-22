@@ -630,25 +630,18 @@ def build_pins():
 
 
 def astar(net, s, g, limit=3000000):
-    """A* over (cell, heading).
+    """A* over (cell, heading), with turn cost so the route prefers long runs.
 
-    Other nets' wires are expensive, not impossible: travel along them would
-    short, so it costs 200; ending on one would make a junction, so it costs 400.
-    Symbol bodies, other nets' pins and other nets' wire ends stay impassable.
+    Another net's wire is **impassable** rather than expensive: travelling *along*
+    it would short the two nets, and ending *on* it would make a junction.  A
+    crossing is allowed and is what the four-neighbour search gives for free --
+    in KiCad a crossing is unambiguous, because neither net's wire ends there.
+
+    (The copy this came from carried a `penalty()` for those cells that could
+    never be reached, because the neighbour loop rejects them first.  Dead code
+    with a docstring claiming a behaviour is worse than no code, so it is gone.)
     """
     DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
-
-    def penalty(c, d):
-        p = 0
-        if d < 2:            # horizontal move
-            if c in h_own and h_own[c] != net:
-                p += 200
-        else:
-            if c in v_own and v_own[c] != net:
-                p += 200
-        if c in endp and endp[c] != net:
-            p += 400
-        return p
 
     start = (s, 4)       # heading 4 = no heading yet
     dist = {start: 0}
@@ -685,7 +678,7 @@ def astar(net, s, g, limit=3000000):
             if nd >= 2 and n in v_own and v_own[n] != net:
                 continue
             step = 1 + (0 if d == 4 or nd == d else 2)
-            nc = cost + step + penalty(n, nd)
+            nc = cost + step
             key = (n, nd)
             if nc < dist.get(key, 1 << 30):
                 dist[key] = nc
