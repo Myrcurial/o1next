@@ -93,7 +93,9 @@ flowchart LR
     GOT["J3  2x17 header (top)<br/>to Gotek signals"]
     PWR["J4  Gotek power<br/>(switched +5V, GND)"]
     SW["J5  panel-switch lead"]
-    K1["K1  4PDT relay"]
+    U1["U1  2:1 switch<br/>(DS-A)"]
+    U2["U2  load switch<br/>(Gotek +5V)"]
+    Q1["Q1  N-MOSFET<br/>(Gotek GND)"]
   end
   DA["Physical drive A<br/>(150 ohm term pack)"]
   DB["Physical drive B<br/>(always present)"]
@@ -105,12 +107,15 @@ flowchart LR
   CABLE --> DB
   PLUG -- "signals only" --> GOT
   GOT --> GK
-  K1 -- "+5V / GND (when Gotek)" --> PWR
+  U2 -- "+5V (when Gotek)" --> PWR
+  Q1 -- "GND (when Gotek)" --> PWR
   PWR --> GK
-  SW -- "coil current only" --> K1
-  PLUG -. "DS-A (pin 10) in" .-> K1
-  K1 -. "DS-A to physical A" .-> CABLE
-  K1 -. "DS-A to Gotek" .-> GOT
+  SW -- "logic only" --> U1
+  SW -- "logic only" --> U2
+  SW -- "logic only" --> Q1
+  PLUG -. "DS-A (pin 10) in" .-> U1
+  U1 -. "DS-A to physical A (S low)" .-> CABLE
+  U1 -. "DS-A to Gotek (S high)" .-> GOT
 ```
 
 Everything between J1 and J2 is a **straight pass-through** except pin 10
@@ -120,8 +125,9 @@ cable; the only difference is which device the machine's DS-A reaches.
 ## 4. Switching design
 
 ### 4.1 Drive-select routing (pin 10)
-DS-A from the mainboard (J1.10) is the relay common. De-energised it goes to
-J2.10 → the physical A drive; energised it goes to J3.10 → the Gotek. Never both,
+DS-A from the mainboard (J1.10) is U1's common. **Control low** connects it to
+J2.10 → the physical A drive; **control high** connects it to J3.10 → the Gotek.
+Never both — and U1's break-before-make guarantees that even during the changeover —
 so the two devices cannot both answer as drive A. DS-B (pin 12) is untouched, so
 drive B stays present and selectable in both modes.
 
