@@ -1,18 +1,29 @@
 # `osborne1nx` — the emulated interposer, and the ACB-4000 host adapter (#191)
 
-**Status: the machine boots, the card answers, and a transfer works.**
+**Status: Partially solved.** The machine boots, the card answers, and a transfer
+works; the DPB and drive tables are read out of `HARD.COM` rather than peeked
+(`docs/md10-system.md` §9), and the MD-10's on-disk header is read out of
+`PREP.COM` and reproduced on the emulated drive (§6). What is left is the
+controller personality (#179), not the machine.
+
 `osborne1nx` is a fourth `osborne1` machine in MAME whose Z80 sits behind a card
 that decodes the full 8-bit I/O address, so the MD-10's host adapter can answer
 on ports `30h`–`33h` — the ports its driver demands and the stock machine cannot
 reach. The drive-table editor that #178 had to *patch around* now runs unpatched,
 `HARD.COM` issues real commands against a mounted drive, and `PREP.COM`'s
 initialize/format flow runs its whole bring-up — four bugs in the card's
-handshake were found and fixed getting there (§3, §4). What is left is the
-low-RAM DPB tables, and §5 has the reason it is not a card problem.
+handshake were found and fixed getting there (§3, §4).
 
-Serves #191; unblocks #178's `peek` and is the emulated half of the personality
-(#179). Reads alongside `docs/acb4000-host-adapter.md` (the protocol and the
-blocker), `docs/acb4000-firmware.md` (the controller) and
+**The DPB tables need no `peek`.** `0x055E`/`0x056E` are offsets from the MD-10
+BIOS's base `0xD800`, so the tables are at `0xDD5E`/`0xDD6E` and are read straight
+out of `HARD.COM` at file offsets `0x998`/`0x9A8` (`docs/md10-system.md` §9). What
+stops `PREP.COM` putting a *system* on the drive is the verify pass, and §5 has
+that reason.
+
+Serves #191; answers #178's table question (`docs/md10-system.md` §9) and is the
+emulated half of the personality (#179). Reads alongside
+`docs/acb4000-host-adapter.md` (the protocol and the blocker),
+`docs/acb4000-firmware.md` (the controller) and
 `docs/harddisk-decision.md` §5 (the three layers).
 
 **This machine is one half of the emulation testbed.** `docs/emulation-testbed.md`
@@ -311,7 +322,7 @@ repo's own `tools/research/mame-boot-probe.sh`.
 | the **data phase**, byte-at-a-time | **yes** — `INQUIRY` 36 B, `MODE SENSE` pages 4 and 3, `READ CAPACITY` 8 B; all status `00` |
 | the **data phase**, 512-byte blocks | **yes** — `READ` of one block returns 512 bytes and the phase ends |
 | the **data-out** phase | **yes** — `MODE SELECT` (22 B) and `SEND DIAGNOSTIC` (4 B) both complete |
-| `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — §5 |
+| the DPH/DPB tables — `0xDD5E`/`0xDD6E`, read out of `HARD.COM` at file `0x998`/`0x9A8` | **read** — `docs/md10-system.md` §9; no `peek` needed |
 
 ### The data phase, driven at the register level
 
@@ -424,10 +435,10 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
 ## 5. What is not, yet
 
 1. **`PREP.COM` cannot finish a format — but the card writes, and the store
-   works.** Corrected in §6: a write through the card lands on the drive, and
-   `PREP.COM`'s own writes are *not* MAME no-ops (its label write and its format
-   fill both reach the CHD). What stops it is the *verify* pass that follows the
-   format: it is `VERIFY` (`2F`), which `t10spc`/`t10sbc` have no
+   works.** A write through the card lands on the drive, and `PREP.COM`'s own
+   writes are *not* MAME no-ops (its label write and its format fill both reach the
+   CHD). What stops it is the *verify* pass that follows the format: it is
+   `VERIFY` (`2F`), which `t10spc`/`t10sbc` have no
    constant for at all — so the target answers with a status phase and no data
    phase, the driver never sees the match it is looking for, and it loops.
    Measured: `PREP.COM` option 1 reaches *"Verifying disk (first pass)..."* and
@@ -442,35 +453,41 @@ that is *bootable*; see `docs/acb4000-host-adapter.md` §3.)
    `tools/research/mkdrive.py` writes the ACB-4000's own fill byte (`6C`) into
    every data field and gives `chdman` the geometry, which is the same blob the
    controller would have produced. `docs/harddisk-decision.md` §7.2 has it.
-2. **`peek 0x055E` / `0x056E` is not reached, and the reason is now measured.**
+2. **The DPH/DPB tables are a file read, not a `peek`.** `0x055E`/`0x056E` are
+   offsets from the MD-10 BIOS's base, so the tables are at `0xDD5E`/`0xDD6E` and
+   are read straight out of `HARD.COM` at file offsets `0x998`/`0x9A8`
+   (`docs/md10-system.md` §9). The one thing still needed is an MD-10 **system** on
+   the drive, and that is a media question rather than a card one.
+
    `HARD.COM` is not an installer — it is a **hard-disk boot loader**: it reads
    LBA 5 for 11 blocks (5632 bytes = `0x1600`, exactly the `CCP`+`BDOS` of the
    O1 system layout, `docs/acb4000-host-adapter.md` §3) into `0xC200`, patches
    page zero to point at itself (`JP 0xD803`, the body's own jump table, which is
    its install entry) and jumps into the buffer. On a blank drive that code is
    all zeros, so the guest NOPs to the top of memory, wraps, and the patched warm
-   boot restarts it — *measured again 2026-10-12 on a drive that does carry a
-   system: it is also a **carrier**, its tail `0x053A`–`0x0AFF` being a relocated
-   copy of the MD-10 BIOS that it installs at `0xD800` and patches from the
-   running ROM's jump table, so the "boot loader" is a boot loader **and** the
-   BIOS. `docs/md10-system.md` has the chain.*
-   vector runs the loader again — the `READ LBA 5 ×11` loop, seen 4 673 times in
-   one run. So the drive has to already carry an MD-10 system, and nothing in the
-   archive writes one: `PREP.COM` option 1 formats, and every path that would put
-   a system on the drive refuses a disk whose header is not one it recognises
-   (`Disk has unrecognizable format (or none)` — the check is a `READ` of LBA 2
-   into `0x32CD`, §6). This is a *media* question — what the system tracks of an
-   MD-10 disk contain — not a card question. §6 reads the header `PREP.COM`
-   writes out of the program and confirms it on the emulated drive.
+   boot vector runs the loader again — the `READ LBA 5 ×11` loop, seen 4 673 times
+   in one run.
+
+   It is also a **carrier**: its tail `0x053A`–`0x0AFF` is a relocated copy of the
+   MD-10 BIOS, which it installs at `0xD800` and patches from the **running
+   CBIOS** (`page zero+1` is `0E103H`), so the "boot loader" is a boot loader
+   **and** the BIOS. `docs/md10-system.md` §4–§5 has the chain.
+
+   So the drive has to already carry an MD-10 system, and `PREP.COM` option 1 does
+   not write one: it formats, and every path that would put a system on the drive
+   refuses a disk whose header is not one it recognises (`Disk has unrecognizable
+   format (or none)` — the check is a `READ` of LBA 2 into `0x32CD`, §6). Option 3
+   *does* write one, and what it writes boots to a prompt
+   (`docs/md10-system.md` §1–§3). §6 below reads the header `PREP.COM` writes out
+   of the program and confirms it on the emulated drive.
 3. **`2Dh` — "cable connected backwards" — is not modelled.** Both overlays test
    for it; it is a wiring condition, and it is recorded rather than invented.
 
 ## 6. The MD-10's on-disk header, read out of `PREP.COM` (#191 → #178)
 
-§5 said the drive has to already carry an MD-10 system, and that `PREP.COM`'s
-writes were MAME no-ops. The second half of that is wrong, and the structure it
-writes is now read out of the program and confirmed against the emulated drive.
-This is the handoff's step 1 for #191.
+`PREP.COM` **does** write the header, and the structure it writes is read out of
+the program and confirmed against the emulated drive. This is the handoff's step 1
+for #191.
 
 ### What it writes, and where
 
@@ -571,12 +588,11 @@ on.
 
 The card's **select byte is a run-time variable**, and that is the trap. The
 overlay reads `0x8023` before every transaction (`0x8042`) and the program sets
-it in the controller/drive-address path (`0x1A85`). Patch past that path — as the
-first cut of this test did — and it stays `00h`, which is not a one-of-eight ID
-mask: **every transaction is accepted by the card and delivered to no target.**
-The program runs on, reports no error, and the drive is untouched. That is what
-the previous session's runs were doing, and it is why they concluded the writes
-were no-ops.
+it in the controller/drive-address path (`0x1A85`). Patch past that path and it
+stays `00h`, which is not a one-of-eight ID mask: **every transaction is accepted
+by the card and delivered to no target.** The program runs on, reports no error,
+and the drive is untouched — which is how a write test can conclude that
+`PREP.COM`'s writes are no-ops.
 
 With it set (`poke 0x8023 01` — now a directive in `tools/research/o1keys.lua`)
 and `PREP.COM` patched at `0x0FE4` to enter the *Disk initialization* menu
@@ -632,7 +648,7 @@ xxd -l 64 /tmp/o1prep/hd.raw
 The screen at step 3 reads *"Initializing disk header... Disk initialization
 complete"* and then the Disk initialization menu. Two traps in getting there:
 
-1. **Landing on the menu is not enough, and that was the first cut of this.**
+1. **Landing on the menu is not enough.**
    The menu path never builds the label, so the partition table at `0x36FE` is
    left uninitialised — not the `FFh` terminator the walker at `0x23E6` stops on
    — and *"Initializing all partitions..."* walks off the end of memory for ever,
@@ -678,9 +694,12 @@ not zero the label before building it**, so its own labels differ run to run —
 which is the other reason the check can only be looking at `M`,`D` and a
 threshold, and not at a checksum or a magic block.
 
-What is still not reached is `peek 0x055E` / `0x056E`, and the reason has not
-changed: it needs an MD-10 *system* on the drive, not just a header. The two
-things that stop `PREP.COM` putting one there belong to `#179`:
+The DPH/DPB tables are not a `peek` question. `0x055E`/`0x056E` are offsets from
+the MD-10 BIOS's base, so the tables are at `0xDD5E`/`0xDD6E` and are read straight
+out of `HARD.COM` at file offsets `0x998`/`0x9A8` (`docs/md10-system.md` §9). A
+*system* on the drive is a separate matter, and `PREP.COM` option 3 produces one
+(`docs/md10-system.md` §1–§3). The two things that stop `PREP.COM` putting one
+there belong to `#179`:
 
 - the verify pass (`2F`) has no handler, so "Format and verify" cannot finish; and
 - the partition initialiser (`2Ah`, `WRITE EXTENDED`, `E5h` as its fill) needs the
@@ -694,10 +713,12 @@ next thing, and it is a firmware deliverable rather than more archaeology.
 - **The `base+2` register's full bit map.** Bit 2 is the controller field and
   bits 0/1/5/6 are the card's handshake, which is what the two overlays and the
   BIOS use. Whether the other bits mean anything is unread.
-- **`0x0557`/`0x0559` — the select byte's source.** `HARDBIOS.SPR`'s `BOOT`
-  loads `0x0557` from `0x0559`, and `0x0559`–`0x055D` is the 5-byte block
-  `docs/acb4000-host-adapter.md` §4 flags as unwritten by anything in the
-  archive. `HARD.COM` keeps its own copy at `0x0A93`, and it is `01h`.
+- **The select byte's source at run time.** `HARDBIOS.SPR`'s `BOOT` loads `0x0557`
+  from `0x0559`, and that five-byte block is the MD-10 BIOS's own data at
+  base+`0x559` = `0xDD59` — inside `HARD.COM` at file offset `0x0993`, holding
+  select `01`, LBA `5`, count `11` (`docs/md10-system.md` §4–§6). The *run-time*
+  select byte is a different cell: `HARD.COM` keeps its own copy at `0x0A93`, and
+  it is `01h`. Which one a given boot path reads is unread.
 - **Whether the real MD-10 board decoded eight bits** — this machine assumes it
   did, because `docs/acb4000-host-adapter.md` §2 shows the driver needs it and
   §5 argues the board was a Z80-socket device. The hardware has not been seen.
