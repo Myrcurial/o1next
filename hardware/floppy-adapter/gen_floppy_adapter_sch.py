@@ -392,8 +392,11 @@ NET = {
     # J5 is the panel switch: **UP = physical drives, DOWN = Gotek**.  The switch
     # is a plain SPST in series between the cable's +5 V and the control node, so
     # closed (down) is the Gotek and open (up) is the pull-down -- the physical
-    # drives.  Polarity of the two wires is therefore irrelevant, which is why a
-    # 2-pin header is enough (see the README for the shrouded alternative).
+    # drives.  The connector is a **bare 2-pin 2.54 mm header** (DECIDED
+    # 2026-10-22): the lead is a series SPST, so there is no polarity to key, and
+    # a switch on a twisted pair of Dupont leads is trivial to implement.  The
+    # shrouded JST PH alternative was considered and is recorded in the design
+    # doc sec.4.5 rather than left open.
     'J5': {1: '+5V', 2: 'SW_LEAD'},
 }
 

@@ -197,13 +197,11 @@ series with a gate input is symmetric.
   and a FET gate. `R1` sits on the *control* side, so an unplugged lead is still a
   low.
 - **The lead carries microamps**, where the relay's coil wanted 73 mA.
-- **J5 is a bare 2-pin 2.54 mm header** — pins, expecting a female Dupont/crimp
-  housing on the wire. That is deliberate: a series SPST has no polarity to key, and
-  a lead that works loose fails to the safe position. **If you would rather it match
-  the panel leads elsewhere in the project, the swap is one footprint line** to the
-  **JST PH 2.00 mm** (`S2B-PH-SM4-TB`) that the WiFi COMM PAC uses for its
-  keyboard-adapter power port — shrouded and polarised means retained and no exposed
-  5 V pin, and it needs PH housings plus a crimp for them. Say which and it changes.
+- **J5 is a bare 2-pin 2.54 mm header, and that is the decision** (2026-10-22), not a
+  placeholder: a series SPST has no polarity to key, and *"an appropriate switch with
+  a twisted pair dupont connector wire is trivial to implement"*. The shrouded JST PH
+  alternative was considered and is recorded as rejected in
+  `docs/floppy-adapter-design.md` §4.5.
 
 ## Getting the cables out of the pocket
 
@@ -238,15 +236,16 @@ the evidence behind each. Highlights:
 
 ## Open items (not blocking capture)
 
-- **Physical design** — board outline and keep-outs, the Gotek mount, and the
-  cable-egress route (above). **Height is the binding constraint**; it is what
-  decided the switch.
+- **The PCB floorplan and routing — this is the next unit of work.** Every decision
+  is made (§8 in the design doc), every net is drawn and every part has a footprint.
+  Place the connectors on their faces, set the keep-outs against the mainboard and
+  the pocket, route it.
+- **Height is the binding constraint** and the floorplan must respect it: it is why
+  the switch is silicon, and the three packages are ~1.5 mm against a relay's 10 mm.
 - Mounting: piggyback footprint vs. standoffs over the DD board; confirm
   keep-outs against the mainboard schematic
   (`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`) and host photos
   (`research/pictures/`).
-- **One open choice on the lead:** keep the bare 2-pin header (Dupont) or move J5 to
-  a shrouded JST PH to match the modem's panel lead — one footprint line, either way.
 - **Rev B, recorded not done:** U2's `QOD` pin if the Gotek ever proves slow to power
   down (it is left open, which disables the output discharge).
 - Interaction with the interposer's floppy personality (#20): document

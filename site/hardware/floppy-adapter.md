@@ -4,14 +4,15 @@ title: floppy-adapter
 subtitle: O1NEXT Floppy Adapter — a switchable Gotek / physical-drive daughter card
 ---
 
-**Status:** design settled; **the Floppy Adapter's Rev A schematic captured, wired,
-footprinted and re-captured** — every net drawn, every part given a footprint, and
-the switch **decided 2026-10-22: solid state**, because the case has no height for a
-relay. Three silicon parts — an NC7SB3157P6X 2:1 switch on DS-A, a TPS22918 on the
-Gotek's +5 V and an AO3400A on its ground return — with the same fail-safe as
-before: the switch's own truth table puts the *physical* drive on the S-low throw.
-Tracks **#62**, and the floppy interposer personality **#20**. Source:
-`hardware/floppy-adapter/`, `docs/floppy-adapter-design.md`. Board register:
+**Status:** design settled; **the Rev A schematic is complete and every decision is
+made — the board is ready for PCB floorplan and routing.** Every net is drawn, every
+part has a footprint, and the switch is **solid state** (the case has no height for a
+relay): an NC7SB3157P6X 2:1 switch on DS-A, a TPS22918 on the Gotek's +5 V and an
+AO3400A on its ground return, with the same fail-safe as before — the switch's own
+truth table puts the *physical* drive on the S-low throw. The panel switch is a plain
+SPST flip switch on a 2-wire lead to a bare 2-pin header. Tracks **#62**, and the
+floppy interposer personality **#20**. Source: `hardware/floppy-adapter/`,
+`docs/floppy-adapter-design.md`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
 
 *This board's own Rev A / Rev B are unrelated to the interposer's Rev A / Rev B —
@@ -60,17 +61,17 @@ trusting a prior adapter's transcription.
 
 ## Still to do
 
-- **Physical design** — board outline and keep-outs, the Gotek mount, and the
-  cable-egress route. **Height is the binding constraint**: it is what decided the
-  switch, and the three silicon parts are ~1.5 mm against a relay's 10 mm.
+- **PCB floorplan and routing — this is the next unit of work.** Every decision is
+  made, every net is drawn and every part has a footprint.
+- **Height is the binding constraint** and the floorplan must respect it: it is why
+  the switch is silicon, and the three packages are ~1.5 mm against a relay's 10 mm.
 - **Getting the cables out of the pocket**, two accepted routes: break the 34-pin run
   into parts that pass the ventilation slots (Loxley's approach — nothing on the
   machine is cut), or cut the case for a full-size 34-pin cable alongside the two
   switch wires. The card is the same either way, which is why J3 is a full 2×17
   header.
-- Routing and fabrication.
 - The front-panel switch, which is also the point at which this card and
   the [control pod]({{ '/hardware/interposer-upgrade/' | relative_url }}) have to agree on
   a physical interface. It is a **plain SPST flip switch: up = the physical drives,
-  down = the Gotek**, on a 2-wire lead with a series resistor — up is the fail-safe
-  position, because open leaves the control node pulled low.
+  down = the Gotek**, on a 2-wire twisted-pair lead with a series resistor — up is the
+  fail-safe position, because open leaves the control node pulled low.

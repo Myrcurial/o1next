@@ -246,15 +246,19 @@ and a FET gate; the FET's ~630 pF gate then turns in about a microsecond, which 
 irrelevant for a switch a hand moves. R1 sits on the **control** side of R5, so the
 fail-safe is unchanged: an unplugged lead is still a low.
 
-The card-end connector is a **bare 2-pin 2.54 mm header**, expecting a female
-Dupont/crimp housing on the wire. That is a deliberate choice rather than a
-default: the lead is a series SPST, so there is no polarity to key, and the failure
-mode of a lead that works loose is the safe one. **The alternative, if the lead
-should match the panel leads elsewhere in the project, is a JST PH 2.00 mm**
-(`S2B-PH-SM4-TB`) — the same part the WiFi COMM PAC uses for its keyboard-adapter
+**The card-end connector is DECIDED (2026-10-22): a bare 2-pin 2.54 mm header**, with
+a female Dupont housing on a **twisted pair** of leads to the panel switch. The
+maintainer's reasoning, recorded because it is the reason: *"just a pin header is
+fine — an appropriate switch with a twisted pair dupont connector wire is trivial to
+implement."* A series SPST has no polarity to key, the two wires are interchangeable,
+and a lead that works loose fails to the safe position; twisting the pair is what
+keeps the lead quiet next to the floppy cables.
+
+**Considered and rejected**, recorded so it is not re-litigated: a shrouded **JST PH
+2.00 mm** (`S2B-PH-SM4-TB`), the part the WiFi COMM PAC uses for its keyboard-adapter
 power port, where the shroud and polarising slot are what remove the reverse-voltage
-case. Shrouded means retained and no exposed 5 V pin; it also means the builder
-needs PH housings and a crimp for them. One footprint line either way.
+case. It would buy retention and no exposed 5 V pin, and cost PH housings and a crimp
+— for a two-wire series switch that does not need either.
 
 
 ### 4.6 Termination and pull-ups (why drive A matters)
@@ -392,10 +396,10 @@ machine is stock.
 
 ## 8. Open questions / decisions
 
-All seven items are closed, and item 3 is closed by the maintainer rather than by a
-session — the 2026-10-10 pass wrote it up as decided when it was still an open
-question, which is why it came back. Each carries the evidence it rests on; the two
-that remain bench-verifiable are flagged as such.
+All eight are closed, and two of them were closed by the maintainer rather than by a
+session — item 3 (the switch, after the 2026-10-10 pass wrote it up as decided while
+it was still open) and item 8 (the switch connector). Each carries the evidence it
+rests on; the two that remain bench-verifiable are flagged as such.
 
 1. **Drive topology — CONFIRMED (user, 2026-10-10).** The switch selects **drive
    A** (physical A ↔ Gotek); **drive B stays present** in both modes.
@@ -457,7 +461,16 @@ that remain bench-verifiable are flagged as such.
    that passes the pocket vent slots (a full 34-pin ribbon does not fit), with a
    3D-printed faceplate/bracket carrying the Gotek and the panel switch. This is
    the "Modification to support Gotek drives with 3D-printed floppy-disk
-   faceplate" write-up planned in `site/README.md` (§7).
+   faceplate" write-up planned in `site/README.md` (§7). The two accepted egress
+   routes — break the 34-pin run into parts that pass the slots, or cut the case for
+   a full-size cable — are in §7, and the card is the same either way.
+
+8. **Panel-switch connector — DECIDED BY THE MAINTAINER, 2026-10-22: a bare 2-pin
+   2.54 mm pin header.** *"just a pin header is fine — an appropriate switch with a
+   twisted pair dupont connector wire is trivial to implement."* The lead is a
+   series SPST (§4.5), so there is no polarity to key and the two wires are
+   interchangeable; the shrouded JST PH alternative is recorded in §4.5 as
+   considered-and-rejected rather than left open.
 
 ### Evidence added 2026-10-10
 
@@ -576,9 +589,17 @@ than by looking at the sheet:
    pin numbers, taken from their datasheets and cross-checked against KiCad's
    library symbols.
 
-Still open, and none of it is a drawing: the **physical design** (board outline,
-keep-outs, the Gotek mount and its pigtail), the **front-panel switch interface**
-with the control pod (#14), and the Rev B hardening recorded above.
+### State: the schematic is complete — the next step is the PCB
+
+Every decision this design needed is made (§8), every net is drawn, every part has a
+footprint, and the two things that were left hanging — the switch part and the
+switch connector — are closed. **The board is ready for PCB floorplan and routing**,
+which is the next unit of work: place the connectors on their faces, set the
+keep-outs against the mainboard and the pocket, and route it.
+
+The one thing the floorplan must respect is the reason the switch is silicon: **height
+is the binding constraint**, and the three switch packages are ~1.5 mm against a
+relay's 10 mm.
 
 
 
