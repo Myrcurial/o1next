@@ -14,7 +14,7 @@ are relative to this directory, and a board's home is always
 
 | Shortform | Board | Home | Tracking issues | State | Schematic |
 |---|---|---|---|---|---|
-| `floppy-adapter` | O1NEXT Floppy Adapter | `floppy-adapter/` | #62, #20, #95 | Rev A schematic **wired + footprinted** (K1's part open); no PCB | `floppy-adapter` |
+| `floppy-adapter` | O1NEXT Floppy Adapter | `floppy-adapter/` | #62, #20, #95 | Rev A schematic wired + footprinted, **solid-state switch decided**; no PCB | `floppy-adapter` |
 | `keyboard-adapter` | O1NEXT USB Keyboard Adapter | `keyboard-adapter/` | #47 | Reference design; **no schematic yet** (#47) | — |
 | `wifi-comm-pac` | O1NEXT WiFi COMM PAC | `wifi-comm-pac/` | #56, #21, #57, #324, #325 | Rev A schematic captured; no PCB | `wifi-comm-pac` |
 | `drive-c-repro` | O1NEXT Drive C Repro | `drive-c-repro/` | #84, #6 | Concept; **no schematic yet** (#84) | — |

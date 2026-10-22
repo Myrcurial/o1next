@@ -4,10 +4,12 @@ title: floppy-adapter
 subtitle: O1NEXT Floppy Adapter — a switchable Gotek / physical-drive daughter card
 ---
 
-**Status:** design settled; **the Floppy Adapter's Rev A schematic captured, wired
-and footprinted** — every net drawn, every part given a footprint except the
-switch, which is a purchase decision rather than a drawing one: the 4PDT relay
-this design named is obsolete, and the recommendation is two DPDT DIP-8 parts.
+**Status:** design settled; **the Floppy Adapter's Rev A schematic captured, wired,
+footprinted and re-captured** — every net drawn, every part given a footprint, and
+the switch **decided 2026-10-22: solid state**, because the case has no height for a
+relay. Three silicon parts — an NC7SB3157P6X 2:1 switch on DS-A, a TPS22918 on the
+Gotek's +5 V and an AO3400A on its ground return — with the same fail-safe as
+before: the switch's own truth table puts the *physical* drive on the S-low throw.
 Tracks **#62**, and the floppy interposer personality **#20**. Source:
 `hardware/floppy-adapter/`, `docs/floppy-adapter-design.md`. Board register:
 [`hardware/README.md`]({{ site.repository }}/blob/main/hardware/README.md).
@@ -58,10 +60,10 @@ trusting a prior adapter's transcription.
 
 ## Still to do
 
-- **Choose the switch part** — the 4PDT DIP relay this design named is obsolete,
-  and the board's one open decision is between two DPDT DIP-8 relays (recommended,
-  ~$4–12), the solid-state build (~$3), and a socketed industrial 4PDT (35 mm
-  tall). Then assign its footprint and rebind the symbol's pin numbers.
+- **Physical design** — board outline and keep-outs, the Gotek mount and pigtail,
+  and the front-panel switch lead. **Height is the binding constraint**: it is what
+  decided the switch, and the three silicon parts are ~1.5 mm against a relay's
+  10 mm.
 - Routing and fabrication.
 - The front-panel switch wiring, which is also the point at which this card and
   the [control pod]({{ '/hardware/interposer-upgrade/' | relative_url }}) have to agree on
