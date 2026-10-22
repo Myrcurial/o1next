@@ -936,12 +936,23 @@ def mark(net, a, b):
 
 
 def build_pins():
-    """A wire must never pass through another component's pin."""
+    """A wire must never pass through another component's pin.
+
+    **Including the no-connect pins.**  They are not in ``pinpts`` -- they carry
+    no net -- so they are easy to forget, and forgetting them is not theoretical:
+    on the floppy-adapter, whose router is a copy of this one, a wire ended on
+    J3.14 and K1.11 and the netlist grew two pins on a net that should not have
+    had them.  A no-connect marker says the pin goes *nowhere*; the netlist
+    believes the wire.  This board's own netlist is unchanged by the fix (98
+    nets, 0 differences) -- the hazard was latent here, not active.
+    """
     if pin_own:
         return
     for n, pts in pinpts.items():
         for (_r, _p, x, y, _s) in pts:
             pin_own[cell((x, y))] = n
+    for (x, y) in ncs:
+        pin_own[cell((x, y))] = None     # None matches no net, so nothing may reach it
 
 
 def astar(net, s, g, limit=3000000):

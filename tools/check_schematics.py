@@ -541,16 +541,36 @@ CHARGEN_2716 = {
 
 # Osborne 1 floppy interface, 34-pin Shugart-like.  Transcribed in
 # docs/floppy-adapter-design.md sec.2 and verified 2026-10-10 against FSM
-# 2F00040 and DWG 1A3004 (pins 2/4/6 are GND).  Pin 10 is the switched line,
-# pin 14 is not connected.
+# 2F00040 and DWG 1A3004 (pins 2/4/6/7 are GND).
+#
+# **This table was wrong, and being unused is what kept it wrong.**  It read
+# "pins 2/4/6 are GND" while docs/floppy-adapter-design.md sec.2 and the board's
+# own generator both said the opposite -- the O1 mainboard schematic (DWG
+# 1A2011-00 Rev E, sheet 9, the P8 symbol) puts **TG43 on pin 4 and EARLY on
+# pin 6**, both live FDC outputs, and the design doc spells out why grounding
+# them matters ("clamping TG43 low would assert reduced write current
+# permanently").  Nothing called the table, so nothing noticed; it is now the
+# pinout check for J1 and J2, which is also what makes it true or false.
+#
+# Pin 14 is None because it is not a driven signal on either drawing: P8 does
+# not draw it at all, so the card leaves both ends unconnected.
+#
+# The two drawings disagree about pin 2 vs pin 7 (P8: 2 = GND; the drive-end P2:
+# 7 = GND).  Neither is driven, so the card ties both to GND and this table is
+# correct whichever drawing is right.
 FLOPPY_SIGNALS = {
-    1: "GND", 2: "GND", 3: "GND", 4: "GND", 5: "GND", 6: "GND", 7: "GND",
-    8: "INDEX", 9: "GND", 10: "DS_A", 11: "+12V", 12: "DS_B", 13: "+12V",
-    14: None, 15: "+12V", 16: "4MHZ", 17: "+12V", 18: "DIR", 19: "GND",
-    20: "STEP", 21: "+5V", 22: "WDATA", 23: "+5V", 24: "WGATE", 25: "+5V",
-    26: "TRK0", 27: "GND", 28: "WPROT", 29: "GND", 30: "RDATA", 31: "GND",
-    32: "SIDE", 33: "GND", 34: "LATE",
+    1: "GND", 2: "GND", 3: "GND", 4: "FLP_TG43", 5: "GND", 6: "FLP_EARLY",
+    7: "GND", 8: "FLP_INDEX", 9: "GND", 10: "FLP_DS_A", 11: "+12V",
+    12: "FLP_DS_B", 13: "+12V", 14: None, 15: "+12V", 16: "FLP_4MHZ",
+    17: "+12V", 18: "FLP_DIR", 19: "GND", 20: "FLP_STEP", 21: "+5V",
+    22: "FLP_WDATA", 23: "+5V", 24: "FLP_WGATE", 25: "+5V", 26: "FLP_TRK0",
+    27: "GND", 28: "FLP_WPROT", 29: "GND", 30: "FLP_RDATA", 31: "GND",
+    32: "FLP_SIDE", 33: "GND", 34: "FLP_LATE",
 }
+# The pass-through end is the same interface with one line intercepted: DS-A
+# goes to the relay common, and the relay's NC contact returns to J2.10.
+FLOPPY_J2_SIGNALS = {**FLOPPY_SIGNALS, 10: "FLP_DS_A_PHY"}
+
 
 
 def pins(ref: str, numbers) -> set:
@@ -743,22 +763,107 @@ FLOPPY = Board(
     name="floppy-adapter",
     sch="hardware/floppy-adapter/floppy-adapter.kicad_sch",
     gen="hardware/floppy-adapter/gen_floppy_adapter_sch.py",
-    erc_allowance={"lib_symbol_issues": 12},   # embedded symbols, no sym-lib-table
+    # 20, and the number is derived rather than fudged: **every** violation this
+    # board produces is the one kind -- "The current configuration does not
+    # include the symbol library 'local'" -- and there is exactly one per *placed
+    # symbol*.  The generator emits 20 of them: 14 component symbols, the 3 rail
+    # power symbols and the 3 PWR_FLAGs.  It moves whenever a part is added,
+    # which is why the derivation is written down rather than the number.
+    # Verified with `kicad-cli sch erc --severity-all`: 20 messages, 20 of this
+    # type, 0 of any other, and **0 errors**.
+    erc_allowance={"lib_symbol_issues": 20},
+    # The interface itself, both ends: J1 is what the machine drives, and J2 is
+    # the same table with DS-A intercepted.  This is the check that the pinout
+    # transcription is right, and the one that would have caught the table above
+    # reading pins 4 and 6 as GND.
+    pinout=[("J1", FLOPPY_SIGNALS), ("J2", FLOPPY_J2_SIGNALS)],
+    # Footprint choices made for mechanical reasons, asserted by name: no net
+    # check can see a connector's gender, and a socket swapped for a header is a
+    # card that cannot be plugged into the machine.
+    mech={
+        "J1": ("Connector_PinSocket_2.54mm:PinSocket_2x17_P2.54mm_Vertical",
+               "a **socket**, because the logic board's P8 is a male header "
+               "(FSM 2F00040: 'be careful not to bend any pins') -- and the plain "
+               "vertical one, because this is a mezzanine mount with no room for "
+               "latch ears"),
+        "J2": ("Connector_IDC:IDC-Header_2x17_P2.54mm_Vertical",
+               "the OEM harness is a 2x17 IDC socket and pushes onto plain pins; "
+               "unlatched, because the harness is not latched"),
+        "J3": ("Connector_IDC:IDC-Header_2x17_P2.54mm_Vertical",
+               "the Gotek run is the same IDC interface, and J3 must match J2 so "
+               "the same pigtail can be used on either"),
+        "J4": ("Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Horizontal",
+               "the switched Gotek power lead leaves the card **parallel** to it, "
+               "like the signal pigtail, not up into the pocket roof"),
+        "J5": ("Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
+               "the panel-switch lead comes down onto the card from the front "
+               "panel, so its 2-way shell sits vertical"),
+        # The three switches: SMD, and the packages are the parts' own -- the
+        # switches have no through-hole equivalent that works on a 5 V bus.
+        "U1": ("Package_TO_SOT_SMD:SOT-363_SC-70-6",
+               "the 6-lead SC70 the NC7SB3157 comes in, and the only 5 V-capable "
+               "2:1 in this size class"),
+        "U2": ("Package_TO_SOT_SMD:SOT-23-6",
+               "DBV -- the only package the TPS22918 is offered in"),
+        "Q1": ("Package_TO_SOT_SMD:SOT-23",
+               "the AO3400A's package; the part is chosen for 28 mohm at "
+               "Vgs = 4.5 V, which is 14 mV of ground offset at half an amp"),
+    },
     exact_nets={
-        "FLP_DS_A": {("J1", "10"), ("K1", "8")},
-        "FLP_DS_A_PHY": {("J2", "10"), ("K1", "9")},
-        "FLP_DS_A_GOTEK": {("J3", "10"), ("K1", "10"), ("R3", "1"), ("R4", "1")},
+        # The switch *is* the design, so these are the assertions that matter:
+        # which throw of U1 is which device, and that all three switch parts hang
+        # off the one control node.
+        #
+        # U1's own truth table is "S low -> B0, S high -> B1", so **B0 is the
+        # physical drive**: a low, floating or unplugged control parks the machine
+        # on the real drive.  Swapping these two inverts the fail-safe and still
+        # looks right on the sheet, which is exactly why it is asserted.
+        "FLP_DS_A": {("J1", "10"), ("U1", "4")},
+        "FLP_DS_A_PHY": {("J2", "10"), ("U1", "3")},
+        "FLP_DS_A_GOTEK": {("J3", "10"), ("U1", "1"), ("R3", "1"), ("R4", "1")},
+        # one control node, three parts: the switch's select, the load switch's
+        # ON and the low-side FET's gate -- plus the pull-down that makes a
+        # broken or unplugged switch lead safe
+        "CTRL": {("R1", "1"), ("R2", "1"), ("R5", "2"), ("U1", "6"),
+                 ("U2", "3"), ("Q1", "1")},
+        # the switch lead itself, and R5 in series with it: this wire leaves the
+        # board for the front panel, so it is the one net that can arrive
+        # carrying something the board never sent
+        "SW_LEAD": {("J5", "2"), ("R5", "1")},
+        # the switched rails, and only downstream of the switches
+        "+5V_SW": {("U2", "6"), ("J4", "1")},
+        "GND_SW": {("Q1", "3"), ("J4", "2"), ("J4", "3")},
+        # the cable's +5 V feeds the switches themselves as well as the drives
+        "+5V": (pins("J1", (21, 23, 25)) | pins("J2", (21, 23, 25))
+                | {("J5", "1"), ("R3", "2"), ("R4", "2"), ("U1", "5"),
+                   ("U2", "1")}),
         "FLP_DS_B": {("J1", "12"), ("J2", "12")},
         "FLP_4MHZ": {("J1", "16"), ("J2", "16")},
+        # Pins 4 and 6 carry the FDC's TG43 and EARLY: they pass through and are
+        # never tied to a rail.  This is the pair the stale table above got wrong.
+        "FLP_TG43": {("J1", "4"), ("J2", "4")},
+        "FLP_EARLY": {("J1", "6"), ("J2", "6")},
         "+12V": pins("J1", (11, 13, 15, 17)) | pins("J2", (11, 13, 15, 17)),
-        "+5V_SW": {("J4", "1"), ("K1", "4")},
-        "GND_SW": {("J4", "2"), ("J4", "3"), ("K1", "7")},
+        "LED_A": {("R2", "2"), ("D2", "1")},
+    },
+    # The ground tree spans the whole sheet, so it is asserted by *what it must
+    # contain* rather than in full: every switch part's ground, and both
+    # connectors'.
+    contains_nets={
+        "GND": {("Q1", "2"), ("U1", "2"), ("U2", "2"), ("R1", "2"), ("D2", "2"),
+                ("J1", "1"), ("J2", "1")},
     },
     excludes_nets={
         # the Gotek header carries signals only -- never a power rail or 4 MHz
         "+12V": pins("J3", range(1, 35)) | pins("J4", range(1, 5)),
         "+5V": pins("J3", range(1, 35)) | pins("J4", range(1, 5)),
         "FLP_4MHZ": pins("J3", range(1, 35)) | pins("J4", range(1, 5)),
+        # and neither switched rail reaches the machine side: they exist only
+        # downstream of the switches, which is what makes the switch a switch
+        "+5V_SW": (pins("J1", range(1, 35)) | pins("J2", range(1, 35))
+                   | pins("J3", range(1, 35))),
+        "GND_SW": (pins("J1", range(1, 35)) | pins("J2", range(1, 35))
+                   | pins("J3", range(1, 35))),
     },
     passthrough=[
         # the cable passes straight through except the switched line and NC
@@ -770,8 +875,15 @@ FLOPPY = Board(
         # Loxley's 11-line audit: exactly these J3 pins, nothing else
         "J3": set(range(1, 35)) - {8, 10, 18, 20, 22, 24, 26, 28, 30, 32, 34},
         "J4": {4},
+        # U2's CT (rise time) and QOD (quick output discharge) are left open --
+        # open CT is the fastest rise, and open QOD disables the discharge
+        "U2": {4, 5},
+        # pin 14 is not a driven signal on either drawing
+        "J1": {14},
+        "J2": {14},
     },
 )
+
 
 # Interposer Rev A engineering sample.  J1 plugs into the O1's Z80 socket and
 # U1 is the on-board Z84C00, so both must follow the Z80 DIP-40 pinout exactly.
