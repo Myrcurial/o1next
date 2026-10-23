@@ -45,8 +45,9 @@ Prior art, deliberately **not** copied:
 The O1 uses a Shugart-like 34-pin interface, but with **+5 V and +12 V routed to
 the drives over otherwise-unused cable pins** — there are no separate drive power
 connectors. The pin functions below are **read from the O1 mainboard schematic
-itself** — DWG 1A2011-00 Rev E, sheet 9 of 9 (DISC CONTROLLER), the P8 symbol
-(§8.2) — and they agree with the archived Wayne Visser adapter
+itself** — DWG 1A2011-00 Rev E, sheet 9 of 9 (DISC CONTROLLER), the P8 symbol;
+the same pinout is extracted in `docs/o1-mainboard-schematic.md` §5 — and they
+agree with the archived Wayne Visser adapter
 (`research/osborne1/floppy-adapter/FloppyAdapter.sch`), Loxley's signal audit and
 the standard Shugart ordering for the shared signals.
 
