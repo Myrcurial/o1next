@@ -2,8 +2,10 @@
 
 Hardware for the o1next project. **One folder per board, and the folder name is the
 board's name** — the *shortform*. Each folder carries that board's spec, its
-decisions and (eventually) its KiCad project. No PCB layouts exist yet (Phase 1,
-#11).
+decisions and its KiCad project.
+
+**No PCB layout exists yet** (Phase 1, #11); three boards have a schematic, three do
+not, and the `State` column below is the per-board answer.
 
 ## The board register
 
@@ -92,8 +94,10 @@ header pin assemblies wired back-to-back.
   host brief and the one test matrix.
 - **MODEM port (P1) is TTL, not RS-232**, and its RXD is bipolar — the modem must
   swing TX-toward-O1 negative for a clean mark (`docs/o1-modem-serial.md`). Its
-  **+12.6 V on pin 7 is direct from the supply** (`+12 V @ 2.02 A`); the 22 Ω
-  (R21) is the **keyboard** branch through J6, not this port.
+  **+12.6 V on pin 7 sits behind the machine's 22 Ω (R21)**, which the keyboard
+  branch through J6 shares: the supply is rated `+12 V @ 2.02 A`, but 22 Ω in series
+  is a hard current limit, so this is a **low-current port** — tens of mA average,
+  with the transmit peaks coming off bulk capacitance (`wifi-comm-pac/README.md`).
 - **P4 keyboard connector:** pin 19 = +12 V via jumper J6 + R21 — usable to power
   small adapter boards (`keyboard-adapter/`).
 

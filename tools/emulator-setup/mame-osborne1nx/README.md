@@ -11,6 +11,13 @@ The machine and the device are written as a real MAME machine and a real MAME
 device, so the patch is shaped to be sent upstream — and so that the same
 device, on hardware, is the RP2354B firmware's personality (#179, #192).
 
+**It is a patch, so `mame` on `PATH` has no such machine.** To build it,
+`apply.sh` puts the machine into a MAME source tree and rebuilds the subtarget;
+to test it, run the harnesses in this directory (each is one command, and prints
+what it checked); to *use* it, run `./boot-o1next.sh` — video and sound on, real
+time, up to two floppy images on the command line and a hard disk through
+`O1_HARD`.
+
 ## What is in here
 
 | File | What it is |
@@ -22,10 +29,10 @@ device, on hardware, is the RP2354B firmware's personality (#179, #192).
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
 | `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
-| `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1's selector** — the transaction the ROM's screen code will drive, the measurement that settles the door's address, and `PRESENT(3)` (#247) |
-| `romservice-check.sh` | **the door's acceptance** — that the animation is a valid asset, the four combinations of the frame and the splash, two bad frames, and each wrong-sized asset refused (#247). The frame is **derived** from the animation's resting frame by `tools/research/bootanim.py`; `frame.bin` was retired on 2026-10-16 |
-| `o1next-bootscreen.lua` | the headless check of **the screen itself** — the two video planes read back off the machine after the ROM's stub has run, and the fallback the code prints when there is no frame (#247) |
-| `bootscreen-check.sh` | **the screen's acceptance** — the frame on both planes with the splash mounted, the stock sign-on with it absent, and the fallback on its own rows (#247) |
+| `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1** — the mailbox transaction the ROM drives, the measurement that settles the door's address, and `PRESENT(0)`, the one content id left (#247, #278) |
+| `romservice-check.sh` | **the door's acceptance** — that the animation is a valid asset, that the door answers (ECHO, INFO, NOP, an unknown opcode, the abandon rule), that page 1 is the payload, and the address, all in one command (#247, #278) |
+| `o1next-bootscreen.lua` | the headless check of **the screen itself** — the two video planes read back off the machine after the monitor's own screen code has run, and the fallback text that is the trigger the RP2354B watches for (#247, #278) |
+| `bootscreen-check.sh` | **the screen's acceptance** — the fallback on both planes, at its own rows and its own dim runs, with nothing mounted beside the monitor (#247, #278) |
 | `rom2boot.lua` | the headless check of **ROM 2.0's `HCBOOT`** — the chain read back stage by stage (#247) |
 | `rom2-check.sh` | **the chain's acceptance** — ROM 2.0's image in the window, RETURN, and what the monitor then does; `O1_BSH=6` re-runs the same nine checks on 8 KiB blocks (#247) |
 | `rom2trace.lua` | **where the boot goes after the chain** — the PC sampled finely, the stack unwound, and the two cells the hand-over turns on (#247) |
@@ -45,7 +52,7 @@ The patch touches seven files:
 - `src/mame/mame.lst` — registers the machine (MAME builds its driver list from this)
 - `scripts/src/machine.lua` — registers the new devices' sources
 - `src/devices/machine/acb4000_host_adapter.{h,cpp}` — the card, new
-- `src/devices/machine/softrom.{h,cpp}` — the ROM window, the two flash assets, and the ROM service's door, new
+- `src/devices/machine/softrom.{h,cpp}` — the ROM window and the ROM service's door, new
 
 ## Applying it
 
@@ -78,21 +85,21 @@ tools/research/rom2image.py -o /tmp/rom2.rom
 mame osborne1nx -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom
 ```
 
-**There are no asset slots any more (#278, 2026-10-17).** `-frame` and `-bootsplash`
-mounted the interposer's own flash — the boot frame's two halves, and the screen's
-code as one window page — and the ROM asked for them through the **ROM service's
-door** (`docs/rom-pico-protocol.md` §4 and §5). The ROM-side frame path retired: the
+**There are no asset slots (#278).** `-frame` and `-bootsplash` mounted the
+interposer's own flash — the boot frame's two halves, and the screen's code as one
+window page — and the ROM asked for them through the **ROM service's door**
+(`docs/rom-pico-protocol.md` §4 and §5). The ROM-side frame path retired: the
 RP2354B is the display, it plays the animation out of its own flash, and the Z80's
 whole role is the *trigger*, so the ROM asks the interposer for nothing at the
 sign-on, page 1 is the payload always, and `PRESENT(1)`, `PRESENT(2)` and
 `PRESENT(3)` answer `09h` and leave page 1 alone. `PRESENT(0)` is the one content id
 left.
 
-The boot screen's asset is still here, and it is the animation: the boot screen is
-`firmware/rom-service/boot-animation.bin`, which the **RP2354B** plays out of its own
-flash. The frame the ROM was served used to be derived from it with
-`tools/research/bootanim.py --resting`, and `screen.bin` used to be the screen's code
-— both retired with the frame path (#278), and the tool's `--resting` with them.
+The boot screen's asset is the animation: `firmware/rom-service/boot-animation.bin`,
+which the **RP2354B** plays out of its own flash. `frame.bin` — the served frame,
+which `tools/research/bootanim.py --resting` derived from the animation's resting
+frame — and `screen.bin` — the screen's code, served as a window page — retired with
+the frame path (#278), and the tool's `--resting` with them.
 
 So the ROM side has exactly one thing to say about the asset: that it is **valid** —
 the container's own sum, its declared geometry and flags, and every frame's own
@@ -105,11 +112,8 @@ python3 tools/research/bootanim.py --check firmware/rom-service/boot-animation.b
 mame osborne1nx -rompath tools/emulator-setup/roms -softrom /tmp/rom2.rom
 ```
 
-**That is the headless shape and `mame` on `PATH` has no such machine** — it is a
-patch, so the binary is the one `apply.sh` built. To actually *use* the machine
-rather than test it, run `./boot-o1next.sh` instead: same machine, video and sound
-on, real time, up to two floppy images on the command line and a hard disk through
-`O1_HARD`. See `boot-o1next.sh`'s header, and AGENTS.md.
+**That is the headless shape.** To actually *use* the machine rather than test it,
+run `./boot-o1next.sh` — see its header, and AGENTS.md.
 
 **Headless means an SDL build.** `-video none` picks the *renderer*, not the
 window: the window belongs to the OSD, and MAME's default is full screen
@@ -138,7 +142,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | the card owns `30h`–`33h` | **yes** — writes there do not bank-switch |
 | the MD-10 presence probe | **yes** — `IN (32h)` reads `04h`; after `OUT (32h),00h` it reads `00h` |
 | the ID scan | **yes** — `PREP.COM` finds the controller at select byte `01h` only |
-| **`PREP.COM` (the MD-10 drive-table editor) runs unpatched** | **yes** — its main menu, the drive-table submenu, *and* its whole initialize/format flow |
+| **`PREP.COM` (the MD-10 drive-table editor) runs unpatched** | **yes** — its main menu, the drive-table submenu, *and* its initialize/format flow, which then loops on the verify pass (see "What is left") |
 | `HARD.COM` reaches the controller | **yes** — real commands (`TEST UNIT READY`, then `READ` LBA 5 ×11 — the `CCP`+`BDOS` it boots) |
 | the **data phase** (`INQUIRY`, `MODE SENSE`, `READ CAPACITY`, `READ`) | **yes** — 22/22 checks, `o1next-dataphase.lua` |
 | the **data-out** phase (`MODE SELECT`, `SEND DIAGNOSTIC`) | **yes** — both complete |
@@ -152,7 +156,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | **`-softrom` (the 7695-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
 | **ROM 2.0's `HCBOOT`** — the CBIOS, the MD-10 BIOS, its patch, the bank, the read | **yes** — `rom2boot.lua`, five checks, in `rom2-check.sh` |
 | ROM 2.0 booting the hard disk to `A0>` | **yes** — nine checks in `rom2-check.sh` including the prompt, and again on 8 KiB blocks with `O1_BSH=6` (`docs/md10-system.md` §9.3) |
-| the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** — re-measured after the window change, unchanged |
+| the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** |
 | the **N-drive driver** — 11 drives `A0>`..`K0>`, a file on each, each its own ALV, each read landing inside its own partition | **yes** — `rom2drives.lua`, 27 checks, `docs/md10-system.md` §9.4 |
 | `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
 
@@ -185,23 +189,19 @@ three ways and the boot comparison three ways, and is one command:
 tools/emulator-setup/mame-osborne1nx/softrom-check.sh
 ```
 
-Measured on 2026-10-14, and again on 2026-10-15 with the hand-over in the image:
-`PASS` on all five, with the 7695-byte image reading `C3 ED E4 …` at `1000h` (the
-CBIOS's first bytes) against `31 C1 EF …` at `0000h` (the monitor's), the hand-over
-stub at `1E01h`, and `FF` from `1E0Fh` to `1FFFh`.
+Measured, with the hand-over in the image: `PASS` on all five, with the 7695-byte
+image reading `C3 ED E4 …` at `1000h` (the CBIOS's first bytes) against
+`31 C1 EF …` at `0000h` (the monitor's), the hand-over stub at `1E01h`, and `FF`
+from `1E0Fh` to `1FFFh`.
 
-### The ROM service's door, and page 1's selector
+### The ROM service's door
 
-The window's page 1 is not always the payload. The ROM's screen asks the
-interposer for the boot frame — two 4096-byte halves, characters and attributes —
-and page 1 serves whichever half it asked for, through a bank-2 register pair
-(`docs/rom-pico-protocol.md` §4 and §5). The boot splash is a third asset the same
-way: the code does not fit the monitor's tail, so the monitor keeps a ~30-byte stub
-that asks for it with `PRESENT(3)`, copies page 1 to RAM at `4000h` and jumps
-(`docs/o1-rom-2.0.md` §4.7). The device implements the transaction: write the
-opcode then its operands to `2800h`, read the reply from `2801h` (`0` = not ready,
-else the length, then the bytes), with the mailbox protocol's result codes and its
-abandon-a-pending-reply recovery rule.
+The ROM asks the interposer for things through a bank-2 register pair
+(`docs/rom-pico-protocol.md` §4 and §5): write the opcode then its operands to
+`2800h`, read the reply from `2801h` (`0` = not ready, else the length, then the
+bytes), with the mailbox protocol's result codes and its abandon-a-pending-reply
+recovery rule. Page 1 is the payload always — `PRESENT(0)` is the one content id
+left, and the three that retired with the frame path answer `09h` (#278).
 
 ```sh
 tools/emulator-setup/mame-osborne1nx/romservice-check.sh
@@ -218,36 +218,26 @@ aliasing `tools/o1_mame_probe.lua`'s C9 report and
 matters *here*, and `2800h` is the fix — the part of
 `docs/o1-memory-io-map.md` §7's recommended block that nothing selects.
 
-`romservice-check.sh` runs the harness six ways — the four combinations of the
-frame and the splash, so each of `INFO`'s flags is seen set and clear, plus a
-corrupt frame and an erased one — and each wrong-sized asset is refused with the
-reason, so the fallback path is proved before the ROM code that depends on it
-exists.
+`romservice-check.sh` is one command, and it runs the animation's validity check
+beside the door's own.
+
+**And the screen itself has an acceptance, which is the one that reads the
+*result* rather than a door.** ROM 2.0's monitor calls its own screen code at the
+sign-on — fill the attribute array bright, print the fallback, return — and
+`bootscreen-check.sh` reads the two video planes back off the machine and compares
+them against the animation's own two lines and its own bright/dim runs: the
+character plane by value, and the attribute plane's dim runs, whose total is
+checked too, so the fill cannot come up short.
 
 ```sh
 tools/emulator-setup/mame-osborne1nx/bootscreen-check.sh
 ```
 
-**And the screen itself has an acceptance now, which is the one that reads the
-*result* rather than a door.** ROM 2.0's monitor calls its stub at the sign-on, the
-stub asks for the screen's code with `PRESENT(3)` and jumps into it, and the code
-blits the frame into the two video planes — so `bootscreen-check.sh` reads those
-planes back off the machine and compares them against `frame.bin`: the character
-plane byte for byte, and the attribute plane bit 7 (the array is one bit wide, so
-that is the whole comparison — and it still bites at `0FF8h`, where the frame's own
-attribute trailer is dim and the bright fill alone would leave it lit). It is run
-twice, because one run cannot tell "the code drew it" from "it happened to be
-there": with no splash mounted the stub takes its fallback, prints the stock 1.44
-sign-on, and the frame has to **not** be on the screen.
-
-That acceptance is what found the two defects in the screen code (2026-10-15,
-#247 turn 4), neither of which any boot could see: the door helper's `JNZ` was
-testing flags left by its *length* probe instead of by the result code, so every
-caller took its "no such content" path however well the door answered; and the
-frame trailer's *sum* was read from the half's `0FFEh` instead of the window's
-`1FFEh`. Both are fixed, and the monitor is 128 bytes rather than 130.
-
-
+**The fallback is not decoration — it is the trigger.** The RP2354B plays the
+animation out of its own flash and stops on the Z80's first video-RAM write, so the
+text the monitor prints is what says when to stop, and it is the one thing the
+frame path's retirement must not disturb (`docs/rom-pico-protocol.md` §5.1,
+`docs/o1-rom-2.0.md` §4.9).
 
 `tools/research/rom2asm.sh` assembles ROM 2.0's monitor — the vendor's 1.44 with
 the new code in the free tail of it — with the vendor's own ACT80, and
@@ -309,17 +299,16 @@ RETURN takes the stock floppy-A path and the machine never enters `HCBOOT`.
 can. Check the image before believing a negative: `0F67h` must be `21 00 10`
 (`LD HL,1000h`), not `C3 00 00`.
 
-
 **The boot key is RETURN, and it is a plain carriage return (#247 step 4).** The
 monitor's sign-on dispatch boots the machine's own hard disk on RETURN, `:` is
 floppy A and `"` is floppy B, and ESC is released — it falls through to the
-prompt's `JR START` like any unclaimed key. Every harness here used to press ESC,
-which on this machine is a *key* code (`PORT_CHAR(UCHAR_MAMEKEY(ESC))`), so
-`natkeyboard:post("\27")` matched no port and pressed nothing — silently, and the
-code had to be read out of the natkeyboard's own table (`natkeyboard:dump()`:
-`0010003B (Escape)`). RETURN retires all of that. `tools/research/o1keys.lua`'s
-`key esc` still exists and still reads the code from the table, because
-`PREP.COM`'s menus need it — see `docs/md10-system.md` §2.
+prompt's `JR START` like any unclaimed key. ESC is also the one key that cannot be
+posted as a character: on this machine it is a *key* code
+(`PORT_CHAR(UCHAR_MAMEKEY(ESC))`), so `natkeyboard:post("\27")` matches no port and
+presses nothing — silently, and the code has to be read out of the natkeyboard's
+own table (`natkeyboard:dump()`: `0010003B (Escape)`).
+`tools/research/o1keys.lua`'s `key esc` still exists and still reads the code from
+the table, because `PREP.COM`'s menus need it — see `docs/md10-system.md` §2.
 
 ### Driving a transfer
 
@@ -368,7 +357,7 @@ said it would.
 
 `peek 0x055E` / `0x056E` — the DPH/DPB tables the MD-10 BIOS's `SELDSK` builds
 from the geometry above — is the one acceptance item still open. It is not a card
-problem any more, and the reason is measured: `HARD.COM` is a **hard-disk boot
+problem, and the reason is measured: `HARD.COM` is a **hard-disk boot
 loader**, not an installer. It reads LBA 5 for 11 blocks (`0x1600` bytes = the
 `CCP`+`BDOS` of the O1 system layout), patches page zero to point at itself and
 jumps into what it read — so the drive has to *already* carry an MD-10 system.
@@ -380,7 +369,7 @@ emulated seconds at *"Verifying disk (first pass)..."*, 1 772 618 `2F` commands
 over LBA `0`–`0xFF`). That is why the drive is **built** rather than formatted —
 `tools/research/mkdrive.py`.
 
-**What the drive has to carry is no longer the open question.** The on-disk
+**What the drive has to carry is settled.** The on-disk
 header `PREP.COM` writes is read out of the program and confirmed on the emulated
 drive: four 512-byte blocks at LBA 0–3 — the **disk label** at LBA 0 (built at
 `0x36CE`, `M`/`D` at `+0`, the label text at `+14`, a 28-byte partition table

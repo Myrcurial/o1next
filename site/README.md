@@ -76,10 +76,10 @@ The look is taken from the machine, not invented:
 - **The menu is left justified**, never pushed to the right, and the items are
   divided by a literal `|` so the grouping still reads when the row wraps — which
   it does at 52 columns, where the face is at its widest.
-- **The wordmark** (`_includes/logo.svg`) derives from the Osborne Computer
-  Corporation logotype: O, N and E are its letterforms; 1, X, T and G are drawn
-  to the same measured metrics. It is an homage for a non-commercial project and
-  claims no affiliation.
+- **The wordmark** (`assets/o1next-wordmark.svg`) derives from the Osborne
+  Computer Corporation logotype: O, N and E are its letterforms; 1, X, T and G
+  are drawn to the same measured metrics. It is an homage for a non-commercial
+  project and claims no affiliation.
 
 Layouts live in `_layouts/` and override the theme's, because minima put the
 project name in the masthead, the nav, the page heading, the footer heading and

@@ -1,18 +1,20 @@
 # wifi-comm-pac — the O1NEXT WiFi COMM PAC (ESP32 Zimodem fork)
 
 **Board:** `wifi-comm-pac` — the **O1NEXT WiFi COMM PAC** — the project's
-**third deliverable**. See the register in [`../README.md`](../README.md). It
-closely models the original Osborne 1 COMM PAC 300-baud modem and lives in the
-left-hand floppy storage pocket, taking power and signal from the MODEM (P1)
-9-pin port. The PCB also hosts ~10 indicator LEDs, a 15 × 11 mm speaker, the aux power
-port for the keyboard adapter, and a USB-C port for programming or powering the
-ESP32.
+**third deliverable**. See the register in [`../README.md`](../README.md).
 
-Hayes-compatible WiFi modem for the Osborne 1, built as **one design with two
-physical instantiations**: the standalone COMM PAC in the machine's floppy
-pocket, and the same schematic copied onto the interposer and the SFF board
-(#323). It is not a daughterboard — the interposer carries its own copy of the
-circuit, and only the thing on the far end of GPIO15/16 differs.
+A Hayes-compatible WiFi modem for the Osborne 1 that closely models the original
+Osborne 1 COMM PAC 300-baud modem. It lives in the left-hand floppy storage pocket,
+taking power and signal from the MODEM (P1) 9-pin port; the PCB also hosts eleven
+indicator LEDs, a 15 × 11 mm speaker, the aux power port for the keyboard adapter,
+and a USB-C port for programming or powering the ESP32.
+
+**State: the Rev A schematic is captured; there is no PCB layout yet.**
+
+It is **one design with two physical instantiations** — the standalone COMM PAC in
+the machine's floppy pocket, and the same schematic copied onto the interposer and
+the SFF board (#323). It is not a daughterboard: the interposer carries its own copy
+of the circuit, and only the thing on the far end of GPIO15/16 differs.
 
 Tracks: #56 (extension of #21). Physical interface documented by #57.
 
@@ -35,10 +37,9 @@ Tracks: #56 (extension of #21). Physical interface documented by #57.
 connector, which is what lets the antenna go on a pigtail to the case edge, away
 from the floppy drives and the CRT (#56 §D).
 
-That is the *current* part rather than a preference. On 2026-10-19, against
-Espressif's own datasheets: the **MINI-1/MINI-1U are NRND**, and the **WROOM and
-SOLO/SOLO-U are end of life** (2025-02-24 and 2024-09-05). The MINI-2 line is what
-is still recommended for new designs.
+That is the part Espressif still recommends rather than a preference: the
+**MINI-1/MINI-1U are NRND**, and the **WROOM and SOLO/SOLO-U are end of life**
+(2025-02-24 and 2024-09-05). The MINI-2 line is what is recommended for new designs.
 
 **The pin map is [`pinmap.md`](pinmap.md)** — fourteen GPIO allocated, the other 23 of
 the module's 37 deliberately left free, the panel and the four P1 handshake lines on
@@ -78,8 +79,8 @@ only six of them (no CTS, no RI), and ours uses all of the status lines.
 
 **5 V TTL is not 3.3 V, and this board has to say so.** The 6850 and the PIA are
 +5 V parts, so TXD and MCB arrive as a 0–5 V swing. The ESP32-S2's input limit
-is `VDD + 0.3` — it is **not 5 V tolerant**. An earlier version of this file
-said the receive direction needed "no level work"; it does.
+is `VDD + 0.3` — it is **not 5 V tolerant** — so every path below needs level work,
+in both directions.
 
 | Path | Part | Why |
 |---|---|---|
@@ -92,30 +93,41 @@ The MAX3232's receivers are RS-232-threshold and must **not** be used for the
 TTL lines. Its 3.3 V rail is taken **after** the diode-OR, so an unpowered board
 can never drive the machine's RXD.
 
-Still to confirm in hardware: the physical orientation of the 2×5 header, and
-the RXD negative swing, both on a real machine (#324).
+Still to confirm in hardware: the **RXD negative swing**, on a real machine (#324).
 
 ## Power
 
-**DE-9 pin 7 is +12.6 V DC, and it is not behind the 22 Ω.** Reading sheet 7 of
-9 at 600 dpi settles it: `R21 = 22 Ω` sits between the `+12V` net and
-**`J6 pin 1 → J6 pin 2 → P4-19`** — the *keyboard* branch. P1 pin 7 is drawn on
-the `+12V` net with **no series part on the sheet**. The Astec supply is rated
-`+12 V @ 2.02 A` (11.40–12.60 V), and the Comm-Pac manual labels the pin
-**+12.6 V**.
+**DE-9 pin 7 is +12.6 V DC, and it is behind the 22 Ω.** The Technical Manual
+§4.3.2 says so in words — "7 +12v — Connected to power supply through 22 ohms" —
+and sheet 7 of 9 shows the arrangement: `R21 = 22 Ω` hangs off the `+12V` rail and
+its lower end is a junction feeding **both** P1 pin 7 and **`J6 pin 1 → J6 pin 2
+→ P4-19`**, the keyboard branch.
 
-So the old "shared R21 budget" story is retired: the keyboard adapter's 22 Ω and
-this port's supply are **separate**, and the port can supply what a period modem
-drew. The maintainer's figure for the original COMM-PAC is **~500 mA at 12 V**;
-the modern board is a small fraction of that.
+The sheet labels that node `+12V`, which is what makes this easy to get wrong:
+old schematics name a current-limited net after the rail it comes from, so **the
+series part sits upstream of the label, and a net label does not tell you where
+it is**. A 600 dpi read of the sheet alone does not settle it; the manual is the
+tie-breaker, and it says *through 22 ohms*.
 
+**That makes the port a low-current supply, and it is the design constraint.**
+22 Ω in series is a hard limit: 500 mA through it would drop 11 V, and 100 mA
+drops 2.2 V, so the board's average draw has to be tens of mA. The keyboard
+adapter (#47) shares the same resistor, so the budget is shared and marginal —
+the eleven-lamp panel at **2–3 mA per lamp** (#322) is sized for exactly that.
+The Comm-Pac manual quotes **no** supply current anywhere, so there is no period
+figure to size against; the limit is the resistor, and the peak comes from the
+capacitor.
+
+- **Bulk capacitance is doing real work, not tidiness.** A WiFi TX burst is a few
+  hundred mA; `R21` cannot supply that, so the capacitor supplies the peak and
+  `R21` supplies the average. Size the cap from the burst energy, and check the
+  average draw against the shared budget — with 22 Ω in the path there *is* an
+  inrush and peak problem to design around.
 - **Buck 12.6 V → 5 V**, then **5 V → 3.3 V**; USB-C VBUS is **5 V → 3.3 V only**.
   Two sources, **diode-OR** (Schottky pair, or a P-FET ideal diode if the drop
   matters) so neither back-feeds the other.
 - **Switch ahead of the buck**, latching slide type, so "off" is genuinely dark.
   USB still runs the board with no machine attached (bench-prep, #207).
-- **Bulk capacitance at the buck input** for WiFi TX bursts — a few hundred µF.
-  With no 22 Ω in the path there is no inrush problem to design around.
 - The machine's `−12 V` rail is rated **0.1 A**; the negative rail for RXD comes
   from the MAX3232's own charge pump, never from the machine.
 
@@ -134,8 +146,7 @@ Both are fitted, because the handshake is not optional: 16 channels each, 5 and
 
 The expander **holds its outputs**, so a hung firmware leaves a readable frozen
 panel rather than a dark one. Two **INTN** lines go to GPIO38 and GPIO21, and
-`RESETN` is strapped with an RC (or shares one GPIO) — the earlier map had no
-pin for either, which the second expander forces us to fix.
+`RESETN` is strapped with an RC (or shares one GPIO).
 
 LED states and semantics are #322; current is set to **2–3 mA** per lamp.
 
@@ -167,8 +178,8 @@ comes off the datasheet's mechanical drawing: the 15 × 11 × 3 mm body, and **t
 0.6 mm square solder pads on the left and right sides**. They are drawn 14.4 mm
 apart, with each pad's outer edge flush with the 15 mm body end — that flush
 offset is the one number read rather than stated, and it is what would change if
-the drawing insets them. The part it replaced was a Multicomp Pro
-MCKPT-G1340-3917 piezo buzzer; that footprint has been deleted.
+the drawing insets them. **The piezo route is closed, not deferred:** the Multicomp
+Pro MCKPT-G1340-3917 buzzer is not fitted, and its footprint is not on the board.
 
 Dial tone, DTMF and ring cadence are in #322; prior art is `na103/zimodem`
 (CC BY 4.0 — method only).
@@ -215,10 +226,10 @@ connected *across the page* and so cannot be followed:
 
 ### The free-GPIO header, J4 — and why it is 2×13
 
-U5 leaves **26 GPIO** unused. They were marked no-connect, which is correct but
-*terminal*: the pad is on the module's footprint, the header is not, and reaching
-it later means redoing the board. **J4** brings all 26 out to a **2×13 header** —
-2×13 exactly, because that is the 26 GPIO and not 2×14 with grounds.
+U5 leaves **26 GPIO** unused. No-connect is correct but *terminal*: the pad is on
+the module's footprint, the header is not, and reaching it later means redoing the
+board. **J4** brings all 26 out to a **2×13 header** — 2×13 exactly, because that
+is the 26 GPIO and not 2×14 with grounds.
 
 **It is left unpopulated, and marked `dnp`** so KiCad keeps it out of the BOM and
 off the placement file. That is the difference between "left unfitted on purpose"
@@ -291,10 +302,9 @@ sheet in KiCad. **A wire KiCad would rewrite is a wire drawn wrong**, so the
 generator now does the normalisation itself.
 
 It is checked, not asserted: `kicad-cli sch upgrade` re-saves the schematic in the
-current format — the operation that broke the old file — and the netlist before
-and after is identical (70 nets, 248 nodes, 0 single-node nets, 317 wires and 8
-junctions unchanged). The old file went from 15 overlaps to a broken netlist under
-the same operation.
+current format — the operation that detaches pins from an overlapping drawing — and
+the netlist before and after is identical (70 nets, 248 nodes, 0 single-node nets,
+317 wires and 8 junctions unchanged).
 
 ```sh
 python3 hardware/wifi-comm-pac/gen_wifi_comm_pac_sch.py
@@ -313,7 +323,7 @@ python3 tools/check_schematics.py --board wifi-comm-pac
 | U9, U10 | TPS54331, AP2112K | 12.6 V → 5 V → 3.3 V |
 | D13, D14 | Schottky pair | the diode-OR between the port and USB |
 
-**Footprints are now all assigned** — **71 of 71** component symbols carry one, so
+**Footprints are all assigned** — **71 of 71** component symbols carry one, so
 `Update PCB from Schematic` transfers every part rather than nothing.
 
 **But the board is not yet correct, and this is the first layout task.** The
@@ -328,7 +338,7 @@ rather than wrong: U1/U2 (9 pins against 16 pads, two of four channels modelled)
 U8 (9 against 17), U3 (5 against 6), U6/U7 (24 against 25 — pad 25 is the exposed
 pad), SW1 (2 against 7 — the five mounting tabs). U4, U9 and U10 are exact.
 
-**J3 is the exception** that shows the fix: it now uses the part's own numbers
+**J3 is the exception** that shows the fix: it uses the part's own numbers
 (A1–A12, B1–B12, SH1–SH6) because its footprint has 30 pads and every one of them
 needed a net. Doing the same for the others means binding each signal to a real
 module pin, which is a **GPIO allocation decision** for U5 rather than a datasheet

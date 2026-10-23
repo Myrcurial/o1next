@@ -8,6 +8,9 @@ any one of the first three boards** (`keyboard-adapter`, `wifi-comm-pac`,
 `next-integrated` board**, which designs the same capability in as firmware
 instead of stacking it on.
 
+**State: the Rev A engineering-sample schematic exists (`reva/`, with Rev 0 kept in
+`rev0/`); Rev B is a pin map and has no schematic yet (#259). No PCB layout exists.**
+
 Tracks: #11 (Phase 1 hardware design), #12 (electrical/mechanical
 interface spec), #83 (ROM 2.00), **#259** (one board — it absorbs #13 and #15),
 #297 (CLK), #303 (the address path), #304 (the fabric model).
@@ -34,9 +37,9 @@ back-to-back**: the nets for the ROM chips are *air connected* across that pair
 rather than routed on the board. It is the same trick that lets the tap be a
 DIP-down/ribbon-up daughterboard at all (tap 2), and it keeps the panel single.
 
-Only the interposer's own schematic exists today (`rev0/`, `reva/`, `revb/`); the
-pod and the two taps are sections of it, so they have notes rather than schematics
-of their own.
+Only the interposer's own schematics exist today (`rev0/` and `reva/`); the pod and
+the two taps are sections of the same board, so they have notes rather than
+schematics of their own.
 
 ## Personalities hosted (firmware, Phase 2 #16)
 
@@ -64,7 +67,7 @@ and the ROM window.
 | # | Socket | What the tap gives | Serves |
 |---|---|---|---|
 | 1 | **Z80, 40-pin DIP** (the interposer's own seat) | every bus cycle — address, data, `MREQ`/`IORQ`/`RD`/`WR`/`M1`, `RFSH`, `CLK`; sampled synchronously via PIO | everything: capture, drive, and every personality |
-| 2 | **Main ROM, UD11, 24-pin** *(added 2026-10-13)* | the ROM window itself. A daughterboard takes the socket — **DIP pins down, ribbon up** — and the Pico **serves the ROM**, so **no physical ROM part is needed** and the banking is a firmware register | **ROM 2.00 (#83)**: a banked ROM window, one image, on any OEM-faithful mainboard |
+| 2 | **Main ROM, UD11, 24-pin** | the ROM window itself. A daughterboard takes the socket — **DIP pins down, ribbon up** — and the Pico **serves the ROM**, so **no physical ROM part is needed** and the banking is a firmware register | **ROM 2.00 (#83)**: a banked ROM window, one image, on any OEM-faithful mainboard |
 | 3 | **Char-gen ROM, UA15, 24-pin** | the font (read-only, `ScreenPac`-style) — the ROM is permanently selected, so the tap reads whatever is fitted | video personality (#24), font capture (#44) |
 
 Tap 2 is what collapses #83's two routes into one. Note what it does *not* need:
@@ -87,16 +90,16 @@ the set — see *Hardware that is not a board* in [`../README.md`](../README.md)
 
 - **CPU interface:** standard Z80 DIP40 socket + socket-safe pin header;
   4 MHz bus sampled synchronously via PIO.
-- **ROM interface (added 2026-10-13):** a second socket lead-set to the **main
+- **ROM interface:** a second socket lead-set to the **main
   ROM socket (UD11)**, by way of a daughterboard (DIP pins down, ribbon up). The
   Pico then **serves the ROM window** and the bank is a firmware register, so
   ROM 2.00 (#83) needs no physical ROM part at all — see *Tap points*.
 - **Level shifting:** 74AHCT (or 74HCT) both directions — all O1s are
   NMOS Z80s; AHCT/HCT matches NMOS I/O thresholds. (Decision
-  2026-10-09, research-gaps #2; supersedes "74LVC245-class".)
+  2026-10-09, research-gaps #2.)
 - **Power:** own dedicated 5 VDC feed from a rail near the Z80 socket,
   sized for RP2354B WiFi bursts (~300 mA+). (Decision 2026-10-09.)
-- **Power, standalone (added 2026-10-14, #207):** the RP2354B and the W25Q
+- **Power, standalone (#207):** the RP2354B and the W25Q
   library flash share one 5 V net, and that net must be reachable **from USB
   alone** — the board runs, and the flash is programmable, with the interposer
   out of the machine and no host supply connected. This rules out the case
@@ -112,9 +115,9 @@ the set — see *Hardware that is not a board* in [`../README.md`](../README.md)
 
 Two ways to deliver the WiFi modem (#21/#56) from the interposer:
 
-- **(a) Pure firmware personality — retired (2026-10-15):** it relied on the
+- **(a) Pure firmware personality — ruled out:** it would have used the
   module's own CYW43439 for WiFi, and the board carries no radio-bearing
-  module any more. The modem would have been a Zimodem-style
+  module. The modem would have been a Zimodem-style
   reimplementation on the Pico SDK / lwIP, snooping/driving the
   memory-mapped 6850 ACIA — but SSH was not realistic on the RP2354B, and
   the radio shared the chip with timing-critical PIO work (WiFi IRQ
@@ -127,9 +130,9 @@ Two ways to deliver the WiFi modem (#21/#56) from the interposer:
   severable module, and RP2354B timing stays clean.
 
 Current leaning: **(b)** — one modem firmware codebase across both
-devices, SSH capability, and cleaner real-time behavior. Confirm
-before the Rev A engineering sample is captured. (#13's "Rev A
-production" board is absorbed by #259 — there is one board.)
+devices, SSH capability, and cleaner real-time behavior. Confirm before
+Rev B is captured (#259 — there is one board, not #13's separate
+"Rev A production" board).
 
 ## Onboard storage: built-in diskette library
 
@@ -147,7 +150,7 @@ with no card or stick inserted (and the O1NEXT can boot
 - Leaning: **A** — a handful of SOIC-8 flash chips' worth of library is
   effectively free. Exact sizing settled with #20's image format.
 
-## Mechanical / revision plan (revised 2026-10-19: one board, three revisions)
+## Mechanical / revision plan
 
 **One board, three revisions — `Rev 0` → `Rev A` → `Rev B`.** The letters are
 this board's own, and in `hardware/` they always mean this board (see the
@@ -155,10 +158,9 @@ vocabulary note in [`../README.md`](../README.md)). **Rev B is the production
 revision, not a second product** — the split #13/#15 described is what **#259**
 collapsed, and #259 is the issue that produces Rev B's schematic.
 
-**SMD, not through-hole.** #13's old title read "through-hole, socketed" and it
-was read as a claim about the board. It was not: the **Z80 socket** is
-through-hole and socketed, the **board** is surface-mount. Rev A is almost all
-SMD (2-off), and Rev B is SMD wherever a part allows it.
+**SMD, not through-hole.** The **Z80 socket** is through-hole and socketed; the
+**board** is surface-mount. Rev A is almost all SMD (2-off), and Rev B is SMD
+wherever a part allows it.
 
 - **Rev 0 "test probe"** — **superseded** (kept in `rev0/` for the
   decision record, incl. the '165 snapshot front end that Rev A
@@ -196,9 +198,9 @@ SMD (2-off), and Rev B is SMD wherever a part allows it.
 - Ribbon-cable header to the UI pod (`ui-pod/`),
   which also carries the second-keyboard USB-A path (see
   `ui-pod/README.md`).
-- Two socket lead-sets beyond the Z80 seat, both now first-class rather than
-  optional: **UD11** (main ROM, via a DIP-down/ribbon-up daughterboard — the Pico
-  serves the window) and **UA15** (char-gen, font capture). Pinout confirmations:
+- Two socket lead-sets beyond the Z80 seat, both first-class: **UD11** (main ROM,
+  via a DIP-down/ribbon-up daughterboard — the Pico serves the window) and **UA15**
+  (char-gen, font capture). Pinout confirmations:
   mainboard schematic §4a for UA15, `docs/o1-memory-io-map.md` §2 for the ROM
   window (research-gaps #3). The daughterboard's signal list is #12's.
 

@@ -156,7 +156,8 @@ scratch programs, "figuring it out" notebooks/scripts.
   left alone; `--shift` overrides the derivation. It then **refuses to write** an
   image whose CCP entry does not land on `LD SP,nn`, because that image would
   warm-boot for ever (#198). Captures measured and they do **not** agree on a base
-  — which is why the derivation replaced the old constant `0x100` (#247).
+  — `0x100` fits none of them — so the shift is derived rather than a constant
+  (#247).
   - **A capture can sit *below* the load base, and it is shifted up.** `PREP.COM`
     *computes* the base rather than storing one — a bit-map walk with a
     self-patched `ADD A,<page>` at `2A9E`, the page being `*(0x0002)` minus a size
@@ -191,11 +192,10 @@ scratch programs, "figuring it out" notebooks/scripts.
     Measured to boot to `A0>` (`rom2-check.sh` with `O1_BSH=6`;
     `docs/md10-system.md` §9.3).
   - **`EXM`** is derived from Digital Research's own `DISKDEF.LIB`:
-    `2**(BSH-3)-1`, **halved past 255 blocks**. An earlier revision read
-    Alteration Guide Table 6-9's first column only and hardcoded the shipped
-    `EXM=1` at `BSH=5` — right by accident — so every other block size got the
-    `DSM < 256` value (7 where `BSH=6` wants 3). Fixed 2026-10-15; `--exm`
-    overrides, and `--selftest` now checks all four block sizes.
+    `2**(BSH-3)-1`, **halved past 255 blocks**. Alteration Guide Table 6-9's
+    first column gives the shipped `EXM=1` at `BSH=5` and is right only by
+    accident: it is the `DSM < 256` value, 7 where `BSH=6` wants 3. `--exm`
+    overrides, and `--selftest` checks all four block sizes.
   - **`--grow`** is the **N-drive build** (#247 step 6): it reads a configured
     drive's own label for the partition count and starts, and rewrites `HARD.COM`
     from three fixed descriptors to N — a five-byte-per-drive table (24-bit start
@@ -206,15 +206,14 @@ scratch programs, "figuring it out" notebooks/scripts.
     `--drive` takes a **raw** image. **Measured to boot and hold: eleven drives
     `A0>`..`K0>`** on `1200,8,18 eq11`, every one written and read back, each with
     its own ALV — `rom2drives.lua`, 27 checks (`docs/md10-system.md` §9.4).
-    - **The defect it shipped with, for the record:** the first revision's LBA
-      routine stored the CDB's LBA **byte-swapped** (`ld (0D9FCh),hl` writes `L`
-      first; a `READ(6)` wants `LBA[15:8]` first). It booted, and every cell in
-      RAM matched the vendor's driver's byte for byte, so the only thing that saw
-      it was the *card*: `-log` and the `[:acb4000] CDB ..` trace, which showed
-      drive `A:` being read as LBA `0x1400` instead of `0x0014`. Fixed by using
-      the shipped idiom (`ld d,l` / `ld e,h` / `ld (0D9FCh),de`), and
-      `rom2drives.lua` now checks the two CDB bytes **separately** — a
-      byte-symmetric LBA hides the swap in the value.
+    - **The CDB's LBA goes in high byte first**, so the routine writes it with the
+      shipped idiom, `ld d,l` / `ld e,h` / `ld (0D9FCh),de`. `ld (0D9FCh),hl`
+      writes `L` first and is wrong — a `READ(6)` wants `LBA[15:8]` first — and
+      nothing else catches it: the drive boots, and every cell in RAM matches the
+      vendor's driver's byte for byte, so the only thing that sees it is the
+      *card* — `-log` and the `[:acb4000] CDB ..` trace show drive `A:` read as
+      LBA `0x1400` instead of `0x0014`. `rom2drives.lua` checks the two CDB bytes
+      **separately**, because a byte-symmetric LBA hides the swap in the value.
 - **`md10prep.sh`** — the **repeatable new-geometry capability** (#247): builds a
   blank labelled drive, drives the archive's own `PREP.COM` through its menus with
   `o1keys.lua`, reads the drive back, extracts the header and O/S artifacts, and
@@ -313,13 +312,13 @@ scratch programs, "figuring it out" notebooks/scripts.
   trailer at its own `0FF8h`**, and v1.0's attribute half is all `FFh` (every cell
   bright; the ROM blits it whenever it validates, so dim accents need no ROM
   change later). The shape is still the RP2354B's, which reads a frame out of the
-  animation; what retired with #278 is the *ROM's* path to one. `--half
+  animation; the *ROM's* own path to a frame is gone with #278. `--half
   chars|attrs` writes one half, and `--verify` validates a frame, or a
   single half, off the disk with no art and no chargen, which is the whole
-  machine-free test. The committed asset used to be
-  `firmware/rom-service/frame.bin`; it was **retired on 2026-10-16**, when the boot
-  screen became the animation the RP2354B plays, and `--check` no longer rebuilds a
-  frame — it checks the site masthead, which is still drawn from this art.
+  machine-free test. The committed asset is
+  `firmware/rom-service/boot-animation.bin`, the animation the RP2354B plays, and
+  `--check` checks the site masthead, which is drawn from this art, rather than
+  rebuilding a frame.
   `--png` renders the character half with the character generator, and `--logo`
   renders the *art* as the site masthead — light glyphs on a transparent ground,
   i.e. the screen inverted, because the site header is the machine's blue panel and
@@ -330,15 +329,13 @@ scratch programs, "figuring it out" notebooks/scripts.
   cell — is itself in the text range, so a dropped cell draws the same nothing.
   `--check` re-renders the masthead in memory and compares it with the committed
   `site/assets/o1next-logo.png`, byte for byte, exiting non-zero if it has gone
-  stale — and does the same for the frame. It needs the standard library and files
-  in the repo, and nothing else, so
+  stale. It needs the standard library and files in the repo, and nothing else, so
   `.github/workflows/generated-artifacts.yml` runs it.
-- ~~**`rom2blob.py`**~~ — **retired 2026-10-17 (#278)**, with the asset it made.
-  It turned the `ORG 4000H` records of a ROM 2.0 build into `screen.bin`, the 4096
-  byte window page the monitor's stub asked for with `PRESENT(3)`; the frame path's
-  retirement left the screen's code at 26 bytes, in the monitor's own tail, where
-  `tools/research/rom2asm.sh` checks it *by value*. The blob, the asset, the tool
-  and its CI step all went together, and `rom2asm.sh` lost its `-b`.
+- ~~**`rom2blob.py`**~~ — **not in this folder (#278)**. It turned the `ORG 4000H`
+  records of a ROM 2.0 build into `screen.bin`, the 4096-byte window page the
+  monitor's stub asked for with `PRESENT(3)`. The screen's code is **26 bytes** in
+  the monitor's own tail, where `tools/research/rom2asm.sh` checks it *by value*;
+  `rom2asm.sh` has no `-b`, and no CI step builds the blob.
 
 - **`rom2image.py`** — ROM 2.0's build (#83, deliverable 2): assembles the
   **7695-byte image** from the repo's own files and re-checks every anchor the

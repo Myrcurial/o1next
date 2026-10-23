@@ -7,6 +7,9 @@ is deliberately **not PIO**, because the question it answers is "does a real Pic
 SDK binary, built from this tree, run inside picoem and answer the bus?", and a
 polled GPIO loop answers that with the fewest moving parts.
 
+**Built, and passing its acceptance** — `build.sh`, then
+`tools/emulator-setup/mame-osborne1nx/picoem-check.sh`.
+
 ## What it is
 
 A **one-byte register**, addressed by the Z80's own I/O strobes. Write a byte and
@@ -43,18 +46,6 @@ in-package flash, 48 GPIO, no module and no invented LED pin.
 
 ## The three switches that are left, and they are all about picoem
 
-**It used to be six.** Three of them are **retired** — the fixes are in
-`tools/emulator-setup/picoem/`, and this firmware now uses the fast path the
-interposer will ship rather than a workaround:
-
-| retired | why it is gone |
-|---|---|
-| `PICO_USE_GPIO_COPROCESSOR=0` | picoem's CP0 table read `opc1` as the bank instead of the operation **and had no MCRR family at all**, so `gpio_put()` and `gpio_set_dir()` were silent NOPs. **The big one.** Fixed, and measured — see below. |
-| `PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL` | the claim path runs `next_striped_spin_lock_num()`, which uses `ldaexb`/`strexb`, and picoem mis-decoded `ldaexb` as an `LDRD` into `{Rt, pc}`. Fixed. |
-| `PICO_TIME_DEFAULT_ALARM_POOL_DISABLED` | the SDK's own way of saying the same thing |
-
-What is left, and why it is a *different* gap:
-
 | define | why |
 |---|---|
 | `PICO_RUNTIME_SKIP_INIT_BOOTROM_RESET` | calls the ROM's `reset` function, which the bootrom would have set up |
@@ -65,6 +56,16 @@ All three are the **bootrom boot path**, which does not complete in picoem (its
 own `test_flash_boot_blinky` is `#[ignore]`d for the same reason). That gap has no
 known size, and it is deliberately **not** on the critical path: `Entry::Image` is
 a legitimate route for a chip with no boot2.
+
+Three more switches are **retired**, because the fixes are in
+`tools/emulator-setup/picoem/` and this firmware now uses the fast path the
+interposer will ship rather than a workaround:
+
+| retired | why it is gone |
+|---|---|
+| `PICO_USE_GPIO_COPROCESSOR=0` | picoem's CP0 table read `opc1` as the bank instead of the operation **and had no MCRR family at all**, so `gpio_put()` and `gpio_set_dir()` were silent NOPs. **The big one.** Fixed, and measured — see below. |
+| `PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL` | the claim path runs `next_striped_spin_lock_num()`, which uses `ldaexb`/`strexb`, and picoem mis-decoded `ldaexb` as an `LDRD` into `{Rt, pc}`. Fixed. |
+| `PICO_TIME_DEFAULT_ALARM_POOL_DISABLED` | the SDK's own way of saying the same thing |
 
 **The measurement for the retirement** (`--self-test`, no MAME needed):
 

@@ -4,6 +4,9 @@
 project's **second deliverable**. See the register in
 [`../README.md`](../README.md).
 
+**State: a reference design, and no schematic yet (#47).** The shape below is
+settled; the pinout still needs the continuity check listed at the end.
+
 **Its shape, in the maintainer's words (2026-10-19):** a purpose-built adapter
 with a **USB-A** port for an external USB keyboard, a **P4** connector mapping
 the 8×8 native matrix, a **USB-C** port for programming or powering the adapter,
@@ -62,16 +65,17 @@ Tracks: #47 (split out of #45). Target: PCBway build.
 
 Later O1A "blue/grey" machines: coiled cable, 24-hole plug, only the
 inner 20 pins mate. Documented pinout (O1 Technical Manual via
-pinouts.ru, 4/4 corroborating reports; corrected by #48):
+pinouts.ru, 4/4 corroborating reports):
 
 - 1 = GND; 2–9 = rows A4, A0, A3, A6, A2, A5, A1, A7
 - 10–17 = columns D0–D7; 18 = NC; **19 = +12V (via J6+R21)**; 20 = GND
 
 ## Spec validation required BEFORE layout
 
-- [ ] Confirm pinout against `research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`
-      and continuity-check a real O1A (rows vs columns, GND, pin 19
-      +12V with J6 bridged; J6/R21 present on target board revisions).
+- [ ] Confirm the pinout #48 settled against
+      `research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf` and continuity-check a real
+      O1A (rows vs columns, GND, pin 19 +12V with J6 bridged; J6/R21 present on
+      target board revisions).
 - [ ] Confirm rows are driven low one-hot via open-collector inverters,
       columns pulled up to +5V via a 3.3K resistor pack.
 - [ ] Scan timing: measure stock scan rate to size the RP2040 polling

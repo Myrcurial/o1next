@@ -648,7 +648,7 @@ for _i, (_net, _pin) in enumerate(LED_SINK):
 NOTES = [
     'wifi-comm-pac Rev A - O1NEXT WiFi COMM PAC (issues #324, #325, part of #56)',
     'J1 is a 2x5 IDC: pin n = DE-9 pin n for 1..9; pin 10 is spare.',
-    'Pin 7 is +12.6 V DC direct from the machine (2.02 A rail), NOT via R21.',
+    'Pin 7 is +12.6 V DC from the 2.02 A rail THROUGH R21 (22 ohm), shared with J6/P4-19.',
     'U1/U2 translate the 5 V TTL side; U3 is the open-drain MSB sink.',
     'U4 MAX3232 runs on 3V3 so its drivers swing +/-5.5 V into the bipolar RXD.',
     'U6 = panel expander 0x58 (P0 push-pull CC, P1 open-drain). U7 = handshake 0x59.',

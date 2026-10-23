@@ -39,7 +39,7 @@ Seven storage routes were advertised for the Osborne 1 (`docs/research-gaps.md`
 | Element | Interface | Evidence |
 |---|---|---|
 | IEEE-488 bus | **P3**, 26-pin card edge (pins 25/26 unused) — full pinout in `docs/o1-ieee488-port.md` §6 | Technical Manual §4.1.2, corroborated line for line by the ROM's comment block; PIA UC7 (6821) at `2900–2903` |
-| Power | **P5**, 10-pin video connector, via an EXMON-style passive shunt | EXMON shunt: Sullins MP-0100-10-DS-4 edge connector + Hyko K688-DI sync combiner, **powered from +12V**; the original Drive C drew **11–14.5 V at 0.3 A max** from the same connector (Drive C manual §7-2) |
+| Power | **P5**, 10-pin video connector, via an EXMON-style passive shunt | EXMON shunt: Sullins MP-0100-10-DS-4 edge connector + Hyko K688-DI sync combiner, **powered from +12V**; the original Drive C drew **11–14.5 V at 0.3 A max** from the same connector (Drive C manual §7-2). The port's +12 V is **not** current limited — it is the PSU rail, so the limit is the AC8151's 2.02 A shared with the CRT (#354) |
 | Compute | A stock **Pico (RP2040)** — enough for IEEE-488 bit-banging | — |
 | Storage | One external flash chip | Even the largest Drive C variant was not large |
 | Bonus | The same shunt gives **composite video out** | EXMON does exactly this, passively |
@@ -72,7 +72,12 @@ turned out to be **in the archive already**:
 - [x] **Power at P5** — the Drive C manual's §7-2 states the original unit's own
       requirement: **11 to 14.5 VDC at 0.3 A max**, drawn from the O1's
       **EXT. VIDEO connector**. A Pico plus flash is a fraction of that, so the
-      shunt passes less than the original did.
+      shunt passes less than the original did. The port's +12 V is not separately
+      limited — it is the PSU rail straight off `P7` pins 1/7 (`1A2011-00` sheet 1
+      of 9; the machine's only fuse is the AC mains one) — so the only limit is the
+      Astec AC8151's **2.02 A**, and the rail has room to spare: the load is a 5"
+      monochrome CRT (~1.0–1.2 A steady, ~2 A inrush), two floppy motors that never
+      run together, and small mainboard supplies. **#354.**
 - [x] **The DPB** — read out of `DCL.COM` (file `0x142F`, installed `0x052F`):
       `SPT=2`, 2 KiB blocks, `DSM=191` → **384 KiB**, 128 directory entries. Every
       field matches the manual's 384K column (`docs/drive-c-protocol.md` §8.1).
