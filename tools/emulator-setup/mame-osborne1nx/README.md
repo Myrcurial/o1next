@@ -11,6 +11,12 @@ The machine and the device are written as a real MAME machine and a real MAME
 device, so the patch is shaped to be sent upstream — and so that the same
 device, on hardware, is the RP2354B firmware's personality (#179, #192).
 
+**Its video is the interposer's video personality, and that is the SCREEN-PAC
+(#24).** The machine derives from `osborne1sp`, so it answers `2400h`'s presence
+bit as *fitted*, takes the SCREEN-PAC's register there and draws its window — and
+it **boots in the 104-column one**, the widest of the board's three. What does
+*not* change is the screen's text: see "The video personality" below.
+
 **It is a patch, so `mame` on `PATH` has no such machine.** To build it,
 `apply.sh` puts the machine into a MAME source tree and rebuilds the subtarget;
 to test it, run the harnesses in this directory (each is one command, and prints
@@ -28,7 +34,7 @@ time, up to two floppy images on the command line and a hard disk through
 | `o1next-probe.lua` | the headless check: the I/O decode, and the card's presence probe |
 | `o1next-dataphase.lua` | the headless check of a *transfer* — the card driven at the register level |
 | `o1next-softrom.lua` | the headless check of the **ROM window** — all 8 KB read back and compared (#247) |
-| `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, and the boot against `osborne1` (#247) |
+| `softrom-check.sh` | **the two-way acceptance** of that window — the window three ways, the **window width** against `osborne1`'s, and the boot against `osborne1` (#247) |
 | `o1next-romservice.lua` | the headless check of the **ROM service's door** and of **page 1** — the mailbox transaction the ROM drives, the measurement that settles the door's address, and `PRESENT(0)`, the one content id left (#247, #278) |
 | `romservice-check.sh` | **the door's acceptance** — that the animation is a valid asset, that the door answers (ECHO, INFO, NOP, an unknown opcode, the abandon rule), that page 1 is the payload, and the address, all in one command (#247, #278) |
 | `o1next-bootscreen.lua` | the headless check of **the screen itself** — the two video planes read back off the machine after the monitor's own screen code has run, and the fallback text that is the trigger the RP2354B watches for (#247, #278) |
@@ -48,7 +54,7 @@ time, up to two floppy images on the command line and a hard disk through
 
 The patch touches seven files:
 
-- `src/mame/osborne/osborne1.cpp` — the `osborne1nx` machine, its I/O map, its ROM window and the door's address
+- `src/mame/osborne/osborne1.cpp` — the `osborne1nx` machine, its I/O map, its ROM window, the door's address, and its SCREEN-PAC video
 - `src/mame/mame.lst` — registers the machine (MAME builds its driver list from this)
 - `scripts/src/machine.lua` — registers the new devices' sources
 - `src/devices/machine/acb4000_host_adapter.{h,cpp}` — the card, new
@@ -137,7 +143,8 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | Check | Result |
 |---|---|
 | boots the 1.44 ROM and a bootable disk | **yes** — `BANNER: true`, `A>`, identical screen text to `osborne1` |
-| banking and video unchanged from `osborne1` | **yes** — the boot probe's output is byte-identical (`diff` clean, modulo the machine name) |
+| banking **unchanged** from `osborne1` | **yes** — the boot probe's output is byte-identical (`diff` clean, modulo the machine name) |
+| the **video** — the SCREEN-PAC's 104-column window | **yes** — `softrom-check.sh` reads both machines' geometry (`osborne1` is 52 columns, `osborne1nx` is 104) and the screen text row for row |
 | the mainboard's 2-bit decode survives | **yes** — `00h`–`03h` still bank-switch, and `05h`/`3Dh` still alias `01h` |
 | the card owns `30h`–`33h` | **yes** — writes there do not bank-switch |
 | the MD-10 presence probe | **yes** — `IN (32h)` reads `04h`; after `OUT (32h),00h` it reads `00h` |
@@ -152,13 +159,49 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 | **the retired ids** — `PRESENT(1/2/3)`, the frame's halves and the screen's code | **yes** — `romservice-check.sh`: each answers `09h` and leaves page 1 alone (#278) |
 | **`INFO`'s flags byte** | **yes** — the harness checks it is `00h`: there is no asset slot left to report (#278) |
 | **the door's address** — `0x2301` is the floppy's track register, so the door is at `2800h` | **yes** — measured in the harness: `0x2301` reads what `0x2101` reads, and a request written to `0x2300` never reaches the door |
-| **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical (`diff` clean, modulo the machine name) |
+| **no image mounted ⇒ boots as `osborne1`** | **yes** — the boot probe's screen dump is byte-identical, row for row (`diff` clean, modulo the machine name and the window geometry) |
 | **`-softrom` (the 7695-byte image) ⇒ boots as `osborne1`** | **yes** — byte-identical too, page 1 reading the payload |
 | **ROM 2.0's `HCBOOT`** — the CBIOS, the MD-10 BIOS, its patch, the bank, the read | **yes** — `rom2boot.lua`, five checks, in `rom2-check.sh` |
 | ROM 2.0 booting the hard disk to `A0>` | **yes** — nine checks in `rom2-check.sh` including the prompt, and again on 8 KiB blocks with `O1_BSH=6` (`docs/md10-system.md` §9.3) |
 | the **hard-disk boot** (`HARD.COM` → `A0>`/`B0>`/`C0>`) | **yes** |
 | the **N-drive driver** — 11 drives `A0>`..`K0>`, a file on each, each its own ALV, each read landing inside its own partition | **yes** — `rom2drives.lua`, 27 checks, `docs/md10-system.md` §9.4 |
 | `peek 0x055E` / `0x056E` (the DPH/DPB tables) | **not yet** — the drive needs an MD-10 system on it; see below |
+
+### The video personality — the SCREEN-PAC, in its 104-column window
+
+The interposer's video personality **is** the SCREEN-PAC (#24), so this is an
+`osborne1sp` with a card in it rather than an `osborne1` with a wider I/O decode:
+`osborne1nx_state` derives from `osborne1sp_state`, which is where the board's
+register, its presence bit and its two widths already live. Three consequences,
+all of them visible from outside:
+
+| | |
+|---|---|
+| `2400h`, bank 2 | reads **bit 2 LOW** — fitted. The stock machine reads `FFh` there, and that bit is how period software detects the board with no ROM change (`docs/mame-emulation.md` §2) |
+| the window | **104 columns at reset** — `machine_reset()` sets the board's own register, so the machine boots in the widest width the board has |
+| the geometry | `832x240`, as `osborne1sp`; the stock machine is `416x240` |
+
+**Why 104 and not 80.** The board has three widths — 52 / 80 / 104 — and MAME can
+express two of them: `osborne1sp` offers 52 and 104, not 80 (#274). 104 is
+therefore the stand-in until that is fixed, and moving to 80 is one line in
+`machine_reset()` when it is. The guest is not caged by it: `2400h` is the
+board's own register, the power-on value is only a default, and a
+52-column-prepared floppy still switches the window to 52 by writing it —
+measured, 16-pixel characters filling the 832-pixel screen.
+
+**And the text does not move.** The window's left edge coincides with the stock
+machine's for the guest's normal boot state, so the same disk draws the same
+screen in the same place with 52 more columns of the video buffer visible to the
+right — measured off the rendered frames: `osborne1` at 416x240 and `osborne1nx`
+at 832x240 have the *same* ink runs, character for character, from `x = 0`.
+`softrom-check.sh` asserts both halves: the two geometries, and the screen dump
+row for row against `osborne1`.
+
+**One thing this fixed on the way.** That boot comparison ran `osborne1nx` for
+the "stock machine" run as well, so "boots identically to `osborne1`" was
+comparing the machine against itself and could not fail. It runs `osborne1` now
+— and the geometry check is what says so, because a run of the wrong driver
+would report 52 columns for both.
 
 ### The softROM window
 

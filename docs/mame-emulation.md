@@ -63,9 +63,16 @@ This project adds a **fourth** (`tools/emulator-setup/mame-osborne1nx/`, #191):
 `osborne1nx` is a clone of `osborne1` whose Z80 sits behind an emulated card
 that decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
 answer on ports `30h`–`33h`. It is not in MAME; it is a patch, and it runs the
-**1.44 ROM only**. Banking and video are identical to `osborne1` — measured, not
-assumed — and the presence check the MD-10 driver demands passes
+**1.44 ROM only**. Banking is identical to `osborne1` — measured, not assumed —
+and the presence check the MD-10 driver demands passes
 (`docs/osborne1nx-machine.md`).
+
+**Its video is not.** `osborne1nx` presents the interposer's video personality,
+which is the **SCREEN-PAC** (#24), so its driver derives from `osborne1sp`: it
+answers `2400h`'s presence bit as *fitted*, takes the board's register there, and
+boots in the **104-column** window — `832x240`. The screen's *text* is still
+byte-identical to `osborne1`'s, because the window's left edge does not move
+(`docs/osborne1nx-machine.md` §8).
 
 **The Nuevo machine is 80 columns and the SCREEN-PAC is 104.** The display width
 is a property of the emulated *machine*, not of the disk: it was measured by

@@ -122,35 +122,53 @@ window "the 7695-byte image -- two pages"            "$WORK/window-rom2.log" "$W
 
 # --- 2. the boot, three ways ------------------------------------------------
 # The stock machine is in the same binary, so all three runs are comparable
-# byte for byte; the MACHINE line is the only thing that differs.
-boot() {     # boot LABEL LOG [IMAGE]
-    label="$1"; log="$2"; image="${3:-}"
+# byte for byte -- and the *first* of them has to be the stock machine, or the
+# other two are compared against themselves.  (They were: this function used to
+# run $MACHINE for all three, so the "boots identically to osborne1" check
+# could not fail.  Fixed 2026-10-23, and the geometry check below is what says
+# which machine each run was.)
+#
+# The `SCREEN:` line is the one thing that must differ: osborne1nx's video
+# personality is the SCREEN-PAC (#24), so its window is 104 columns wide where
+# the stock machine's is 52.  Everything else -- the screen's *contents*, row by
+# row -- is compared, which is the claim: the same disk draws the same screen.
+boot() {     # boot MACHINE LABEL LOG [IMAGE]
+    mach="$1"; label="$2"; log="$3"; image="${4:-}"
     if [ -n "$image" ]; then
-        O1_MACHINE="$MACHINE" O1_IMAGE="$image" \
-        SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -flop1 "$WORK/boot.imd" -softrom "$image" \
+        O1_MACHINE="$mach" O1_IMAGE="$image" \
+        SDL_VIDEODRIVER=dummy "$MAME" "$mach" -flop1 "$WORK/boot.imd" -softrom "$image" \
             -video none -sound none -nothrottle -rompath "$ROMPATH" \
             -autoboot_script "$BOOT_LUA" -seconds_to_run 120 > "$log" 2>&1 || true
     else
-        O1_MACHINE="$MACHINE" O1_IMAGE="<none>" \
-        SDL_VIDEODRIVER=dummy "$MAME" "$MACHINE" -flop1 "$WORK/boot.imd" \
+        O1_MACHINE="$mach" O1_IMAGE="<none>" \
+        SDL_VIDEODRIVER=dummy "$MAME" "$mach" -flop1 "$WORK/boot.imd" \
             -video none -sound none -nothrottle -rompath "$ROMPATH" \
             -autoboot_script "$BOOT_LUA" -seconds_to_run 120 > "$log" 2>&1 || true
     fi
     echo "== boot: $label -- $(grep -E '^BANNER|^PROMPT|^RESULT' "$log" | tr '\n' ' ')"
 }
 
-boot "osborne1 (the stock machine)"        "$WORK/boot-stock.log"
-boot "osborne1nx, no image"                "$WORK/boot-none.log"
-boot "osborne1nx -softrom rom2.rom"        "$WORK/boot-rom2.log" "$WORK/rom2.rom"
+boot osborne1   "osborne1 (the stock machine)" "$WORK/boot-stock.log"
+boot "$MACHINE" "osborne1nx, no image"         "$WORK/boot-none.log"
+boot "$MACHINE" "osborne1nx -softrom rom2.rom" "$WORK/boot-rom2.log" "$WORK/rom2.rom"
 
 echo
-# `grep -v '^MACHINE'` drops the machine name and the image path -- the runs are
-# otherwise expected to be identical, screen dump included.  (Plain `sh`: the
-# comparisons go through files, not process substitution.)
-grep -v '^MACHINE' "$WORK/boot-stock.log" > "$WORK/boot-stock.txt"
+# The two windows, which is also the proof that the reference run really is the
+# stock machine: 52 columns there, and the SCREEN-PAC's 104 here.  104 is the
+# stand-in until MAME can express the board's third width (#274).
+stock_cols=$(sed -n 's/^SCREEN: [0-9]*x[0-9]*  (\([0-9]*\) columns.*/\1/p' "$WORK/boot-stock.log" | head -1)
+nx_cols=$(sed -n 's/^SCREEN: [0-9]*x[0-9]*  (\([0-9]*\) columns.*/\1/p' "$WORK/boot-none.log" | head -1)
+if [ "$stock_cols" = "52" ] && [ "$nx_cols" = "104" ]; then cols_ok=0; else cols_ok=1; fi
+verdict "the window: osborne1 is ${stock_cols:-?} columns, osborne1nx is ${nx_cols:-?} (the SCREEN-PAC's 104)" "$cols_ok"
+
+# `grep -v` drops the machine name, the image path and the window *geometry* --
+# the runs are otherwise expected to be identical, screen dump included.  (Plain
+# `sh`: the comparisons go through files, not process substitution.)
+scrub() { grep -vE '^(MACHINE|SCREEN):' "$1" > "$2"; }
+scrub "$WORK/boot-stock.log" "$WORK/boot-stock.txt"
 for pair in "boot-none.log:no image" "boot-rom2.log:the 7695-byte image"; do
     log="${pair%%:*}"; label="${pair#*:}"
-    grep -v '^MACHINE' "$WORK/$log" > "$WORK/$log.txt"
+    scrub "$WORK/$log" "$WORK/$log.txt"
     if diff "$WORK/boot-stock.txt" "$WORK/$log.txt" > "$WORK/$log.diff" 2>&1; then
         verdict "boot: osborne1nx with $label is identical to osborne1" 0
     else

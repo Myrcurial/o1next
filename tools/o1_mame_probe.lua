@@ -172,6 +172,17 @@ check(mirror_bad == nil, "C8", "ROM at 0x0000-0x0FFF mirrors 0x1000-0x1FFF",
 -- 0x2301 is the keyboard *and* the floppy, 0x2f00 is the video PIA *and* the
 -- serial ACIA.  That bus fighting is the same sloppiness, seen from the other
 -- side, and is reported after the check.)
+--
+-- One device has to be allowed for, and it is asked rather than assumed: a
+-- machine with the SCREEN-PAC fitted answers across 0x2400-0x27FF as well, and
+-- pulls bit 2 LOW there -- that is the board's documented presence flag
+-- (docs/mame-emulation.md 2).  So an alias that lands in that range reads one
+-- bit lower than its documented partner *because the board is fitted*, which is
+-- not a decode disagreement at all.  The board's own flag says whether to
+-- expect it: 2400h bit 2 LOW is fitted, HIGH is not, and the stock machine is
+-- HIGH.
+local screenpac = (rd(0x2400) & 0x04) == 0
+local function in_sp(a) return a >= 0x2400 and a <= 0x27ff end
 local aliases = {
     { 0x2100, 0x2500, "floppy register 0" },
     { 0x2201, 0x2601, "keyboard row 0" },
@@ -179,14 +190,26 @@ local aliases = {
     { 0x2a00, 0x2a02, "serial ACIA status" },
     { 0x2c00, 0x2c04, "video PIA port A" },
 }
+print(string.format("      SCREEN-PAC: %s (2400h bit 2 %s)",
+                    screenpac and "fitted" or "not fitted",
+                    screenpac and "LOW" or "HIGH"))
 print("      bank-2 I/O decode: documented address vs nominally-dead alias")
 local all_alias = true
 for _, a in ipairs(aliases) do
     local v1, v2 = rd(a[1]), rd(a[2])
-    if v1 ~= v2 then all_alias = false end
+    -- If the board answers on either address, both reads are compared through
+    -- its pull (bit 2 low): the two devices' own answers are what this check is
+    -- about, and the board is not one of them.
+    local same
+    if screenpac and (in_sp(a[1]) or in_sp(a[2])) then
+        same = (v1 & 0xfb) == (v2 & 0xfb)
+    else
+        same = v1 == v2
+    end
+    if not same then all_alias = false end
     print(string.format("        %s vs %s  %-20s reads 0x%02X / 0x%02X  %s",
                         hex(a[1]), hex(a[2]), a[3], v1, v2,
-                        v1 == v2 and "aliased" or "DIFFERENT"))
+                        same and "aliased" or "DIFFERENT"))
 end
 check(all_alias, "C9",
       "nominally-dead bank-2 addresses alias real devices (sloppy decode)")

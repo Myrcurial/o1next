@@ -114,7 +114,10 @@ presence probe: IN 30h=00  IN 32h=04  -> one controller on-line
 `rom=31` is the ROM's first byte with bank 2 selected, `ram=00` is RAM with bank
 1 selected, and `05h` and `3Dh` both reach the bank switch through the alias.
 Then a boot comparison, on the same disk, `osborne1` against `osborne1nx`:
-`diff` clean, `416x240` (52 columns), `RESULT: BOOTED`.
+`diff` clean, `RESULT: BOOTED` — the screen's text row for row, with the two
+machines' *windows* deliberately different (`osborne1` is `416x240` = 52 columns;
+`osborne1nx` is `832x240` = 104, because its video personality is the SCREEN-PAC
+— §8). `softrom-check.sh` asserts both halves.
 
 ## 3. The card — read out of the driver, not guessed
 
@@ -312,7 +315,8 @@ repo's own `tools/research/mame-boot-probe.sh`.
 | Check | Result |
 |---|---|
 | boots the **1.44 ROM** and a bootable disk | **yes** — `BANNER: true`, `A>`, `RESULT: BOOTED` |
-| banking and video **unchanged** from `osborne1` | **yes** — the boot probe's output on `OS1UTLS.IMD` is byte-identical to `osborne1`'s, `diff` clean, `416x240` (52 columns) |
+| banking **unchanged** from `osborne1` | **yes** — the boot probe's output on `OS1UTLS.IMD` is byte-identical to `osborne1`'s, `diff` clean |
+| the **video** is the SCREEN-PAC's | **yes** — `832x240` = 104 columns at reset against `osborne1`'s `416x240` = 52, with the screen's *text* identical; `2400h` reads bit 2 LOW (fitted) where the stock machine reads `FFh` (§8) |
 | the mainboard's 2-bit decode survives | **yes** — `00h`–`03h` bank-switch; `05h` and `3Dh` alias `01h` |
 | the card owns `30h`–`33h` | **yes** — writes there do not bank-switch |
 | the presence probe | **yes** — `IN (32h)` → `04h`; after `OUT (32h),00h` → `00h` |
@@ -722,6 +726,54 @@ next thing, and it is a firmware deliverable rather than more archaeology.
 - **Whether the real MD-10 board decoded eight bits** — this machine assumes it
   did, because `docs/acb4000-host-adapter.md` §2 shows the driver needs it and
   §5 argues the board was a Z80-socket device. The hardware has not been seen.
+
+## 8. The video personality — the SCREEN-PAC, at 104 columns
+
+The interposer's video personality **is** the SCREEN-PAC (#24), so the machine is
+an `osborne1sp` with a card in it rather than an `osborne1` with a wider I/O
+decode: `osborne1nx_state` derives from `osborne1sp_state`, which is where the
+board's register, its presence bit and its two widths already live. That is a
+change of *model* rather than a new feature — the board was always this machine's
+video personality; the driver just did not say so.
+
+| | |
+|---|---|
+| `2400h`, bank 2 | reads **bit 2 LOW** — fitted. The stock machine reads `FFh` there, and that bit is how period software detects the board with no ROM change (`docs/mame-emulation.md` §2, `docs/o1-memory-io-map.md` §3) |
+| the window | **104 columns at reset** — `machine_reset()` sets the board's own register, so the machine boots in the widest width the board has |
+| the geometry | `832x240`, as `osborne1sp`; the stock machine is `416x240` |
+
+**Why 104 and not 80.** The board has three widths — 52 / 80 / 104 — and MAME can
+express two of them: `osborne1sp` offers 52 and 104, not 80 (#274). 104 is
+therefore the stand-in until that is fixed, and moving to 80 is one line in
+`machine_reset()` when it is. The guest is not caged by it: `2400h` is the board's
+own register, the power-on value is only a default, and a 52-column-prepared
+floppy still switches the window to 52 by writing it — measured, 16-pixel
+characters filling the 832-pixel screen.
+
+**And the text does not move.** The window's left edge coincides with the stock
+machine's for the guest's normal boot state, so the same disk draws the same
+screen in the same place with 52 more columns of the video buffer visible to the
+right. Measured off the rendered frames rather than argued: `osborne1` at
+`416x240` and `osborne1nx` at `832x240` have the **same ink runs**, character for
+character, from `x = 0`.
+
+**The one thing the wider window changes in the map.** The board's own decode
+answers across `2400h`–`27FFh`, so an address in that range that also selects
+another device now reads that device ANDed with the board's `FBh` — e.g. `2601h`
+is keyboard row 0 *and* the SCREEN-PAC, and reads `FBh` where the stock machine
+reads `FFh`. That is the same sloppy decode `tools/o1_mame_probe.lua`'s C9
+already measures from the other side, and the check now asks the machine whether
+the board is fitted before it decides what an alias should read.
+
+**One discrepancy recorded rather than resolved.** `docs/o1-memory-io-map.md` §3
+reads `2400h` as a **read-only presence bit, not a register**, while MAME's
+`osborne1sp` takes the window's width from a *write* there (`bank2_peripherals_w`,
+bit 0 = resolution, bit 1 = HC-LEFT). Both cannot be the whole story, and this
+machine inherits MAME's side of it — that register path is what its 104-column
+power-on value goes through. If the user guide is right, the switch is the video
+PIA at `2C00h` reached by the ROM's own routine at `E4E5h` (#260, #274), and this
+machine's reset value would be set there instead. It makes no difference to the
+boot either way, because the guest's own writes are what move the window.
 
 ## Sources
 
