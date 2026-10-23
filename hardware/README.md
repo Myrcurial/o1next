@@ -95,9 +95,29 @@ header pin assemblies wired back-to-back.
 - **MODEM port (P1) is TTL, not RS-232**, and its RXD is bipolar — the modem must
   swing TX-toward-O1 negative for a clean mark (`docs/o1-modem-serial.md`). Its
   **+12.6 V on pin 7 sits behind the machine's 22 Ω (R21)**, which the keyboard
-  branch through J6 shares: the supply is rated `+12 V @ 2.02 A`, but 22 Ω in series
-  is a hard current limit, so this is a **low-current port** — tens of mA average,
-  with the transmit peaks coming off bulk capacitance (`wifi-comm-pac/README.md`).
+  branch through J6 shares, so the port **is current limited by that resistor** —
+  and the sheet's own default is a **1/4 W** part, which caps it at **~107 mA**
+  continuous (2.35 V dropped; 150 mA would be 0.495 W, a 1/2 W part at its
+  rating). Burst power comes off bulk capacitance (`wifi-comm-pac/README.md`).
+- **The two +12 V feeds are not alike, and that decides how the boxes are powered**
+  (#354, #356). P1's pin 7 is behind `R21`; the **monitor jack (P5) is not limited
+  at all** — it is the PSU rail, so the Astec AC8151's **2.02 A** is the only
+  limit, against a load of one 5" CRT (~1.0–1.2 A steady, ~2 A inrush), two floppy
+  motors that never run together, and small mainboard supplies. The wiring that
+  settles:
+
+  | Box | Wired to |
+  |---|---|
+  | `wifi-comm-pac` | `P1` & `P7`, **or** `P1` & `drive-c-repro`'s 5 V out |
+  | `drive-c-repro` | `P3` & `P7` (the OEM configuration) |
+  | `keyboard-adapter` | `P4` & 5 V out from `wifi-comm-pac` **or** `drive-c-repro` |
+
+  With both boxes installed they **cross-feed 5 V** — their two 5 V connectors are
+  wired together — rather than stacking a connector at P7, so **each board's 5 V
+  port must be diode-OR'd against its own buck output** or the two converters drive
+  one node and back-feed each other. Two pieces of hardware follow: a **front-panel
+  connector on the `wifi-comm-pac`**, and a **small adapter routing the +12 V from
+  P7 to it**.
 - **P4 keyboard connector:** pin 19 = +12 V via jumper J6 + R21 — usable to power
   small adapter boards (`keyboard-adapter/`).
 
