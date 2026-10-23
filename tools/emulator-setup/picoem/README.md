@@ -7,7 +7,9 @@ is the wire.
 
 This directory is the **patch series o1next carries against it**, in the same
 shape as `tools/emulator-setup/mame-osborne1nx/`: a diff against a pinned commit,
-a script to apply it, and the measurement behind every change.
+a script to apply it, and the measurement behind every change. It is three
+commits, and with them applied `cargo test -p rp2350-emu` is **3674 passed,
+0 failed**.
 
 ## Why here and not upstream
 
@@ -38,7 +40,7 @@ courtesy, not a dependency.
 
 | File | What it is |
 |---|---|
-| `rp2350-correctness.patch` | the series, as a diff against `8e20a82` — two commits |
+| `rp2350-correctness.patch` | the series, as a diff against `8e20a82` — three commits |
 | `apply.sh` | apply it to a picoem checkout, optionally build and test |
 
 ## The series
@@ -84,8 +86,6 @@ tests pin the raw `hw0`/`hw1` as literals rather than through an encoder,
 because the previous table's own encoder agreed with its own decoder and both
 were wrong — an encoder cannot catch that. Five of the eight CP0 tests in
 `tests.rs` were passing for reasons unrelated to what they claimed.
-
-`cargo test -p rp2350-emu` is **3674 passed, 0 failed** with the series applied.
 
 ## Using it
 
