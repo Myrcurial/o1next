@@ -120,15 +120,22 @@ Read/write it via the CP/M `IOBYTE` function, same as the serial port.
   pin-level read of the same region returned **UE3 as an LM1458**. It does not
   change the requirement (negative for mark), but it changes the input impedance,
   so re-read that region at native resolution before fixing the drive current.
-- **P1 pin 7 is the `+12V` net through `R21` (22 Ω).** The Technical Manual's own
-  §4.3.2 table says so — "Connected to power supply through 22 ohms" — and sheet 7
-  shows it: `R21`'s lower end is a three-way junction that feeds **both** this
-  port's pin 7 and **`J6 → P4-19`**, the keyboard branch. The two loads therefore
-  **share** the one resistor and its budget, so #47's keyboard adapter does not get
-  a second 22 Ω of its own. The Astec supply is rated `+12 V @ 2.02 A`
-  (11.40–12.60 V) and the original Comm-Pac drew **~500 mA at 12 V** from this
-  port; the modern module's draw has to be added to the keyboard adapter's before
-  `R21` is judged.
+- **P1 pin 7 is the `+12V` net through `R21` (22 Ω), and that resistor is the limit
+  on this port.** The Technical Manual's §4.3.2 table says it in words —
+  "Connected to power supply through 22 ohms" — and sheet 7 shows the
+  arrangement: `R21` hangs off the `+12V` rail and its lower end is a junction
+  that feeds **both** this port's pin 7 and **`J6 → P4-19`**, the keyboard branch.
+  The two loads therefore **share** one 22 Ω resistor.
+
+  **A 22 Ω feed is a hard current limit, so this is a low-current supply.** At
+  500 mA it would drop 11 V, which no 12 V rail survives; at 100 mA the drop is
+  2.2 V and about 10 V reaches the load. A period Bell-103 modem with its own DAA
+  draws tens of mA, which is what makes a 22 Ω feed possible at all — and the
+  Comm-Pac's own manual quotes **no** supply current anywhere (its specification
+  page gives the modulation, the carrier frequencies and the line levels, and
+  nothing about current). So the port's budget is the one #56 already assumes:
+  small, and shared with the keyboard adapter. The eleven-lamp panel is sized at
+  2–3 mA per lamp for exactly this reason.
 - **MSB (pin 4) is open-collector** and **MCB (pin 8) low suppresses output** —
   together these are the modem's "hook"/enable handshake. RI (pin 9) falling
   edge sets the ring flag; the ESP32 can drive it to signal an incoming
