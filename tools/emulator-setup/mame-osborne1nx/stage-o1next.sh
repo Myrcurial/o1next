@@ -1,9 +1,9 @@
 #!/bin/sh
 # stage-o1next.sh [DEST]
 #
-# Stage **the O1NEXT itself** -- one directory you cd into and run, with the pico
-# in the loop, the hard disk in it, ROM 2.0 in the window, and the serial port on
-# a pty -- as a self-contained build artifact that owes the repo nothing.
+# Stage **the O1NEXT itself** -- one directory you cd into and run, with the hard
+# disk in it, ROM 2.0 in the window, the serial port on a pty, and the pico staged
+# beside it -- as a self-contained build artifact that owes the repo nothing.
 #
 # WHY THIS IS NOT stage.sh
 #   `stage.sh` stages the *test* machine (#247): the card-only `osborne1nx`, its
@@ -256,10 +256,14 @@ That gives you the machine this project is for:
   maximized layout, so \`A0>\` through \`K0>\`;
 - **104 columns** on the same tube the stock machine uses -- the SCREEN-PAC's
   doubled dot clock, not a wider window (\`docs/osborne1nx-machine.md\` 8);
-- **the pico in the loop**: \`picoem\` runs the interposer's own firmware beside
-  MAME and the card's window is answered by it (\`run/pico/bridge.log\` is its log);
 - **the serial port on a pty**, printed at launch, with the relay ready for a
-  modem on the bench rig.
+  modem on the bench rig;
+- **the pico staged beside it**, one flag away: \`O1_PICOEM=1\` runs the interposer's
+  own firmware in the loop (\`picoem\`, \`pico/bridge.log\`). It is off by default
+  because the card's window is then the *firmware's*, and the smoke firmware is
+  not the ACB-4000 personality -- so the hard disk stops coming up until #179/#293
+  land. Measured, not assumed: with it on, the guest reads \`32h\` in a loop and
+  gets \`10h\` back for ever.
 
 ## Going on a BBS
 
@@ -281,7 +285,7 @@ fault (\`docs/o1-modem-serial.md\`).
 
 | | |
 |---|---|
-| \`O1_PICOEM=0\` | no pico: the card-only \`osborne1nx\`, with the hard disk served by MAME's own ACB-4000 |
+| \`O1_PICOEM=1\` | the pico in the loop: the interposer's firmware answers the card's window instead of MAME's ACB-4000 -- and the drive stops coming up, because that firmware is a smoke test and not the personality (#179/#293) |
 | \`O1_SOFTROM=none\` | the machine's own 1.44 ROM instead of ROM 2.0 |
 | \`O1_HARD=none\` | no hard disk |
 | \`O1_RS232=0\` | no serial port |
