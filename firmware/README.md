@@ -7,6 +7,18 @@ and the interposer/SFF onboard option), and **RP2040** (keyboard matrix
 injection, shared between the standalone adapter and the KVM/second-
 keyboard path).
 
+**Where the tree stands.** `library/`, `rom-service/`, `rom-ident/` and
+`acb4000-scsi/` are pure logic — built and host-tested in CI with no board and no
+SDK; the ROM socket read and the SCSI end-to-end acceptance are the parts that
+still want one. `picoem-smoke/` and `picoem-fabric/` build with the Pico SDK and
+answer the bridge in the emulator. The ESP32 sketches build and run on hardware:
+`zimodem-fork/` (its O1 core is host-tested, its board profile runs on the S2) and
+`bench-bridge/` (one verified image per board, in CI). The remaining folders are
+definitions and deliverable lists — no firmware in the folder yet, and each needs
+a board: `bus-analyzer/`, `screenpac-video/`, `virtual-printer/`,
+`floppy-emulator/`, `drive-c-gpib/`, `keyboard-matrix/`, `kvm-console/`,
+`web-ui/`, `copower88-shim/`, `rt60a-rtc/`.
+
 See `software/` for code that runs on the Osborne itself (CP/M) and
 `tools/` for host-side utilities.
 
@@ -30,8 +42,7 @@ See `software/` for code that runs on the Osborne itself (CP/M) and
 | `rom-ident/` | RP2354B (host-testable) | Identify the fitted ROM at boot by CRC32 (table generated from `docs/o1-rom-variants.md`) and gate the personalities on it: refuses Drive C / printer under OZROM 1E, degrades video to a warning | #86 | Gate + table done and tested; the socket read needs a board |
 | `rom-service/` | RP2354B | The ROM↔interposer channel: the **ROM-service** command class (`PRESENT`, `INFO`) on **two doors** — userland I/O `0E7h`/`0EBh`, and the ROM's own bank-2 pair `2800h`/`2801h` (**not** `2300h`/`2301h`, which is the floppy's track register and the keyboard's row 0) — and the boot screen in the RP2354B's own flash: `boot-animation.bin`, the animation the **RP2354B plays itself** | #247, #277, #278, #284 | Easy-medium — the class is **built and host-tested** (`run_tests.sh`, CI) on the engine in `firmware/library/`; the contract is `docs/rom-pico-protocol.md`, and the renderer that draws the animation is #277's. The animation is not generated in-repo, and `bootanim.py --check` is its format check. The ROM-side frame path — `PRESENT(1)`/`(2)`/`(3)`, and the committed `frame.bin` and `screen.bin` — was retired 2026-10-16/17 (#278) |
 | `library/` | RP2354B (host-testable) | The **image library**, the **mailbox engine** and the **media layer**: three media (external SPI flash + one microSD + one USB stick) merged into one namespace, the `floppy/`/`disk/`/`printer/` layout, the kind and size rules, the mount table, the protocol's opcode dispatch for both doors, **FatFS R0.15 vendored** and the block-device seam beneath it | #283, #285, #192; serves #20, #27, #181, #182 | **Built and host-tested** (`run_tests.sh`, CI) — no board, no SDK; the library and protocol run over a directory tree *and* over three real FAT volumes the suite formats itself. The board's transports (SPI to the NOR flash, microSD, USB MSC) and the NOR FTL are the follow-up to #285 |
-
-| `picoem-smoke/` | RP2354B (Pico SDK) | The **picoem bridge's smoke firmware** (#286, part of #192): a one-byte register addressed by the Z80's own I/O strobes, so that a bus cycle in `osborne1nx` reaches a *real* firmware's GPIO and the answer comes back. A heartbeat toggles once per handled cycle — the liveness signal the bridge counts | #286, #192 | **Built and passing** (`build.sh`, then `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`). Not a personality — #179 is — and deliberately not PIO. **Three SDK switches remain, not six**: the CP0 and `ldaexb` workarounds retired when `tools/emulator-setup/picoem/` fixed those two picoem bugs, and what is left is the bootrom boot path alone. `docs/picoem-bridge.md` §5 is the gap list; `docs/emulation-testbed.md` is the register |
+| `picoem-smoke/` | RP2354B (Pico SDK) | The **picoem bridge's smoke firmware** (#286, part of #192): a one-byte register addressed by the Z80's own I/O strobes, so that a bus cycle in `osborne1nx` reaches a *real* firmware's GPIO and the answer comes back. A heartbeat toggles once per handled cycle — the liveness signal the bridge counts | #286, #192 | **Built and passing** (`build.sh`, then `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`). Not a personality — #179 is — and deliberately not PIO. **Three SDK switches remain** — the CP0 and `ldaexb` workarounds retired when `tools/emulator-setup/picoem/` fixed those two picoem bugs, and what is left is the bootrom boot path alone. `docs/picoem-bridge.md` §5 is the gap list; `docs/emulation-testbed.md` is the register |
 | `picoem-fabric/` | RP2354B (Pico SDK) | The **interposer's shift fabric, driven** (#304, part of #192): the 595's match window for the 688, and the 165 read back for the address — the first firmware that touches the *board* rather than only the bus. `/WAIT` is its liveness signal, and `--fabric-test` proves the window, the snapshot and the pacing with no MAME | #304, #192, #303 | **Built, and answering**: two registers, two answers, and a **24-bit snapshot measured at 14 976 cycles**. **`--fabric-test` is 8 of 8** — which needed a **picoem fix**, not a firmware one: its SIO modelled bank 0 as 30 pins, hiding GP30/GP31 (`SR_RCK`, `/OE_ADDR`). Fixed in `rp2350-correctness.patch` commits 2–3, `docs/emulation-testbed.md` §4.2 P9 |
 
 ## Project rule
@@ -43,18 +54,14 @@ work and a known-good test suite — these personalities are pure win.
 
 ## Cross-cutting constraints
 
-- **Radio jitter — and why it is no longer the interposer's problem.** The
-  interposer used to carry a **radio-bearing module**, whose CYW43439 sat
-  alongside the MCU and added jitter to bus capture and MFM flux emulation.
-  **That is no
-  longer the design**: the board carries the bare **RP2354B** part — which is where
-  the firmware and the boot screen's assets live — and the radio is an **ESP32 on UART0**
-  (GP38/39). So the jitter source has moved *off* the bus-critical chip entirely,
-  which is strictly better for every personality. The rule becomes a **link**
-  rule rather than a fencing rule: the ESP32 is never asked for anything inside a
-  capture or flux window, and the UART link is the only thing crossing between
-  them. (Corrected 2026-10-15: this section named the module's radio part, which
-  is a module we no longer fit.)
+- **Radio jitter is off the bus-critical chip.** The board carries the bare
+  **RP2354B** part — which is where the firmware and the boot screen's assets live
+  — and the radio is an **ESP32 on UART0** (GP38/39). That is the point of the
+  choice: on a radio-bearing module the CYW43439 sits alongside the MCU, and its
+  interrupts add jitter to bus capture and MFM flux emulation, which no personality
+  can afford. With the radio on its own chip the constraint is a **link** rule
+  rather than a fencing rule: the ESP32 is never asked for anything inside a
+  capture or flux window, and the UART link is the only thing crossing between them.
 - **One modem codebase:** the ESP32 Zimodem fork serves both the severable module
   and the interposer/SFF onboard ESP32. **The part is chosen: ESP32-S2** (#317,
   2026-10-19) — it is the variant whose auto-baud pulse counter is **20-bit**
