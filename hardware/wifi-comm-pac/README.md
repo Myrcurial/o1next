@@ -98,26 +98,31 @@ Still to confirm in hardware: the **RXD negative swing**, on a real machine (#32
 ## Power
 
 **DE-9 pin 7 is +12.6 V DC, and it is behind the 22 Ω.** The Technical Manual
-§4.3.2 says so in words — *"7 +12v — Connected to power supply through 22 ohms"*
-(`research/osborne1/modem/o1techman-interface-extract.pdf`) — and sheet 7 of 9 shows
-the arrangement: `R21 = 22 Ω` hangs off the `+12V` rail and its lower end is a
-junction feeding **both** P1 pin 7 and **`J6 pin 1 → J6 pin 2 → P4-19`**, the
-keyboard branch. The sheet labels that node `+12V`, which is the trap: old schematics
-name a current-limited net after the rail it comes from, so the series part sits
-upstream of the label and **a net label does not tell you where it is**.
+§4.3.2 says so in words — "7 +12v — Connected to power supply through 22 ohms" —
+and sheet 7 of 9 shows the arrangement: `R21 = 22 Ω` hangs off the `+12V` rail and
+its lower end is a junction feeding **both** P1 pin 7 and **`J6 pin 1 → J6 pin 2
+→ P4-19`**, the keyboard branch.
 
-**That makes the port a low-current supply, and it is the design constraint.** The
-Astec supply is rated `+12 V @ 2.02 A` (11.40–12.60 V) and the Comm-Pac manual labels
-the pin **+12.6 V**, but 22 Ω in series is a hard limit — 500 mA through it would drop
-11 V, 100 mA drops 2.2 V. The original Comm-Pac drew **tens of mA**, and the keyboard
-adapter (#47) shares the same resistor. The budget is marginal, so keep the average
-small: the eleven-lamp panel at **2–3 mA per lamp** (#322) is sized for it.
+The sheet labels that node `+12V`, which is what makes this easy to get wrong:
+old schematics name a current-limited net after the rail it comes from, so **the
+series part sits upstream of the label, and a net label does not tell you where
+it is**. A 600 dpi read of the sheet alone does not settle it; the manual is the
+tie-breaker, and it says *through 22 ohms*.
+
+**That makes the port a low-current supply, and it is the design constraint.**
+22 Ω in series is a hard limit: 500 mA through it would drop 11 V, and 100 mA
+drops 2.2 V, so the board's average draw has to be tens of mA. The keyboard
+adapter (#47) shares the same resistor, so the budget is shared and marginal —
+the eleven-lamp panel at **2–3 mA per lamp** (#322) is sized for exactly that.
+The Comm-Pac manual quotes **no** supply current anywhere, so there is no period
+figure to size against; the limit is the resistor, and the peak comes from the
+capacitor.
 
 - **Bulk capacitance is doing real work, not tidiness.** A WiFi TX burst is a few
-  hundred mA; `R21` cannot supply that, so the capacitor supplies the peak and `R21`
-  supplies the average. Size the cap from the burst energy, and check the average
-  draw against the shared budget — with 22 Ω in the path there *is* an inrush and
-  peak problem to design around.
+  hundred mA; `R21` cannot supply that, so the capacitor supplies the peak and
+  `R21` supplies the average. Size the cap from the burst energy, and check the
+  average draw against the shared budget — with 22 Ω in the path there *is* an
+  inrush and peak problem to design around.
 - **Buck 12.6 V → 5 V**, then **5 V → 3.3 V**; USB-C VBUS is **5 V → 3.3 V only**.
   Two sources, **diode-OR** (Schottky pair, or a P-FET ideal diode if the drop
   matters) so neither back-feeds the other.
