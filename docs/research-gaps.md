@@ -1,45 +1,24 @@
 # Research gaps — status review
 
-**Last reviewed:** 2026-10-11 (seventh pass), after **#168 closed the same day it
-was filed** — not because a copy was found, but because we already had one: the
-"290 of 400 sectors erased" that justified the hunt was a `cpmfs.py` sector-skew
-bug (**#170**), and with the correct skew all twenty files of the OZROM Utilities
-disk extract whole. Phase 0 reads **20 of 23** — counted from the tree, not from
-memory. Previous review
-2026-10-11 (sixth pass), after **#81 was closed** on its stated deliverable —
-OZROM 1E as tooling: manual indexed, the column switch's mechanism measured from
-the ROM as well as documented, memory tester and error codes written down, ROM
-interface recorded. Its residues are routed rather than carried (#167; the
-jump-table diff is done, and #168 closed). Previous review
-2026-10-11 (fifth pass), after **#95 was closed** on the
-decision that the O1 does not need to recognise foreign diskette formats: the
-manufacturer's list and the CBIOS DPB+skew table agree field for field, Osborne
-SD is confirmed end to end in MAME, and foreign media is converted on the modern
-side before it is mounted. Previous review
-2026-10-11 (fourth pass), after **#6 and #7 were closed** — #6 on its stated
-deliverable (`docs/drive-c-protocol.md`, validated end to end), with its residue
-moved to #84; #7 because the clock ABI *is* its deliverable and #18 owns the
-implementation. Previous review
-2026-10-11 (third pass), after #6's transport and device contract were measured
-and validated and `docs/drive-c-design.md` (#84) became the build spec. Previous
-review 2026-10-11 (later pass), after #95 was answered from the OCC
-CBIOS source, #7's clock ABI was written as a contract, #81's OZROM index was
-built, and #6's `DFD.SPR` blocker was re-characterised. Previous review
-2026-10-11, after the *Portable Companion* extract batches
-(#73), the issue triage that re-scoped this doc's subject list, and the Phase-0
-sub-issue tree (§F). Previous review 2026-10-10, after the archive drop (#71),
-the ROM-source indexing (#72) and the MAME work (#79).
+**Status: Solved** — as a status review: every open research question is tracked
+here with its evidence and what is left, cross-checked against the
+`research`-labelled issues and against each document's own status line. Last
+reconciled with the documents at the `docs/` readability sweep (#200).
 
 This is the single place that says, for every open research question, **whether
-it is answered, by what evidence, and what is left** — cross-checked against the
-`research`-labelled issues. When the two disagree, one of them is wrong.
+it is answered, by what evidence, and what is left**. Where this file and a
+document disagree, the document is the authority — it holds the measurement — and
+this file is the one that is wrong.
+
+Phase 0 reads **22 of its 23 sub-issues closed**, counted from the issue tree
+(§F); **#39** is the last one open.
 
 **Status words** (same vocabulary as `docs/README.md`):
 
 | Status | Means |
 |---|---|
 | **Solved** | Answered, and the answer is checkable from a doc |
-| **Partially** | The shape is known; a *named* sub-question is not |
+| **Partially solved** | The main shape is known; a *named* sub-question is not |
 | **Open** | Not answered |
 | **Superseded** | Stopped mattering — a better route was found, or a decision was taken |
 
@@ -50,8 +29,8 @@ status.
 
 | | Count |
 |---|---|
-| Solved | 6 of the original 15 |
-| Partially | 6 |
+| Solved | 9 of the original 15 |
+| Partially solved | 3 |
 | Open | 1 |
 | Superseded | 2 |
 
@@ -67,8 +46,16 @@ status.
    box resolves banks 0–2 (hardware-gated) and whether Drive C, the printer at
    device 3 and the RT-60A can share one bus. The build spec is
    `docs/drive-c-design.md`.
-3. **The hard-disk controller decision (#8)** — two products are characterised;
-   pick the one worth emulating before any personality code is written.
+3. **The hard-disk personality (#179)** — the controller *decision* is closed:
+   emulate the **Adaptec ACB-4000** inside the Media Distributing MD-10, not the
+   ACT (#8), and **#178 is closed with it** — the drive table's layout and the
+   DPB's values are both read (`harddisk-decision.md` §7.2–§7.3, `md10-system.md`
+   §9). The personality is built and host-tested, and the MD-10 system it needs
+   boots to a prompt with three partitions (`md10-system.md` §1, §7). What is
+   left is **who copies the static DPB and descriptor tables into the running
+   system** (`harddisk-decision.md` §10 item 1, `md10-system.md` §9.1) and
+   pointing the MAME harness at this personality rather than at MAME's generic
+   SCSI model.
 4. ~~**The RT-60A ABI (#7)** — decide the contract, then implement it in #18.~~
    **Done 2026-10-11.** The ABI is written as a contract in `rt60a-analysis.md`
    (pointer block, sentinel/invalidation rules) and #18 implements it. The
@@ -80,10 +67,12 @@ status.
    The four foreign formats are **taken as written, not synthesised**: they are
    only needed to read original foreign media *on the O1*, and foreign media is
    converted on the modern side instead. `dd-upgrade-formats.md`.
-6. ~~**OZROM 1E as tooling (#81)**~~ **Solved and closed 2026-10-11**:
-   `ozrom-1e.md` indexes the manual, measures it on all three machines, and
-   records the column switch's mechanism from the ROM. Residues routed to #167
-   (harness keystrokes) and #168 (a complete Utilities disk).
+6. ~~**OZROM 1E as tooling (#81)**~~ **Solved and closed**: `ozrom-1e.md` indexes
+   the manual, measures it on all three machines, and records the column switch's
+   mechanism from the ROM. Of its four residues one is live — **#167**, driving
+   the column keys from the harness — and **#168** (a complete Utilities disk) is
+   closed: we already had one, and the "290 of 400 sectors erased" that justified
+   the hunt was a `cpmfs.py` sector-skew bug (#170).
 
 Everything else is either done, or is research that can proceed in parallel.
 **#79 is closed and no longer blocking**: the decision taken is not to chase the
@@ -96,20 +85,20 @@ OZROM's soft 52/80/104-column switch.
 
 | # | Gap | Status | Evidence | Issues | What's left |
 |---|---|---|---|---|---|
-| 1 | Exact memory & I/O map, free decode windows | **Solved** | `o1-memory-io-map.md` §2–§7 (schematic), confirmed from the ROM source in `o1-rom-source.md`, measured on the running machine by `tools/check_o1_map.sh` | #40, #62, #64, #72 | Decode *granularity* is still schematic-level. Free gaps between the five device blocks: `2300–28FF`, `2B00–2BFF`, `2D00–2FFF` |
+| 1 | Exact memory & I/O map, free decode windows | **Solved** | `o1-memory-io-map.md` §2–§7 (schematic), confirmed from the ROM source in `o1-rom-source.md`, measured on the running machine by `tools/check_o1_map.sh` | #40, #62, #64, #72 | Decode *granularity* is still schematic-level — the chip selects check A11 plus one of A8/A9/A10 (`o1-mainboard-schematic.md` §7, §7a). Of the ranges this row used to call free, only three page-aligned blocks are selected by *nothing*: `2000–20FF`, `2400–24FF` and `2800–28FF`; `2800–28FF` is the recommended virtual-peripheral base (`o1-memory-io-map.md` §7) |
 | 2 | NMOS vs CMOS Z80 across the target machines | **Superseded** | Resolved by history: the CMOS Z84C00 shipped in 1985, O1 production ended in 1983 — every O1 is NMOS. Interposer standardised on 74AHCT/HCT | #39 | #39's remainder: machine IDs and date codes, for the record |
 | 3 | Z80 socket **and** char-gen socket pinout | **Solved** | Z80: datasheet, schematic sheet 3 of 9, `tools/check_schematics.py`. UA15: read at 1200 dpi off **sheet 4 of 9** (not the video sheet) — plain Intel 2716 pinout, `/CE`+`/OE` grounded, pin 21 strapped +5 V; address = `(scan<<7) \| char`; outputs serialised by UA14 (74166). `o1-mainboard-schematic.md` §4a, `o1-memory-io-map.md` §6, asserted in `tools/check_schematics.py` | #62, #24, #64 | — |
-| 4 | CoPower-88 monitor ROM dump | **Superseded** | The SWP co-processor ROM is **in the repo**: `research/roms/swp-p88.rom`, 8088 code, from Maslin's archive. The board and interposer are common across hosts; only the driver varies | #3, #4, #5, #70 | Confirm the residual doorbell/IRQ semantics *from that ROM* rather than by inference |
+| 4 | CoPower-88 monitor ROM dump | **Superseded** | The SWP co-processor ROM is **in the repo**: `research/roms/swp-p88.rom`, 8088 code, from Maslin's archive. The board and interposer are common across hosts; only the driver varies | #3, #4, #5, #70 | The dump is held; the doorbell is read off the schematic (`copower88-schematics.md`, *Protocol synthesis*). What is left is gap 6 — the 8088-side command set, still a disassembly away |
 | 5 | Power budget | **Solved** | Decision taken: the interposer gets its own 5 VDC feed near the Z80 socket, sized for RP2354B bursts (~300 mA+) | #12 | — |
-| 6 | CoPower-88 protocol | **Partially** | `copower88-protocol.md` (Kaypro↔Zorba driver diff), `copower88-schematics.md` (SWP 611-0003), plus the 8088 ROM | #3, #4, #5, #23 | Doorbell/IRQ semantics; the 611-0003 sheet-4 comparator reference value; consolidate into one authoritative spec |
+| 6 | CoPower-88 protocol | **Partially solved** | `copower88-protocol.md` — the port pair, the handshake and the block transfer, read out of the two `RAMDISK.COM` builds and corroborated by the board's own schematic; `copower88-schematics.md` — SWP drawing 611-0003: an 8088 in minimum mode and a switch-set port decode into a two-port mailbox with a doorbell; plus the 8088 ROM | #3, #4, #5, #23 | The **8088-side command set** — `research/roms/swp-p88.rom` is that monitor and has not been disassembled for it; **what drives status bit 7**, the read-side flag (the schematic accounts for bit 0 only); and the **Osborne variant's port pair** (the drawing sets the base on the board in units of 2 — Kaypro default `0x7E`/`0x7F` — while the one photographed board reads as a hardwired comparator). The two docs already agree, so there is no separate spec left to consolidate |
 | 7 | Drive C IEEE-488 protocol | **Solved** | `drive-c-protocol.md`; `DRIVE_C.IMD` extracted and disassembled (`research/drive_c/disasm/`); the ROM's IEEE-488 implementation gives the PIA programming, the GPIB command bytes and the "always ready" stub behaviour (`o1-rom-source.md`); and the **byte transport is now read from `DCL`** — PIA init, the 128-byte strobed transfer, the operation bytes `88h`/`81h`, port B bit 6 as the device status input. The transport is in `DCL`, **not** `DFD.SPR` (which makes no PIA references at all); and the **port's own semantics are now documented from the vendor's side** — `o1-ieee488-port.md` (Companion #8): **eight** low-level ROM drivers, **15** devices on the bus (**8** if parallel poll is used), the machine's own address is **0**, and the driver table is the eight 3-byte jumps at **`013F–0156`** | #6, #22, #84 | — **#6 closed 2026-10-11.** The two residues are #84's now: bank resolution for `n = 0,1,2` (hardware-gated) and the GPIB device-address question. The manual settles one thing: real GPIB protocol is *not* supported on the Drive C connector |
 | 8 | RT-60A register map | **Solved** (as a contract) | `rt60a-analysis.md`, reconstructed from the manual | #7, #18 | **Decision taken 2026-10-11 (#7): implement the ABI, not the hardware.** The manual documents the memory contract (`0x0040` pointer, the block, the `0xEFF8` vector) and does *not* document the IEEE handshake — so faithful-hardware emulation is blocked on a `CLOCK.COM` we cannot read, and buys nothing the ABI does not. Left: ~~promote the map to a contract, then implement it in #18.~~ **The map is promoted to a contract** and #18 implements it — **#7 closed 2026-10-11**. The bitsavers TD0 is still a damaged dump (27 no-id sectors) |
-| 9 | OCC1 hard disk | **Solved** | `occ1-harddisk-analysis.md` (product analysis, port claim corrected); `harddisk-decision.md` (the decision + plan, and §7.2 for the drive table) | #8, #178 | **Decided 2026-10-12 (#8): emulate the Adaptec ACB-4000** — the controller inside the Media Distributing **MD-10** — not the ACT. The ACB-4000's command set is documented (OEM manual, now archived) and the ACT's is recorded as unobtainable; the port claim is corrected. **The drive-table record layout and its byte→field mapping are read (2026-10-12, #178)** — `harddisk-decision.md` §7.2. Left: the *numeric* DPB the driver builds at run time — its mechanism and source offsets are read (§7.3) and the values are shown to be absent from the archive, and both remaining routes are bounded (`acb4000-host-adapter.md`) — plus the CoPower-88 drive-letter policy (`harddisk-decision.md` §7.3, §9.4) |
+| 9 | OCC1 hard disk | **Solved** | `occ1-harddisk-analysis.md` (product analysis; the ACT's ports are read out of its own BIOS image); `harddisk-decision.md` (the decision, the plan, and §7.2–§7.3 for the drive table and the DPB); `md10-system.md` §9 (the tables read out of `HARD.COM`); `acb4000-firmware.md`, `acb4000-host-adapter.md`, `acb4000-personality.md` | #8, #178, #179, #191 | **#8 is closed** on the decision: emulate the **Adaptec ACB-4000** — the controller inside the Media Distributing **MD-10** — not the ACT. Its command set is documented (the OEM manual is archived, `harddisk-decision.md` §9.1) and the ACT's is recorded as unobtainable. **#178 is closed too, both halves read**: the drive table's record layout and byte→field mapping are in `harddisk-decision.md` §7.2, and the DPB's *values* turned out to be static data inside `HARD.COM` — type bytes at `0xDD5E` / file `0x998`, the 24-byte descriptors at `0xDD6E` / `0x9A8`, the DPB at `0xDDB6` / `0x9F0` (§7.3, `md10-system.md` §9). No `peek` is needed for any of it, and the system it belongs to boots to a prompt with three partitions (`md10-system.md` §1, §7). Left: **who copies the static tables into a running system** — a `peek` at `0xDD5E`/`0xDD6E` on the booted system settles it (`harddisk-decision.md` §10 item 1, `md10-system.md` §9.1) — the CoPower-88 drive-letter policy (`harddisk-decision.md` §8, #183), and the four other open items in `harddisk-decision.md` §10 |
 | 10 | 6850 ACIA location for the WiFi modem | **Solved** | `o1-memory-io-map.md` §3: `2A00`/`2A01`, UC4 — confirmed independently by the ROM source | #21 | — |
-| 11 | Floppy controller, port map, DD changes | **Partially** | Ports `2100–2103` and the full WD179x command set from the ROM source; 1.44 *is* the DD ROM; DD block = 1K; the Nuevo and Osmosis DD boards are documented | #20, #95, #73 | MB8877 vs WD1793 (schematic-level); the DD upgrade's electrical changes |
+| 11 | Floppy controller, port map, DD changes | **Partially solved** | Ports `2100–2103` and the full WD179x command set from the ROM source; **MB8877 ≡ WD1793, read off the schematic** (`o1-memory-io-map.md` §3, §8); drive/density selects are PIA-driven, not a dedicated latch; 1.44 *is* the DD ROM; DD block = 1K; the Nuevo and Osmosis DD halves are documented (`dd-upgrade-formats.md`) | #20, #95, #73 | The DD upgrade's own **board** — which machine carries one, its part number, and how `DDEN` is wired — is not in the archive; it is on the photo shot list (`photo-survey.md`, item 8) |
 | 12 | Which three machines, which board revisions | **Open** | — | #39 | **User action**: machine IDs (one is 24187A) and Z80 markings |
 | 13 | A known-good boot disk per machine | **Solved** | Measured 3×3 matrix in `mame-emulation.md` §4: all three `-blank.imd` system disks boot on all three MAME machines; diagnostics disks also archived | #29, #70 | The *Nuevo system* disk (`OS1NUEVO.IMD`) does not boot — #79, closed as not needed — but the gap as stated is met |
-| 14 | Consolidate into per-device protocol specs | **Partially** | Done: `copower88-protocol.md`, `drive-c-protocol.md`, `rt60a-analysis.md`, `o1-rom-source.md`, `o1-rom-variants.md`, `mame-emulation.md` | #75 | Missing: floppy, hard disk, printer/parallel, keyboard. #75 (the book) is the final consolidation |
+| 14 | Consolidate into per-device protocol specs | **Partially solved** | Done: `copower88-protocol.md` + `copower88-schematics.md` (the CoPower-88 pair), `drive-c-protocol.md` + `drive-c-design.md` + `drive-c-executive.md`, `rt60a-analysis.md`, `o1-rom-source.md`, `o1-rom-variants.md`, `mame-emulation.md`, `o1-ieee488-port.md`, `o1-memory-io-map.md` + `o1-mainboard-schematic.md`, `harddisk-decision.md` + `md10-system.md` + the three `acb4000-*` docs (hard disk), `dd-upgrade-formats.md` (floppy formats) | #75 | Missing: a **printer/parallel** spec — `o1-ieee488-port.md` §6.2 maps P3 to Centronics, but no device spec exists — and a **keyboard** spec, where `o1-memory-io-map.md` §3 has the matrix and not the protocol. #75 (the book) is the final consolidation |
 | 15 | Memory-resident vs pure I/O-port for virtual devices | **Solved** | Recommendation stands: pure I/O-port, in the free windows from gap 1 (`o1-memory-io-map.md` §7) | #12, #16 | Same decode-granularity caveat as gap 1 |
 
 ---
@@ -182,16 +171,24 @@ through the CPU socket or a port of their own, not through IEEE.**
 
 So the honest count is **seven** advertised storage routes beyond the floppies —
 ACT, Media Distributing/Adaptec (**the MD-10**), Drive C, Corvus, OSMOS 7,
-Trantor TSL-5/TSL-10 and Helix — of which only **Drive C** is buildable from what
-this project holds (#84).
+Trantor TSL-5/TSL-10 and Helix — of which **two** are buildable from what this
+project holds: **Drive C** (#84), and the **MD-10**, whose ACB-4000 personality is
+built and host-tested (`acb4000-personality.md`) and whose vendor-produced system
+boots on the emulated drive (`md10-system.md`).
 
-### B2. Character-generator ROM variants — closed
+### B2. Character-generator ROM variants — closed, and the two fonts measured
 
 #44 asked for the early-font and Nuevo char-gen variants. Both are captured and
 catalogued (`o1-rom-variants.md`): `5297c109` (early, paired with BIOS ≤ 1.4) and
 `6c1eab0d` (late, paired with 1.43/1.44 and used by ScreenPac and Nuevo alike).
-Open sub-question: nobody has rendered the two fonts side by side to confirm they
-actually differ.
+
+**They really are different typefaces, and that is measured, not assumed.** Read
+glyph by glyph out of the two images (`tools/romfont.py` decodes both): **93 of
+128 glyphs differ** — 0 of the 32 graphics characters, 90 of the 95 printable
+ASCII, and 3 of the rest — so the late font carries the graphics set over
+unchanged and changes almost everything else. Only space, the apostrophe and the
+backtick are shared (`o1-rom-variants.md`, *The two fonts really are different*).
+Which font is fitted is therefore a visible difference, not a subtle one.
 
 ### B3. The Nuevo system disk does not boot under MAME — #79, **closed**
 
@@ -218,16 +215,27 @@ mutually exclusive** without reimplementing the driver. It also shrinks the vide
 window to 3 KB (`F000–FBFF`) to make room for its keyboard features, which
 constrains any 2.0 ROM (#83).
 
+Its four closing residues are routed in `ozrom-1e.md` §9. One is live — **#167**,
+driving the column switch from the harness, which the harness cannot post because
+it types plain characters. **#168** (a complete Utilities disk) is closed: the
+disk we hold is whole, and the "290 of 400 sectors erased" was our own
+`cpmfs.py` sector-skew bug (§10.2). The jump-table diff against `rom144.asm` is
+done (§6). One residue is new and unowned: the Utilities disk's own
+`CRCKLIST.CRC` lists a two-byte CRC per file, and **no standard CRC-16 variant
+reproduces them**, so per-file verification against the vendor's manifest waits
+on identifying the algorithm (`ozrom-1e.md` §10.5).
+
 ### B5. Other open research items
 
 | Item | Issue | State |
 |---|---|---|
-| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Closed 2026-10-12.** Both halves of both products are written up in `o1-upgrade-boards.md` — the video side there, the DD side in `dd-upgrade-formats.md` — with the prior-art note in `research/inspired-by/README.md`. Its residue, **#173** (the Nuevo BIOS 1.5 presence check), closed the same day: the check is a read of a port the Osborne 1 does not decode |
-| Advent Products' **Osbaud** baud-rate generator (#21) | #21 | The four connection points are decoded from the review + schematic (6850 pins 4/12, 74LS32 and 74LS04 pin 7); the internal crystal/divider topology is **not** known — needs the instruction sheet or a photo. `o1-modem-serial.md` |
+| Nuevo + Osmosis upgrade boards as prior art (two products each; neither matches OCC's implementation) | #73 | **Closed.** Both halves of both products are written up in `o1-upgrade-boards.md` — the video side there, the DD side in `dd-upgrade-formats.md` — with the prior-art note in `research/inspired-by/README.md`. Its residue, **#173** (the Nuevo BIOS 1.5 presence check), is closed too: the check is a read of a port the Osborne 1 does not decode. Two live residues are recorded in `o1-upgrade-boards.md` §Open and neither has an issue: **one measurement** on a real Nuevo board — `IN A,(04H)` with the card fitted — and **Osmosis's paid technical manual**, which the archive does not hold |
+| Advent Products' **Osbaud** baud-rate generator (#21) | #21 | The four connection points are decoded from the review + schematic (6850 pins 4/12, 74LS32 and 74LS04 pin 7); the internal crystal/divider topology is **not** known — needs the instruction sheet or a photo. `o1-modem-serial.md`, *Advent Products "Osbaud"* |
 | Archive provenance TODOs (2 items) | #74 | **Closed** |
 | `cpmtools` misreads Kaypro DSDD images | #35 | `misc`. Upstream identified: the primary site is `moria.de` (Michael Haardt, 2.23, **email patch** — no GitHub, no tracker), and the practical PR venue is the unofficial `lipro-cpm4l/cpmtools` fork (3 open PRs, 2.21-based). Closes **when filed**, not when merged |
 | G2 multi-format diskette read/write | #30 | **Closed** — folded into #95, which is itself closed: the G2 set is more rows in the same DPB+skew table, and no rows get written, because the O1 does not need to recognise foreign formats |
-| Case + power research (the `next-integrated` board and the O1NEXT enclosure) | #52 | **Phase 5** (#49). A design task, not Phase-0 research |
+| Case + power research (the `next-integrated` board and the O1NEXT enclosure) | #52 | **Phase 5** (#49). A design task, not Phase-0 research. The archive does hold the O1's own power and video hardware: the **Astec AC8151 PSU repair manual** (test set-up, the 115/230 V input-select wire and the +5/+12/−12 rail table, `research/osborne1/o1astecpsac8151.pdf`) and the **MD1000-190 monitor specification**, both added by #245 — what is missing is a supply schematic and board-level photographs |
+| Stock MAME corrupts a guest file written to a floppy | #281 | `research` + `misc` + `MAME upstream`. Deterministic, unreported, and worked around; it has damaged two of this project's builds (`tools/research/rom13-reassemble.sh`, `rom2asm.sh`) and is **not** caused by anything in this repo — `osborne1nx` is not involved |
 | Contribute OZROM 1E to MAME (BIOS slot or an `osborne1oz` machine) | #82 | `misc`. The **machine definition may be worth more than the dump**; a physical OZROM 1E is available to read, which would at least give honest provenance |
 | A local Jekyll environment | #106 | `misc`. `site/` has **no `Gemfile`**, so this is partly creating the manifest, not just resolving it |
 | `Osborne1nx.ttf` — a complete modern font | #107 | `misc`. Extrapolate the O1's 8x10 forms into a full modern face with accents |
@@ -241,33 +249,36 @@ After the 2026-10-11 triage the label means **reverse engineering and
 documentation** again. Five issues left it: **#35** and **#82** (`misc` — upstream
 contributions), **#97** (`misc` — site and font), **#84** (a build, now
 `hardware/drive-c-repro/`) and **#52** (Phase 5). **#83** was never
-research-labelled and has been removed from this table.
+research-labelled and has been removed from this table. **#75** is not
+research-labelled either — it is `documentation`/`deliverable`, the book — and it
+stays only because it is where these specs are finally consolidated.
 
 | Issue | Title | State | What closes it |
 |---|---|---|---|
-| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — 21 of 23 closed |
-| #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed 2026-10-11** | Delivered as `docs/drive-c-protocol.md` and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
-| #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed 2026-10-11** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
-| #8 | Choose which hard-disk controller to emulate | Partially | A written recommendation — one personality, not two |
-| #178 | Read the MD-10 DPB and `DRIVETBL.DAT` | Open — **both halves now bounded 2026-10-12** | The **drive-table half is closed**: the file's structure (13-byte header, 126 11-byte name records, sentinel, 113 128-byte description records) and the byte→field mapping — the nine geometry bytes are the ACB-4000's own `MODE SELECT` drive-parameter block — are in `harddisk-decision.md` §7.2, read from the shipped file and confirmed by running `MD10.COM`'s editor in MAME. The **DPB half is now bounded rather than open**: §7.3 reads the mechanism with its source offsets (`SELDSK` → DPH at `0x056E + type*24 + 8`; the DPB pointer at DPH+10; `BLM` read from `DPB+3`; 128-byte records, 4 to a 512-byte sector) and proves the *values* are not in the archive — no file initialises `0x055E`/`0x056E`, and the MD utilities disk is a data disk (system tracks all `0xE5`) carrying no system image. **Both remaining routes are now bounded (2026-10-12)**: the host-adapter register protocol is decoded (`acb4000-host-adapter.md` §1 — the probe, the transaction, and the four status bits `01h`/`02h`/`20h`/`40h`), the **MAME-stub route is blocked** because the O1's on-board decode uses only two I/O address bits so `30h`–`33h` alias onto the ROM-bank ports (§2), and a **stock system image does not reach low RAM** (it loads `[CCP][BDOS][BIOS]` at the CCP, §3). Needs a MAME driver change or an MD-10 system disk |
-| #73 | Nuevo + Osmosis prior art | **Closed 2026-10-12** | Written up in `o1-upgrade-boards.md` (both products, both halves, and how each is detected) plus the prior-art note in `research/inspired-by/README.md`. Residue **#173** closed the same day |
-| #173 | The Nuevo BIOS 1.5 presence check | **Closed 2026-10-12** | Read out of the two CBIOS images: `IN A,(04H)` at the head of the cold boot, guarding the 80-column configuration, with the factory DD disk `O1CPM.IMD` as the 1.4 partner. The one step a board would add — that the read is zero with the card fitted — is stated as such in `o1-upgrade-boards.md` |
+| #1 | Phase 0 umbrella | Open | The sub-issue tree (§F) — **22 of 23 closed**; #39 is the last one open |
+| #6 | Drive C → GPIB protocol spec | ~~Largely~~ **Closed** | Delivered as `docs/drive-c-protocol.md` and validated end to end. The residue moved to **#84** — bank resolution for `n = 0,1,2`, and the GPIB device-address question |
+| #7 | RT-60A → a time **ABI**, not the hardware | ~~Partially~~ **Closed** | The ABI *is* the deliverable and it is written in `rt60a-analysis.md`; #18 implements it |
+| #8 | Choose which hard-disk controller to emulate | **Closed** | The written recommendation, taken: the **Adaptec ACB-4000**, one personality rather than two (`harddisk-decision.md` §1–§2, §9.5). Its build is **#179** |
+| #178 | Read the MD-10 DPB and `DRIVETBL.DAT` | **Closed — both halves read** | The **drive-table half**: the file's structure (13-byte header, 126 11-byte name records, sentinel, 113 128-byte description records) and the byte→field mapping — the nine geometry bytes are the ACB-4000's own `MODE SELECT` drive-parameter block — are in `harddisk-decision.md` §7.2, read from the shipped file and confirmed by running `MD10.COM`'s editor in MAME. The **DPB half**: the values *are* in the archive, because `0x055E`/`0x056E` are offsets from the MD-10 BIOS base `0xD800`, not low-RAM addresses — the type bytes are at `0xDD5E` / file `0x998`, the descriptors at `0xDD6E` / `0x9A8` and the DPB at `0xDDB6` / `0x9F0` (§7.3, `md10-system.md` §9), and `DPB+3` = `31` matches the `BLM` the driver's code reads. The mechanism stays as §7.3 recorded it (`SELDSK` → DPH at `0x056E + type*24 + 8`; the DPB pointer at DPH+10; 128-byte records, 4 to a 512-byte sector). Left as **#179's**: which copy a boot uses |
+| #73 | Nuevo + Osmosis prior art | **Closed** | Written up in `o1-upgrade-boards.md` (both products, both halves, and how each is detected) plus the prior-art note in `research/inspired-by/README.md`. Residue **#173** closed with it; two unowned residues remain, named in §B5 |
+| #173 | The Nuevo BIOS 1.5 presence check | **Closed** | Read out of the two CBIOS images: `IN A,(04H)` at the head of the cold boot, guarding the 80-column configuration, with the factory DD disk `O1CPM.IMD` as the 1.4 partner. The one step a board would add — that the read is zero with the card fitted — is stated as such in `o1-upgrade-boards.md` |
 | #75 | The book | **Ungated** | The pieces in #108–#115 |
-| #81 | OZROM as tooling | **Closed 2026-10-11** | The manual is indexed, the 52/80/104-column switch's mechanism is measured from the ROM (it drives the stock video PIA through the stock ROM's helper — `2C00`, cached in `EF61`), and the jump table now diffs clean against `rom144.asm`. Residue routed: #167 (harness keystrokes). #168 (a complete Utilities disk) closed as unnecessary — we had it; the "erased sectors" were a `cpmfs.py` skew bug (#170) |
-| #95 | DD multi-format (now also the G2, absorbed from #30) | **Closed 2026-10-11** | Taken as written: the manual's list and the CBIOS DPB+skew table agree field for field, and Osborne SD is confirmed end to end in MAME. The four foreign skew tables are deliberately left unverified — the O1 does not need to recognise them, because foreign media is converted on the modern side |
+| #81 | OZROM as tooling | **Closed** | The manual is indexed, the 52/80/104-column switch's mechanism is measured from the ROM (it drives the stock video PIA through the stock ROM's helper — `2C00`, cached in `EF61`), and the jump table now diffs clean against `rom144.asm`. Residue routed: #167 (harness keystrokes). #168 (a complete Utilities disk) closed as unnecessary — we had it; the "erased sectors" were a `cpmfs.py` skew bug (#170) |
+| #95 | DD multi-format (now also the G2, absorbed from #30) | **Closed** | Taken as written: the manual's list and the CBIOS DPB+skew table agree field for field, and Osborne SD is confirmed end to end in MAME. The four foreign skew tables are deliberately left unverified — the O1 does not need to recognise them, because foreign media is converted on the modern side |
+| #281 | Stock MAME corrupts a guest file written to a floppy | **Open** | A characterisation, not a fix: the defect is deterministic, reproducible on the stock `osborne1` machine, and unreported upstream. It closes when the report is filed and answered — or when the workaround stops being needed |
 
 Closed, but still carrying the label — the work that got Phase 0 to where it is:
-**#2, #3, #4, #5, #6, #7, #9, #10, #30, #44, #64, #70, #71, #72, #74, #79**. They are
-attached to #1 as sub-issues, so the parent's progress bar counts them.
+**#2, #3, #4, #5, #6, #7, #8, #9, #10, #30, #44, #64, #70, #71, #72, #73, #74,
+#79, #81, #95, #165, #168, #173, #178, #198, #245**. Most are attached to #1 as
+sub-issues, so the parent's progress bar counts them.
 
 ---
 
 ## D. Triage decisions taken 2026-10-11
 
-This section used to be a "recommended close-outs" list. **It has been done** —
-#3, #4, #5, #44, #64 and #72 are all closed — so it now records the *decisions*
-from the issue triage instead, because they are reached by discussion and are not
-re-derivable from a source:
+The 2026-10-11 triage produced *decisions* rather than close-outs — #3, #4, #5,
+#44, #64 and #72 were all closed on it — and the decisions are recorded here
+because they were reached by discussion and are not re-derivable from a source:
 
 - **#30 folded into #95.** Same question one product apart: the DD half is already
   answered in `dd-upgrade-formats.md` from the DD upgrade manual, and the G2
@@ -303,17 +314,24 @@ Ordered by what blocks what:
    came *off* the list rather than onto it: it is a replacement CCP, which a
    reproduction inherits. The bank-resolution question is hardware-gated and now
    sits on **#84**.
-3. ~~**Decide the hard-disk controller** (#8): characterise both, pick one to
-   emulate, and correct `occ1-harddisk-analysis.md`'s port claim.~~ **Done
-   2026-10-12** — the Adaptec ACB-4000, and the port claim is corrected
-   (`harddisk-decision.md`). Its two sub-issues: **#178** is half done (the
-   drive-table half — §7.2; the numeric DPB is left) and **#179** (the
-   personality) now has a default geometry to build against.
+3. ~~**Decide the hard-disk controller** (#8): characterise both and pick one to
+   emulate.~~ **Closed** — the **Adaptec ACB-4000** inside the Media Distributing
+   MD-10, not the ACT (`harddisk-decision.md`). Its two sub-issues: **#178 is
+   closed** — the drive table's layout is read (§7.2) and the DPB's values turned
+   out to be static data inside `HARD.COM` (§7.3, `md10-system.md` §9) — and
+   **#179 is open**: the personality is built and host-tested, the MD-10 system
+   boots to a prompt with three partitions, and what is left is who copies the
+   static tables into the running system and pointing the MAME harness at the
+   personality rather than at MAME's generic SCSI model.
 4. ~~**Write the RT-60A ABI contract** (#7), then implement it in #18.~~ **Written
    2026-10-11** (`rt60a-analysis.md`); #18 implements it.
-5. ~~**#73** — the DD halves of the Nuevo and Osmosis boards.~~ **Closed
-   2026-10-12**: written up in `o1-upgrade-boards.md` and `dd-upgrade-formats.md`;
-   the one residue, the Nuevo presence check, is **#173** — closed the same day.
+5. ~~**#73** — the DD halves of the Nuevo and Osmosis boards.~~ **Closed**: written
+   up in `o1-upgrade-boards.md` and `dd-upgrade-formats.md`, with the Nuevo
+   presence check (**#173**) closed with it — it is a read of a port the Osborne 1
+   does not decode. Two residues remain and neither has an issue: **one
+   measurement** on a real Nuevo board (`IN A,(04H)` with the card fitted) and
+   **Osmosis's paid technical manual**, which the archive does not hold
+   (`o1-upgrade-boards.md` §Open).
 
 The book (#75) is **no longer gated on all of this**: it is a rolling build whose
 pieces are tracked as #108–#115, and Part I plus the appendices are buildable now.
@@ -329,20 +347,22 @@ tree, **closed issues included**, so each one renders a progress bar:
 
 | Phase parent | Children | Closed |
 |---|---|---|
-| **#1** — Phase 0: research & reverse engineering | 23 | 21 |
-| **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 0 |
-| **#16** — Phase 2: firmware personalities | 12 | 1 (#86) |
+| **#1** — Phase 0: research & reverse engineering | 23 | 22 (#39 open) |
+| **#11** — Phase 1: interposer hardware (+ the standalone adapters #47, #56, #84) | 8 | 2 (#13, #15) |
+| **#16** — Phase 2: firmware personalities | 12 | 3 (#83, #86, #155) |
 | **#25** — Phase 3: Osborne-side software | 4 | 0 |
 | **#29** — Phase 4: on-hardware validation | 0 | — |
-| **#49** — Phase 5: the reproduction | 3 (#52, #125, #128) | 0 |
+| **#49** — Phase 5: the reproduction | 3 (#52, #125, #128) | 1 (#125) |
 | **#75** — the book | 8 (#108–#115) | 0 |
 
 Two conventions came out of this, and both are worth keeping:
 
-- **Closed work stays attached.** #2, #3, #4, #5, #6, #7, #9, #10, #30, #40, #44,
-  #64, #70, #71, #72, #73, #74, #79, #81, #95 and #168 are children of #1. The
-  progress bar is the point: Phase 0 is three-quarters done and should read that
-  way.
+- **Closed work stays attached.** #2, #3, #4, #5, #6, #7, #8, #9, #10, #30, #40,
+  #44, #64, #70, #71, #72, #73, #74, #79, #81, #95 and #168 are children of #1.
+  The progress bar is the point: Phase 0 is **22 of 23** and should read that way.
+- **`misc` is the label for work that is not a phase** — upstream contributions
+  (#35, #82), the site (#97), build tooling (#106) and the modern font (#107).
+  Everything else belongs to a phase, and to a parent.
 - **`misc` is the label for work that is not a phase** — upstream contributions
   (#35, #82), the site (#97), build tooling (#106) and the modern font (#107).
   Everything else belongs to a phase, and to a parent.
