@@ -111,18 +111,14 @@ at 3.3 V, well under 0.1 A at the rail after a buck). The shunt has to pass less
 than the original did, and the EXMON shunt is only a connector plus a sync
 combiner, so it does not change that arithmetic.
 
-**But P5's +12 V is not current limited, and that is the constraint** (#354).
-Traced on `1A2011-00`: the `+12V` rail arrives from `P7` (POWER INPUT) **pins 1
-and 7 as plain wires** on sheet 1 of 9, with no series element — no resistor, no
-inductor, no fuse, no PTC — and the machine's only fuse is the **AC mains** one
-(Field Service Manual: 1 A slow-blow, 3AG). The video sheet's own resistors are
-all in the signal path. So the port draws on the **Astec AC8151's 2.02 A** rail,
-in parallel with the CRT, the floppy drives and the modem port — and the modem
-port is the *opposite* case, limited by `R21` (22 Ω; #56). The number that is
-actually missing is therefore **the CRT's own draw**, which is not in the archive:
-the `MD1000-190` specification gives `+12 VDC (±0.5 V)` and no current figure, and
-the PSU table's 0.3 A is a *minimum-load* figure. That is a bench measurement, and
-it is what gates the power stage.
+**And the rail has room to spare, so the budget is closed** (#354). P5's +12 V is
+not separately limited — it arrives from `P7` pins 1/7 as plain wires (`1A2011-00`
+sheet 1 of 9; the machine's only fuse is the AC mains one), so the Astec AC8151's
+**2.02 A** is the only limit. What sits on that rail is a 5" monochrome CRT
+(~1.0–1.2 A steady, ~2 A inrush), two floppy drive motors that never run together,
+and small mainboard supplies. The Drive C's 0.3 A — and any modern load, which
+draws milliamps — is lost in that. (The modem port is the opposite case:
+**limited**, by `R21` 22 Ω, #56.)
 
 The shunt is a **mod**, even though it is passive and reversible, and must be
 documented as one — the same way the USB keyboard adapter's J6 bridge is.
