@@ -62,7 +62,8 @@ it to `picoem_link_device`. Two machines is how MAME says "the same hardware,
 wired differently", and it means the card's own acceptance is untouched.
 
 The wire is built and it passes: `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`
-reports **7 PASS / 0 FAIL**, driving `W30=A5, R30, W31=5A, R31` and getting the
+reports **8 PASS / 0 FAIL** — the seven `want` checks and the #293 cycle-budget
+assertion — driving `W30=A5, R30, W31=5A, R31` and getting the
 firmware's bytes back with a heartbeat edge count. `docs/picoem-bridge.md` is that
 work, and §2 of it is the measurement that the channel is a **FIFO pair, not a
 socket** (MAME's Lua preloads exactly four modules and `3rdparty/` has no
