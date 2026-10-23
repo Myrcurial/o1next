@@ -1,10 +1,16 @@
 # The mailbox — the interposer's host↔firmware channel (#155)
 
-**Status: design — a proposal.** Nothing is built, and nothing here has been
-measured on hardware. This is the contract the firmware and the Osborne-side
-tooling agree on *before* either exists, so that `MOUNT.COM` (#27) and the clock
-publisher (#18) are not written against an interface that accretes implicitly
-out of the first implementation.
+**Status: Open.** This is a proposal, not a decision: nothing is built, and no
+number in it has been measured on hardware.
+
+The mailbox is the interposer's **control plane** — one Z80 I/O port pair, `0xE7`
+for a request and `0xEB` for the reply, on which an ordinary CP/M 2.2 program
+running in the TPA writes an opcode and its operands and then polls for a
+length-prefixed reply whose first byte is a result code (§2, §3). It carries
+commands and metadata only — **no bulk data ever crosses it** (§3) — and it has
+exactly two clients: `MOUNT.COM` (#27) and the resident clock publisher (#18). The
+specification exists so that neither is written against an interface that accretes
+implicitly out of the first implementation.
 
 Answers **#155**. Serves **#27** (MOUNT.COM), **#20** (image library), **#18**
 (RT-60A time service), **#16** (firmware). Built from
@@ -302,7 +308,7 @@ the decisions:
 ## 7. What is not decided
 
 1. **The port numbers themselves.** `0E7h`/`0EBh` are a proposal, chosen for the
-   reasons in §2.1. They are confirmed (or corrected) by measurement, and the
+   reasons in §2.1. Measurement on hardware is what settles them, and the
    protocol is base-relative, so nothing else moves with them.
 2. **Whether the interposer suppresses the claimed cycle from the mainboard.** It
    can, and for a memory window the design already requires it
