@@ -725,7 +725,7 @@ next thing, and it is a firmware deliverable rather than more archaeology.
 
 ## Sources
 
-- `research/adaptec/MD Utilities … 1.93 Osborne - MD-10 MD-20.img` —
+- `research/adaptec/MD Utilities Adaptec 4000 Controller Ver. 1.93 Osborne - MD-10 MD-20.img` —
   `CNTLRCOD.OVL` (probe 0x8100, transaction 0x8051), `HARDBIOS.SPR`
   (transaction 0xE285, `BOOT` 0xE182), `MD10.COM`, `DRIVETBL.DAT`.
 - `research/adaptec/Osborne Hard Disk Control Software Version 2.01 (1984).img`
