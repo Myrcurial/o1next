@@ -16,6 +16,10 @@ Input to the interposer (`O1NEXT Upgrade`, Rev A). Prior art for an `RP2354B`
 interposer between a 4 MHz, 5 V Z80 and its socket, with passive capture + active
 drive + USB/WiFi streaming. All claims cited; sources verified 2026-10-08.
 
+Serves #11 (the interposer), #12 (the electrical/mechanical interface spec), #17
+(the bus analyzer, the closest personality to a survey of sniffers) and #259 (the
+one-board collapse, which re-opened the prior art).
+
 Two entries carry more weight than the rest, and each answers a different half of
 the interposer's problem.
 

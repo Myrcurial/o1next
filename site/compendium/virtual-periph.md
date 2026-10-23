@@ -13,6 +13,9 @@ proposal, and nothing here is built.
 How the RP2354B interposer sits on the Z80 bus and where each virtual
 peripheral lives in the Osborne 1 memory and I/O maps.
 
+Serves #12 (the electrical/mechanical interface spec) and #16 (the personalities
+that live in the address space this allocates).
+
 ## 1. Where the interposer physically sits
 
 The Osborne 1 exposes the Z80 on a 40-pin DIP socket. Like the

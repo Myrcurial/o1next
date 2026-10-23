@@ -12,7 +12,8 @@ from the Technical Manual ([`docs/o1-ieee488-port.md`](https://github.com/Myrcur
 electrical or logical design is waiting on a measurement any more. Nothing is
 built either: what is left is a layout and firmware (§7).
 
-Tracks: #84 (the device), #6 (the protocol). Sibling of
+Tracks: #84 (the device), #6 (the protocol), #22 (the port it hangs off) and #145
+(the DPB its size comes from). Sibling of
 [`hardware/keyboard-adapter/`](https://github.com/Myrcurial/o1next/blob/main/hardware/keyboard-adapter/) and [`hardware/wifi-comm-pac/`](https://github.com/Myrcurial/o1next/blob/main/hardware/wifi-comm-pac/) — a period
 device reproduced on modern parts, hanging off a port, reversible.
 

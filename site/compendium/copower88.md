@@ -19,6 +19,10 @@ twice over, and both have to agree: the board takes it from an 8-position switch
 ([`docs/copower88-schematics.md`](https://github.com/Myrcurial/o1next/blob/main/docs/copower88-schematics.md), §"Port decode"), and the driver is told the same
 pair at install time, defaulting to the two bytes in the `.COM` header.
 
+Serves #3 (the Z80 socket and pinout this board sits in), #4 (the CoPower-88's own
+ROM, which is in the archive), #5 (the port decode) and #23 (the virtual
+CoPower-88 personality this contract is written for).
+
 | Port | Address | Direction | What it is |
 |---|---|---|---|
 | **Data / command** | even — `D` in the driver (Kaypro `7Eh`, Zorba `FEh`) | both | `OUT` latches host→8088; `IN` reads the 8088→host latch |
