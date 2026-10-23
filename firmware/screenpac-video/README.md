@@ -115,9 +115,7 @@ conflate:
   display technology — emissive cells, hard-edged pixels, no phosphor bloom or
   decay, a different gamma — so rendering one needs its own path rather than a
   tint of the CRT model. This note is deliberately not naming the machine or
-  panel that implies: that is still to be recorded. (The HDMI section above used
-  to read "the amber plasma mode", which conflated the Executive's amber CRT with
-  plasma; fixed 2026-10-11.)
+  panel that implies: that is still to be recorded.
 
 The project blog makes the same choice for the same reason: it is white on black,
 with the green noted as the late-production option.
