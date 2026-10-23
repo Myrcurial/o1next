@@ -250,10 +250,10 @@ CA 91311).
 
 ## 6. The P3 edge connector — the pinout, and what the port actually implements
 
-The pin-level map of P3 — `docs/drive-c-design.md` §7's first listed unmeasured
-item — is in the Technical Manual extract the project already archives, §4.1.2
-"IEEE-488 Pinouts". The manual explains why the connector is not the standard
-one:
+The pin-level map of P3 is in the Technical Manual extract the project already
+archives, §4.1.2 "IEEE-488 Pinouts" — the source `docs/drive-c-design.md` §7 and
+this document's §2.3 both build on. The manual explains why the connector is not
+the standard one:
 
 > Because this port is used for more than just IEEE 488 signals, we've declined
 > to use a standard IEEE connector.
