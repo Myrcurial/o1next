@@ -1,20 +1,15 @@
 # The image library — the layout, the merge, and the kinds (#283, #192)
 
-**Status: decided.** The layout, the three media and the merge rule are the
-maintainer's decision of 2026-10-18, recorded here so that `MOUNT.COM` (#27), the
-web UI (#16, #182), the hard-disk menu (#181) and the firmware all cite one page
-instead of four recollections.
+**Status: Solved.** The layout, the three media and the merge rule are the
+maintainer's decision of 2026-10-18, and the code behind them is written and
+host-tested: the library, the merge, the protocol engine and the media layer —
+FatFS R0.15 vendored, the seam over it, and three real FAT volumes formatted and
+read in CI (#283, #285). What is *not* built is the board's transports and the NOR
+flash's wear-levelling layer (§7), and nothing here has been measured on hardware.
 
-**And built:** the library, the merge and the protocol engine are written and
-host-tested (#283), and so is the media layer — FatFS R0.15 vendored, the seam over
-it, and three real FAT volumes formatted and read in CI (#285). What is *not* built
-is the board's transports and the NOR flash's wear-levelling layer (§7). Nothing
-here has been measured on hardware.
-
-**Revised the same day**, on the maintainer's correction: the precedence order is
-USB stick first (§3) — the stick is the transient member and the flash is the
-guarantee — the merge falls through an *invalid* copy to the next medium (§3), and
-the hard-disk floor is 5 MiB rather than 1 MiB (§4).
+The layout is recorded here so that `MOUNT.COM` (#27), the web UI (#16, #182), the
+hard-disk menu (#181) and the firmware all cite one page instead of four
+recollections.
 
 Answers **#283** and **#285**. Reads alongside `docs/mailbox-protocol.md` (the
 protocol, and §5.2's KIND and SIZE rules this doc extends),
