@@ -1,14 +1,21 @@
 # The modem's sound — 300 / 1200 / 2400 / 9600 handshake tones
 
-**Status: solved, with one named uncertainty.** The tones, the rates and the order
-of each handshake are documented and each is cited below; the one thing not
-confirmed against a primary source is the **scrambler preset** (§7). The code is
-`firmware/zimodem-fork/o1modem/tone.c`, and it is host-tested and listenable
-without a board.
+**Status: Solved.** The tones, the rates and the order of each handshake are
+documented and each is cited, and `tone.c` and its tests assert them; the one thing
+with no primary source is the **scrambler preset** (§8), and the one source
+disagreement left standing is the V.22bis answer tone, taken as 2250 Hz (§5).
 
-Tracks **#322** (the panel and the noise, part of **#56**); the board is
-**#324/#325**. Derived from nothing in `research/` except the Comm-Pac manual — the
-rest is published standards, cited in §9.
+The panel plays **four handshakes** — 300 (**Bell 103A**), 1200 (**Bell 212A /
+V.22**), 2400 (**V.22bis**) and 9600 (**V.32**) — each one the tones, the rates and
+the ordering its standard specifies, ending in a two-second data phase. The
+frequencies are the specification and every one is cited below; the **durations**
+are this project's choice, listed in §10. The generator is
+`firmware/zimodem-fork/o1modem/tone.c`, host-tested and listenable without a board.
+
+Tracks **#322** (the panel and the noise, part of **#56**; the module's other
+firmware work is **#318**–**#321**); the board is **#324/#325**. Derived from
+nothing in `research/` except the Comm-Pac manual — the rest is published
+standards, cited in §11.
 
 ## 1. Why this document exists
 
@@ -44,7 +51,7 @@ Per `docs/README.md` §"House rules" 3:
 | **secondary** | From a reference work or a driver implementation that is not the standard |
 | **ours** | Chosen here, and stated as a choice rather than a fact |
 
-Where two sources disagree — and for the V.22 answer tone they do — §4 says which
+Where two sources disagree — and for the V.22 answer tone they do — §5 says which
 one was taken and why.
 
 ## 3. The four standards at a glance
@@ -106,7 +113,7 @@ So the score's "carrier" phase for 300 is a plain 2225 Hz tone, named as the
 answer *mark* rather than as a tone.
 
 **V.21, the ITU cousin** (**secondary** — from Frank Durda IV's modulation table,
-§9): 300 baud FSK, channel 1 (the originate direction) at **980/1180 Hz** and
+§11): 300 baud FSK, channel 1 (the originate direction) at **980/1180 Hz** and
 channel 2 (the answer direction) at **1650/1850 Hz**. The US market preferred
 Bell 103, which is why this board's score is the Bell pair and why V.21 is not in
 `tone.c` — it is a table away if a non-US machine ever needs it.
@@ -128,7 +135,7 @@ genuinely **two independent FSK streams summed**, and that is exactly what a
 
 600 baud with four phases, two bits per symbol, 1200 bit/s. Split band: the
 originating modem transmits on **1200 Hz** and the answering modem on **2400 Hz**
-(**secondary** — Frank Durda IV's table, §9, which is where the 600-baud /
+(**secondary** — Frank Durda IV's table, §11, which is where the 600-baud /
 four-point row comes from; the modulation is differential, which is what lets a
 receiver lock without an absolute phase reference).
 
@@ -136,8 +143,8 @@ receiver lock without an absolute phase reference).
 
 | Source | Says |
 |---|---|
-| Oracle's Enterprise SBC VBD tone table (§9) | "V.22/V.22bis (**2250 Hz**)" and "V.22/V.22bis (**2250 Hz + 1800 Hz**)" |
-| 3am Systems' V.22 / V.22bis pages (§9) | "Answer tone, with phase reversals (**2100 Hz**, from answering modem)" |
+| Oracle's Enterprise SBC VBD tone table (§11) | "V.22/V.22bis (**2250 Hz**)" and "V.22/V.22bis (**2250 Hz + 1800 Hz**)" |
+| 3am Systems' V.22 / V.22bis pages (§11) | "Answer tone, with phase reversals (**2100 Hz**, from answering modem)" |
 
 **2250 Hz was taken**, for three reasons: the Oracle table is a *detector* table
 and names the standard explicitly; 2100 Hz is the **V.25** answer tone and belongs
@@ -147,10 +154,9 @@ device or a transcription slip; and 2250 Hz is the value that matches what a
 recorded calls, and a recorded call can contain a V.25 tone from something else on
 the line.
 
-**This is a named uncertainty, not a settled fact** — re-check it against the ITU
-text if anyone has the V.22bis PDF to hand. It is recorded here rather than
-smoothed over because the whole point of this document is that the frequencies are
-the specification.
+**A disagreement between secondary sources, not a settled fact** — re-check it
+against the ITU text if anyone has the V.22bis PDF to hand; until then the answer
+tone stands at 2250 Hz.
 
 ### The handshake, from the standard's own words
 
@@ -214,7 +220,7 @@ sequenceDiagram
 
 The same split band and the same 600 baud as V.22, but **sixteen points instead of
 four**: four bits per symbol, 2400 bit/s (**secondary** — the modulation table in
-§9). V.22bis was adopted in 1984.
+§11). V.22bis was adopted in 1984.
 
 The handshake is V.22's **plus** the switchover, and the switchover is the
 interesting part (**read**, same transcription as §5):
@@ -256,7 +262,7 @@ trellis-coded 32-point modulation at 9600 bit/s (V.32, adopted 1984; V.32bis
 extends it to 14 400 with 128 points).
 
 The handshake, signal by signal, from the General DataComm patent that describes
-it in order (**read** — `WO1991015067A1`, §9) and the annotated spectra at 3am
+it in order (**read** — `WO1991015067A1`, §11) and the annotated spectra at 3am
 Systems and wavecom (**secondary**):
 
 | Signal | From | What it is |
@@ -349,11 +355,11 @@ recording:
 
 `tone.c` therefore presets to a **single 1 in the lowest stage**, which avoids the
 degenerate orbit and gives the maximal-length sequence. **The exact preset is a
-detail this project could not confirm from a primary source**, and it is stated
-here as a choice with its reason rather than presented as a quotation. The
-property the sound needs — "scrambled 1s sound like noise, unscrambled 1s sound
-like a carrier" — is what the choice delivers, and `test_o1modem.c` asserts it by
-counting ones and zeros in 4000 scrambled bits.
+detail this project could not confirm from a primary source**, so the value is a
+stated choice with its reason rather than a quotation. The property the sound needs
+— "scrambled 1s sound like noise, unscrambled 1s sound like a carrier" — is what
+the choice delivers, and `test_o1modem.c` asserts it by counting ones and zeros in
+4000 scrambled bits.
 
 ## 9. Call progress, and DTMF
 
@@ -457,11 +463,9 @@ sound of the call *ending* is silent under M1 and audible under M2. That is the
 one place on this panel where the two modes part, and the reason to choose M2 if
 you want to hear the line drop. There is no data-mode noise in either — a real
 "M2" means the data is audible for the whole session, and this panel plays a
-finite score and stops, so M2 buys the disconnect and not a carrier hiss. Saying
-that is better than inventing a sound nobody asked for.
+finite score and stops, so M2 buys the disconnect and not a carrier hiss.
 
-**`M3` is the mode the sources disagree about**, and it is recorded rather than
-smoothed over: [Lammert Bies](https://www.lammertbies.nl/comm/info/hayes-at-commands)
+**`M3` is the mode the sources disagree about**: [Lammert Bies](https://www.lammertbies.nl/comm/info/hayes-at-commands)
 has "speaker on only while answering (not on all modems)",
 [modemhelp.net](https://www.modemhelp.net/basicatcommand.shtml) has "enable
 speaker after dialing but disable after a carrier signal is detected", and
@@ -506,8 +510,7 @@ connection open for the rest of the session.
 
 ## 10. What is ours, and what is deliberately absent
 
-Everything in this section is a **choice**, stated so nobody later mistakes it for
-a standard:
+Everything in this section is a **choice**, not a standard:
 
 | Ours | Why |
 |---|---|
