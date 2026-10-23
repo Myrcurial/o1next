@@ -146,7 +146,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 |---|---|
 | boots the 1.44 ROM and a bootable disk | **yes** — `BANNER: true`, `A>`, identical screen text to `osborne1` |
 | banking **unchanged** from `osborne1` | **yes** — the boot probe's output is byte-identical (`diff` clean, modulo the machine name) |
-| the **video** — the SCREEN-PAC's 104 columns on the stock tube | **yes** — `softrom-check.sh`: both machines are `416x240`, and the same sign-on's ink ends at `x = 359` on `osborne1` and `x = 179` on `osborne1nx` |
+| the **video** — the SCREEN-PAC's 104 columns, every dot | **yes** — `softrom-check.sh`: `416x240` against `832x240`, and the same sign-on covering the same ink on both |
 | the mainboard's 2-bit decode survives | **yes** — `00h`–`03h` still bank-switch, and `05h`/`3Dh` still alias `01h` |
 | the card owns `30h`–`33h` | **yes** — writes there do not bank-switch |
 | the MD-10 presence probe | **yes** — `IN (32h)` reads `04h`; after `OUT (32h),00h` it reads `00h` |
@@ -181,8 +181,8 @@ all of them visible from outside:
 |---|---|
 | `2400h`, bank 2 | reads **bit 2 LOW** — fitted. The stock machine reads `FFh` there, and that bit is how period software detects the board with no ROM change (`docs/mame-emulation.md` §2) |
 | the window | **104 columns at reset** — `machine_reset()` sets the board's own register, so the machine boots in the widest width the board has |
-| the tube | **`416x240` — the stock machine's geometry.** The board doubles the dot clock, so the character is half as wide and twice as many fit in the width 52 occupied; it does not widen the display |
-| the pitch | 8 px per character at 52 columns, **4 px at 104** — the same sign-on text ends at `x = 359` on `osborne1` and at `x = 179` here |
+| the screen | **`832x240` — 104 columns of eight dots, every dot drawn.** Twice the stock 416x240; keeping the stock width would mean dropping every other dot column, which makes the font unreadable (tried, rejected) |
+| the pixels | the same sign-on covers the same ink on both machines — same characters, same size, same place |
 
 **Why 104 and not 80.** The board has three widths — 52 / 80 / 104 — and MAME can
 express two of them: `osborne1sp` offers 52 and 104, not 80 (#274). 104 is
@@ -191,13 +191,15 @@ therefore the stand-in until that is fixed, and moving to 80 is one line in
 board's own register, the power-on value is only a default, and a
 52-column-prepared floppy still switches the window to 52 by writing it.
 
-**And it does not widen the window.** MAME's `osborne1sp` models the same board as
-an **832x240** screen, because MAME sizes a window from the screen's pixels — and a
-5" CRT does not change width when the board doubles the dot clock. This machine
-keeps the stock geometry, and `draw_rows`' half-pitch path puts two of the
-character's eight dots in each emulated pixel. `softrom-check.sh` asserts both
-halves, neither of them by eye: the two geometries are `416x240`, and the same
-no-floppy sign-on's ink extent halves.
+**And the window is twice as wide.** The board doubles the *character* rate, so its
+104 columns are 104 x 8 dots and this machine draws all of them — the same model as
+`osborne1sp`, and the same 832x240 screen. MAME sizes a window from the screen's
+pixels, which is exactly why the window is twice as wide here.
+832x240. **Keeping the stock 416-wide window was tried and rejected on
+2026-10-23**: it means dropping every other dot column of every character, and
+half a character's pixels is not a rendering of it. `softrom-check.sh` asserts
+both halves, neither of them by eye: `416x240` against `832x240`, and the same
+sign-on covering the same ink.
 
 **One thing this fixed on the way.** That boot comparison ran `osborne1nx` for
 the "stock machine" run as well, so "boots identically to `osborne1`" was

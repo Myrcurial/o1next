@@ -75,10 +75,11 @@ and the presence check the MD-10 driver demands passes
 **Its video is not.** `osborne1nx` presents the interposer's video personality,
 which is the **SCREEN-PAC** (#24), so its driver derives from `osborne1sp`: it
 answers `2400h`'s presence bit as *fitted*, takes the board's register there, and
-boots in the **104-column** window. The *window* is still the stock machine's
-`416x240` — the board doubles the dot clock, so 104 columns fit where 52 did
-rather than the display getting wider, which is where this machine deliberately
-differs from MAME's own `osborne1sp` ([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) §8).
+boots in the **104-column** window: `832x240`, twice the stock machine's width,
+with every dot of every character drawn — the same model as MAME's `osborne1sp`.
+Keeping the stock width by dropping every other dot column was tried and rejected:
+half a character's pixels makes the font unreadable ([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md)
+§8).
 
 **The Nuevo machine is 80 columns and the SCREEN-PAC is 104.** The display width
 is a property of the emulated *machine*, not of the disk: it was measured by

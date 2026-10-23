@@ -171,27 +171,26 @@ boot_plain osborne1   "osborne1, nothing in the drive"   "$WORK/plain-stock.log"
 boot_plain "$MACHINE" "osborne1nx, nothing in the drive" "$WORK/plain-nx.log"
 
 echo
-# The window itself, which is the whole point of the two runs being comparable:
-# **the SCREEN-PAC does not widen the tube.**  The board doubles the dot clock, so
-# 104 columns fit in the width 52 occupied -- the same 416x240 window, at half the
-# character pitch -- and that is measured off the *rendered* picture rather than
-# argued: the same text covers about half the width.
+# The window, and the pixels in it.  Two things are asserted, and the second is
+# the one that matters: the SCREEN-PAC's 104-column mode is **twice as wide**
+# (832x240 against the stock 416x240, every dot drawn), and the same sign-on
+# covers the **same ink** on both machines -- same characters, same size, same
+# place.  A window that fits the dots in by dropping every other column is what
+# this check exists to catch: it halves the ink, and it makes the font
+# unreadable (tried, rejected, 2026-10-23).
 stock_geom=$(sed -n 's/^SCREEN: \([0-9]*x[0-9]*\).*/\1/p' "$WORK/boot-stock.log" | head -1)
 nx_geom=$(sed -n 's/^SCREEN: \([0-9]*x[0-9]*\).*/\1/p' "$WORK/boot-none.log" | head -1)
 stock_ink=$(sed -n 's/^INK: [^.]*\.\.\([0-9]*\)$/\1/p' "$WORK/plain-stock.log" | head -1)
 nx_ink=$(sed -n 's/^INK: [^.]*\.\.\([0-9]*\)$/\1/p' "$WORK/plain-nx.log" | head -1)
-if [ "$stock_geom" = "416x240" ] && [ "$nx_geom" = "416x240" ]; then geom_ok=0; else geom_ok=1; fi
-verdict "the window: both machines are ${stock_geom:-?}/${nx_geom:-?} -- the SCREEN-PAC does not widen the tube" "$geom_ok"
+if [ "$stock_geom" = "416x240" ] && [ "$nx_geom" = "832x240" ]; then geom_ok=0; else geom_ok=1; fi
+verdict "the window: osborne1 is ${stock_geom:-?}, osborne1nx is ${nx_geom:-?} -- 104 columns of dots, so twice as wide" "$geom_ok"
 
-# The text is the same on both no-floppy runs, so the ink's right-hand edge is the
-# pitch measure: 104 columns of the same characters end at about half the x that
-# 52 do.  A character cell of tolerance (8 px) covers the glyphs' own edges.
-if [ -n "$stock_ink" ] && [ -n "$nx_ink" ] && [ "$nx_ink" -le $((stock_ink / 2 + 8)) ]; then
-    pitch_ok=0
+if [ -n "$stock_ink" ] && [ -n "$nx_ink" ] && [ "$nx_ink" -ge $((stock_ink - 8)) ]; then
+    pixels_ok=0
 else
-    pitch_ok=1
+    pixels_ok=1
 fi
-verdict "the pitch: the same text ends at x=${stock_ink:-?} on osborne1 and x=${nx_ink:-?} on osborne1nx -- 104 columns, half pitch" "$pitch_ok"
+verdict "the pixels: the same sign-on ends at x=${stock_ink:-?} on osborne1 and x=${nx_ink:-?} on osborne1nx -- nothing dropped" "$pixels_ok"
 
 # `grep -v` drops the machine name, the image path and the two measured lines --
 # the runs are otherwise expected to be identical, screen dump included.  (Plain
