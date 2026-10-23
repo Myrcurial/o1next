@@ -185,11 +185,13 @@ the search left open are closed, and both closed inside this repo:
    (`docs/md10-system.md` §4–§6). And the system itself is not needed *as a file*:
    `PREP.COM` option 3 writes one, and it boots (`docs/md10-system.md` §1, §7).
 
-   The MD-10 `BOOT` also sets page zero to `JP 0003h` (warm vector) and
-   `JP 0F206h` (BDOS entry) — neither matches the stock `CCP+1600h` layout, so **the
-   MD-10's memory map is not the stock one**. That map is read in
-   `docs/md10-system.md` §4–§6: the BIOS installs at `0xD800`, `HARD.COM` reads LBA 5
-   for eleven blocks into `0xC200`, patches page zero, and CP/M runs.
+   The MD-10 `BOOT` also sets page zero, and **the installed values are not the
+   stock layout**: measured in the running guest, page zero is
+   `c3 03 d8 40 00 c3 06 ca` — `JP 0D803h` (warm vector) and `JP 0CA06h` (BDOS
+   entry). The `0003h` the `BOOT` carries is the pre-install operand
+   (`0xD800 + 3`). The map is read in `docs/md10-system.md` §4–§6: the BIOS
+   installs at `0xD800`, `HARD.COM` reads LBA 5 for eleven blocks into `0xC200`,
+   patches page zero, and CP/M runs.
 
 What remains is the same narrow question `docs/harddisk-decision.md` §10 item 1
 carries: **which copy of the tables a boot uses** — the static fallback inside the
@@ -198,7 +200,7 @@ BIOS image, or the drive's own copy of the geometry and type bytes at LBA 4
 
 ## Sources
 
-- `research/adaptec/MD Utilities … 1.93 Osborne - MD-10 MD-20.img` — `CNTLRCOD.OVL`,
+- `research/adaptec/MD Utilities Adaptec 4000 Controller Ver. 1.93 Osborne - MD-10 MD-20.img` — `CNTLRCOD.OVL`,
   `MD10.COM`, `HARDBIOS.SPR`.
 - `research/adaptec/Osborne Hard Disk Control Software Version 2.01 (1984).img` — the
   bootable stock-system utilities disk.
