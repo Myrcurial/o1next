@@ -5,10 +5,13 @@
 one interposer board (`Rev 0` → `Rev A` → `Rev B`); it is not a product separate
 from Rev B.
 
-The board that replaces the Rev 0 probe concept (see `../rev0/` —
-superseded, kept for the decision record): parts-acquisition time for a
-passive probe was within a day or two of an engineering sample of the
-real thing, so we go straight to **active**.
+**State: the schematic is captured — `reva.kicad_sch`, generated — with the U1 pin
+numbers still DIP-logical placeholders and no KiCad open/save yet (see *Known
+placeholders*).**
+
+**Active, not a passive probe.** Parts-acquisition time for a passive probe was
+within a day or two of an engineering sample of the real thing, so the passive step
+(`../rev0/` — superseded, kept for the decision record) is skipped.
 
 **Almost all SMD, two-off build.** Pull the original Z80, drop the
 interposer in its socket. The point of this board: *the development
@@ -75,7 +78,7 @@ T-states).
 | /RESET, /INT, /NMI, /WAIT (drive) | 595 bits → 244 tri-state | Asserted-and-held signals; even edge-triggered NMI only needs >1 clock pulse width, trivially met |
 | Status/LEDs, flash, ESP32 UART | GPIO/SPI | Not bus-timing |
 
-**Rev B lookahead (now fully mapped in `../revb/README.md`):** the
+**Rev B lookahead (fully mapped in `../revb/README.md`):** the
 *personalities* change the answer — responding to a live bus cycle
 needs /MREQ, /IORQ, /RD, /WR, /M1 direct to PIO plus the data 245 on
 fast OE. The address-decode problem is solved **without** direct
