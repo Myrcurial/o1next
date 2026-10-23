@@ -110,20 +110,19 @@ it is**. A 600 dpi read of the sheet alone does not settle it; the manual is the
 tie-breaker, and it says *through 22 ohms*.
 
 **That makes the port a low-current supply, and it is the design constraint.**
-22 Ω at 500 mA would drop 11 V; at 100 mA the drop is 2.2 V and about 10 V
-arrives. So the board's average draw has to be tens of mA, and the keyboard
-branch shares the same resistor. An earlier reading here retired the "shared R21
-budget" story and sized the port on a ~500 mA Comm-Pac figure; **both were
-wrong.** The Comm-Pac manual quotes no supply current at all, and 500 mA cannot
-pass a 22 Ω feed.
-
-What follows from that is the reason it matters:
+22 Ω in series is a hard limit: 500 mA through it would drop 11 V, and 100 mA
+drops 2.2 V, so the board's average draw has to be tens of mA. The keyboard
+adapter (#47) shares the same resistor, so the budget is shared and marginal —
+the eleven-lamp panel at **2–3 mA per lamp** (#322) is sized for exactly that.
+The Comm-Pac manual quotes **no** supply current anywhere, so there is no period
+figure to size against; the limit is the resistor, and the peak comes from the
+capacitor.
 
 - **Bulk capacitance is doing real work, not tidiness.** A WiFi TX burst is a few
   hundred mA; `R21` cannot supply that, so the capacitor supplies the peak and
   `R21` supplies the average. Size the cap from the burst energy, and check the
   average draw against the shared budget — with 22 Ω in the path there *is* an
-  inrush and peak problem to design around, not an absence of one.
+  inrush and peak problem to design around.
 - **Switch ahead of the buck**, latching slide type, so "off" is genuinely dark.
   USB still runs the board with no machine attached (bench-prep, #207).
 - **Buck 12.6 V → 5 V**, then **5 V → 3.3 V**; USB-C VBUS is **5 V → 3.3 V only**.
