@@ -6,6 +6,10 @@ register in [`../README.md`](../README.md). Its revisions are the **Floppy
 Adapter's** Rev A / Rev B, which is an unrelated board to the interposer's Rev A /
 Rev B — so the letters are always qualified.
 
+**State: the Rev A schematic is complete and every design decision is made** — the
+switch is solid state (below) — and **the next unit of work is the PCB floorplan and
+routing**.
+
 A daughter card that mounts over the mainboard / double-density board
 floppy connector and makes **three drives available, two active**: both
 original drives, *or* drive A + Gotek, selected by a user-accessible
@@ -24,9 +28,9 @@ the cable, where it belongs.
 Tracking: **#62** (design spec + schematic). Feeds #20 (floppy
 interposer personality) and #30 (G2 multi-format support). Prior art
 archived by PR #50. Full design in
-[`docs/floppy-adapter-design.md`](../../docs/floppy-adapter-design.md);
-its seven open questions were **settled 2026-10-10** (§8 there) and the
-**Floppy Adapter's Rev A schematic is captured** (below).
+[`docs/floppy-adapter-design.md`](../../docs/floppy-adapter-design.md),
+whose **eight open questions are all closed** (§8 there); the schematic
+that implements them is described below.
 
 ## Design
 
@@ -94,8 +98,7 @@ bus to be safe.)
 ## KiCad capture (Rev A)
 
 - `floppy-adapter.kicad_sch` (+ `.kicad_pro`) — the Rev A schematic: wired and
-  footprinted 2026-10-22 with the same treatment the WiFi COMM PAC got (#347), and
-  **re-captured the same day for the solid-state switch**.
+  footprinted with the same treatment the WiFi COMM PAC got (#347).
 - `gen_floppy_adapter_sch.py` — generator; edit the net tables and re-run
   (`python3 gen_floppy_adapter_sch.py`), then open/re-save in KiCad to normalise.
 - **J1** female 2x17 socket (O1 logic-board P8), **J2** pass-through header to
@@ -104,14 +107,13 @@ bus to be safe.)
   **Q1** AO3400A (GND), **R1** control pull-down, **R5** series in the switch lead,
   **R3/R4** DS-A pull-up, **R2+D2** optional indicator (R2, D2 and R4 are `dnp`).
 
-**Every net is drawn.** The first capture attached a net *label* to every pin and
-drew no wire between any two parts: a correct netlist and a drawing a reader could
-not follow. Now the nets are routed as orthogonal segments on a 1.27 mm grid,
-the three rails are wired too (with **one power symbol each** and a `PWR_FLAG`,
-because a symbol per pin would stack glyphs 2.54 mm apart on J1's eleven ground
-pins), and **one label per signal net** keeps the names — one label, not fifteen,
-so a missing wire *breaks* the netlist instead of being hidden by a label doing
-the connecting.
+**Every net is drawn.** A net *label* on every pin with no wire between any two
+parts is a correct netlist and a drawing a reader cannot follow, so the nets are
+routed as orthogonal segments on a 1.27 mm grid, and the three rails are wired too
+(with **one power symbol each** and a `PWR_FLAG`, because a symbol per pin would
+stack glyphs 2.54 mm apart on J1's eleven ground pins). **One label per signal net**
+keeps the names — one label, not fifteen, so a missing wire *breaks* the netlist
+instead of being hidden by a label doing the connecting.
 
 **Footprints are assigned for every part** (13 of 13), from KiCad's own libraries.
 The connectors and passives are through-hole; the three switches are SMD because
@@ -168,14 +170,12 @@ momentarily — the property the relay gave for free.
 Two side-effects worth having: the **panel-switch lead now carries microamps**
 instead of 73 mA of coil current, and there is no click and no contact to wear out.
 
-**And the part the earlier pass named is gone anyway**, which agrees with the
-height finding rather than competing with it: Omron **G6A-434P** / **G6A-474P**
-were discontinued with a last-buy date of 2010-06-29, and the whole 4-pole DIP
+**The relay is not a fallback either.** Omron **G6A-434P** / **G6A-474P** were
+discontinued with a last-buy date of 2010-06-29, and the whole 4-pole DIP
 signal-relay class with them — Panasonic **TQ4-5V** and **DS4E-S-DC5V** are
-broker-only at $20–190 a piece. The relay routes that were priced before the
-decision (two DPDT DIP-8 at ~$4–12 the pair; an MY4N on a PY14-02 socket at $8–15
-and 35 mm) are recorded in `docs/floppy-adapter-design.md` §4.3 for anyone who
-comes back to this.
+broker-only at $20–190 a piece. The other relay routes priced for this board — two
+DPDT DIP-8 at ~$4–12 the pair, or an MY4N on a PY14-02 socket at $8–15 and 35 mm —
+are recorded in `docs/floppy-adapter-design.md` §4.3.
 
 **One consequence for assembly:** the three switches are SMD and there is no
 through-hole alternative that works — the 5 V-capable analog switches in DIP
@@ -222,7 +222,7 @@ either, and the unused positions simply carry no wire.
 
 ## Settled decisions (2026-10-10, switch decided 2026-10-22)
 
-The seven design questions are closed — see
+The eight design questions are closed — see
 [`docs/floppy-adapter-design.md`](../../docs/floppy-adapter-design.md) §8 for
 the evidence behind each. Highlights:
 
