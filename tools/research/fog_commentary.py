@@ -307,7 +307,7 @@ def summary_body(recs, root):
     dial = collections.Counter(r['dialect'] for r in recs)
     return '\n'.join([
         'Everything below is measured from the extracted disks, not from',
-        '`fog-index.htm`.  Per-file detail is in `fog-library-catalogue.tsv`.', '',
+        '`fog-index.htm`.  Per-file detail is in `docs/fog-library-catalogue.tsv`.', '',
         '## What came out', '',
         '| | |', '|---|---|',
         '| archives | 231 (219 `fogNNN.arc` + 12 `FOGL*.ARC`) |',
@@ -368,6 +368,10 @@ def compendium(recs, summary, commentary):
          '`docs/fog-library-catalogue.tsv` beside this file.  (5,987 files were extracted;',
          '5,430 of them are described on a disk\'s own catalogue page, which is where',
          'these entries come from.)', '',
+         'The headline finding is in the dates on the disks: the library records its own',
+         'platform\'s decline.  Of the 11 disks dated 1985, **7 are Osborne-specific**; of',
+         'the 10 dated 1991, **4** — the rest are Kaypro, Morrow, Commodore, Televideo and',
+         'Superbrain (*The library records its own platform\'s death*, below).', '',
          '---', '', summary.strip(), '', '---', '', body.strip(), '',
          '---', '', '## The disks', '',
          "One line per disk: label, date, file count, FOG's own description, and any",
