@@ -311,23 +311,14 @@ if [ -z "$RELAY" ]; then
     done
 fi
 # The pty and the ACIA have to agree on a rate, and neither end is 9600: the pty
-# defaults to it and the machine's is 300 or 1200.  The cfg is how that is set
-# (the ports are not command-line options), so the one for the guest's rate is
-# copied into place before MAME starts.  1200 is the default; 300 is what the
+# defaults to it and the machine's is 300 or 1200.  The rate is set through
+# **O1_PTY_BAUD**, which the patched pty device reads -- *not* through a cfg file:
+# MAME does not apply `type="CONFIG"` port entries from `cfg/<machine>.cfg` at all
+# (measured 2026-10-23: TXBAUD at 50, 1200 and 9600 all behave identically -- a
+# 1200-baud ACIA receives one garbage byte per four written -- and MAME drops the
+# entry when it writes the file back).  1200 is the default; 300 is what the
 # archive's MDM740 comes up at.
 BAUD="${O1_BAUD:-1200}"
-if [ "$RS232" = 1 ]; then
-    for cand in "$HERE/cfg/rs232-pty-$BAUD.cfg" "$HERE/rs232-pty-$BAUD.cfg" \
-                "$REPO/tools/emulator-setup/mame-osborne1nx/rs232-pty-$BAUD.cfg"; do
-        if [ -f "$cand" ]; then
-            mkdir -p "$RUNDIR/cfg"
-            # the tag inside the file is the machine's own name
-            sed "s/<system name=\"[^\"]*\">/<system name=\"$MACHINE\">/" "$cand" \
-                > "$RUNDIR/cfg/$MACHINE.cfg"
-            break
-        fi
-    done
-fi
 
 # MAME's default is full screen, and `-window` is the only thing that keeps the
 # mac OSD off the whole display; it is harmless for the SDL OSD.
@@ -411,11 +402,11 @@ trap cleanup EXIT INT TERM
 
 MAME_LOG="$RUNDIR/mame.log"
 if [ "$PICOEM" = 1 ]; then
-    O1_PICOEM_IN="$PICO_FIFO_IN" O1_PICOEM_OUT="$PICO_FIFO_OUT" \
+    O1_PTY_BAUD="$BAUD" O1_PICOEM_IN="$PICO_FIFO_IN" O1_PICOEM_OUT="$PICO_FIFO_OUT" \
     O1NEXT_LOG="$RUNDIR/pico/mame.log" \
         "$MAME" "$@" > "$MAME_LOG" 2>&1 &
 else
-    "$MAME" "$@" > "$MAME_LOG" 2>&1 &
+    O1_PTY_BAUD="$BAUD" "$MAME" "$@" > "$MAME_LOG" 2>&1 &
 fi
 MAME_PID=$!
 
@@ -440,14 +431,14 @@ if [ "$RS232" = 1 ]; then
             echo "  relay:     tools/serial-relay-o1next.py not found -- attach one yourself" >&2
         else
             if [ -n "$RIG_SERIAL" ]; then
-                python3 "$RELAY" --pty "$PTY" --serial "$RIG_SERIAL" \
+                python3 "$RELAY" --pty "$PTY" --serial "$RIG_SERIAL" --pty-baud "$BAUD" \
                     ${O1_RIG_BAUD:+--baud "$O1_RIG_BAUD"} &
             else
                 # host[:port], because that is how a person writes an address
                 RIG_HOST="${RIG%%:*}"
                 RIG_PORT="${RIG#*:}"
                 if [ "$RIG_PORT" = "$RIG" ]; then RIG_PORT="${O1_RIG_PORT:-}"; fi
-                python3 "$RELAY" --pty "$PTY" --host "$RIG_HOST" \
+                python3 "$RELAY" --pty "$PTY" --host "$RIG_HOST" --pty-baud "$BAUD" \
                     ${RIG_PORT:+--port "$RIG_PORT"} &
             fi
             RELAY_PID=$!

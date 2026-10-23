@@ -1309,7 +1309,41 @@
 +COMP( 1981, osborne1nx, osborne1, 0,      osborne1nx, osborne1,   osborne1nx_state, empty_init, "Osborne",       "Osborne-1 (emulated interposer)", MACHINE_SUPPORTS_SAVE )
 --- a/src/devices/bus/rs232/pty.cpp
 +++ b/src/devices/bus/rs232/pty.cpp
-@@ -77,6 +77,16 @@
+@@ -5,6 +5,7 @@
+ #include "pty.h"
+ 
+ #include <cstdio>
++#include <cstdlib>
+ 
+ 
+ pseudo_terminal_device::pseudo_terminal_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
+@@ -36,12 +37,20 @@
+ 
+ 	set_data_frame(startbits, databits, parity, stopbits);
+ 
+-	int txbaud = convert_baud(m_rs232_txbaud->read());
+-	set_tra_rate(txbaud);
++	// The rate comes from the environment, because there is nowhere else left.
++	//
++	// MAME does **not** persist a CONFIG port's value: a cfg/<machine>.cfg carrying
++	// <port tag=":rs232:pty:RS232_TXBAUD" type="CONFIG" mask="255" defvalue="7"
++	// value="4" /> is parsed and ignored.  Measured 2026-10-23 -- TXBAUD at 50, 1200
++	// and 9600 all behave identically (a 1200-baud ACIA receives one garbage byte per
++	// four written), and MAME drops the entry when it writes the file back.  So the
++	// ports below cannot set this, and the O1's ACIA is 1200 at its own default and
++	// 300 at MDM740's, which means the rate has to be settable per run.
++	char const *env = std::getenv("O1_PTY_BAUD");
++	int const baud = env ? atoi(env) : 1200;
++	set_tra_rate(baud);
++	set_rcv_rate(baud);
+ 
+-	int rxbaud = convert_baud(m_rs232_rxbaud->read());
+-	set_rcv_rate(rxbaud);
+-
+ 	output_rxd(1);
+ 
+ 	// TODO: make this configurable
+@@ -77,6 +86,16 @@
  	m_timer_poll = timer_alloc(FUNC(pseudo_terminal_device::update_queue), this);
  
  	open();

@@ -194,10 +194,13 @@ cp "$BOOTROM" "$DEST/pico/bootrom.bin"
 cp "$HERE/o1next-picoem.lua" "$DEST/pico/o1next-picoem.lua"
 
 # --- the serial port --------------------------------------------------------
-cp "$HERE/rs232-pty-1200.cfg" "$DEST/cfg/rs232-pty-1200.cfg"
-# 300 is what the archive's MDM740 comes up at, and the pty and the ACIA have to
-# agree; the values are RS232_BAUD_300 = 2 and RS232_BAUD_1200 = 4 (rs232.h).
-sed 's/value="4"/value="2"/' "$HERE/rs232-pty-1200.cfg" > "$DEST/cfg/rs232-pty-300.cfg"
+# No cfg is staged: MAME does not apply `type="CONFIG"` port entries from
+# `cfg/<machine>.cfg` (measured 2026-10-23 -- the pty stays at its 9600 default
+# whatever the file says, and MAME drops the entry when it writes the file back).
+# The rate is set with **O1_PTY_BAUD**, which the patched pty device reads, and
+# `boot-o1next.sh` passes it from `O1_BAUD`; the relay paces the far end's bytes
+# to the ACIA at the same rate (`--pty-baud`), because MAME hands the ACIA a
+# buffered burst and a 6850 has a one-byte receive register.
 cp "$REPO/tools/serial-relay-o1next.py" "$DEST/serial-relay-o1next.py"
 chmod +x "$DEST/serial-relay-o1next.py"
 
@@ -229,9 +232,10 @@ pico/firmware.bin    crc32 $(crc32 "$DEST/pico/firmware.bin")   from $FW
 pico/bootrom.bin     crc32 $(crc32 "$DEST/pico/bootrom.bin")   from $BOOTROM
 pico/o1next-picoem.lua   the machine side of the bridge
 
-cfg/rs232-pty-1200.cfg   the pty at the guest's 1200
-cfg/rs232-pty-300.cfg    the same at 300, for MDM740's default
-serial-relay-o1next.py    pty <-> the bench rig's relay door (#342)
+serial-relay-o1next.py    pty <-> the bench rig's relay door (#342); --pty-baud
+                          paces the far end's bytes to the ACIA.  The rate itself is
+                          O1_PTY_BAUD (boot-o1next.sh sets it from O1_BAUD), NOT a
+                          cfg file: MAME ignores CONFIG port entries
 
 boot-o1next.sh    copied from $HERE/boot-o1next.sh
 EOF
@@ -277,9 +281,10 @@ O1_RIG=192.168.2.3:2323 ./boot-o1next.sh                 # the rig's RELAY door
 O1_RIG_SERIAL=/dev/cu.usbmodem2144201 ./boot-o1next.sh   # the rig's USB door
 \`\`\`
 
-\`O1_BAUD=300\` for MDM740's default (that cfg is staged too); the pty and the ACIA
-must agree on the rate, or the bytes arrive as garbage that looks like a wiring
-fault (\`docs/o1-modem-serial.md\`).
+\`O1_BAUD=300\` for MDM740's default. The pty and the ACIA must agree on the rate,
+or the bytes arrive as garbage that looks like a wiring fault -- and the rate is
+set by \`O1_PTY_BAUD\`, which the patched pty device reads, **not** by a cfg file
+(MAME ignores \`type="CONFIG"\` port entries; measured 2026-10-23).
 
 ## Knobs
 
