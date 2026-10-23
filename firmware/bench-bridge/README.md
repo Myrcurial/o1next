@@ -442,6 +442,35 @@ r18|[~] Enter your user name:
 `MDM740.COM` runs from **`B:`** of the MD-10 hard disk. The session is boot ->
 `HARD` -> `B:` -> `MDM` -> **`T`** -> `ATDT bbs.8bitboyz.com:6502`.
 
+**And the copy on the drive has to be the *installed* one.** FOG126 carries MDM740
+as the uninstalled distribution -- one `.COM` with a PMMI placeholder overlay, and
+the disk's own page says "An overlay for your specific computer is required". The
+overlay this machine needs is **M7OD-5**, "Osborne 1 w/Comm-Pac or CTS Datacomm
+modem", which FOG129 stores as `.AQM` -- that is `.ASM`, squeezed, i.e. *source*.
+A drive carrying the distribution copy is not a Comm-Pac terminal: it does not
+touch the modem control bit, and the 300-baud default below is not the one it
+sets. The install is the overlay's own header recipe -- `ASM M7OD-5`, then
+`DDT MDM740.COM` / `IM7OD-5.HEX` / `R` / `G0` / `SAVE 73 MDM740.COM` -- and the
+repo now does it as a pipeline rather than by hand:
+
+```bash
+# 1. the overlay's source, the installer, and ASM/DDT, onto the drive
+tools/research/populate-hd.py --stage \
+    --fog ~/Documents/O1NEXT/fog/disks \
+    --selection tools/research/hd-selected.txt \
+    --out ~/Documents/O1NEXT/hd
+# 2. assemble it on the machine (leaves M7OD-5.HEX on B:)
+SDL_VIDEODRIVER=dummy mame osborne1nx -video none -sound none -nothrottle \
+    -rompath tools/emulator-setup/roms \
+    -softrom <staged>/assets/rom2.rom -harddisk <staged>/assets/hd.chd \
+    -autoboot_script tools/research/mdm740-assemble.lua -seconds_to_run 200
+# 3. DDT's job, on the host, where it is repeatable
+tools/research/mdm740-overlay.py --tree ~/Documents/O1NEXT/hd
+```
+
+Step 3 prints the check that matters: the installed build says **"Version for
+Osborne COMM-PAC modem"** and the distribution copy does not.
+
 **And that session runs the pty at 300, not the 1200 the shipped cfg carries.** The
 Comm-Pac overlay's default is 300, so `cfg/osborne1nx.cfg` needs `value="2"` (300) for
 it — MDM740 selects the rate itself and the pty has to match it. The rig is not the

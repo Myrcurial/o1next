@@ -84,6 +84,14 @@ library reads differently:
    replaced by `Q`. FOG's pages list the *stored* names; the extracted disks carry
    the restored ones. 477 of the apparent page/disk mismatches are this.
 
+   **And it is not only bookkeeping.** A selection list written from the pages
+   matches nothing for those files: 27 entries of the drive's own list (#262)
+   were dropped in silence that way on 2026-10-23, among them `M7OD-5.AQM` --
+   the overlay that makes MDM740 usable with this machine's Comm-Pac -- and
+   `MLOAD24.COM`, the program that installs MDM7, MEX and IMP overlays at all.
+   `tools/research/populate-hd.py` indexes both spellings now, and stages the
+   file under the name the disk actually has.
+
 ### What to show someone born long after the Osborne 1 was obsolete
 
 Not WordStar -- they can find WordStar. The value here is the long tail that
