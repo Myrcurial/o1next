@@ -5,23 +5,49 @@ subtitle: "The machine"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Issue:** #70. **Status:** first pass — the stock and third-party images we
-hold are identified by CRC32 and cross-referenced against MAME; the open
-questions at the end are the work that remains.
+**Status: Solved** as the ROM-identity authority. Every image this project holds is
+identified by **CRC32 over its raw bytes plus size**, cross-checked against MAME's
+driver, and [`tools/gen_rom_table.py`](https://github.com/Myrcurial/o1next/blob/main/tools/gen_rom_table.py) re-derives every CRC in the tables below from
+the bytes on every build — a document/bytes disagreement fails it. What is *not*
+settled is interpretation rather than identity: four stock revisions (BIOS A, 1.2,
+1.2.1, 1.3) have never been dumped, so a machine fitted with one cannot be
+identified at all; one third-party label may be wrong; and one image's
+host-independence is unconfirmed. Those are the open questions at the end.
+
+**The answer.** The machine has **two ROM sockets** — UD11, the 2732 monitor, and
+UA15, the 2716 character generator — and "the Osborne 1 ROM" is a *family*, because
+both were replaced or re-programmed by the upgrade vendors. What we hold is:
+
+- **three dumped stock monitor revisions** — 1.4, 1.43 and 1.44 — plus a **rev-B
+  image built by Osborne themselves** (`OCCROM0B.COM` on the OCC source disk, a
+  vendor build artifact rather than a chip dump);
+- **two character generators** that really are different typefaces — 93 of 128
+  glyphs differ — and five names for one of them;
+- **third-party replacements**: OZROM 1E (IEEE-488 removed, video cut to 3 KiB),
+  Nuevo 1.51, and the SWP co-processor's 8088 firmware; and an **8 KiB
+  daughterboard image** holding OCC 1.44 and OZROM 1E with `A12` selecting;
+- **four stock revisions we do not have**: BIOS A, 1.2, 1.2.1 and 1.3 — MAME
+  carries them as `NO_DUMP`.
+
+Those CRCs are what the personality gate in [`firmware/rom-ident/`](https://github.com/Myrcurial/o1next/blob/main/firmware/rom-ident/) (#86) is built
+on, together with the byte-level properties in *Personality-relevant properties*
+below.
+
+**Issues:** #70 (the inventory), #44 (the two character generators), #86 (the
+personality gate built on it), #72 (the ROM source), #205 (the 1.3 reconstruction,
+which is upstream's gain and not ours), #222 (which `NO_DUMP` slot the rev-B image
+belongs in — MAME's call), #74 (the two images whose source is still unrecorded).
 
 > **Vocabulary:** `rev B` here is the **Osborne 1's monitor ROM** (9/12/81) — a
 > 1979-era ROM part, **not a board revision**. Board revisions belong to the
 > boards; see [[`hardware/README.md`](https://github.com/Myrcurial/o1next/blob/main/hardware/README.md)](../hardware/README.md).
 
-The machine has two ROM sockets in play:
+The two sockets, and what a socket tap can read:
 
 | Socket | Package | Size | Role |
 |---|---|---|---|
 | UD11 | 2732 (24-pin) | 4 KiB | Monitor / BIOS — the Z80 code that boots the machine |
 | UA15 | 2716 (24-pin) | 2 KiB | Character generator (the 6×9 font the video logic reads) |
-
-Both were replaced or re-programmed by the third-party upgrade vendors, so
-"the Osborne 1 ROM" is really a family. This document is the map.
 
 ## Method
 
@@ -68,7 +94,7 @@ Corroboration: BrettHallen's `ROM/OCC1_v140.BIN`, `OCC1_v143.BIN` and
 [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/rom144.asm) is the original ACT80 source
 for 1.44 (#72).
 
-Two things worth noting:
+Two facts about this table:
 
 - **MAME's "ver144" is the part `3a10082-00` Rev E**, not a file named
   "1.44". The revision and the part number are two names for one image.
@@ -93,7 +119,7 @@ MAME's driver carries the early image five times, once per BIOS slot 0–4, with
 the comment *"this is CHRROM from v1.4 BIOS MB"*, and the late image for slots
 5 and 6 (1.43 / 1.44). That is the evidence for the pairing, and it is the
 "early font / late font" distinction that #44 asks about — **both variants are
-now captured in this repo.**
+captured in this repo.**
 
 The socket itself (UA15, on mainboard sheet 4 of 9 — see
 `o1-mainboard-schematic.md` §4a) is wired **2732-style**: pin 21 is strapped to
@@ -115,9 +141,9 @@ all 128 characters' row 0 are contiguous, then all of row 1, and so on. Ten rows
 × 128 characters = **1280 bytes**, and the remaining 768 bytes of the 2 KiB are
 `0xFF`. Each row is one byte, **bit 7 = leftmost pixel**, and the cell is 8×10.
 
-(Guessing this cost an hour: reading it as 128 glyphs of 16 bytes, or as 8 bytes
-per glyph, produces plausible-looking noise and no recognisable letters. The
-driver had it in one line.)
+(Reading it as 128 glyphs of 16 bytes, or as 8 bytes per glyph, produces
+plausible-looking noise and no recognisable letters; MAME's driver had it in one
+line.)
 
 That layout matters to the video personality (#24): a socket tap reads the font
 as `rom[ra * 128 + chr]`, and the Nuevo ROM adds an underline by forcing row 9
@@ -171,8 +197,8 @@ implementation is a different design from the OCC one.
 
 Some interposer personalities are only compatible with some of these ROMs, so the
 firmware needs to know more than the CRC. The facts below are what the
-personality gate is built on (#86). Each is recorded with its evidence, because
-two of them were inference until the bytes were read.
+personality gate is built on (#86), each recorded with its evidence — the manual
+text or the bytes at the vector table.
 
 | ROM | IEEE-488 driver | Video window | Evidence |
 |---|---|---|---|
@@ -209,13 +235,13 @@ evidence about the upgrade boards:
 `52-`/`80-`/`104-` prefix (`osborne1` / `osborne1nv` / `osborne1sp`), so this
 table is also the map from video mode to ROM set.
 
-## Open questions
+## Open questions, and the one that is closed
 
-1. ~~**Do the two character generators actually differ in the font?**~~ **Answered
-   — yes, substantially.** 93 of 128 glyphs differ, and the 32 graphics characters
-   are byte-identical (see "The two fonts really are different" above). Only
-   space, apostrophe and backtick are shared. [`tools/romfont.py`](https://github.com/Myrcurial/o1next/blob/main/tools/romfont.py) decodes either
-   image to a font, so the comparison can be repeated.
+1. **Do the two character generators actually differ in the font? Yes, and
+   substantially.** 93 of 128 glyphs differ, and the 32 graphics characters are
+   byte-identical (see "The two fonts really are different" above). Only space,
+   apostrophe and backtick are shared. [`tools/romfont.py`](https://github.com/Myrcurial/o1next/blob/main/tools/romfont.py) decodes either image to
+   a font, so the comparison can be repeated.
 2. **What is BrettHallen's "Screen Pac BIOS Rev. A"?** It is byte-identical to
    the stock late character generator, so the label may be wrong — or the
    ScreenPac genuinely ships an unmodified char-gen and does its 80-column work
@@ -225,8 +251,8 @@ table is also the map from video mode to ROM set.
    blocker is a missing assembler (#205).** We hold the 1.3 source disk
    ([`research/source-code/OSROM13.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OSROM13.IMD), comment `rom 1.3, cbios .3 osborne
    source 12/16/81`) while MAME carries 1.3 as `NO_DUMP`. The disk is an
-   **8-inch** 77-track FM/MFM disk with CP/M **skew 3** and had never been read;
-   it now is, and the 19 files are in [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/ROM-13-source/).
+   **8-inch** 77-track FM/MFM disk with CP/M **skew 3**, and it has been read: the
+   19 files are in [`research/source-code/ROM-13-source/`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/ROM-13-source/).
    The source uses the `DBE`/`DCE` pseudo-ops, which only **ACT 3.5E** has —
    every `ACT80.COM` in the local archive is 3.0/3.2 — so a byte-exact
    reconstruction needs an assembler we do not have. What those pseudo-ops

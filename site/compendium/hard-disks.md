@@ -5,8 +5,20 @@ subtitle: "Peripherals and storage"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Status: the decision is taken** — emulate the **Adaptec ACB-4000**, not the
-ACT. See [`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1next/blob/main/docs/harddisk-decision.md). This doc remains the product analysis.
+**Status: Solved.** As a product analysis: the OCC1 is Australian Computer &
+Telecommunications' 1982 Osborne 1 hard disk, and the mass-storage decision went
+the other way — emulate the **Adaptec ACB-4000** inside the MD-10, not the ACT
+([`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1next/blob/main/docs/harddisk-decision.md)). The ACT's hardware interface below is read out of
+its own BIOS image. What remains is archival only: no ACT board photograph or
+schematic has surfaced (#8).
+
+**What this is.** The ACT unit is a hard disk for the Osborne 1 that attaches
+through the Z80 socket, and it is one of **two unrelated** Osborne 1 hard-disk
+products in the archive — the other is the Media Distributing / Adaptec **MD-10**
+(**Two products, not one**, below). The archive holds its driver disk and nothing
+else, so
+the ACT is documented here as prior art: it validates the Z80-interposer concept
+on this exact machine, and it is *not* the controller the project emulates.
 
 Source: research/harddisk/OCC1_HARDDISK.IMD (Osborne 1 SSDD, FM 10x256).
 Extracted to research/harddisk/extracted/ via disk-analyse + cpmtools
@@ -56,10 +68,10 @@ controller address", the Adaptec disk for a "starting port address … on a 4 po
 boundary", and it ships `PORTCHNG.COM` to change it. That is consistent with the
 rest of the O1, whose I/O decode only looks at the low address lines.
 
-It also means the port claim in "Hardware interface" below should be re-derived
-rather than trusted: `0x2A00` and `0x2C01` are the serial ACIA and the video PIA
-on this machine, so either the ACT adapter is mapped elsewhere or that
-disassembly read the wrong operand.
+That is also what makes the port claim resolvable: `0x2A00` and `0x2C01` are the
+console ACIA and the video PIA on this machine ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3), so
+the ACT adapter is mapped elsewhere — the **IEEE-488 PIA at `2900–2903`**, read
+out of the BIOS below.
 
 So there are **three** routes to more storage than 2 × 182 KB — the two hard disks
 here, and Drive C ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)) — and only Drive C is buildable
@@ -72,16 +84,18 @@ without unobtainable hardware (#84).
 | HARDBIOS.HEX | Intel HEX of a full replacement BIOS, loads at 0xDF00-0xEB00 (17-jump BIOS entry table at 0xDF00) |
 | LOADBIOS.COM | Overlays HARDBIOS.HEX onto the running BIOS ("Your BIOS has been overlayed"; validates 17 JMPs, checksums, warm-boot vector) |
 | BOOTHd.COM | Hard-disk boot ("ERROR DURING BOOTING TO HARD DISK") |
-| MOVCPM10/5/F.COM | MOVCPM variants (10MB / 5MB / full? volume sizing) for relocating CP/M under the new BIOS |
+| MOVCPM10/5/F.COM | Stock Digital Research `MOVCPM.COM` builds — three relocations of CP/M under the new BIOS, **not** 10 MB / 5 MB volume sizes |
 | DISKEDIT.COM, DISKTEST.COM | Winchester utilities |
 | RESTORE.COM, SAVEFILE.COM | Backup/restore to floppy |
 | AUTOST.COM, SYSGEN.COM, PIP.COM, XDIR.COM | Standard |
 
-## Hardware interface (from HARDBIOS.HEX disassembly) — **corrected**
+## Hardware interface (from HARDBIOS.HEX disassembly)
 
-The register claim below was re-derived by disassembling `HARDBIOS.HEX`
-(`z80dasm`, `org 0xDF00`, 0xDF00–0xEB00). The original reading was wrong; see
-[`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1next/blob/main/docs/harddisk-decision.md) §3.
+Read by disassembling `HARDBIOS.HEX` (`z80dasm`, `org 0xDF00`, `0xDF00–0xEB00`).
+The interface is **not** the `0x2A00`/`0x2C01` pair those addresses would suggest
+— they are the console ACIA and the video PIA ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3) —
+and the image drives exactly one device. [`docs/harddisk-decision.md`](https://github.com/Myrcurial/o1next/blob/main/docs/harddisk-decision.md) §3 has the
+same reading in the decision's own words.
 
 - Same Osborne bank discipline as Drive C: **OUT (0x00) = bank 2 (IO),
   OUT (0x01) = bank 1 (RAM)**, DI/EI bracketed (subroutines at 0xEA6A /

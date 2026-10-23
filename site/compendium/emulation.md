@@ -5,8 +5,25 @@ subtitle: "The project"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-How to run the three Osborne 1 machines MAME models, what ROMs each one needs,
-and which floppy images actually boot on which machine.
+**Status: Solved.** Every machine boots what it should and the 3 × 3 disk matrix
+is measured; what is left is named in §7 — the two differing bytes in the
+`-blank.imd` boot area are unidentified, ROM 1.3 is undumped, and the Nuevo
+CBIOS 1.5 hang is recorded rather than chased.
+
+**The answer.** MAME models three Osborne 1 variants and this project patches in a
+fourth. One `osborne1.zip` serves all three stock machines; the only ROMs absent
+are the four BIOS revisions that have never been dumped anywhere (§3). **All three
+`-blank.imd` system disks boot on all three machines** — the `52-`/`80-`/`104-`
+prefix is a label, not a gate (§4). The one image that does not boot is the Nuevo
+80-column system disk, [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/OS1NUEVO.IMD), and that is closed as
+not-needed (#79).
+
+| Question | Answer | Where |
+|---|---|---|
+| Which machines are there? | `osborne1` (52 columns), `osborne1sp` (104), `osborne1nv` (80), plus this project's patched `osborne1nx` (#191) | §2 |
+| Which ROMs does each need? | one `osborne1.zip` serves all three; only the four never-dumped BIOS revisions are absent | §3 |
+| Which floppy images boot? | all three `-blank.imd` on all three machines; `OS1NUEVO.IMD` on none | §4 |
+| How is it run, and how is it tested headless? | windowed by hand; the Lua harness otherwise | §5, §6 |
 
 The install/run mechanics are adapted from the sibling project
 [`Myrcurial/o1prsnt`](https://github.com/Myrcurial/o1prsnt) — its
@@ -36,10 +53,10 @@ cd disk-utilities && make clean && make && sudo make install
 needed for the TeleDisk images in `research/` (Osmosis, RT-60A, the Zorba/Kaypro
 CoPower-88 sets).
 
-## 2. The three machines
+## 2. The machines — three in MAME, and this project's fourth
 
-MAME models three Osborne 1 variants — and this project adds a fourth (below).
-Two are clones of the stock machine; one has its own ROMs:
+MAME models three Osborne 1 variants; this project patches in a fourth. Two of
+MAME's three are clones of the stock machine; one has its own ROMs:
 
 | MAME machine | Description | Year | Parent | Relationship | Display (measured) |
 |---|---|---|---|---|---|
@@ -52,12 +69,12 @@ This project adds a **fourth** ([`tools/emulator-setup/mame-osborne1nx/`](https:
 that decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
 answer on ports `30h`–`33h`. It is not in MAME; it is a patch, and it runs the
 **1.44 ROM only**. Banking and video are identical to `osborne1` — measured, not
-assumed — and the presence check the MD-10 driver demands now passes. See
-[`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md).
+assumed — and the presence check the MD-10 driver demands passes
+([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md)).
 
-**Yes, the Nuevo machine really is 80 columns.** The display width is a property
-of the emulated *machine*, not of the disk, and it was measured by booting the
-same utility disk on each of the three and reading the screen device's
+**The Nuevo machine is 80 columns and the SCREEN-PAC is 104.** The display width
+is a property of the emulated *machine*, not of the disk: it was measured by
+booting the same utility disk on each of the three and reading the screen device's
 dimensions ([`tools/research/mame-boot-probe.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/mame-boot-probe.sh)). Screenshots, all booted from
 [`tools/emulator-setup/floppies/`](https://github.com/Myrcurial/o1next/blob/main/tools/emulator-setup/floppies/):
 
@@ -71,10 +88,10 @@ That is also why the disk prefix does not matter for booting (§4): the same
 image displays 52 columns on stock hardware and 80 on Nuevo, because the video
 window is the machine's, while the *text layout* is the CBIOS's.
 
-The distinction matters: the SCREEN-PAC is modelled as *hardware only* (the
-80/104-column logic lives on the board, not in a ROM), whereas Nuevo shipped a
-replacement monitor ROM. That is independent evidence that the two 80-column
-upgrades are different designs — see #73 and [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).
+The SCREEN-PAC is modelled as *hardware only* (the 80/104-column logic lives on
+the board, not in a ROM), whereas Nuevo shipped a replacement monitor ROM. That is
+independent evidence that the two 80-column upgrades are different designs — see
+#73 and [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).
 
 ### The SCREEN-PAC has three modes, and MAME models one of them
 
@@ -91,9 +108,9 @@ BIOS**:
 So 52 / 80 / 104 are three widths of **one window** (`o1-memory-io-map.md` §2a),
 and the stock ROM already contains the routine that switches between them —
 which is why "no ROM differences at all" is the right description of
-`osborne1sp`. MAME models the 104-column window; the **80-column mode should be
-reachable by poking `E1A5H` = 3 and calling `E4E5H`**, which is worth testing
-precisely because it is the other documented mode and the one nobody quotes.
+`osborne1sp`. MAME models the 104-column window; the **80-column mode is selected
+by poking `E1A5H` = 3 and calling `E4E5H`** — read from the user guide, and the
+poke itself is not yet measured here.
 
 **Presence flag.** The same page records how software detects the upgrade with
 no ROM change:
@@ -102,14 +119,13 @@ no ROM change:
 > is read HIGH. This feature allows different screen responses and menus
 > depending on whether the Osborne is fitted with SCREEN-PAC.
 
-`2400H` in bank 2 sits inside the memory-mapped I/O window and was not in the
-map until now: it is a read-only presence bit, not a register
-(`o1-memory-io-map.md` §3).
+`2400H` in bank 2 sits inside the memory-mapped I/O window and is recorded there
+as a **read-only presence bit, not a register** (`o1-memory-io-map.md` §3).
 
 ## 3. ROM requirements
 
-Every ROM either machine needs, with the CRC32 MAME asserts against. Full
-inventory and provenance: [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).
+Every ROM any of the three machines needs, with the CRC32 MAME asserts against.
+Full inventory and provenance: [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).
 
 | ROM file | Size | CRC32 | `osborne1` | `osborne1sp` | `osborne1nv` | Role |
 |---|---|---|---|---|---|---|
@@ -186,13 +202,10 @@ presses RETURN at the BIOS prompt and waits for an `A>`.
 | [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/OS1NUEVO.IMD) | no-boot | — | no-boot |
 | [`research/nuevo/OS1NUEVO.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/nuevo/OS1NUEVO.IMD) (pristine upstream copy) | — | — | no-boot |
 
-### Correction: the `52-`/`80-`/`104-` prefix is a label, not a gate
+### The `52-`/`80-`/`104-` prefix is a label, not a gate
 
-[`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) and [`tools/README.md`](https://github.com/Myrcurial/o1next/blob/main/tools/README.md) previously implied that an
-80-column image "needs a Nuevo Video board" and will not boot a stock machine.
-**That is not true of these images.** All three boot on all three drivers,
-because all three are the *same* CP/M system disk — they differ by exactly
-**two bytes**:
+All three images boot on all three drivers, because all three are the *same* CP/M
+system disk — they differ by exactly **two bytes**:
 
 ```
 $ cmp -l 52-blank.img 80-blank.img
@@ -209,8 +222,10 @@ change which machines the disk boots on.
 
 So what *does* gate bootability is the **CBIOS on the disk**, not the filename
 prefix. The prefix is a useful human label — keep using it — but do not rely on
-it to decide the driver. (Worth revisiting in `check_o1_map.sh`, which currently
-derives the machine from the prefix.)
+it to decide the driver. [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) still derives the driver from it
+(`52-` → `osborne1`, `104-` → `osborne1sp`, `80-` → `osborne1nv`), warns when it
+selects anything but the stock machine, and takes `O1_MACHINE` as an override;
+[`tools/README.md`](https://github.com/Myrcurial/o1next/blob/main/tools/README.md) states the same rule. That inference is §7 item 2.
 
 ### What the `-blank.imd` disks actually are
 
@@ -256,8 +271,8 @@ initialisation. **Closed as not-needed — see #79.**
 The video personality (#24) does **not** depend on answering the above. The
 decision taken is to build it from the **ScreenPac design plus OZROM's soft
 52/80/104-column switch**, and to treat the Nuevo board as prior art (#73)
-rather than as a target. So the Nuevo CBIOS hang is no longer on the critical
-path, and #79 is closed with the question recorded rather than chased — nothing
+rather than as a target. So the Nuevo CBIOS hang is not on the critical path, and
+#79 is closed with the question recorded rather than chased — nothing
 in the Nuevo design has yet turned up a feature worth the validation cost.
 
 ### Practical answer for Nuevo work
@@ -265,7 +280,7 @@ in the Nuevo design has yet turned up a feature worth the validation cost.
 - To get a **prompt** on `osborne1nv`, use any of the three `-blank.imd` disks.
 - To exercise the **Nuevo 80-column video path**, `OS1NUEVO.IMD` is the right
   disk but it cannot get past CBIOS initialisation; per the decision above this
-  is no longer a blocker for #24.
+  is not a blocker for #24.
 - Material for *building* a working Nuevo system disk, if anyone ever wants it:
   `OS1NUEVO.IMD` carries the Nuevo CBIOS 1.5 in its system tracks,
   the `-blank.imd` disks carry `SYSGEN.COM` (and `MOVCPM.COM`) for writing a new
@@ -366,10 +381,8 @@ banner: OZROM 1E #00187 / (c) 1984 Micro Management
 
 MAME prints *"the machine might not run correctly"* because the ROM hash is not
 the one it expects — that warning is the point, not a problem. **The full OZROM
-treatment — memory map, ROM jump table, keytable, column switch, clock, memory
-tester — is now [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md) (#81)**, which supersedes the summary that
-used to live here.
-
+treatment — memory map, ROM jump table, keytable, the column switch and its
+mechanism, clock, memory tester — is [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md) (#81).**
 
 **Why this matters to us.** OZROM 1E is not a ROM swap with a nicer font; per its
 manual ([`research/roms/OZROM-1E/OZROM_1E_Manual.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/roms/OZROM-1E/OZROM_1E_Manual.pdf), Micro Management, Manual
@@ -421,9 +434,8 @@ OZROM.
 
 ## 6. Headless testing
 
-The technique, from `o1prsnt`'s `utilities/headless-testing-harness/` — which is
-where it was worked out, and which is worth reading in full
-(`README.md` for the API, `DISCOVERY.md` for how it was derived):
+The technique is `o1prsnt`'s (`utilities/headless-testing-harness/README.md` for
+the API, `DISCOVERY.md` for how it was derived):
 
 ```
 SDL_VIDEODRIVER=dummy mame MACHINE -flop1 IMAGE -video none -sound none \
@@ -501,23 +513,30 @@ SDL_VIDEODRIVER=dummy mame osborne1nv -flop1 IMAGE -video none -sound none \
 
 ## 7. Open items
 
-1. ~~**#79** — why the Nuevo CBIOS 1.5 hangs (`OS1NUEVO.IMD`)~~ **Closed as not
-   needed.** The Nuevo path is not pursued (§4) and #24 is built from the
-   ScreenPac design plus OZROM's column switch. The hang is recorded rather than
-   chased — and it is not a bad copy: Dunfield's pristine upstream behaves
-   identically.
-2. **The prefix → driver inference** in [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) needs revisiting
+**Open:**
+
+1. **The prefix → driver inference** in [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) needs revisiting
    (§4): the `52-`/`80-`/`104-` prefix does not determine what a disk can boot.
-3. **Identify the two differing bytes** at offsets 5737 and 5798 in the
+2. **Identify the two differing bytes** at offsets 5737 and 5798 in the
    `-blank.imd` set — presumably a CBIOS video-mode selector, but unverified.
    A small disassembly job against the CBIOS in the system tracks.
-4. **ROM 1.3 is undumped** and we hold its source disk — see
+3. **ROM 1.3 is undumped** and we hold its source disk — see
    [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).
-5. **OZROM 1E as a tool (#81)** — **closed.** It boots on all three machines (§5)
-   and its manual is indexed in **[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md)**: memory map, ROM jump
-   table, keytable, the 52/80/104-column switch and its mechanism, the clock and
-   the memory tester. The one measurement still missing — driving the ctrl-shift
-   column keys from the harness — is routed to **#167**.
+4. **Driving the OZROM column keys from the harness** — the ctrl-shift
+   52/80/104-column select keys cannot be posted, because the harness types plain
+   characters. Routed to **#167**; wanted by #24 as much as by #81
+   ([`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md) §9).
+
+**Closed, and why:**
+
+- **#79** — why the Nuevo CBIOS 1.5 hangs (`OS1NUEVO.IMD`). Closed as not needed:
+  the Nuevo path is not pursued (§4) and #24 is built from the ScreenPac design
+  plus OZROM's column switch. The hang is recorded rather than chased — and it is
+  not a bad copy: Dunfield's pristine upstream behaves identically.
+- **OZROM 1E as a tool (#81)** — closed. It boots on all three machines (§5) and
+  its manual is indexed in **[`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md)**: memory map, ROM jump table,
+  keytable, the 52/80/104-column switch and its mechanism, the clock and the
+  memory tester.
 
 ## 8. Sources
 
@@ -527,5 +546,9 @@ SDL_VIDEODRIVER=dummy mame osborne1nv -flop1 IMAGE -video none -sound none \
 - Machine/ROM structure: MAME `src/mame/osborne/osborne1.cpp`
   (`ROM_START( osborne1 )`, `ROM_START( osborne1nv )`, the `COMP()` lines).
 - ROM inventory and CRCs: [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md).
+- The memory and I/O map the probes assert: [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) (§2a for
+  the video geometry, §3 for the memory-mapped I/O window).
+- OZROM 1E's manual, ROM and interfaces: [`docs/ozrom-1e.md`](https://github.com/Myrcurial/o1next/blob/main/docs/ozrom-1e.md) (#81).
+- The fourth machine: [`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) (#191).
 - Archive provenance: [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md).
 - Disk pipeline and machine checks: [`tools/README.md`](https://github.com/Myrcurial/o1next/blob/main/tools/README.md).

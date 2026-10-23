@@ -5,11 +5,20 @@ subtitle: "The machine · reference"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Why this exists:** MAME carries BIOS A, 1.2, 1.2.1 and 1.3 as `NO_DUMP`, and
-the one thing that would settle 1.3 is a **dump from a machine that has one**.
-This is the procedure for reading it off a real Osborne 1 — what can be done
-from inside the machine, what each route needs, and what the bytes should look
-like so the answer is unambiguous.
+**Issues:** #205, #70. **Status: Partially solved.** The *identification* is
+settled and needs no tool: the upper line of the sign-on is framed by the
+underline escape and survives a faulty dim bit, so a machine's ROM revision is
+readable off the screen (§1), and `^D` at the boot prompt separates the early
+ROMs from the 1.40-and-later ones (§1a). The *copy* is written down to the byte
+(§2, §4) but has not been run end to end, and the machine this was written for
+is out of play (§7a), so there is at present no hardware route to any `NO_DUMP`
+slot.
+
+MAME carries BIOS A, 1.2, 1.2.1 and 1.3 as `NO_DUMP`, and the one thing that
+would settle 1.3 is a **dump from a machine that has one**. This is the procedure
+for reading it off a real Osborne 1 — what can be done from inside the machine,
+what each route needs, and what the bytes should look like so the answer is
+unambiguous.
 
 Nothing here writes to a diskette. Every route below is read-only on the media.
 
@@ -79,19 +88,23 @@ So, at the boot prompt, before pressing RETURN:
 The menu is bright text, so the faulty dim bit does not hide it, and the test
 needs no disk, no tool and no typing beyond `^D`. The 1.3-era menu reads
 `A,B Boot Sys / D isk / K ey-vdt / M emory / R ead in test`; a *different* set of
-entries is itself evidence of an earlier revision still.
+entries is itself evidence of an even earlier ROM than 1.3.
 
 ## 2. Reading the bytes: the ROM is *not* visible from CP/M
 
 This is the part that catches people out. `DUMP.COM` and `DDT`'s `D` command
 will **not** show the ROM: the monitor ROM is banked into `0000–0FFF` only when
 `ROM MODE*` is selected, and a CP/M program runs with the RAM bank in place.
-The mechanism is in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2 and §4:
+The mechanism is in [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2 and §4, measured on the
+running machine by [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) (#64):
 
 - `OUT (0),A` selects **bank 2** — the ROM at `0000–0FFF`, the memory-mapped I/O
   window at `2000–2FFF`, and **`4000–FFFF` still bank 1 RAM**;
 - `OUT (1),A` selects **bank 1** — main RAM;
 - the port number selects and the data byte is ignored;
+- the selection is **re-derived**, not latched ([`tools/o1_mame_probe.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/o1_mame_probe.lua) check
+  C10: write the RAM bank, let emulated time pass, and the ROM bank is back) — so
+  the bank is selected *and used* inside the copy, never assumed to hold;
 - an interrupt acknowledge reselects the ROM bank, so **`DI` for the duration of
   the copy**, or a 60 Hz video interrupt will put RAM back under the read;
 - the program itself must live **above `4000`**, because with bank 2 selected
@@ -174,13 +187,12 @@ Bytes, so the assembled listing can be checked by eye:
 `4D 4F 4E 49 54 4F 52 20 31 2E 33`; `OSBORNE 1` is
 `4F 53 42 4E 4F 52 4E 45 20 31` — either is unmistakable in a dump.
 
-**Honest status:** this is *reasoned from the sources and the memory map*, not
-yet run end to end. It was attempted in MAME and the harness
-([`tools/research/o1keys.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/o1keys.lua)) segfaulted partway through typing the program in —
-the harness's known VRAM-reader fault, not the program. What has been checked
-directly is the *mechanism* ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §4 was measured on the
-running machine with [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh)) and the byte offsets below, which
-come from the shipped ROMs.
+**How far this is checked.** The mechanism is measured — [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md)
+§4 was measured on the running machine with [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) — and the byte
+offsets in §5 come from the shipped ROMs. The DDT route itself is *reasoned* from
+those and has **not** been run end to end: the attempt under MAME failed on the
+harness, [`tools/research/o1keys.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/o1keys.lua) segfaulting partway through typing the
+program in, not on the program.
 
 ## 5. Fingerprints, so the answer is not a judgement call
 
@@ -240,7 +252,7 @@ dump from the screen, or a serial capture — the ROM's own SIO init is
 a file to `PUN:`/`LST:`, but binary down a 1200-baud line wants a cable and
 care.
 
-## 7a. Status: the machine this was written for is out of play
+## 7a. The machine this was written for is out of play
 
 The single-density machine that prompted this doc is **out of play** — it blew
 a RIFA capacitor in the PSU. The `^D` test in §1a was **never run**, so its ROM
@@ -250,23 +262,27 @@ already held ([`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/bl
 route to any `NO_DUMP` slot** — §1a and §4 are procedures waiting on a machine,
 not instructions for one.
 
-One repository fact worth recording with it: **the tree holds no power-supply
-material.** The Osborne 1 Technical Manual in-repo
-([`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf)) has only
-**§1.2 "Power On"** — two pages of power-up procedure, no supply theory and no
-schematic. The only mention of the PSU anywhere in the tree is a design note in
-[`docs/design/o1next-lunchbox-concept.svg`](https://github.com/Myrcurial/o1next/blob/main/docs/design/o1next-lunchbox-concept.svg) recording that the original supply "and
-its RIFA caps" are retired in that concept.
+One repository fact belongs with it. The tree holds the supply's **repair manual** —
+[`research/osborne1/o1astecpsac8151.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/o1astecpsac8151.pdf), the *Repair Manual for Astec Power Supply
+AC8151*, with the test set-up, the 115/230 V input-select wire and the +5/+12/−12
+rail table (#52; a row in [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md)) — but **no supply schematic and no
+board-level view**, and the Technical Manual in-repo
+([`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf)) carries only
+**§1.2 "Power On"**, two pages of procedure. What is missing is exactly what a
+photograph of the board would supply. The one design note is
+[`docs/design/o1next-lunchbox-concept.svg`](https://github.com/Myrcurial/o1next/blob/main/docs/design/o1next-lunchbox-concept.svg), which records that the original supply
+"and its RIFA caps" are retired in that concept.
 
 ## 8. What the result would settle
 
 - **A 1.3 dump fills `osb13.bin`** and closes the `NO_DUMP` slot outright.
 - **It would also grade the reconstruction in [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md).**
-  Our built 1.3 image is 3759/4096 bytes from being certified; a real dump would
-  say whether the recovered `DBE`/`DCE` rule, the `occtxt6.ast` assumption and
-  the 28-byte question were right — a *positive* answer would validate the
-  method for rev B, BIOS A, 1.2 and 1.2.1 as well, and a negative one would say
-  exactly where the method is wrong.
+  That doc's control build reproduces a shipped Osborne ROM to 3759 of its 4096
+  bytes, and the same toolchain's 1.3 image is uncertified for the same reason; a
+  real dump would say whether the recovered `DBE`/`DCE` rule, the `occtxt6.ast`
+  assumption and the 28-byte question were right — a *positive* answer would
+  validate the method for rev B, BIOS A, 1.2 and 1.2.1 as well, and a negative one
+  would say exactly where the method is wrong.
 
 Related: #205, #70, #72, #222, [`docs/o1-rom-variants.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-variants.md),
 [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md), [`docs/rom-13-reconstruction.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-13-reconstruction.md).

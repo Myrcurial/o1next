@@ -5,9 +5,21 @@ subtitle: "Appendices · reference"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-Status: 14/16 examined (IMG_4856–4869). IMG_4870/4871 could not be
-processed by the vision pipeline (tool rejects even after EXIF strip/
-re-encode) — user to describe or retake.
+**Status: Solved** as a reference: all 16 frames in [`research/pictures/`](https://github.com/Myrcurial/o1next/blob/main/research/pictures/) are
+indexed and 14 are read; two are not, and what they show is still unknown.
+
+**14 of the 16 frames were examined** — `IMG_4856`–`IMG_4869`. `IMG_4870` and
+`IMG_4871` could not be processed by the vision pipeline, which rejects them even
+after an EXIF strip and a re-encode, so they are indexed but unread; they need a
+description or a retake.
+
+What the 14 read frames show: the **CoPower-88 8088 board** (12 frames,
+`IMG_4856`–`IMG_4867`) and the **Osborne mainboard with its Z80 interposer
+adapter** (2 frames, `IMG_4868` and `IMG_4869`). Two findings are load-bearing
+elsewhere: the 8088 board is the **Kaypro variant** — silkscreen `KAYPRO-88`,
+software default port pair **0x7E (data) / 0x7F (status)** — and the Z80 in this
+machine is a plastic **NMOS Z80A, date code 8408**, which is what decides the
+level-shifter parts for the interposer (#11).
 
 ## CoPower-88 8088 board (IMG_4856–4867)
 
@@ -27,8 +39,8 @@ re-encode) — user to describe or retake.
 - Glue visible matches 611-0003: 74LS138 x3 (RAS/CAS + port decode),
   74LS244, 74LS373/375, 74LS645, 74LS257, 74LS175, 74LS153, 74LS32,
   MC74HC374 x2, 74LS161/393/174 etc.
-- **Blue DIP-package IC** marked "16-2103 8140" — per user correction this
-  is a **chip, not a DIP switch**. Almost certainly an 8-bit magnitude
+- **Blue DIP-package IC** marked "16-2103 8140" — a **chip, not a DIP switch**,
+  read off the physical part by the user. Almost certainly an 8-bit magnitude
   comparator (74LS688-class) doing the A1-A7 port-base compare from sheet 4.
   ⇒ The host port base is **fixed by this device / its hardwired reference,
   not user-switchable**. Consistent with the Kaypro software default 0x7E/0x7F.
@@ -82,12 +94,12 @@ it unblocks. Shoot each as its own frame, well lit and square on, file them in
 | 3 | **Mainboard revision silkscreen, each machine** | one board is marked `24187A`; the other two are unknown, and #39 cannot close without them. | #39, #29 |
 | 4 | **Z80 chip markings on the other two machines** | NMOS vs CMOS decides 74AHCT vs 74LVC in the level shifter. One machine is a plastic NMOS Z80A, date code 8408. | #39, #11, #12 |
 | 5 | **The Z80 socket area, interposer fitted *and* removed** | the interposer's mechanical fit, pin-1 orientation and ribbon routing. IMG_4870/4871 were meant to be this and failed the vision pipeline. | #12, #11, #39 |
-| 6 | **The character-generator socket and its pin-1 orientation, with the wiring around it** | gap 3 of [`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) is literally "char-gen socket pinout", open and blocking. | #24 |
+| 6 | **The character-generator socket and its pin-1 orientation, with the wiring around it** | gap 3 of [`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) — "char-gen socket pinout" — is **solved** from the schematic ([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) §4a read `UA15` off sheet 4 of 9), so this shot confirms a pin-1 orientation in a real machine rather than unblocking anything. | #24 |
 | 7 | **The SCREEN-PAC board, fitted and loose** | its connection into the video circuit, and its own silkscreen. | #24 |
 | 8 | **The double-density upgrade board** | which machine carries one, and its part number and silkscreen. | #95, #70 |
 | 9 | **The video RAM and attribute chips** | the two 6116s and the bank-3 attribute device, for the video section of the memory map. | #97, #40 |
 | 10 | **The P8 floppy connector and the drive interface** | connector and cable detail the schematic sheets leave schematic-level. | #62, #20 |
-| 11 | **The power-supply board** | the tree holds **no** power-supply material at all (see [`docs/o1-rom-read-from-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-read-from-machine.md) §7a), and the archive's stated position is that in-project photographs are the substitute. | repo archive |
+| 11 | **The power-supply board** | the tree holds the PSU's own **repair manual** — [`research/osborne1/o1astecpsac8151.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/o1astecpsac8151.pdf), the Astec AC8151 (#52), with its test set-up and the +5/+12/−12 rail table — but no supply schematic and no board-level view, which is what a photograph supplies. | repo archive |
 | 12 | **A lid-off board-stack view of each machine** | #39's own "board-stack overview" item, and the frame that makes every other shot locatable. | #39, #9 |
 
 One line of description per frame is worth the minute it costs: two of the

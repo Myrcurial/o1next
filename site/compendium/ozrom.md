@@ -5,17 +5,18 @@ subtitle: "The machine"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Status:** Solved, as tooling — and **#81 is closed** on that deliverable. It
+**Status: Solved** — as tooling, and **#81 is closed** on that deliverable. It
 boots under MAME on all three Osborne 1 machines (measured, §3), its 58-page
 manual is OCR'd and indexed here (§4–§8), and its three engineering features — a
 software 52/80/104-column switch, a chip-level memory tester and a *documented*
 ROM interface — are available to us without hardware. The column switch's
-mechanism is now measured from the ROM as well as documented (§7): it drives the
+mechanism is measured from the ROM as well as documented (§7): it drives the
 stock video PIA through the stock ROM's own helper, and OZROM adds no cell of its
-own. Its companion **Utilities disk** surfaced in 2026-10 and is catalogued in §10
-— the directory is complete, the file bodies are partly erased. What is left is
-routed rather than carried: **#167** (drive the column keys from the harness) and
-**#168** (a complete Utilities disk) — §9.
+own. Its companion **Utilities disk**, which surfaced in 2026-10, is catalogued
+in §10 — the directory **and all twenty file bodies** are complete. One residue
+is routed rather than carried: **#167** (drive the column keys from the harness),
+§9. **#168** — filed for a complete Utilities disk — is closed: the "290 of 400
+sectors erased" reading that justified it was our own sector-skew bug (§10.2).
 
 **Source:** [`research/roms/OZROM-1E/OZROM_1E.BIN`](https://github.com/Myrcurial/o1next/blob/main/research/roms/OZROM-1E/OZROM_1E.BIN) (4096 bytes) and
 `OZROM_1E_Manual.pdf`, both from BrettHallen's `Osborne_1` repository;
@@ -297,8 +298,9 @@ now catches real read errors.
 switch is documented *and* its mechanism measured from the ROM (§7), the memory
 tester and the error codes are written down (§8), and the ROM interface is
 recorded — memory map, jump table, keytable, interrupt hook (§5–§6). Four
-residues were left at the close; none of them is work that belongs *here*, so each
-is routed rather than carried:
+residues were left at the close, and the table records where each one went; only
+the first is still live, and it is routed rather than carried because it needs
+code rather than reading:
 
 | Residue | Where it goes |
 |---|---|
@@ -365,40 +367,44 @@ that the manual only implies:
   one).
 
 
-### 10.2 Condition — intact, and the first reading was ours to blame
+### 10.2 Condition — intact: the file bodies are whole
 
-**Corrected 2026-10-11.** This section previously said the disk was *partially
-erased*: "110 of 400 sectors carry data and 290 read back as uniform `0xE5`",
-with the holes *inside* file bodies — `CRASH.COM` gone, `READ.ME` missing its
-first sector. **That was a tooling artefact, not the disk.** The 290 sectors are
-**free space**.
+The disk is whole. Its ~291 sectors of uniform `0xE5` are the **format fill** a
+CP/M formatter writes across a disk — **free blocks, not holes** — and the
+arithmetic agrees: twenty files totalling ~22 KB plus a 64-entry directory and
+three system tracks is ~110 sectors of the 400, exactly the sectors that are not
+`0xE5`. Re-extracted with the correct geometry, **all twenty files are whole**:
+no file holds an interior run of `0xE5` longer than a handful of bytes (those are
+ordinary data bytes), and every size matches the directory. `READ.ME` is complete
+from its first byte, which the emulated machine confirms by printing it from the
+start (§10.2a).
 
-[`tools/cpmfs.py`](https://github.com/Myrcurial/o1next/blob/main/tools/cpmfs.py)'s `osb1sssd` preset was missing the format's **sector skew**
-(`skew 2` — the Osborne SD layout interleaves its ten sectors per track).
-Without it, block pointers resolve to the wrong physical sectors: the *directory*
-still reads, which is why the file list looked right and the damage looked like
-erasure, while every **file body** came back from sectors that had never been
-written. `cpmtools`' own `osb1sssd` diskdef carries the skew, and reading the same
-image through it returns real content — `CRCKLIST.CRC`, for one, is intact text.
-
-Re-extracted with the correct skew, **all twenty files are whole**: no file holds
-an interior run of `0xE5` longer than a handful of bytes (those are ordinary data
-bytes), and every size matches the directory. `READ.ME` — reported here as having
-lost its first sector — is complete, which the emulated machine confirms by
-printing it from the start (§10.2a).
-
-The `0xE5` is still real, and still not a de-skew problem *in the sense §10.4
-meant*: the image genuinely holds ~291 sectors of format fill, because that is
-what a CP/M formatter writes across a disk. They are **free blocks**, not holes.
-The arithmetic agrees: twenty files totalling ~22 KB plus a 64-entry directory
-and three system tracks is ~110 sectors of the 400 — exactly the sectors that are
-not `0xE5`.
+**Measured how.** The file bodies come out from sectors that were never written
+if the read uses the wrong sector order. The `osb1sssd` preset in
+[`tools/cpmfs.py`](https://github.com/Myrcurial/o1next/blob/main/tools/cpmfs.py) needs the format's **sector skew** (`skew 2` — the Osborne SD
+layout interleaves its ten sectors per track); without it, block pointers resolve
+to the wrong physical sectors: the *directory* still reads, because the three
+directory sectors in use happen to land inside block 0 in some order, while every
+**file body** comes back as `0xE5`. `cpmtools`' own `osb1sssd` diskdef carries the
+skew, and reading the same image through it returns real content — `CRCKLIST.CRC`,
+for one, is intact text. `osb1sssd` carries `skew=2` (**#170**), and `cpmfs.py`
+generates the logical→physical table the same way `cpmtools` does (`cpmfs.c`):
+for this format, `0 2 4 6 8 1 3 5 7 9`. The directory read goes through the same
+mapping, so there is no off-by-one phantom entry. Checked against
+`cpmcp -T raw -f osb1sssd` on all three in-archive SD images — this disk,
+`DRIVE_C.IMD` and `OCC1_HARDDISK.IMD` — where **every file matches byte for
+byte**. Nothing else in the archive rests on the bad read: the two other
+`osb1sssd` extractions ([`research/drive_c/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/extracted/),
+[`research/harddisk/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/extracted/)) were made with `cpmtools`, which always had the
+skew, and are unchanged, and non-interleaved formats default to `skew 1`, so
+`kp2x` and `drivec` output is unchanged. **This disk was the only casualty.**
 
 ### 10.2a Measured on the machine: the ROM makes no difference
 
-The OZROM ROM and this disk had **never been run together** — every OZROM test
-used `52-blank.imd`. Run both ways (`-flop1 52-blank.imd -flop2
-OZROM_1E_Utilities.IMD`) with the same commands posted to each:
+The OZROM ROM and this disk are independent of each other, and running them
+together changes nothing about what the disk holds. The same image under the
+stock ROM and under OZROM (`-flop1 52-blank.imd -flop2
+OZROM_1E_Utilities.IMD`), with the same commands posted to each:
 
 | | stock ROM | OZROM 1E |
 |---|---|---|
@@ -459,47 +465,35 @@ images turn out to be rotated and were never convertible before the fix:
 disk** (`DIAG.COM`, `FILETEST.COM`, `DDBIT.COM`, `SETUP.COM`, `SYSGEN.COM`, …),
 and [`research/source-code/OCCROM.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/OCCROM.IMD) its 77-track FM/MFM disk.
 
-**A second bug of the same class was found on 2026-10-11, and it did more
-damage.** `cpmfs.py`'s `osb1sssd` preset had no **sector skew** for the format it
-names, so every SD Osborne *file body* it read came back from the wrong sectors —
-which is what made this disk look "partially erased" (§10.2). The lesson repeats:
-both bugs produced output that *parsed*, and one of them was believed for a day
-because the directory survived and the result looked like physical damage rather
-than a misread. **A reader that returns plausible garbage is more dangerous than
-one that errors.**
-
-**Fixed in #170.** `osb1sssd` now carries `skew=2`, and `cpmfs.py` generates the
-logical→physical table the same way `cpmtools` does (`cpmfs.c`): for this format,
-`0 2 4 6 8 1 3 5 7 9`. The directory read goes through the same mapping, so the
-old off-by-one phantom entry is gone as well. Checked against
-`cpmcp -T raw -f osb1sssd` on all three in-archive SD images — this disk,
-`DRIVE_C.IMD` and `OCC1_HARDDISK.IMD` — where **every file matches byte for
-byte**. The two other archived `osb1sssd` extractions ([`research/drive_c/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/extracted/),
-[`research/harddisk/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/extracted/)) were made with `cpmtools`, which always had the
-skew, and are unchanged: **nothing already archived rested on the bad read** —
-this disk was the only casualty. Formats that are not interleaved default to
-`skew 1`, so `kp2x` and `drivec` output is unchanged.
+**A second bug of the same class does more damage.** `cpmfs.py`'s `osb1sssd`
+preset had no **sector skew** for the format it names, so every SD Osborne *file
+body* it read came back from the wrong sectors — the read that made this disk look
+"partially erased". §10.2 has the mechanism, the fix (**#170**) and the check
+against `cpmtools`. The lesson is the same for both bugs, and it is the reason
+neither was caught by a test: both produced output that *parsed*, and the result
+looked like physical damage rather than a misread. **A reader that returns
+plausible garbage is more dangerous than one that errors.**
 
 ### 10.5 What it changes for #81
 
-Less than the file count suggests, and that is the honest answer: the ROM is the
-deliverable and this is the optional companion disk. What it does give us:
+Less than the file count suggests: the ROM is the deliverable and this is the
+optional companion disk. What it does give us:
 
 - The **complete and authoritative file list** of the utilities — and, as §10.2
-  now records, the **complete files themselves**, not a holed copy.
+  records, the **complete files themselves**, not a holed copy.
 - Confirmation that the utilities are **external programs, not ROM entry
   points**, which bounds the reproduction scope: OZROM compatibility means the
   ROM's jump table and memory map, not this disk.
 - A second, independent description of the feature set to hold against the
   manual (§4).
 
-**No longer open, though this section used to say it was:** the hunt for a
-complete copy. **#168** was filed to find one and closed the same day — the "290
-of 400 sectors erased" that justified it was our own skew bug (§10.2), and the
-disk we hold is whole. The one check still not possible is against the vendor's
-own manifest: `CRCKLIST.CRC` lists a two-byte CRC per file, and none of the
-standard CRC-16 variants tried so far reproduces them, so per-file verification
-against the manifest has to wait for someone to identify the algorithm.
+**The hunt for a complete copy is closed.** **#168** was filed to find one and
+closed the same day — the "290 of 400 sectors erased" that justified it was our
+own skew bug (§10.2), and the disk we hold is whole. The one check still not
+possible is against the vendor's own manifest: `CRCKLIST.CRC` lists a two-byte
+CRC per file, and none of the standard CRC-16 variants tried so far reproduces
+them, so per-file verification against the manifest has to wait for someone to
+identify the algorithm.
 
 ## Sources
 
