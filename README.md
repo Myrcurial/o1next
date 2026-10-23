@@ -3,9 +3,9 @@
 > Rebuilding, upgrading, and eventually recreating the Osborne 1 — research,
 > hardware, and the story of how this project began.
 
-A general-purpose Z80 bus interposer for the Osborne 1, built around the
-RP2354B, plus the research and reverse-engineering work it enables — and,
-downstream, a modern-parts Osborne 1 reproduction (the "O1NEXT").
+A general-purpose Z80 bus interposer for the Osborne 1, built around the RP2354B,
+plus the research and reverse-engineering work it enables — and, downstream, a
+modern-parts Osborne 1 reproduction (the "O1NEXT").
 
 ## The boards
 
