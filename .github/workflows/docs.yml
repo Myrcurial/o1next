@@ -1,0 +1,46 @@
+name: docs contract
+
+# #200: `docs/` had grown to 16 595 lines across 40 documents, written
+# incrementally by many sessions, and the *shape* had gone wrong -- a correction
+# was appended under a dated heading hundreds of lines below the claim it
+# refuted, so the reader who stopped at the first answer got the wrong one, and
+# `docs/README.md` no longer agreed with the documents it indexed.
+#
+# The pass that fixed it (the answer in the lead, the corrections folded in, one
+# statement of each fact) is worth exactly as much as the next document that
+# ignores it.  This job is the part of it that is mechanical: every document has
+# a status line in the house vocabulary and a row whose `State` word agrees, every
+# `docs/…` and `research/…` reference resolves, and no dated correction block
+# survives.  Prose quality is not checkable and is not attempted.
+#
+# Standard library only, no host tooling, and seconds rather than minutes.
+
+on:
+  push:
+    paths:
+      - 'docs/**'
+      - 'tools/check_docs.py'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'tools/check_docs.py'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: status lines, the index and the cross-references agree
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: The docs contract holds
+        run: python3 tools/check_docs.py -v

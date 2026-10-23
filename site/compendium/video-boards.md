@@ -5,6 +5,23 @@ subtitle: "Peripherals and storage · partially solved"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
+**Status: Partially solved.** Four 80-column implementations are identified, and
+each one's attachment, width selection and detection is read from its own material;
+what is left is one measurement (§"How software finds the board") and Osmosis's
+*technical* manual, which the archive does not hold.
+
+Four 80-column upgrades for the Osborne 1 are known, and **no two of them attach,
+select a width or announce themselves the same way**. That is the fact a video
+personality (#24) has to be built around, and it is why "80 columns" is not one
+interface:
+
+| Board | What it actually is |
+|---|---|
+| **OCC SCREEN-PAC** (1983) | an add-on board inside the machine, hardware only — the stock BIOS already carries the width routine, so no ROM changes |
+| **The Research Associates' TRA** (1983) | an external video unit that reaches the monitor through the **IEEE-488 port**, with the printer moved to a parallel port on the TRA |
+| **Nuevo** (1984) | a **second video system**: a replacement monitor ROM, a CBIOS patched on disk, and its own Z80, CRTC, video RAM and character generator on the board |
+| **Osmosis** (1983) | a **Z80 interposer board** — the CPU moves onto it and it takes the CPU's socket — with a terminal-style escape-sequence interface and a supplied monitor ROM |
+
 Nuevo Electronics and Osmosis each shipped **two** Osborne 1 upgrades — a
 double-density board and an 80-column video board — and **neither follows the
 pattern OCC used for the same two functions**. That matters twice over: it is
@@ -14,32 +31,32 @@ cannot assume the ScreenPac's interface.
 This doc covers the **video** side. The DD side is in
 [`docs/dd-upgrade-formats.md`](https://github.com/Myrcurial/o1next/blob/main/docs/dd-upgrade-formats.md) and [`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) gap #11.
 
-> **Scope note: "Executive" means a different machine.** In Osborne's world the
-> Osborne **Executive** is the O2-class machine, not a variant of the 1. Upgrades,
-> software and advertisements aimed at it are therefore **out of scope here** and
-> must not be folded into Osborne 1 conclusions — for example the $595
-> double-sided-drive upgrade advertised in *The Portable Companion* #14, PDF p. 47,
-> which is an Executive product. The three machines this project cares about are
-> the Osborne 1, the Osborne 1 with OCC's own upgrades, and clones of them
-> ([`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) gap 12).
+**"Executive" is a different machine, and treating it as an Osborne 1 is the one
+mistake that corrupts every conclusion below.** In Osborne's world the Osborne
+**Executive** is the O2-class machine, not a variant of the 1, so upgrades,
+software and advertisements aimed at it are **not Osborne 1 evidence** — for
+example the $595 double-sided-drive upgrade advertised in *The Portable Companion*
+#14, PDF p. 47, which is an Executive product. The three machines this project
+cares about are the Osborne 1, the Osborne 1 with OCC's own upgrades, and clones of
+them ([`docs/research-gaps.md`](https://github.com/Myrcurial/o1next/blob/main/docs/research-gaps.md) gap 12).
 
-## The three implementations at a glance
+## The four implementations at a glance
 
-| | OCC **SCREEN-PAC** (1983) | **Nuevo** (1984) | **Osmosis** (1983) |
-|---|---|---|---|
-| What it is | add-on board, hardware only | replacement monitor ROM + patched CBIOS + own char-gen | **Z80 interposer board** + supplied monitor ROM |
-| How it attaches | board inside the machine (`2F00040` service manual §6.12) | swap the monitor ROM; patch the CBIOS with DDT | **Z80 moves onto the board, board into the Z80 socket** |
-| ROM change | **none** — MAME models `osborne1sp` as a clone | Nuevo **1.51** monitor ROM + BIOS 1.5 objects | supplied ROM marked **"Osborne 1.44 GM"** |
-| Widths | **52 / 80 / 104** | 80 | 80 (and back to 52) |
-| Selected by | **BIOS variable** — poke `E1A5H`, call `E4E5H` | patched CBIOS entry (`02C9` → `JP 02D4`) | **escape sequences** — `ESC 8` / `ESC 5` / `ESC F` |
-| Detected by software | `2400H` bank 2, **bit 2 LOW** | — | — |
-| Horizontal scroll | 32-column blocks | — | — |
-| Character generator | stock late | **its own** (adds underline via row 9) | stock 1.44 |
+| | OCC **SCREEN-PAC** (1983) | **TRA** (1983) | **Nuevo** (1984) | **Osmosis** (1983) |
+|---|---|---|---|---|
+| What it is | add-on board, hardware only | external video unit with its own parallel printer port | replacement monitor ROM + patched CBIOS + own char-gen | **Z80 interposer board** + supplied monitor ROM |
+| How it attaches | board inside the machine (`2F00040` service manual §6.12) | **IEEE-488 port (P3)** and an external monitor | swap the monitor ROM; patch the CBIOS with DDT | **Z80 moves onto the board, board into the Z80 socket** |
+| ROM change | **none** — MAME models `osborne1sp` as a clone | none mentioned — vendor-supplied driver software | Nuevo **1.51** monitor ROM + BIOS 1.5 objects | supplied ROM marked **"Osborne 1.44 GM"** |
+| Widths | **52 / 80 / 104** | 80 and 100, windows into the same 128×32 format | 80 | 80 (and back to 52) |
+| Selected by | **BIOS variable** — poke `E1A5H`, call `E4E5H` | the driver, after a "one-time, automatic disk configuration process" | patched CBIOS entry (`02C9` → `JP 02D4`) | **escape sequences** — `ESC 8` / `ESC 5` / `ESC F` |
+| Detected by software | `2400H` bank 2, **bit 2 LOW** | — (not documented in the ad) | BIOS 1.5 reads a port the O1 does not decode | — (no register; the probe *is* a command) |
+| Horizontal scroll | 32-column blocks | soft scrolling | — | — |
+| Character generator | stock late | — | **its own** (adds underline via row 9) | stock 1.44 |
 
 Sources for each row are quoted below. "—" means the material in the archive
-does not say; it is not a claim that the feature is absent. A **fourth**
-implementation, The Research Associates' TRA board, is not in the archive at all
-— it is covered separately below from its advertisement.
+does not say; it is not a claim that the feature is absent. The **TRA** column is
+the exception: that board is not in the archive at all, so its row comes from its
+advertisement alone (below).
 
 ## OCC SCREEN-PAC — hardware only, driven by the stock BIOS
 
@@ -52,8 +69,9 @@ board announces itself at **`2400H` in bank 2**, and that the SCREEN-PAC's own
 
 ## The Research Associates (TRA) — 80/100 columns, over the IEEE port
 
-A **fourth** 80-column answer, and the only one that reaches the screen through a
-*different connector*. An advertisement in *The Portable Companion* #5
+The only one of the four that reaches the screen through a *different connector* —
+and the only one the archive does not hold. An advertisement in *The Portable
+Companion* #5
 (February/March 1983, PDF p. 98 = printed 84; extract
 [`research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue05-1983-pp98-tra-80-100-column-video-and-winchester-ads.pdf))
 announces "**80 and 100 column video**" from **The Research Associates** (Forest
@@ -219,8 +237,8 @@ side* rather than part of it ([`docs/o1-mainboard-schematic.md`](https://github.
 2/3, U8 and U12–U22). **That is an inference, not a finding** — Nuevo's own
 installation instructions are the missing piece.
 
-**Does any of this bear on Drive C?** No, and it is worth saying plainly. Both
-boards are host-side — video, and floppy encoding — while Drive C is an IEEE-488
+**Does any of this bear on Drive C?** No. Both boards are host-side — video, and
+floppy encoding — while Drive C is an IEEE-488
 peripheral that draws power from the EXT. VIDEO connector and speaks over the
 GPIB port ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)). The photo drop is recorded here because
 it is the first hardware view of either Nuevo product, not because it changes the
@@ -344,7 +362,8 @@ here. `*` in the first column is the manual's own mark for "unique to the OS/5
 | | `l` | 6C | 108 | start underline |
 | | `m` | 6D | 109 | stop underline |
 
-Two things about the source table are worth recording rather than smoothing over:
+**The source table has two defects.** Both are recorded rather than repaired,
+because they are what the original prints:
 
 - **† the `Dec` column is damaged.** From `R` (52H) to `Z` (5A) the original
   prints `8-` — the page edge cuts the column — and it prints `183` for `g` where
@@ -432,14 +451,14 @@ mapping between the two is not established — relevant to #24.
    and Osmosis. Any 80-column story for this project has to answer for software
    that assumes 52 columns — the practical reason the O1's upgrades shipped with
    application notes.
-4. **The 128-character row is the common ground.** All three widen the *window*,
+4. **The 128-character row is the common ground.** All four widen the *window*,
    not the memory ([`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §2a); only the control interface
    differs.
 
 ## How software finds the board
 
-The three implementations answer "is the board there?" in three different ways,
-and only one of them is a register.
+Three of the four answer "is the board there?" in three different ways, and only
+one of them is a register — the TRA's advertisement documents no detection at all.
 
 | Board | How software detects it | Status |
 |---|---|---|
@@ -539,8 +558,6 @@ so it is recorded as the evidence supports it, not as established fact.
   Nuevo's boot-time auto-configuration via `NEWSETUP.COM` and its 2 x 2 / 4 x 4
   formats, and Osmosis's OSMOS 1–3 density line plus the standalone OSMOS 4
   conversion product.
-
-
 
 ## Sources
 

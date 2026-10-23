@@ -1,9 +1,13 @@
 # The picoem bridge — a real firmware binary inside `osborne1nx` (#286, part of #192)
 
-**Status: it works, and the acceptance passes.** A Pico SDK firmware built from
-this tree runs inside `rp2350-emu`; `osborne1nx`'s I/O cycles in the card's
-window reach its GPIO; the byte it drives back comes into the machine; and the
-whole exchange is in the MAME-side log:
+**Status: Partially solved.** A real RP2354B firmware binary runs inside
+`rp2350-emu` and answers `osborne1nx`'s bus cycles, and the acceptance passes —
+but the bridge models **I/O cycles only** (a memory cycle is refused, §3), nothing
+here exercises PIO, and the address bus is not driven to the firmware (§7).
+
+**The answer.** A Pico SDK firmware built from this tree runs inside `rp2350-emu`;
+`osborne1nx`'s I/O cycles in the card's window reach its GPIO; the byte it drives
+back comes into the machine; and the whole exchange is in the MAME-side log:
 
 ```
 picoem: HELLO  status 00  firmware pc=1000024A cycles=40000000
@@ -13,33 +17,52 @@ picoem: W 31 <- 5A  firmware drove 5A  hb=1 HB OE DRV  pc=1000029E
 picoem: R 31      firmware drove 5A  hb=1 -- OE DRV  (guest saw FF)
 ```
 
-One command proves it: `tools/emulator-setup/mame-osborne1nx/picoem-check.sh`.
+`tools/emulator-setup/mame-osborne1nx/picoem-check.sh` is the one command that
+proves it: seven `want` checks over the MAME and the bridge logs, plus the
+cycle-budget assertion of #293 — and the firmware's own PC is one of the seven.
 
-**This is one half of a loop, and the loop now closes.** What the loop is, what is
-still missing from it (memory cycles, and a burst frame), the gap register for
-*both* emulators and the plan for closing them are
-**`docs/emulation-testbed.md`** — that document owns the loop; this one owns the
-wire. The closing half is `picoem_link_device` and the `osborne1nxp` machine
-(`picoem-link.patch`), whose acceptance is
-`tools/emulator-setup/mame-osborne1nx/picoem-guest-check.sh`: the Z80's own
-`OUT`/`IN` in the card's window, answered by a real firmware, read back out of
-guest memory.
+**The channel is a pair of FIFOs, not the socket #192 assumed** (§2). MAME's Lua
+preloads exactly four modules and its `3rdparty/` has no luasocket, so a socket
+would mean changing MAME; a FIFO costs neither side anything, and blocking is
+what a bus cycle needs. Each transaction is a **24-byte frame** with a magic and a
+checksum (§3): the Z80's cycle one way, the chip's answer, heartbeat edge count,
+PC and cycle count the other.
 
-**And it took six workarounds to get there**, every one of them a gap in picoem
-rather than in the firmware. §5 is the list, and it is the most valuable part of
-this document: the emulator could not yet run a stock Pico SDK binary, and until
-it can, every personality the interposer is for (#179, #277) is being written
-against a chip that behaves differently from the real one in specific ways.
+**The bus cycle has two easy mistakes in it** (§4). The idle state has to be
+*driven*, because an undriven pin reads 0 and 0 is *asserted* for `/MREQ`,
+`/IORQ`, `/RD` and `/WR` — a bridge that leaves them floating presents the
+firmware with a write cycle that never ends. And the answer must be sampled while
+the strobe is open, not after it closes.
+
+**A stock Pico SDK binary did not run in picoem for seven separate reasons** (§5),
+six of which needed a workaround: a bootrom that never completes, CPACR never
+enabled, a fault that reports itself as the wrong fault, a lock only the bootrom
+sets, a mis-decoded `ldaexb`, SIO modelled as bank 0 only, and a CP0 encoding
+table that does not match SDK 2.3.1. Each is measured; two are fixed. That is the
+real finding of this document, and the reason it matters: the emulator could not
+run a stock Pico SDK binary, and until the remaining gaps are fixed, every
+personality the interposer is for (#179, #277) is being written against a chip
+that behaves differently from the real one in specific ways.
 
 > **Vocabulary:** `Rev B` in this document is the **interposer's** Rev B — the
 > `O1NEXT Upgrade`'s production revision (`hardware/interposer-upgrade/revb/README.md`),
 > not a ROM revision and not another board's. See `hardware/README.md`.
 
-**Two of them are fixed** (2026-10-18): #5 (`ldaexb`) and #7 (the CP0 table, which
+**This is one half of a loop, and the loop closes.** `picoem_link_device` and the
+`osborne1nxp` machine (`picoem-link.patch`) put the firmware's byte into the
+guest's own memory, accepted by
+`tools/emulator-setup/mame-osborne1nx/picoem-guest-check.sh` — a Z80 `OUT`/`IN` in
+the card's window, answered by a real firmware, read back out of guest memory.
+What the loop is, what is still missing from it, the gap register for *both*
+emulators and the plan are **`docs/emulation-testbed.md`**: that document owns the
+loop, this one owns the wire.
+
+**Two of §5's seven gaps are fixed**: #5 (`ldaexb`) and #7 (the CP0 table, which
 was also missing the whole MCRR family). The fixes are in
 `tools/emulator-setup/picoem/`, the three firmware switches they forced are
-retired, and the retirement is measured — see `docs/emulation-testbed.md` §4.2 and
-§5 (Gate B). §5 below keeps the original measurements, with the fixed rows marked.
+retired, and the retirement is measured — `docs/emulation-testbed.md` §4.2 and §5
+(Gate B). Three SDK switches remain, all three on the bootrom boot path
+(`firmware/picoem-smoke/README.md`).
 
 Reads alongside `tools/picoem-bridge/README.md` (the host process),
 `firmware/picoem-smoke/README.md` (the firmware), `src/frame.rs` (the frame
@@ -211,12 +234,13 @@ Measured 2026-10-19, through the smoke firmware, in `--self-test` and through MA
 **a write and a read each answered in one quantum**, at every phase length from 64
 to 20 000 cycles.
 
-## 5. The picoem gaps — the real finding
+## 5. The picoem gaps — seven, each measured
 
-**A stock Pico SDK binary did not run in picoem at the pinned commit.** It was not
-one bug; it was seven, in a chain, and each one had to be worked around before the
-next appeared. Every one is measured, and the measurement is in the log or in the
-code.
+**A stock Pico SDK binary did not run in picoem at the pinned commit.** Seven
+separate gaps, not one bug, and each had to be worked around before the next
+appeared — six of them needed a workaround; the seventh (row 3) is a diagnostic
+trap that hides the first. Every one is measured, and the measurement is in the
+log or in the code. Two are fixed in `tools/emulator-setup/picoem/`.
 
 | # | Gap | Where it bites | Worked around by | State |
 |---|---|---|---|---|
@@ -226,16 +250,16 @@ code.
 | 4 | `runtime_init_bootrom_locking_enable` **polls `0x400E0828` forever** | the firmware spins in the SDK's own init | `PICO_RUNTIME_SKIP_INIT_BOOTROM_LOCKING_ENABLE` | open |
 | 5 | **`ldaexb` is mis-decoded as a load/store dual** | the core loads PC from memory and jumps to garbage | `PICO_RUNTIME_SKIP_INIT_DEFAULT_ALARM_POOL` | **FIXED** — `tools/emulator-setup/picoem/` |
 | 6 | **SIO is GPIO bank 0 only** | GP32–47 can be neither driven nor observed | keep the heartbeat in bank 0 (GP26) | open |
-| 7 | **CP0's encoding table does not match SDK 2.3.1 — and there is no CP0 MCRR dispatch at all** | every `gpio_set_dir` is a silent NOP; `gpio_get_all` reads the wrong register; **`gpio_put` and `gpio_set_dir` are MCRR and were not decoded at all** | `PICO_USE_GPIO_COPROCESSOR=0` | **FIXED** — same series |
+| 7 | **CP0's encoding table does not match SDK 2.3.1, and there is no CP0 MCRR dispatch at all** | every `gpio_set_dir` is a silent NOP and `gpio_get_all` reads the wrong register; `gpio_put`/`gpio_set_dir` are MCRR, which picoem did not decode | `PICO_USE_GPIO_COPROCESSOR=0` | **FIXED** — same series |
 
-**Row 7 was understated when it was written.** This section's own patch list
-(§"What a picoem patch would have to do") says *"re-derive `cp0_mcr_mrc_family`'s
-table from `hardware/gpio_coproc.h`"*, and that is **necessary and not
-sufficient**: the SDK's `gpio_put()` is `gpioc_bit_out_put` (`mcrr p0, #4, gpio,
-value, c0`) and `gpio_set_dir()` is `gpioc_bit_oe_put` (`mcrr p0, #4, gpio, out,
-c4`) — a *different encoding family*, and picoem had no CP0 MCRR dispatch at all.
-Re-deriving the MCR/MRC table alone would have left the two most-used GPIO calls
-in any firmware as silent NOPs. `docs/emulation-testbed.md` §3.4 is the record.
+**The patch list's item 1 is necessary and not sufficient.** The patch list below
+opens with *"re-derive `cp0_mcr_mrc_family`'s table from
+`hardware/gpio_coproc.h`"*, and that alone does not fix row 7: the SDK's
+`gpio_put()` is `gpioc_bit_out_put` (`mcrr p0, #4, gpio, value, c0`) and
+`gpio_set_dir()` is `gpioc_bit_oe_put` (`mcrr p0, #4, gpio, out, c4`) — a
+*different encoding family*, and picoem had no CP0 MCRR dispatch at all.
+Re-deriving the MCR/MRC table alone leaves the two most-used GPIO calls in any
+firmware as silent NOPs. `docs/emulation-testbed.md` §3.4 is the record.
 
 ### 1 — the bootrom never finishes
 
@@ -267,9 +291,8 @@ function's first instruction is:
 A CP7 access with the coprocessor disabled is a UsageFault, and picoem sets
 **`UFSR.UNDEFINSTR` for every UsageFault** (`core/exceptions.rs`). So the failure
 arrives as `CFSR=0x00010000` at a bootrom address and reads as "undefined
-instruction". It is not: the opcode is fine, `CPACR` is the problem. That cost an
-hour, and it will cost the next reader the same hour unless it is written down.
-The bridge now enables CP0–CP7 and CP10/CP11 before entering the image.
+instruction". It is not: the opcode is fine, `CPACR` is the problem. The bridge now
+enables CP0–CP7 and CP10/CP11 before entering the image.
 
 ### 4 — the boot lock that only the bootrom sets
 
@@ -379,6 +402,16 @@ firmware/picoem-smoke/build.sh
 tools/emulator-setup/mame-osborne1nx/picoem-check.sh
 ```
 
+**The full acceptance is a developer's command, not a CI job.** It needs the
+patched MAME, the Pico SDK and the Arm GNU Toolchain, and it deliberately does not
+build the firmware — a check that silently pulls 200 MB is not a check, so it
+prints what to run instead. What CI runs is the crate's own
+`cargo test --release --locked` (`.github/workflows/picoem-bridge.yml`), which is
+the half that can be compiled: the frame has **two** copies — `src/frame.rs` and
+`tools/emulator-setup/mame-osborne1nx/o1next-picoem.lua` — and only one of them
+can be, so the tests pin the layout, the length, the checksum, the rejection of a
+torn or misaligned frame, and a real FIFO round trip.
+
 And by hand, which is what a session debugging a new personality will do:
 
 ```sh
@@ -409,18 +442,18 @@ misbehaves:
 
 ## 7. What is measured, what is guesswork, and what is not done
 
-**Measured** — `picoem-check.sh` passes eight checks, and each of §5's seven gaps
-was found by running something and reading the result.
+**Measured** — `picoem-check.sh` passes seven `want` checks over the two logs,
+plus the #293 cycle-budget assertion, and each of §5's seven gaps was found by
+running something and reading the result.
 
 **Guesswork, and it should not be quoted as fact:**
 
-- ~~The **cycles per phase** (20000) are generous rather than derived. The firmware
-  is a polled loop, so the number only has to exceed one loop iteration; nobody
-  has measured the emulator's worst-case latency to answer.~~ **Measured
-  2026-10-19 (#293): the firmware answers a bus cycle in one quantum — 64 cycles.**
-  What is *not* measured is a real personality's latency, and that is why the phase
-  stays at 20 000: a SCSI target decodes a CDB and moves a block rather than echoing
-  a byte. The number that keeps this from being a guess is now the personality's own
+- **The cycles per phase** (20 000) are generous rather than derived, and that is
+  deliberate. The firmware is a polled loop, so the phase only has to exceed one
+  loop iteration — measured 2026-10-19 (#293): **the firmware answers a bus cycle
+  in one quantum, 64 cycles** (§4). What is *not* measured is a real personality's
+  latency: a SCSI target decodes a CDB and moves a block rather than echoing a
+  byte. The number that keeps the phase from being a guess is the personality's own
   declaration (`ACB4000_CYCLE_BUDGET`) and the assertion that reads it
   (`--assert-cycles`, `docs/emulation-testbed.md` §7), so a personality that needs
   more says so in one line and a run that exceeds it fails.
@@ -448,21 +481,24 @@ was found by running something and reading the result.
   `ADDR_HIT` for a *window*, not a register (`docs/emulation-testbed.md` §4.1, M5).
   **#303** is the board decision; **#304** is this bridge modelling the 595/165 as
   pin-clocked state machines, which is a different mechanism from the one-round-trip
-  bus cycle above. **That is now built** (`src/fabric.rs` for the board, and `chip.rs`
-  steps a quantum at a time so the board sees every level the firmware makes), and
-  `firmware/picoem-fabric/` drives it: `--fabric-test` gets two registers, two answers,
-  and measures a 24-bit snapshot at **14 976 cycles** — **8 of 8**. Getting the last check
-  green needed a **picoem fix** rather than a firmware one: its SIO modelled bank 0 as 30
-  pins, hiding GP30/GP31 (`SR_RCK` and `/OE_ADDR`), and the same assumption was in a second
-  place — `cp0_bit_op`, which is where `gpio_set_dir` lands.
-  `tools/emulator-setup/picoem/rp2350-correctness.patch` commits 2–3;
+  bus cycle above — and it is built: `src/fabric.rs` for the board, `chip.rs`
+  stepping a quantum at a time so the board sees every level the firmware makes, and
+  `firmware/picoem-fabric/` driving it. `--fabric-test` gets two registers, two
+  answers, and measures a 24-bit snapshot at **14 976 cycles** — **8 of 8**. The
+  last check needed a **picoem fix** rather than a firmware one: its SIO modelled
+  bank 0 as 30 pins, hiding GP30/GP31 (`SR_RCK` and `/OE_ADDR`), and the same
+  assumption was in a second place, `cp0_bit_op`, which is where `gpio_set_dir`
+  lands — `tools/emulator-setup/picoem/rp2350-correctness.patch` commits 2–3;
   `docs/emulation-testbed.md` §4.2 **P9**.
-- **The guest reading the answer.** The reply is logged and can be written to a
-  guest scratch byte (`O1_PICOEM_SCRATCH`), but the Z80's own `IN` still returns
-  the card device's byte, not the firmware's — the read tap deliberately returns
-  nothing (a read tap that returns data segfaults once the guest polls in a tight
-  loop; `tools/research/acb4000.lua`, GOTCHAS). Carrying the answer to the guest
-  belongs to the card's own device.
+- **The guest reading the answer, on this machine.** The reply is logged and can be
+  written to a guest scratch byte (`O1_PICOEM_SCRATCH`), but in `osborne1nx` the
+  Z80's own `IN` returns the card device's byte, not the firmware's: the window has
+  one owner, and here it is the C++ card. The read tap deliberately returns nothing
+  (a read tap that returns data segfaults once the guest polls in a tight loop;
+  `tools/research/acb4000.lua`, GOTCHAS). The machine that does hand the firmware's
+  byte to the guest is `osborne1nxp`, whose `picoem_link_device` owns the window —
+  Gate A, `tools/emulator-setup/mame-osborne1nx/picoem-guest-check.sh`,
+  `docs/emulation-testbed.md` §1.
 - **A frame wider than one byte per cycle.** `MODE SELECT`, the CDB and the data
   phase need a burst or a window, not one byte per frame. The frame's `addr` and
   `cycles` fields are the seam for it.

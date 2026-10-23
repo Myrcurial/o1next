@@ -1,14 +1,20 @@
 # The ACB-4000's own firmware (#178)
 
-**Status: partially solved.** The ROMs, the command set and the "why there is no
-literal DPB" argument are read; the geometry round-trip itself is inferred, not
-traced. The *host* side — the Z80-visible register protocol on ports `30h`–`33h` — is
-now read too, together with the measurement that blocks the MAME-stub route:
-`docs/acb4000-host-adapter.md`. The controller is a small computer
-running its own firmware; the ROMs are archived at
-`research/adaptec/acb4000/firmware/`. This note records what the firmware *is*,
-and what it tells us about the personality — in particular **why the MD-10
-driver has no literal DPB**.
+**Status: Partially solved.** Read: the ROM set (six 8 KiB images plus one
+Intel-HEX build — all one firmware, not a 2-ROM set), the controller's internal
+machine, the command set (the OEM manual's Table B-1 is authoritative and
+complete), the host-side register protocol on ports `30h`–`33h`, and the
+measurement that blocked the MAME-stub route (`docs/acb4000-host-adapter.md`).
+**Inferred, not traced:** that the MD-10 driver *builds* its DPB from what the
+controller reports at run time. What is measured is that a **static fallback DPB**
+also sits inside the BIOS image at `0xDDB6`, with the type bytes and descriptors at
+`0xDD5E`/`0xDD6E` (`docs/md10-system.md` §9) — so which copy a boot uses is the
+open half (`docs/md10-system.md` §9.1).
+
+The controller is a small computer running its own firmware; the ROMs are
+archived at `research/adaptec/acb4000/firmware/`. This note records what the
+firmware *is*, and what it tells us about the personality — in particular **why
+the MD-10 driver carries no literal DPB of its own**.
 
 Serves #178 (the hard-disk geometry), and #179 (the personality).
 
@@ -58,40 +64,44 @@ This is the payoff. Two statements in the manual, taken together:
 > The MODE SELECT command sends drive parameters to the controller **to be
 > written onto the drive at format time.**
 
-So the geometry lives **on the drive** — not in the controller and not in the
-driver. The chain is:
+So the geometry lives **on the drive** — not in the controller, and not in the
+driver. The chain, with each step's status:
 
-1. `MD10.COM` (PREP) sends the drive-table geometry with `MODE SELECT` (`15`)
-   and `FORMAT` (`04`), which **writes it onto the drive**.
-2. At power-on the controller **auto-configures from the drive**.
-3. The driver **reads the geometry back** — `MODE SENSE` (`1A`) is present in the
-   driver image — and **builds the DPB from it**.
+| Step | Status |
+|---|---|
+| `MD10.COM` (PREP) sends the drive-table geometry with `MODE SELECT` (`15`) and `FORMAT` (`04`), which **writes it onto the drive** | **read** — the manual says so, and the drive table is the same field set (`docs/harddisk-decision.md` §7.2) |
+| At power-on the controller **auto-configures from the drive** | **read** — the manual |
+| The driver **reads the geometry back** and **builds the DPB from it** | **inferred** — `MODE SENSE` (`1A`) is present in the driver image, but the driver also has a static DPB to fall back on, and which path a boot takes is not traced |
 
-That is why `SELDSK` indexes a *runtime* table (`0x055E` / `0x056E`,
-`docs/harddisk-decision.md` §7.1) instead of pointing at a static DPB: there is
-nothing static to point at, because the DPB is a function of the geometry the
-controller reports.
+What is read, not inferred, is that a DPB exists to reach. The BIOS image
+the driver installs carries one — at `0xDDB6`, with the type bytes at `0xDD5E` and
+the 24-byte descriptors at `0xDD6E` pointing at it (`docs/md10-system.md` §9) —
+which is why `SELDSK` indexes a table instead of embedding a DPB
+(`docs/harddisk-decision.md` §7.1, §7.3). That is also what "no literal DPB" means
+precisely: the **driver overlay** carries none. The fallback lives in the BIOS
+image it installs, and the drive carries its own copy of the geometry and type
+bytes at LBA 4 (`docs/md10-system.md` §3).
 
-*(Inferred, not traced end-to-end: the driver image contains the `1A` byte and
-the BIOS demonstrably builds its table at runtime. A trace of one `SELDSK` under
-MAME, or a read of the driver's command buffer, would settle it.)*
+*(Still open: whether a boot uses the static fallback or the controller's
+`MODE SENSE` report. A trace of one `SELDSK` under MAME, or a read of the driver's
+command buffer, would settle it.)*
 
 ## What this changes
 
 - **The personality must implement `MODE SENSE` (`1A`) and `READ CAPACITY`
-  (`25`) faithfully** — because the driver's DPB comes from what the controller
-  reports, not from anything the driver holds. This is a hard requirement for
-  #179, and it is now written down.
-- **The residue moves — and it has now moved once more.** The open number was
-  never "the driver's DPB" (it is derived) but the **`DRIVETBL.DAT` record**, and
-  that is now read: `docs/harddisk-decision.md` §7.2 has the record layout and
-  the byte→field mapping, which turns out to be this same `MODE SELECT` drive
-  parameter block, stored little-endian in a 128-byte description record behind
-  a name table. §7.3 then pins the DPB *mechanism* — the driver reaches it at
-  DPH+10 and reads `BLM` from `DPB+3`, and the record→sector conversion is a
-  two-bit shift, so `SPT` counts 128-byte records — and shows that the *values*
-  are absent from the archive: nothing initialises `0x055E`/`0x056E`, and the MD
-  utilities disk is a data disk with no system image. That is where #178 stands.
+  (`25`) faithfully** — because the geometry the driver works from is either
+  reported by the controller or read off the drive, and neither is something the
+  driver holds. This is a hard requirement for #179, and it is now written down.
+- **The residue is not the DPB's values.** The open number was never "the
+  driver's DPB" but the `DRIVETBL.DAT` record, and that is read: the record layout
+  and the byte→field mapping are in `docs/harddisk-decision.md` §7.2, and it turns
+  out to be the same `MODE SELECT` drive parameter block, stored little-endian in a
+  128-byte description record behind a name table. The DPB is read too: `0x055E` is
+  a **BIOS-base offset**, not a low-RAM address, so the type bytes, the descriptors
+  and the DPB itself are static data in `HARD.COM` at `0xDD5E`, `0xDD6E` and
+  `0xDDB6` (`docs/harddisk-decision.md` §7.3; `docs/md10-system.md` §9). What is
+  left is **which copy a boot uses** — the static fallback, or the drive's own
+  geometry and type bytes at LBA 4 (`docs/md10-system.md` §3, §9.1).
 - The `0x6C` fill byte found in the *driver* (`docs/harddisk-decision.md` §7.1)
   and the `6Ch` default in the *manual* now sit together: the driver passes the
   fill byte through `MODE SELECT`/`FORMAT`, and the controller writes it.
@@ -102,3 +112,5 @@ MAME, or a read of the driver's command buffer, would settle it.)*
 - `research/adaptec/acb4000/500504-00_ACB-4000_OEM_Manual_Mar84.pdf` — the
   feature list, Table B-1 (Appendix B), and the sample format sequence.
 - `docs/harddisk-decision.md` §7.1 — the driver-side structure this explains.
+- `docs/md10-system.md` §9 — the DPB and drive tables read out of `HARD.COM`, and
+  the one-DPB consequence.

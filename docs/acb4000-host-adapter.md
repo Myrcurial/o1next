@@ -1,12 +1,17 @@
 # The ACB-4000 host adapter — the register protocol, and why the MAME stub is blocked (#178)
 
-**Status: the register protocol is decoded; the "stub the ACB-4000 in MAME" route is
-blocked by MAME's I/O model, not by anything unknown about the controller.** This
-note records the protocol (so #179 has the bit map open question #2 asked for), and
-the measurement that shows why a Lua-side stub cannot reach the adapter.
+**Status: Solved.** The register protocol is decoded from the driver, and the
+"stub the ACB-4000 in MAME" route is blocked by MAME's I/O model rather than by
+anything unknown about the controller — so the fix was a driver change, and #191's
+`osborne1nx` machine is it. The one thing still inferred is the four status bits'
+*names*: `02h`/`20h`/`40h`/`01h` behave as `REQ`/phase/end/select from the code,
+but no controller trace names them. This note records the protocol (so #179 has the
+bit map open question #2 asked for), and the measurement that shows why a Lua-side
+stub cannot reach the adapter.
 
 Serves #178 (the DPB mechanism) and #179 (the personality). Reads alongside
-`docs/harddisk-decision.md` §6/§7.3 and `docs/acb4000-firmware.md`.
+`docs/harddisk-decision.md` §6/§7.3, `docs/acb4000-firmware.md` and
+`docs/md10-system.md`.
 
 ## 1. The protocol, decoded from the driver
 
@@ -41,7 +46,11 @@ CP 2Dh  ->  "cable connected backwards"
 ```
 
 So **`base+2` reading `04h` is "exactly one controller on-line"** — the same
-measurement `md10patch.py` stepped over, now with its meaning.
+measurement `md10patch.py` stepped over, now with its meaning. On the built
+machine (#191) `base+2` reads as a **read/write register** rather than a pure
+status byte: `04h` is the controller-select field read back, and the *real* probe
+is the ID scan that follows (`docs/osborne1nx-machine.md` §4). The driver's `CP 04h`
+check is still the gate, which is why it is the symptom.
 
 **A transaction** — the overlay at `0x8030` and the BIOS at file `0x285` are the same
 routine. In outline:
@@ -93,34 +102,33 @@ What was actually measured (`tools/research/acb4000.lua`, MAME 0.289):
 - A **read** tap installs without error (the reads were not reached in a run where the
   utility did not start, so its firing is untested).
 - **Trap:** a tap callback that touches `cpu.state["PC"]` **throws**, and because the
-  PC is evaluated as an argument to `string.format`, the whole log line is lost — which
-  is why an earlier trace appeared to fire nothing.
+  PC is evaluated as an argument to `string.format`, the whole log line is lost —
+  which is how a trace can appear to fire nothing.
 - **Trap:** the taps **stop firing once the harness polls the program space from Lua**
   (observed: a standalone trace logs thousands of accesses across a run; the same trace
   through `o1keys.sh`, whose `rows()` reads 4 KiB of VRAM per poll, goes silent). A
   trace must therefore be a standalone `-autoboot_script`, not a run through the
   keystroke harness.
 
-**Conclusion.** The "stub the ACB-4000 in MAME (try this first)" route from §7.3 needs
-a MAME **driver change** — a card device with its own full 8-bit I/O decode on
-`30h`–`33h` — not a Lua script. That is a change to a host tool, so per `AGENTS.md` it
-is a question for the maintainer rather than something to engineer around.
+**Conclusion.** The "stub the ACB-4000 in MAME" route needs a MAME **driver
+change** — a card device with its own full 8-bit I/O decode on `30h`–`33h` — not a
+Lua script. That is a change to a host tool, so per `AGENTS.md` it is a question
+for the maintainer rather than something to engineer around.
 
-**That change has since been built — #191, `docs/osborne1nx-machine.md`.** The
-`osborne1nx` machine (`tools/emulator-setup/mame-osborne1nx/`) widens the I/O
-decode to eight bits while keeping the mainboard's 2-bit alias, and answers on
-`30h`–`33h` with an ACB-4000 host adapter. The MD-10's presence probe now reads
-`04h` unpatched, and the drive-table editor (`MD10.COM`, shipped as `PREP.COM` in
-2.01) runs. §1's bit map was corrected in the process: `base+2` is a
-**read/write register**, and `04h` is a controller-select field read back, not a
-status bit — the *real* probe is the ID scan that follows it. Adaptec's
-"controller 01" is **SCSI ID 0**, and the select byte is a one-of-eight mask.
+**That change is built — #191, `docs/osborne1nx-machine.md`.** The `osborne1nx`
+machine (`tools/emulator-setup/mame-osborne1nx/`) widens the I/O decode to eight
+bits while keeping the mainboard's 2-bit alias, and answers on `30h`–`33h` with an
+ACB-4000 host adapter. The MD-10's presence probe reads `04h` unpatched, and the
+drive-table editor (`MD10.COM`, shipped as `PREP.COM` in 2.01) runs. §1's bit map
+reads as follows on that machine: `base+2` is a **read/write register**, and `04h`
+is a controller-select field read back, not a status bit — the *real* probe is the
+ID scan that follows it. Adaptec's "controller 01" is **SCSI ID 0**, and the select
+byte is a one-of-eight mask.
 
-## 3. A system image does not carry the low-RAM tables
+## 3. Where the tables come from — not a system image
 
-§7.3 assumed the tables at `0x055E`/`0x056E` "must live" in the system image, because
-nothing in the archive writes them. Reading the ROM's own loader shows that assumption
-does not hold for the O1.
+The tables at `0x055E`/`0x056E` are **not** carried by a system image. Reading the
+ROM's own loader shows why, for the O1's layout:
 
 `rom144.asm` `CBOOT` (lines 641–726):
 
@@ -143,48 +151,56 @@ Measured on the two bootable images in hand:
 (In both, the 17-entry `JP` table sits at image offset `1600h`, confirming the base.)
 
 **Low RAM is far below the CCP and is not part of any system image.** So the DPB
-tables cannot arrive that way for a *stock* layout — the previous session's
-"the system image is where the tables must live" was an inference, and it is wrong for
-the O1's loader.
+tables cannot arrive that way — and they do not need to. They arrive **inside the
+BIOS image**: `HARD.COM` carries a relocated copy of the MD-10 BIOS in its tail
+(`0x053A`–`0x0AFF`) and installs it at `0xD800`, so `0x055E` is an offset from that
+base and the tables land at `0xDD5E`/`0xDD6E` (`docs/harddisk-decision.md` §7.3;
+`docs/md10-system.md` §4–§6).
 
 The **"Osborne Hard Disk Control Software Version 2.01 (1984)"** disk is *bootable*,
 but it carries a **stock** system (the ROM's Rev 1.44 banner, `0x055E` holding ordinary
 code, no MD-10 BIOS in its system tracks — the MD-10 BIOS is a file on it, at image
-offset `2C00h`). So the archive still holds **no MD-10 system image**; the 2.01 disk is
-the 1.93 utilities content on a bootable stock disk.
+offset `2C00h`). So the 2.01 disk is the 1.93 utilities content on a bootable stock
+disk, and the archive holds no MD-10 system image *as a file*. It does not need one:
+`PREP.COM` option 3 **configures an operating system onto a drive**, and what it
+writes boots to a prompt (`docs/md10-system.md` §1, §7).
 
 ## 4. What this leaves
 
-The tables are still built at run time (or pre-loaded by something outside the
-archive). §7.3's two routes stand, with the first now carrying a dependency:
+The tables are **installed with the BIOS**, not built in low RAM (§3). Both routes
+the search left open are closed, and both closed inside this repo:
 
-1. **A MAME driver change** to model the ACB-4000 card's full I/O decode — then the
-   stub becomes possible. This is the blocker above. **Built: #191, the
-   `osborne1nx` machine** (`docs/osborne1nx-machine.md`). The probe passes and the
-   drive-table editor runs; what is left on this route is the *data* phase — a
-   mounted drive image and the MD-10 BIOS's `SELDSK` — which is the same thing
-   route 2 below is waiting on.
-2. **A bootable MD-10 system disk.** One observation keeps this alive: the MD-10 BIOS's
-   own `BOOT` (file `0x182`) reads a **5-byte block at `0x0559`–`0x055D`** and calls the
-   SCSI routine at file `0x285`; nothing in the archive writes `0x0559`–`0x055D`
-   either. If the MD-10's CCP is low enough, that block *and* the tables at `0x055E`
-   would be part of its system image — which is exactly what a bootable MD-10 disk
-   would carry. *Resolved 2026-10-12: the block is not unwritten at all. It is
-   the MD-10 BIOS's own data at base+`0x559`, and it arrives inside `HARD.COM`,
-   which carries a relocated copy of the BIOS at file offset `0x053A` and copies
-   it to `0xD800` — so `0x0559` is `0xD800 + 0x559` = `0xDD59` and its writer is
-   `HARD.COM`'s own data at file offset `0x0993`, not any low-RAM store. The
-   values are the select byte `01`, LBA `5` and count `11`. See
-   `docs/md10-system.md` §4–§6.*
+1. **A MAME driver change** to model the ACB-4000 card's full I/O decode — the
+   blocker above. **Built: #191, the `osborne1nx` machine**
+   (`docs/osborne1nx-machine.md`). The probe passes, the drive-table editor runs,
+   and the *data* phase works: with a mounted PYXIS27 image the MD-10 system boots
+   to a prompt with three partitions (`docs/md10-system.md` §7).
+2. **A bootable MD-10 system disk.** The MD-10 BIOS's own `BOOT` (file `0x182`)
+   reads a **5-byte block at `0x0559`–`0x055D`** and calls the SCSI routine at file
+   `0x285`. That block is the MD-10 BIOS's own data at base+`0x559`, and it arrives
+   inside `HARD.COM`, which carries a relocated copy of the BIOS at file offset
+   `0x053A` and copies it to `0xD800` — so `0x0559` is `0xD800 + 0x559` = `0xDD59`
+   and its writer is `HARD.COM`'s own data at file offset `0x0993`, not any low-RAM
+   store. The values are the select byte `01`, LBA `5` and count `11`
+   (`docs/md10-system.md` §4–§6). And the system itself is not needed *as a file*:
+   `PREP.COM` option 3 writes one, and it boots (`docs/md10-system.md` §1, §7).
 
-   The MD-10 `BOOT` also sets page zero to `JP 0003h` (warm vector) and
-   `JP 0F206h` (BDOS entry) — neither matches the stock `CCP+1600h` layout, so **the
-   MD-10's memory map is not the stock one**. Pinning that map down is the cheapest
-   next step, and it is static work on `HARDBIOS.SPR`.
+   The MD-10 `BOOT` also sets page zero, and **the installed values are not the
+   stock layout**: measured in the running guest, page zero is
+   `c3 03 d8 40 00 c3 06 ca` — `JP 0D803h` (warm vector) and `JP 0CA06h` (BDOS
+   entry). The `0003h` the `BOOT` carries is the pre-install operand
+   (`0xD800 + 3`). The map is read in `docs/md10-system.md` §4–§6: the BIOS
+   installs at `0xD800`, `HARD.COM` reads LBA 5 for eleven blocks into `0xC200`,
+   patches page zero, and CP/M runs.
+
+What remains is the same narrow question `docs/harddisk-decision.md` §10 item 1
+carries: **which copy of the tables a boot uses** — the static fallback inside the
+BIOS image, or the drive's own copy of the geometry and type bytes at LBA 4
+(`docs/md10-system.md` §3, §9.1).
 
 ## Sources
 
-- `research/adaptec/MD Utilities … 1.93 Osborne - MD-10 MD-20.img` — `CNTLRCOD.OVL`,
+- `research/adaptec/MD Utilities Adaptec 4000 Controller Ver. 1.93 Osborne - MD-10 MD-20.img` — `CNTLRCOD.OVL`,
   `MD10.COM`, `HARDBIOS.SPR`.
 - `research/adaptec/Osborne Hard Disk Control Software Version 2.01 (1984).img` — the
   bootable stock-system utilities disk.
@@ -193,4 +209,5 @@ archive). §7.3's two routes stand, with the first now carrying a dependency:
 - `research/source-code/BIOS-144-source/occbio15.asm`, `occram15.asm` — the CCP/BDOS/BIOS
   layout and the BIOS RAM origin.
 - `tools/research/acb4000.lua` — the trace used for the I/O-decode measurement.
-- `docs/harddisk-decision.md` §6, §7.3, §10; `docs/acb4000-firmware.md`.
+- `docs/harddisk-decision.md` §6, §7.3, §10; `docs/acb4000-firmware.md`;
+  `docs/md10-system.md` §4–§7, §9.

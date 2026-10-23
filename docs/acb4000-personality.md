@@ -1,10 +1,15 @@
 # The ACB-4000 personality — what is built, and what the acceptance still needs (#179)
 
-**Status: partially solved.** The three layers of the personality
+**Status: Partially solved.** The three layers of the personality
 (`harddisk-decision.md` §5) are built and host-tested: the SCSI-1 target, the
 host-adapter shim with both profiles, and the backing-store interface. The
-**end-to-end acceptance is not met**, and this note names exactly why — the drive
-has to carry an MD-10 *system*, and the archive holds none.
+**end-to-end acceptance is not met**, and the blocker is no longer the drive: the
+MD-10 system is produced by `PREP.COM` option 3 and boots to a prompt with three
+partitions (`docs/md10-system.md` §1, §7), so the acceptance has a drive to run
+against. What remains is **who copies the static DPB and descriptor tables into
+the running system** (`docs/harddisk-decision.md` §7.3, `docs/md10-system.md` §9)
+and pointing the MAME harness at this personality rather than MAME's generic SCSI
+model (§5).
 
 Serves #179 (the personality) and #8 (the decision). Reads alongside
 `docs/harddisk-decision.md` §5–§9, `docs/acb4000-firmware.md`,
@@ -30,8 +35,10 @@ whether it is over a buffer or a FAT32 blob (#180).
 
 ## 2. The one thing the tests are built around
 
-The MD-10's DPB is **derived** from what the controller reports
-(`docs/acb4000-firmware.md`), so `MODE SENSE` (`1A`) and `READ CAPACITY` (`25`)
+The MD-10's geometry reaches the driver either from what the controller reports or
+from the drive itself — the driver holds no DPB of its own
+(`docs/acb4000-firmware.md`; which copy a boot uses is open,
+`docs/md10-system.md` §9.1) — so `MODE SENSE` (`1A`) and `READ CAPACITY` (`25`)
 are not conveniences — they are the personality's correctness. The suite
 therefore does not test the register model through a convenient wrapper: it
 contains a **transcription of the driver's own transaction routine**
@@ -49,25 +56,25 @@ A test that called `acb4000_target_command()` directly would pass with all three
 wrong. Replaying the routine means a wrong bit map fails the suite — verified by
 flipping one status bit, which produced 38 failures.
 
-## 3. Two corrections to earlier notes
+## 3. `2F` is VERIFY, and the sector count is unresolved
 
-Both were found while writing the target to the manual, and both are the kind of
-thing that is cheap now and expensive later.
+Two facts the manual settles, and one it does not.
 
-**`2F` is VERIFY, and `31` is SEARCH DATA EQUAL.** `docs/osborne1nx-machine.md`
-§5 and `docs/harddisk-decision.md` §7.2 call the verify pass `2F SEARCH DATA
-EQUAL`. The manual separates them: `2F` is `VERIFY` (5.4.5, no data phase — it
-checks the ECC of blocks already on the drive) and `31` is `SEARCH DATA EQUAL`
-(5.4.6, a pattern compare with an argument and an Equal status). `PREP.COM`'s
-"format and verify" issues `2F`, so the personality implements `VERIFY` for it —
-and `31` as well, because the manual's own "verify disk integrity after format by
-searching for the 6C fill" is the search.
+**`2F` is VERIFY, and `31` is SEARCH DATA EQUAL — two different commands, and the
+difference is load-bearing.** The manual separates them: `2F` is `VERIFY`
+(5.4.5, no data phase — it checks the ECC of blocks already on the drive) and `31`
+is `SEARCH DATA EQUAL` (5.4.6, a pattern compare with an argument and an Equal
+status). `PREP.COM`'s "format and verify" issues `2F`, so the personality
+implements `VERIFY` for it — and `31` as well, because the manual's own "verify
+disk integrity after format by searching for the 6C fill" is the search. Read from
+Table 5-1/5-2 and §5.3–§5.5 of
+`research/adaptec/acb4000/400003-00A_ACB-4000A_Users_Manual_Oct85.ocr.txt`.
 
 **The drive table and the manual disagree about sectors per track, and nothing
 reconciles them.** `DRIVETBL.DAT`'s capacity formula is `cylinders × heads × 18 ×
 512 B` (`harddisk-decision.md` §7.2), while the manual's track is "the normal 32
-sectors" of 256 bytes — 8 KiB, i.e. **16** × 512-byte blocks (5.3.4), which is
-also where §7.3's `SPT = 64` in 128-byte records comes from. So `PYXIS13` is
+sectors" of 256 bytes — 8 KiB, i.e. **16** × 512-byte blocks (5.3.4), or 64 ×
+128-byte CP/M records (`harddisk-decision.md` §7.3). So `PYXIS13` is
 23 112 blocks by the table's arithmetic and 20 544 by the manual's. The
 personality does not paper over it: `acb4000_params.sectors_per_track` is an
 explicit field defaulting to the table's 18, so a reported geometry matches what
@@ -81,42 +88,40 @@ The acceptance is *"the period MD-10 software (`HARD.COM` + the `.SPR` overlays)
 runs against it and boots CP/M from the emulated hard disk."*
 
 Everything the **software asks of the controller** now has an implementation, and
-the suite exercises it through the driver's own routine. What is missing is on the
-**drive**, not in the controller:
+the suite exercises it through the driver's own routine. The remaining work is not
+in the controller, and it is not the memory map either:
 
 - `HARD.COM` is a **hard-disk boot loader**, not an installer. It reads LBA 5 for
   eleven blocks (the `CCP`+`BDOS` of the O1 system layout), patches page zero and
   jumps into what it read (`docs/osborne1nx-machine.md` §5). So the drive must
-  *already* carry an MD-10 system.
-- Nothing in the archive writes one. `PREP.COM` can now finish its format and
-  verify (that is `2F`, above) and its partition initialiser (`2A`) can run — but
-  a partition table is not a system.
-- The low-RAM DPH/DPB tables at `0x055E`/`0x056E` — the in-memory half of that
-  system — have no writer anywhere in the archive
-  (`docs/harddisk-decision.md` §7.3). That is #178's residue.
+  *already* carry an MD-10 system — and it can. `PREP.COM` option 3 configures one
+  onto a drive, and the result boots to `A0>`/`B0>`/`C0>` with three partitions
+  (`docs/md10-system.md` §1, §7).
+- The DPH/DPB tables at `0x055E`/`0x056E` are **not low RAM and not missing**:
+  `0x055E` is an offset from the BIOS base `0xD800`, so the tables are static data
+  inside `HARD.COM` at `0xDD5E`/`0xDD6E`, with the DPB at `0xDDB6`
+  (`docs/harddisk-decision.md` §7.3, `docs/md10-system.md` §9). What is not chased
+  is **which copy a boot uses** — the static fallback, or the drive's own copy of
+  the geometry and type bytes at LBA 4 (`docs/md10-system.md` §3, §9.1). That is
+  #178's residue.
 
-So the gap has moved twice and has now stopped moving: it is no longer "does the
-controller behave?" (this personality answers that, with tests) but **"what is
-the MD-10's memory map, so that a system image can be built?"** That is a
-research question on `HARDBIOS.SPR`, and it is the cheapest next step — the same
-shape of static work that read §7.1–§7.3 out of the overlays.
+So the gap is neither "does the controller behave?" (this personality answers
+that, with tests) nor "what is the MD-10's memory map?" — that map is read, and the
+system it boots is captured (`docs/md10-system.md`). What is left is **pointing the
+emulated machine at this personality** and settling the table copy:
 
-Two routes remain open, and neither is a controller problem:
-
-1. **Build the system image by hand** from the stock `CCP`+`BDOS` plus
-   `HARDBIOS.SPR` as the BIOS, once the MD-10's memory map is pinned down. The
-   MD-10's own `BOOT` sets page zero to `JP 0003h` and `JP 0F206h`, which is not
-   the stock `CCP+1600h` layout — so the map is the thing to read
-   (`docs/acb4000-host-adapter.md` §4).
-2. **Find a bootable MD-10 system disk.** None is in the archive; the 2.01 disk
-   is the 1.93 utilities content on a bootable *stock* disk
-   (`docs/acb4000-host-adapter.md` §3).
-
+1. **Run the period software against this target rather than MAME's generic SCSI
+   model.** `tools/emulator-setup/mame-osborne1nx/` delegates the SCSI side to
+   `t10spc`/`t10sbc` today, which is why `PREP.COM`'s verify pass (`2F`) has no
+   handler. That is a harness change, not a controller one.
+2. **Settle who copies the static tables into the running system** — a `peek` at
+   `0xDD5E`/`0xDD6E` on the booted system (`docs/harddisk-decision.md` §10 item 1).
 
 ## 5. Where this could go next, in order of value
 
-1. **Read the MD-10's memory map out of `HARDBIOS.SPR`** (static, no hardware) —
-   it unblocks building the system image, and therefore the acceptance.
+1. **Settle which copy of the tables a boot uses** — a `peek` at `0xDD5E`/`0xDD6E`
+   on the booted system. It is the last open number, and it is measured work on a
+   system that already runs (`docs/md10-system.md` §7, §9).
 2. **Give the MAME harness the personality.** `tools/emulator-setup/mame-osborne1nx/`
    currently delegates the SCSI side to MAME's generic `t10spc`/`t10sbc`, which
    is why `2F` had no handler. Pointing the card at this target would let the
@@ -134,9 +139,11 @@ Two routes remain open, and neither is a controller problem:
 - `research/adaptec/acb4000/firmware/` — the six 8 KiB controller ROMs, the
   oracle the personality is written against.
 - `docs/harddisk-decision.md` §5 (the three layers), §6 (the O1 shape of it),
-  §7.2 (the drive table and `PYXIS13`), §7.3 (why the DPB values are absent).
+  §7.2 (the drive table and `PYXIS13`), §7.3 (the DPB, and where it is read from).
 - `docs/acb4000-firmware.md` (the controller's firmware, and the `MODE SENSE`
   requirement), `docs/acb4000-host-adapter.md` §1 (the register protocol),
   `docs/osborne1nx-machine.md` §3–§5 (the handshake quirks, and the acceptance).
+- `docs/md10-system.md` §1, §3, §7, §9 — the MD-10 system, the drive's own copy of
+  the tables, the boot, and the DPB read out of `HARD.COM`.
 - `firmware/acb4000-scsi/` — the implementation, its README and its tests.
 

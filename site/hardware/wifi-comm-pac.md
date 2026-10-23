@@ -41,15 +41,17 @@ The port is **TTL, not RS-232** — it feeds the 6850 ACIA directly (status
 
 ## Power
 
-DE-9 pin 7 is **+12.6 V DC, direct from the supply** — the machine's Astec unit
-is rated `+12 V @ 2.02 A`, and the 22 Ω that the documents used to blame for a
-tight budget turned out to be in the *keyboard* branch (R21 → J6 → P4-19). The
-original Comm-Pac drew around 500 mA from this pin; the modern board is a small
-fraction of that.
+DE-9 pin 7 is **+12.6 V DC, and it is behind the machine's 22 Ω** — the Technical
+Manual §4.3.2 says so in words ("Connected to power supply through 22 ohms"), and
+sheet 7 shows `R21` feeding both this pin and the keyboard branch (`J6 → P4-19`).
+So the port is a **low-current supply**: 22 Ω at 500 mA would drop 11 V, and at
+100 mA it drops 2.2 V. The board's average draw has to be tens of mA, and it
+shares the resistor with the keyboard adapter.
 
 Two sources, **diode-OR**'d so neither back-feeds the other: the port's
 **12.6 V → 5 V → 3.3 V**, and **USB-C 5 V → 3.3 V** for programming and bench
-work. The switch is ahead of the buck, so "off" is genuinely dark.
+work. The switch is ahead of the buck, so "off" is genuinely dark. The bulk
+capacitor at the buck input supplies the WiFi TX peaks, which `R21` cannot.
 
 ## The panel, and the noise
 

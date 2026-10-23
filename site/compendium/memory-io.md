@@ -5,14 +5,30 @@ subtitle: "The machine"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-Authoritative memory map, I/O decode, and bank-switch behavior extracted from
-the Osborne 1 mainboard schematic (OCC `1A2011-00` Rev E) and cross-checked
-against the Osborne 1 Technical Manual (`2F00153-01`, 1982) and the MAME
-`osborne1.cpp` driver.
+**Status: Solved.** The port map, the three banks and the bank-switch mechanism
+are confirmed twice over — read from the schematic and the ROM source, then
+measured on the running machine ([`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh), #64). What this
+document does not carry is the decode *granularity* below a 256-byte page: the
+chip selects check A11 plus one of A8/A9/A10, which is a schematic-level fact
+recorded in [`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) §7 and §7a.
 
-Closes issue #40. Unblocks: #11 (hardware), #16–#24 (firmware), the
-memory-resident vs pure-I/O decision (gap #15), 6850 ACIA modem (#21, gap #10),
-WD179x floppy interposer (#20, gap #11), and ScreenPac personality (#24).
+The machine's 64 KB address space is **overlaid by three banks** (§2), selected
+by two latched signals. **Every onboard peripheral is memory-mapped inside the
+bank-2 window `2000–2FFF`** (§3). The bank switch is **four writes to I/O ports
+`0x00–0x03`, whose data byte is ignored** (§4). Three IRQs and the front-panel
+RESET reach the Z80 (§5). §6 is the pinout reference for every socket and
+connector a tap or a plug has to mate with; §7 is the free-window map and the
+recommended virtual-peripheral base; §8 is what the map decides.
+
+Sources: the OCC mainboard schematic `1A2011-00` Rev E
+([`research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf)), the Osborne 1 Technical
+Manual `2F00153-01` (1982), the ROM 1.44 / CBIOS source, and the MAME
+`osborne1.cpp` driver as an independent cross-check.
+
+Serves #40, #62, #64 and #72. Unblocks: #11 (hardware), #16–#24 (firmware), the
+memory-resident vs pure-I/O decision (gap #15), the 6850 ACIA modem (#21, gap
+#10), the WD179x floppy interposer (#20, gap #11), and the ScreenPac personality
+(#24).
 
 ---
 
@@ -27,7 +43,6 @@ WD179x floppy interposer (#20, gap #11), and ScreenPac personality (#24).
 | Memory / char clock | 2 MHz / 1 MHz |
 | Bus width | 8-bit data (DATA0–7), 16-bit address (ADR0–15) |
 
-Wait-state generation: RAM accesses insert wait states (≈375 ns for non-M1
 Wait-state generation: RAM accesses insert wait states (≈375 ns for non-M1
 cycles, 188 ns for the first M1); ROM executes without added delay.
 
@@ -64,8 +79,6 @@ software delay loops) is divided down from it. Consequences:
 - **Net:** a 2× business turbo is a *documented, buildable option* (mostly on the
   replica #49, where SRAM removes the DRAM-refresh constraint); it is not a general
   speedup and doesn't pretend to be.
-
-cycles, 188 ns for the first M1); ROM executes without added delay.
 
 ## 2. Memory banks
 
@@ -330,7 +343,6 @@ window. Chip-selects are generated from address lines within `2000–2FFF`.
   (i.e. `2200 + (1<<row)`).
 - 14 programmable keys (Ctrl-0…9, four arrows) via BIOS + SETUP.
 
-| `F000–FFFF` | Video attribute RAM, 4K×1 (dim attribute = bit 8 of each cell) |
 ## 4. Bank switching (the mechanism)
 
 Banking is controlled by **writes to I/O space**, decoded by **UD10**
@@ -366,9 +378,11 @@ Consequences for an interposer:
 - The bank state **cannot be latched and assumed** — it has to be sampled per
   bus cycle, and a bank-2 I/O access is only meaningful while the CPU is
   actually running with bank 2 selected.
-- At the idle `A>` prompt the machine is parked in a ROM polling loop with
-  **bank 2 live**, which is why a peek at `0x0000` during CP/M returns ROM
-  bytes, not CP/M's page zero.
+- At the idle `A>` prompt the machine is parked in the ROM polling loop with
+  **bank 2 live**, so the live bank depends on what is running. That does not make
+  the ROM readable *from CP/M*: a program in the TPA runs in bank 1 with the ROM
+  banked out, which is why `OUT (0)` is needed to select it and why `DUMP`/`DDT`
+  return nothing useful ([`docs/o1-rom-read-from-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-read-from-machine.md) §2).
 
 ## 5. Interrupts
 
@@ -387,10 +401,11 @@ routine's real-time clock), not an NMI.
 
 ### Z80 CPU — DIP-40 (UC11)
 Standard Z80A pinout (Zilog Z80 Microprocessor Family Databook; the O1 fits an
-NEC µPD780C, pin-compatible). **Corrected 2026-10-10** — the previous table
-here was wrong (it claimed pin 11 = GND, which is +5 V). Enforced from now on
-by [`tools/check_schematics.py`](https://github.com/Myrcurial/o1next/blob/main/tools/check_schematics.py), which asserts this table against every
-connector that mates with the O1's Z80 socket.
+NEC µPD780C, pin-compatible), and the O1's own sheet says the same thing pin for
+pin — the socket is wired as a plain Z80 DIP-40, so a board that mates with it
+can use the datasheet table ([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) §4, read at
+600 dpi). [`tools/check_schematics.py`](https://github.com/Myrcurial/o1next/blob/main/tools/check_schematics.py) asserts this table against every connector
+that mates with the O1's Z80 socket.
 
 | Pin(s) | Signal |
 |---|---|
@@ -438,11 +453,11 @@ see [`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o
 | 23 | A8 (`SCAN1`) |
 | 24 | VCC (+5) |
 
-> The earlier version of this table grouped pins `13–21` as "O3–O7, A8–A10" and
-> put `OE`/`CE` on 22/23. That was wrong — exactly the "never cross-checked"
-> error gap #3 flagged. The socket is the plain Intel 2716 pinout, and because
-> `/CE` and `/OE` are grounded the ROM **always drives** `O0–O7`; a tap cannot
-> tristate it without intercepting those two pins.
+The socket is the plain Intel 2716 pinout, read at 1200 dpi
+([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) §4a carries the extraction). Because `/CE`
+(18) and `/OE` (20) are **hard-grounded**, the ROM **always drives** `O0–O7`: a
+tap may buffer and read those pins, but it cannot tristate the ROM to inject its
+own font without intercepting pins 18 and 20 between socket and ROM.
 
 ### Other onboard connectors (for reference)
 
@@ -477,25 +492,26 @@ devices. Conservatively **free** (no onboard device) within `2000–2FFF`:
 |---|---|
 | `2000–20FF` | Free — and **clean**: no device mask matches it (see below) |
 | `2104–21FF` | Free (above floppy) |
-| `2300–28FF` | Free (above keyboard, below IEEE) — **not all clean**: `2300–23FF`, `2500–27FF` alias the floppy and the keyboard, and `2400–24FF` is the SCREEN-PAC's presence decode |
+| `2300–28FF` | Free (above keyboard, below IEEE) — **not all clean**: `2300–23FF` and `2500–27FF` alias the floppy and the keyboard, and `2400–27FF` is the SCREEN-PAC's own select (its presence bit is `2400h`) |
 | `2904–29FF` | Free (above IEEE PIA) |
 | `2A02–2BFF` | Free (above serial, below video PIA) |
 
-> **Caution:** the O1 decode is "sloppy" (MAME) — chip selects do not check
-> all address bits, so large regions alias real devices. Treat only
-> page-aligned blocks *between* the listed devices as safe, and validate on
-> hardware before committing.
+> **The O1 decode is "sloppy" (MAME): the chip selects do not check all address
+> bits, so large regions alias real devices.** Treat only page-aligned blocks
+> *between* the listed devices as safe, and validate on hardware before
+> committing.
 >
-> **Measured 2026-10-15 — the caution is not hypothetical, and it has a
-> 256-byte answer.** The five selects check A11 plus one of A8/A9/A10 each, so
-> of the region above only three page-aligned blocks are selected by *nothing*:
-> **`2000–20FF`, `2400–24FF` and `2800–28FF`** (offsets `000`, `400`, `800` —
-> A11 set with A8/A9/A10 clear, or all four clear). `0x2301` is the floppy's
-> track register *and* the keyboard's row 0 ([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md)
-> §7a), which is what moved the ROM↔Pico door from `2300h` to `2800h`
-> ([`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §2). `2400–24FF` is clean of the *stock* machine
-> but not of a SCREEN-PAC one — `2400h` is its presence bit — so the two that
-> are free on every machine are `2000–20FF` and `2800–28FF`.
+> **Measured — the aliasing is real, and it has a 256-byte answer.** The five
+> selects check A11 plus one of A8/A9/A10 each, so of the region above only
+> three page-aligned blocks are selected by *nothing*: **`2000–20FF`,
+> `2400–24FF` and `2800–28FF`** (offsets `000`, `400`, `800` — A11 set with
+> A8/A9/A10 clear, or all four clear). `0x2301` is the floppy's track register
+> *and* the keyboard's row 0 ([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) §7a), which is
+> what moved the ROM↔Pico door from `2300h` to `2800h`
+> ([`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §2). The SCREEN-PAC's window test in the driver
+> is `(off & 0xc00) == 0x400` — `2400–27FF` — so `2400–24FF` is clean of the
+> *stock* machine but not of a SCREEN-PAC one, `2400h` being its presence bit.
+> The two blocks free on every machine are `2000–20FF` and `2800–28FF`.
 >
 > **And the one device that is free by *mutual exclusivity* claims no bank-2
 > memory at all.** Drive C — the standalone reproduction (#84) and the
@@ -534,10 +550,11 @@ devices. Conservatively **free** (no onboard device) within `2000–2FFF`:
 ## 8. Decisions this unblocks
 
 - **Gap #15 (memory-resident vs pure I/O):** → **pure I/O**, memory-mapped in
-  bank 2 at `2300+`. No need to steal RAM or fight the bank flip-flops.
+  bank 2 in the §7 window (`2800–28FF`). No need to steal RAM or fight the bank
+  flip-flops.
 - **Gap #10 (modem ACIA ports):** → `2A00/2A01` confirmed; the WiFi modem can
-  either emulate the 6850 there or live at a `2300+` FIFO with a small BIOS
-  hook.
+  either emulate the 6850 there or live at a FIFO in the same §7 window with a
+  small BIOS hook.
 - **Gap #11 (floppy variant):** → MB8877 ≡ WD1793 confirmed; registers at
   `2100–2103`; drive/density selects are PIA-driven (emulate via PIA shadow).
 - **#24 (ScreenPac):** → two tap points confirmed: Z80 DIP-40 (UC11) and

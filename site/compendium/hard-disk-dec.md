@@ -5,16 +5,26 @@ subtitle: "Peripherals and storage · decided"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Status: decided.** Emulate the **Adaptec ACB-4000** SCSI-1 controller — the one
-inside the Mega-byte / Media Distributing **MD-10** — and **not** the ACT 1982
-unit. One personality, built as a **faithful ACB-4000 SCSI target behind a
-configurable host-adapter shim**, so that the same firmware serves any Z80
-machine with an ACB-4000-class driver and not only the Osborne 1.
+**Status: Solved.** As a decision: emulate the **Adaptec ACB-4000** SCSI-1
+controller — the one inside the Mega-byte / Media Distributing **MD-10** — and
+**not** the ACT 1982 unit. One personality, built as a **faithful ACB-4000 SCSI
+target behind a configurable host-adapter shim**, so that the same firmware
+serves any Z80 machine with an ACB-4000-class driver and not only the Osborne 1.
+The build this authorises is #179; §10 carries what is still open.
 
 This is the decision [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) was the groundwork for. It
 answers #8's remaining checklist: the command set is documented (§4, from the
-vendor's own OEM manual), the recommendation is written (§2), and the port claim
-is corrected (§3). It is also the **formal plan** for the personality (§9).
+vendor's own OEM manual), the recommendation is written (§2), and the ACT's port
+claim is read out of the ACT's own BIOS (§3). It is also the **formal plan** for
+the personality (§9).
+
+**The DPB is in the archive.** `0x055E` is an **offset from the MD-10 BIOS's load
+address `0xD800`**, not a low-RAM address, so the per-drive type bytes sit at
+`0xDD5E`, the 24-byte descriptors at `0xDD6E` and the DPB at `0xDDB6` — all
+*static data inside the BIOS image*, read straight out of `HARD.COM` at file
+offsets `0x998`, `0x9A8` and `0x9F0` (§7.3; [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9). What is
+left is not the numbers but **who copies the static tables into a running system**
+(§10 item 1).
 
 Sources: [`research/harddisk/`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/) (the ACT disk) and [`research/adaptec/`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/) (the MD-10
 software) — both extracted and disassembled in-project; and the Adaptec ACB-4000
@@ -60,12 +70,13 @@ only in its own BIOS image; the ACB-4000's is a standard SCSI-1 CDB set that
 Adaptec printed, with a worked Z80 driver, a worked format sequence and a
 register map (§4).
 
-## 3. The ACT, corrected
+## 3. The ACT — the ports it actually uses
 
-[`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) recorded the ACT adapter's registers as
-`0x2A00` (command/data) and `0x2C01` (status), and #8 flagged that those
-addresses "are the ACIA and video PIA, so something there is misread." The
-disassembly says the flag was right. Three corrections:
+#8 flagged the port claim in [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) — `0x2A00`
+(command/data) and `0x2C01` (status) — as suspect: those addresses "are the ACIA
+and video PIA, so something there is misread." The flag was right. Disassembling
+`HARDBIOS.HEX` (`z80dasm`, `org 0xDF00`, `0xDF00`–`0xEB00`) settles all three
+points:
 
 1. **`0x2A00`/`0x2A01`/`0x2C01` are not the disk.** `0x2A00`/`0x2A01` are the
    console **ACIA** (`2A00` status read / control write, `2A01` RX/TX) — the
@@ -82,11 +93,10 @@ disassembly says the flag was right. Three corrections:
    from `[0xEF08]`, which the two bank helpers set to `0` or `1`; `OUT (C),A` is
    simply re-selecting the bank on the way out. It is not a disk port.
 
-One further correction, for the record: the ACT's `MOVCPM10/5/F.COM` are **stock
-Digital Research `MOVCPM.COM`** builds (identical strings, a handful of patched
-bytes), *not* evidence of 5 MB / 10 MB volume sizes. The analysis doc's "MOVCPM
-variants (10MB / 5MB … volume sizing)" should be read as "stock MOVCPM, three
-builds."
+The ACT's `MOVCPM10/5/F.COM` are **stock Digital Research `MOVCPM.COM`** builds
+(identical strings, a handful of patched bytes), *not* evidence of 5 MB / 10 MB
+volume sizes — so the ACT's version list is three builds of one utility, not
+three volume sizes.
 
 **Honest residue.** The ACT board itself is unattested — no photograph or
 description has been found, and the `2900–2903` conclusion is read from the
@@ -219,9 +229,9 @@ The advertised envelope is **10 MB (MD-10), 20 MB (MD-20), "20 and 44 MB also
 available."** Because the controller auto-configures to the host-supplied
 geometry and we back it with a blob, **our practical limit is the driver's DPB,
 not our storage** — we can offer any geometry `DRIVETBL.DAT` can describe. The
-drive table's fields are now read (§7.2), so the geometry side of that is
-settled and #179 has a default; the DPB the driver *builds* from it is still
-not read (§9.4, item 1).
+drive table's fields are read (§7.2) and so is the DPB (§7.3), so the geometry
+side of that is settled and #179 has a default; what is not chased is which copy
+of the tables a boot actually uses (§10 item 1).
 
 **"How does it handle CP/M 2.2's limits on the Osborne?"**
 
@@ -289,21 +299,22 @@ relative to that base, so `SELDSK` at `0xE1D5`):
   (`6Ch`, §4) sits at `0x8024` as a lone data byte — an independent confirmation
   of the controller, found in the driver rather than the manual.
 - **`DRIVETBL.DAT` is a list of drive-model entries.** This is the table
-  `MD10.COM` edits and `SELDSK`'s 24-byte descriptors are built from. The first
-  reading of it here got the shape wrong — a 12-byte header and eleven 11-byte
-  records — because the file's *directory entry* says it is 128 bytes long when
-  it is 16 512. **§7.2 has the corrected structure, and the byte→field mapping.**
-- **Still open:** the *numeric* DPB (SPT/DSM/DRM/AL0). The geometry the DPB is
-  built from is now read out of the drive table (§7.2), so what remains is the
-  BIOS's runtime descriptor table — built in low RAM (`0x055E`, `0x056E`) from a
-  template not yet located. That is the residue of #178.
+  `MD10.COM` edits and `SELDSK`'s 24-byte descriptors are built from. Its shape
+  is not what its own *directory entry* says: the entry claims 128 bytes while
+  the file owns nine allocation blocks and holds 16 512 bytes of live data.
+  **§7.2 has the structure and the byte→field mapping.**
+- **The DPB is static data in the BIOS image**, not a table built in low RAM.
+  The per-drive type bytes, the 24-byte descriptors and the DPB itself are read
+  out of `HARD.COM` at `0xDD5E`, `0xDD6E` and `0xDDB6` (§7.3). What is not yet
+  chased is which copy a boot uses — the static one, or the drive's own copy of
+  the geometry and type bytes at LBA 4 ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §3, §9.1).
 
 ### 7.2 The drive table — structure, and the byte→field mapping (#178)
 
 **Solved**, by reading the shipped file and then running the editor that edits it.
 
-Two things §7.1 recorded from a first reading of the file were wrong, and the
-corrections are the reason the mapping was hard to see:
+Two things about the file's shape hide the mapping, and both are read from the
+file rather than assumed:
 
 - **`DRIVETBL.DAT` is not one 128-byte record.** Its directory entry says
   `rc = 1` (128 bytes) and even sits at extent 1, but the file owns nine
@@ -341,9 +352,9 @@ offsets `0D`–`15`):
 | `+8` | `15` | Step pulse output rate code | 8-bit |
 
 The manual's block is big-endian and the file is little-endian, so the driver
-byte-swaps when it builds the descriptor. **That byte order is the whole of the
-"something is packed"** the first reading inferred: four bytes for five fields
-was never the shape of the thing.
+byte-swaps when it builds the descriptor. **That byte order is the whole of
+it** — nothing here is packed; five fields in eight bytes was never the shape of
+the thing.
 
 Two of the fields are outside the editor: it prompts for cylinders, heads,
 reduced-write-current, landing zone and step code (measured, below) and neither
@@ -356,11 +367,10 @@ measured.
 An 11-byte record is a NUL-terminated name of up to ten characters and then the
 description index. The driver's name search compares at most ten bytes and stops
 at the typed name's terminator (`LD B,9` / `DJNZ`, `0x0C04`–`0x0C12`), so **the
-bytes after the name's NUL are never read by the driver** — which is exactly why
-the first reading took them for "parameter bytes". In the shipped table they are
-not consistently name text (`AT3020` is followed by `"15"`, the Seagate entries
-by `"62"`, `D-720` by three unprintable bytes), so their meaning is unresolved
-and, for #179, irrelevant.
+bytes after the name's NUL are never read by the driver**. In the shipped table
+they are not consistently name text (`AT3020` is followed by `"15"`, the Seagate
+entries by `"62"`, `D-720` by three unprintable bytes), so their meaning is
+unresolved and, for #179, irrelevant.
 
 Bit 7 of a name's **first** byte is a flag — the search masks it off with
 `AND 7Fh`. In this table it is set on 26 entries, and every one of them is an
@@ -464,7 +474,7 @@ tools/research/mkdrive.py --out /tmp/md10/st412.chd --chs 306,4,17
 
 It fills every sector's data field with **`6C`**, which is what the ACB-4000's
 FORMAT writes by default — "completely written with 6C hex unless otherwise
-specified in the format command" (`research/adaptec/acb4000/…Users_Manual_Oct85`,
+specified in the format command" ([`research/adaptec/acb4000/400003-00A_ACB-4000A_Users_Manual_Oct85.ocr.txt`](https://github.com/Myrcurial/o1next/blob/main/research/adaptec/acb4000/400003-00A_ACB-4000A_Users_Manual_Oct85.ocr.txt),
 §4.4.5 and the FORMAT command reference) — and passes the geometry to `chdman`,
 whose `GDDD` metadata is the same record the controller keeps in the disk's ID
 fields. `PREP.COM` asks for a *unique* fill byte and sends `D9` in its FORMAT
@@ -473,7 +483,7 @@ own format under MAME — the verify pass that follows it (`2F`) has no handler
 ([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) §5).
 
 The drive's *own* structure — what `PREP.COM` writes once it has finished a
-format — is no longer an unknown: it is the four-block header at LBA 0–3 read
+format — is read: it is the four-block header at LBA 0–3 read
 out of the program, with the disk label and its 28-byte partition records at
 LBA 0. [`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) §6 has the field map and the recipe.
 
@@ -486,21 +496,67 @@ harness, with a `peek` directive — that is what made the in-memory table
 checkable), `md10patch.py` (patch a file inside the image, by name; the three
 patches above) and `drivetbl.py` (dump the table).
 
-### 7.3 The DPB — the mechanism, and why the archive cannot give the numbers (#178)
+### 7.3 The DPB — read out of `HARD.COM`, with its values and its mechanism (#178)
 
-The second half of #178's acceptance is "the DPB for each logical drive is written
-down with its source offset".  The **mechanism** is read and the **source offsets**
-are pinned; the **numbers** are not obtainable from the files in the archive, and
-this section says exactly why.
+**The DPB is in the archive.**  #178's acceptance is "the DPB for each logical
+drive is written down with its source offset", and both halves are now read: the
+**values**, out of the file, and the **mechanism**, out of the code.
+
+The audit that produced a negative result here read `0x055E` as a *low-RAM*
+address.  It is not one.  It is an **offset from the BIOS's load address**, and
+the MD-10 BIOS loads at `0xD800` ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §4), so:
+
+| What | Address | `HARD.COM` file offset | Size |
+|---|---|---|---|
+| per-drive type byte table | `0xDD5E` | `0x0998` | 16 bytes |
+| 24-byte per-type descriptors | `0xDD6E` | `0x09A8` | 24 × type |
+| **the DPB** | `0xDDB6` | `0x09F0` | 15 bytes |
+
+All three are **static data inside the BIOS image** — the address less the
+loader's `0x0100` origin — so they are read out of the file rather than watched
+at run time.  [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9 read them out and cross-checked them
+against the driver's code; the values below are that reading, and this section
+does not restate its §9.1.
+
+**The DPB itself** — 15 bytes at `HARD.COM` file `0x09F0`:
+
+```
+file 0x09F0   9C F0 | 05 | 1F | 01 | 83 07 | FF 03 | FF | 00 | 00 00 | 00 00
+              SPT   | BSH| BLM| EXM| DSM   | DRM   | AL0| AL1| CKS   | OFF
+              F09Ch | 5  | 31 | 1  | 1923  | 1023  | FF | 00 | 0     | 0
+```
+
+**`DPB+3` is `31`** — the `BLM` read independently out of the driver's *code*
+("the driver reads `DPB+3` as `BLM`").  Two readings agreeing is what makes
+`0xDDB6` the DPB rather than a lookalike.
+
+`BLM = 31` is 4096-byte blocks, so `DSM = 1923` is 7.88 MB per logical drive;
+`DRM = 1023` is 1024 directory entries; `AL0 = FFh` is the eight directory
+blocks; `CKS = 0` is a fixed disk, which is right.  **`SPT` reads `F09Ch` =
+61 596, and that is not a sector count: it is the partition measured in 128-byte
+records** — `61596 × 128 = 7 884 288 = 15399 × 512`, exactly one 15399-block
+partition.  So the DPB does not merely *describe* a partition size, it **is** the
+partition size, and it is the same 15399 blocks `PREP.COM` writes when it is
+given a `PYXIS27` ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §3).
+
+**One DPB, shared by every hard-disk drive.**  The three descriptors carry `DPB`
+`0xDDB6`, `DIRBUF` `0xEE80` and `CSV` 0 in common; only the allocation vector
+differs, at `0xDDC5`/`0xDEB6`/`0xDFA7` — exactly `0xF1` = 241 bytes apart, which
+is the ALV size for `DSM = 1923`.  Two consequences, both load-bearing for #179:
+every hard-disk partition is the same size in CP/M's view, and the only layout in
+which the drive and the driver agree is **three 15399-block partitions on a
+`PYXIS27`**.  [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9.1 has the descriptors and the arithmetic.
 
 #### The chain, with source offsets
 
 All offsets are file offsets into `HARDBIOS.SPR`, which maps to `0xE000 + offset`.
 It is a **relocatable** image: the BIOS jump table is at file offset `0x100`
 (`0xE100`) and its operands — and the routine's own internal `JP`/`CALL` targets —
-are *offsets from the table*, not addresses.  Read it linearly and the
-disassembler drifts through the data and invents instructions; `tools/research/
-hardbios.py` resolves them the way the loader does.
+are *offsets from the table*, not addresses.  That is why the table below names
+`0x055E`/`0x056E`: they are the operands as written, and they resolve to
+`0xDD5E`/`0xDD6E` once the BIOS is installed at `0xD800`.  Read the image
+linearly and the disassembler drifts through the data and invents instructions;
+[`tools/research/hardbios.py`](https://github.com/Myrcurial/o1next/blob/main/tools/research/hardbios.py) resolves them the way the loader does.
 
 | Step | Offset | What it does |
 |---|---|---|
@@ -528,14 +584,10 @@ Three things follow, and they are the substance of the answer:
    bytes *before* the DPH.  What those eight hold is not determined — nothing in
    the archive reads them.
 
-#### Why the numbers are not in the archive
+#### How the tables were found, and why the first search missed them
 
-`0x055E` (the per-drive type byte) and `0x056E` (the 24-byte descriptors) are
-**never written by any file in the archive**.  That is not an impression but an
-exhaustive search over every opcode that can store to an absolute address —
-`LD (nn),A` (`32`), `LD (nn),HL` (`22`), `LD (nn),BC/DE` (`ED 43`/`ED 53`) —
-across all 14 files of the MD utilities disk and the extracted ACT software.
-`tools/research/hardbios.py audit` reproduces it:
+`tools/research/hardbios.py audit` searched for a *writer* of `0x055E`/`0x056E`,
+treating them as absolute low-RAM addresses, and swept `0x0500`–`0x0700`:
 
 ```
 === writers of 0x0500-0x0700 ===
@@ -544,30 +596,47 @@ across all 14 files of the MD utilities disk and the extracted ACT software.
   0x055E / 0x056E writers: NONE
 ```
 
-The only writes anywhere near are the BIOS's *own* variables — `0x0555` (the saved
-DPH), `0x0557` (a flag), `0x0558` (the saved type).  The two tables `SELDSK` *reads*
-have no writer at all.
+Three things follow, and together they are why the tables read as "missing":
+
+- **The sweep found the relocatable *operands*, not the data.**  `LD BC,055E` /
+  `LD DE,056E` inside the overlay are reported (`LD DE,056E` at `hardbios.spr`
+  offset `0x200`); the tables they index live at `0xDD5E`/`0xDD6E`, outside the
+  searched window.  A store to a BIOS-relative address is not a store to
+  `0x0500`–`0x0700`.
+- **The tables are not in the `.SPR` files at all.**  A byte search for the
+  16-byte type run, the `01 14 00 00 27 3C` descriptor prefix and the ten-byte
+  DPB prefix finds all three in `HARD.COM` and in **none** of `HARDBIOS.SPR`,
+  `HARDBDOS.SPR` or `HARDCCP.SPR`.  The `.SPR` is a *different, larger* build —
+  its body is `0x880` bytes against the embedded copy's `0x5C5` — the same BIOS
+  at the same entry points but not the same image.  The driver's fallback table
+  therefore lives only in the loader that installs it, which is why #178's audit
+  of the `.SPR` files found no writer.
+- **The writes the audit does find are the BIOS's own variables** — `0x0555` (the
+  saved DPH), `0x0557` (a flag), `0x0558` (the saved type), i.e. `0xDD55`,
+  `0xDD57`, `0xDD58`.  The two tables `SELDSK` *reads* are read-only.
 
 Two further checks close the alternatives:
 
 - **Not data carried by another overlay.**  If an overlay were loaded so that its
-  bytes landed on `0x055E`/`0x056E`, the table would be there as *data*.  It is
-  not: those offsets in `HARDBDOS.SPR` and `HARDCCP.SPR` are code, and neither file
+  bytes landed on the tables, the table would be there as *data*.  It is not:
+  those offsets in `HARDBDOS.SPR` and `HARDCCP.SPR` are code, and neither file
   contains a per-drive type run (`00 01 02 … FF`) or a 24-byte record table.
-- **Not in a system image.**  The MD utilities disk is a **data** disk — its system
-  tracks (tracks 0–2, 7680 bytes) are **all `0xE5`**, and no part of `HARDBIOS.SPR`
-  appears in them.  So the archive holds the MD-10 *utilities* and no MD-10 *system*
-  disk, and the system image is where the tables must live: the BIOS reads them at
-  run time and nothing in it writes them.
+- **Not in a system image — and it does not need to be.**  The MD utilities disk
+  is a **data** disk: its system tracks (tracks 0–2, 7680 bytes) are **all
+  `0xE5`**, and no part of `HARDBIOS.SPR` appears in them.  The tables arrive
+  with the BIOS instead, inside `HARD.COM`, which carries a relocated copy of the
+  BIOS and copies it to `0xD800` ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §4–§6) — so they are
+  *installed*, not loaded from a system image.
 
-The geometry the DPB is built from is **on the drive**, written by the last
-`FORMAT` — see the next subsection — and the routes that would recover the
-arithmetic are there too.
+The geometry the DPB is built from also lives **on the drive**, written by the
+last `FORMAT`; the next subsection is the manual's account of that, and it is what
+the personality has to reproduce.
 
 #### Where the drive parameters live, and how they get written
 
-The manual answers the part the archive could not.  Three commands, read from the
-Mar84 OEM manual §6.3.1:
+The manual answers the half the archive does not cover — where the parameters go
+on the drive, and how they get there.  Three commands, read from the Mar84 OEM
+manual §6.3.1:
 
 - **`MODE SELECT` (15H)** — "is used in ACB controllers to specify FORMAT parameters
   and should always precede the FORMAT command."  Byte 4 of the CDB is the byte
@@ -614,10 +683,9 @@ The parameters **persist on the drive**, and the manual says so three ways:
 So the geometry is written **onto the drive** by the last `FORMAT` and read back by
 `MODE SENSE` — precisely the factory-assembled case, where an ACB and its drive were
 paired and formatted before an end user saw either, so the drive already carries its
-parameters and a later `FORMAT` without a `MODE SELECT` keeps them.
-[`docs/acb4000-firmware.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-firmware.md)'s inference is now **read, not inferred**, which promotes
-`MODE SENSE` (1AH) and `READ CAPACITY` (25H) from "implement faithfully" to "the
-personality's correctness depends on these".
+parameters and a later `FORMAT` without a `MODE SELECT` keeps them.  That is what
+makes `MODE SENSE` (1AH) and `READ CAPACITY` (25H) a **correctness requirement** for
+the personality ([`docs/acb4000-firmware.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-firmware.md)), not a convenience.
 
 The defaults, for a drive formatted with no parameter list at all — which is what an
 unparameterised volume reports:
@@ -631,65 +699,70 @@ unparameterised volume reports:
 | Landing zone | **0** (innermost) | 7 bits + direction bit |
 | Step rate code | `00` 3.0 ms unbuffered (ST-506); `01` 28 µs buffered (ST-412); `02` 12 µs buffered | — |
 
-#### Two DPB inputs the manual *does* pin
+#### What the manual pins, and how it relates to the DPB
 
 The manual is about the ACB-4000, not about CP/M, so it carries no DPB.  It does
-carry two of its inputs, and with §7.3's code they are enough to fix `SPT`:
+carry two of the DPB's inputs, and both bear on the one the driver holds:
 
 - **Sectoring.**  `FORMAT` writes "**the normal 32 sectors**" of 256 bytes per track
   — **33** when the interleave is ≥ 2 — and the block size is 256, 512 or 1024 B.
   32 × 256 = **8192 bytes per track**; the driver's record→sector conversion is a
   two-bit shift (`record >> 2`), i.e. 512-byte physical sectors, 16 of them.  Either
-  way the track is 8 KiB, so **`SPT` = 64** in 128-byte records.  Derived from the
-  manual *and* the code, not assumed.
+  way a track is 8 KiB, which is **64 × 128-byte CP/M records** — the arithmetic
+  behind an `SPT` field, even though the shipped DPB's `SPT` holds the *partition*
+  size instead (above).  Read from the manual *and* the code, not assumed.
 - **Capacity.**  `READ CAPACITY` (25H) returns "the address of the last block on the
   unit" plus the block size, in an 8-byte data field.  That is a `DSM` input the
   driver can take straight from the controller, and the first place to look before
   assuming `DSM` is computed from cylinders × heads.
 
-#### What that leaves, and how to watch it
+Which of the two the driver actually uses at boot — the controller's report, or the
+static fallback in `HARD.COM` — is the open question, and it is the same one as
+"which copy of the tables" (§10 item 1).  [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §3 and §9.1 have the
+evidence on both sides.
 
-The DPB is still the host driver's arithmetic over `MODE SENSE` + `READ CAPACITY` +
-the format's sectoring, and the *values* are still not in the archive.  But the
-search has changed shape: it is no longer "find the table", it is "watch the driver
-do the arithmetic" — and this repo has already done that once:
+#### What is left, and how to watch it
 
-1. **A stub ACB-4000 in MAME.**  [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua) is a Lua model of
-   the Drive C box, and with it present "the 1983 loader completes and PIP writes to
-   `C:`" — the same move, for the same reason.  A stub answering
-   `MODE SENSE`/`READ CAPACITY`/`FORMAT` on ports `30h`–`33h` would let `MD10.COM`
-   and its overlay run for real, and `o1keys.lua`'s `peek` would then show what the
-   utility writes and what the driver builds from it.  **Try this first.** *Tried —
-   and it is blocked: MAME's `osborne1` decodes only two I/O address bits, so
-   `30h`–`33h` alias onto the ROM-bank ports and a Lua stub cannot reach the adapter.
-   It needs a MAME driver change. See [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md) §2.*
-2. **A bootable MD-10 system disk**, whose system tracks would carry the low-RAM
-   tables outright.  *Also bounded: a stock O1 system image loads `[CCP][BDOS][BIOS]`
-   at the CCP, far above `0x055E`, so this too depends on the MD-10's memory map
-   being unlike the stock one — which its own `BOOT` suggests it is. See
-   [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md) §3–§4.* **Its first half is now answered**: the
-   *on-disk* half of that system — the disk header at LBA 0–3, the label at LBA 0
-   and the 28-byte partition records it carries — is read out of `PREP.COM` and
-   reproduced on the emulated drive ([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) §6). What is
-   still missing is the *in-memory* half: the low-RAM DPH/DPB tables themselves.
+The tables and the DPB are read, so what remains is not "find the table".  It is two
+narrower questions, and both are reachable on the running system:
 
-The host-adapter register protocol is read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md); §6's
-open question #2 (the status bit map) is answered there — the driver polls `01h`,
-`02h`, `20h`, `40h`.
+1. **Which copy of the tables a boot uses.**  The BIOS image carries them
+   (`HARD.COM` → `0xD800`), and the drive carries its own copy of the geometry and
+   type bytes at LBA 4 ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §3); the two disagree in size
+   ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9.1).  Who copies one into the other is not chased.
+2. **The `peek` that was going to answer it.**  #191's `peek 0x055E`/`0x056E` is now
+   *reachable* — the MD-10 system boots to a prompt with three partitions
+   ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §7) — so the runtime tables can be read against a running
+   system rather than inferred.  The address to peek is `0xDD5E`/`0xDD6E`, not
+   `0x055E`/`0x056E`.
 
-**Correction (2026-10-13): the values *are* in the archive.** The negative
-result above searched for a writer of `0x055E` as a *low-RAM* address. It is not
-one: `0x055E` is an offset from the **BIOS's base**, and the MD-10 BIOS loads at
-`0xD800`, so the per-drive type byte table is at **`0xDD5E`**, the 24-byte
-descriptors at **`0xDD6E`** and the **DPB itself at `0xDDB6`** — all *static data
-inside the BIOS image*, readable from `HARD.COM` at file offsets `0x998`, `0x9A8`
-and `0x09F0`. `DPB+3` is `31`, which is the `BLM` this section read out of the
-*code* before the data was found. [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9 has the tables and the
-one field (`SPT`) that still needs explaining; §7.2's drive-table work stands.
+Both routes the search left open are now closed, and neither was closed by giving
+up:
 
+1. ~~A stub ACB-4000 in MAME.~~  **Tried, and blocked** — MAME's `osborne1` decodes
+   only two I/O address bits, so `30h`–`33h` alias onto the ROM-bank ports and a Lua
+   stub cannot reach the adapter; it needed a MAME driver change
+   ([`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md) §2).  The precedent was
+   [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua), a Lua model of the Drive C box, with which
+   "the 1983 loader completes and PIP writes to `C:`" — the same move, for the same
+   reason.  **The driver change was built: #191's `osborne1nx` machine**, which
+   widens the decode to eight bits while keeping the mainboard's 2-bit alias, and
+   the drive-table editor runs on it.
+2. ~~A bootable MD-10 system disk.~~  **Produced, from the archive's own tools** —
+   `PREP.COM` option 3 *configures an operating system onto the drive*, and the
+   system it writes boots to a prompt ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §1, §7).  The *on-disk*
+   half of it — the four-block header at LBA 0–3, the label at LBA 0 and the 28-byte
+   partition records it carries — is read out of `PREP.COM` and reproduced on the
+   emulated drive ([`docs/osborne1nx-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/osborne1nx-machine.md) §6).
+
+The host-adapter register protocol is read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md), and
+the status-bit map this document's §10 item 2 asked for is answered there — the driver
+polls `01h`, `02h`, `20h`, `40h`.
 
 [`research/harddisk/OCC1_HARDDISK.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/harddisk/OCC1_HARDDISK.IMD) is a *different* controller — Australian
-Computer & Telecommunications, port `00` — i.e. the RT-60A situation again: recorded
+Computer & Telecommunications, reached through its own BIOS's controller-address
+prompt rather than the MD-10's fixed `30h`–`33h` window (§3, and
+[`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) §3) — i.e. the RT-60A situation again: recorded
 as incompatible in [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) §3, moved past, and not part of
 this question.
 
@@ -783,15 +856,20 @@ if a driver turns out to depend on undocumented controller behaviour.
 - [x] The command sets of both products documented — the ACB-4000's from its OEM
       manual (§4); the ACT's **recorded as unobtainable** (§3), which #8 allows.
 - [x] A written recommendation — the ACB-4000 (§2).
-- [x] The port-claim correction applied to [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) (§3).
+- [x] The ACT's port claim re-derived from its own BIOS and written into
+      [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) (§3).
 
 ## 10. Open questions
 
-1. **The MD-10 DPB** — the numeric SPT/DSM/DRM/AL0 the driver builds at run time.
-   The mechanism and its source offsets are read (§7.3) and the geometry it is
-   built from is read (§7.2), but the **values are not in the archive**: no file
-   initialises `0x055E`/`0x056E`, and the utilities disk carries no system image
-   (§7.3). It needs an MD-10 system disk or a `peek` under MAME.
+1. **Which copy of the tables a boot uses.**  The DPB's values *are* in the archive
+   — static data in `HARD.COM`, the type bytes and descriptors at
+   `0xDD5E`/`0xDD6E` and the DPB at `0xDDB6` (§7.3, [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9) — and
+   so is the system that boots ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §1).  What is not chased is
+   **who copies the static tables into the running system**: the drive carries its
+   own copy of the geometry and type bytes at LBA 4 ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §3), the
+   BIOS image carries a fallback, and the two disagree in size
+   ([`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9.1).  A `peek` at `0xDD5E`/`0xDD6E` on the running
+   system settles it.
 2. **The MD-10 host-adapter bit map** — which observed status bit is `REQ`, which
    is `BSY`, which is phase (§6). Bounded, because the *protocol* is known; the four
    bits the driver polls are now read out in [`docs/acb4000-host-adapter.md`](https://github.com/Myrcurial/o1next/blob/main/docs/acb4000-host-adapter.md) §1
@@ -813,10 +891,12 @@ if a driver turns out to depend on undocumented controller behaviour.
 - [`research/technical-articles/TPC-Issue05-1983-pp25-mega-byte-md10-hard-disk-ad.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/technical-articles/TPC-Issue05-1983-pp25-mega-byte-md10-hard-disk-ad.pdf)
   (OCR at `…ocr.txt`) — the MD-10 advertisement: sizes, drive letters, user
   areas, memory overhead (§6, §7).
+- [`docs/md10-system.md`](https://github.com/Myrcurial/o1next/blob/main/docs/md10-system.md) §9 — the DPB and the drive tables read out of `HARD.COM`,
+  the one-DPB consequence, and the system that boots (§7.3).
 - [`docs/occ1-harddisk-analysis.md`](https://github.com/Myrcurial/o1next/blob/main/docs/occ1-harddisk-analysis.md) — the product analysis this decides on top of.
 - [`docs/o1-memory-io-map.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-memory-io-map.md) §3 — the `2900`/`2A00`/`2C00` device map used in §3.
 - [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §8.3–§8.5, [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §4.2 — the
   CP/M ceiling, the drive-letter precedent and the blob precedent (§7, §8).
-- [`docs/copower88-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/copower88-protocol.md) — the CoPower-88 host protocol (§8).
+- [`docs/copower88-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/copower88-protocol.md) — the CoPower-88 host protocol this document's §8 re-orders.
 - [`docs/virtual-peripherals-block-diagram.md`](https://github.com/Myrcurial/o1next/blob/main/docs/virtual-peripherals-block-diagram.md) §5 — the personality table this
   re-orders.

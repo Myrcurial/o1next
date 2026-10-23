@@ -1,5 +1,23 @@
 # The Osborne 1 IEEE-488 (GPIB) port — P3 (#22, #84)
 
+**Status: Solved.** The P3 pinout is transcribed from the Technical Manual's
+§4.1.2 and corroborated line for line by the ROM's own comment block; what the
+port implements is read from the ROM's eight drivers and the manual's own
+figure. The one thing still open on P3 is electrical rather than logical — the
+loading a device may present (§7).
+
+**P3 is a 26-pin card edge connector carrying 24 IEEE-488 lines** (pins 25 and
+26 are unused), driven by a **Motorola MC6821 PIA at `2900–2903`** (§6). The
+machine can act as Talker, Listener or Controller, and its own bus address is
+**0** (§1). It implements **a subset of IEEE-488, with no three-wire handshake**
+— the ROM's **eight low-level drivers** are the whole of its behaviour, and
+`DAV`/`NRFD`/`NDAC` cannot be read back, which is why every device on this port
+invents its own clock (§2, §6.1). The same pins are re-labelled as a
+**Centronics printer port** when SETUP selects the printer personality (§6.2).
+§5 is the project's one fully-worked external device on the port: a **game
+joystick on `D0`–`D4`**, read either through driver 8 (`CALL 0E154H`) or by
+bit-banging the PIA directly.
+
 Source: *The Portable Companion* #8, July 1983 — "**Understanding the IEEE-488
 port** — Scientific interfacing with the Osborne 1" by **Wayne Kogachi** and
 **Shahriar Kianersi**, PDF pp. 38–41 (printed 36–39), and "**Interfacing
@@ -232,10 +250,10 @@ CA 91311).
 
 ## 6. The P3 edge connector — the pinout, and what the port actually implements
 
-`docs/drive-c-design.md` §7 listed "the pin-level map of P3" as its first
-unmeasured item. It was never missing: it is in the Technical Manual extract the
-project already archives, §4.1.2 "IEEE-488 Pinouts", and the manual explains why
-the connector is not the standard one:
+The pin-level map of P3 is in the Technical Manual extract the project already
+archives, §4.1.2 "IEEE-488 Pinouts" — the source `docs/drive-c-design.md` §7 and
+this document's §2.3 both build on. The manual explains why the connector is not
+the standard one:
 
 > Because this port is used for more than just IEEE 488 signals, we've declined
 > to use a standard IEEE connector.
@@ -352,9 +370,8 @@ both modes, which is a constraint `docs/drive-c-design.md` §2.3 now carries.
   (`docs/drive-c-protocol.md`).
 - The driver table at **`013F–0156`** (eight `JP`s) is a *checkable* signature:
   present in stock ROMs, destroyed in OZROM 1E (`docs/o1-rom-variants.md`).
-- **The pinout is solved** (§6) — it was in the archive all along, in the
-  Technical Manual extract, and the ROM's comment block corroborates it. So
-  `hardware/drive-c-repro/` can be laid out against a documented connector rather than
-  a measured one, and the one remaining electrical unknown on P3 is loading, not
-  mapping.
+- **The pinout is solved** (§6): the Technical Manual's §4.1.2, with the ROM's
+  comment block corroborating it line for line. So `hardware/drive-c-repro/` can
+  be laid out against a documented connector rather than a measured one, and the
+  one remaining electrical unknown on P3 is loading, not mapping.
 

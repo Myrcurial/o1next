@@ -5,8 +5,16 @@ subtitle: "The project · design"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
+**Status: Solved as a design.** The bus position, the three taps, the banked ROM
+window, the memory window and the port-base strategy are settled, and the parts of
+them that touch the machine are measured; §7's personality *selection* is still a
+proposal, and nothing here is built.
+
 How the RP2354B interposer sits on the Z80 bus and where each virtual
 peripheral lives in the Osborne 1 memory and I/O maps.
+
+Serves #12 (the electrical/mechanical interface spec) and #16 (the personalities
+that live in the address space this allocates).
 
 ## 1. Where the interposer physically sits
 
@@ -52,7 +60,7 @@ things the bus cannot.
 | Tap | Socket | Gives | Serves |
 |---|---|---|---|
 | bus | Z80, 40-pin | every cycle, including all video-RAM writes | all personalities |
-| **ROM** *(added 2026-10-13)* | **main ROM, UD11, 24-pin** | the ROM window itself, through a daughterboard (DIP down, ribbon up) — the Pico **serves** it, so no physical ROM part is needed | **ROM 2.00 (#83)**, one image, any OEM-faithful mainboard |
+| **ROM** | **main ROM, UD11, 24-pin** | the ROM window itself, through a daughterboard (DIP down, ribbon up) — the Pico **serves** it, so no physical ROM part is needed | **ROM 2.00 (#83)**, one image, any OEM-faithful mainboard |
 | font | char-gen, UA15, 24-pin | the font, read-only | the HDMI video personality (§5), #44 |
 
 The ROM tap is what makes a banked ROM possible at all, and it is cheaper than it
@@ -79,14 +87,28 @@ The O1 banks ROM, RAM, and video in a 64KB space. The interposer claims
 a small decode window by **snooping MREQ and either passing through or
 overriding** the onboard response.
 
-**The ROM window is claimable too, and that is new.** With the main-ROM socket tap
-(§1) the interposer holds the ROM window and can fill it, so **`1000–1FFF` becomes
-a 4 KB banked window** — which is how ROM 2.00 (#83) fits 11776 bytes of monitor +
-CCP + BDOS + CBIOS into a machine whose ROM window is only 8 KB. The bank is
-selected by a write to **`2300h`** while bank 2 is selected ([`docs/o1-rom-2.0.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-2.0.md)
-§4.3); with the Pico serving the window that write is a firmware register, not a
-hardware latch. The 4 KB the video RAM does not use is not the only spare space on
-this machine; the ROM mirror is another.
+**The ROM window is claimable too.** With the main-ROM socket tap (§1) the
+interposer holds the ROM window and can fill it, so **the window becomes a banked
+one** — which is how ROM 2.00 (#83) fits 11776 bytes of monitor + CCP + BDOS +
+CBIOS into a machine whose ROM window is only 8 KB. The window is `0000–1FFF`, and
+it is already 8 KB wide: the mainboard never decoded `A12`, so the stock machine
+reads the same 4 KB monitor twice across it, and a softROM that decodes `A12` gets
+two contiguous 4 KB pages — page 0 the monitor, page 1 (`1000–1FFF`) the payload —
+**with no latch and no register** ([`docs/o1-rom-2.0.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-2.0.md) §4.1b, measured in the
+emulated machine).
+
+**The ROM's register pair with the firmware is `2800h`/`2801h`, not `2300h`.** The
+monitor writes a request to `2800h` and polls `2801h` for the reply
+([`docs/rom-pico-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/rom-pico-protocol.md) §2; the residue is §7). `2300–23FF` was the first choice, and it
+is not free: the onboard selects check two address bits each, so `0x2300` is the
+floppy's command/status register and `0x2301` is the floppy's **track register**
+*and* the keyboard's row 0 — which is why the door moved
+([`docs/o1-mainboard-schematic.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-mainboard-schematic.md) §7a and [`tools/o1_mame_probe.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/o1_mame_probe.lua)'s C9 report,
+both measured). **The door's address is open issue #276** — the same repair, filed
+against the places in the tree where the stale pair survived. With
+the Pico serving the window that register is firmware, not a hardware latch. The
+4 KB the video RAM does not use is not the only spare space on this machine; the
+ROM mirror is another.
 
 ```mermaid
 flowchart LR

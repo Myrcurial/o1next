@@ -5,14 +5,15 @@ subtitle: "Peripherals and storage · design"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Status: design — buildable.** The protocol it must speak is solved and validated
-([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)), the **DPB** that sets the drive's size is found
-(`drive-c-protocol.md` §8.1), and the **pin-level map of P3** is transcribed from
-the Technical Manual ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6). Nothing in the electrical or
-logical design is waiting on a measurement any more; what is left is a layout and
-firmware (§7).
+**Status: Solved as a design.** The shape is settled and unblocked — the protocol
+it must speak is validated ([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)), the **DPB** that sets the
+drive's size is found (§8.1 there), and the **pin-level map of P3** is transcribed
+from the Technical Manual ([`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6). Nothing in the
+electrical or logical design is waiting on a measurement any more. Nothing is
+built either: what is left is a layout and firmware (§7).
 
-Tracks: #84 (the device), #6 (the protocol). Sibling of
+Tracks: #84 (the device), #6 (the protocol), #22 (the port it hangs off) and #145
+(the DPB its size comes from). Sibling of
 [`hardware/keyboard-adapter/`](https://github.com/Myrcurial/o1next/blob/main/hardware/keyboard-adapter/) and [`hardware/wifi-comm-pac/`](https://github.com/Myrcurial/o1next/blob/main/hardware/wifi-comm-pac/) — a period
 device reproduced on modern parts, hanging off a port, reversible.
 
@@ -53,8 +54,9 @@ reproduction should be measured against:
 | TPA RAM used on the host | 1152 B; +1024 B with the print buffer |
 
 The throughput figure is the one the firmware has to live inside: 55,000 B/s is
-about **4.6 µs per byte sustained**, against a transport that clocks one byte
-per frame. §3.2's timing has to stay within it.
+**18 µs per byte sustained** (445,000 b/s over 8 bits), against a transport that
+clocks one byte per CA2 pulse in ~52 T-states (~13 µs, `drive-c-protocol.md` §6).
+§3.2's timing has to stay within it.
 
 **And one design served two machines.** The Osborne 1 and Executive variants
 differ only in software — the Executive's book describes an `ECL`/`ECN`/`ECU`
@@ -105,9 +107,18 @@ original unit's own supply requirement:
 So the vendor ran the whole 384K unit — 384 KiB of static RAM, the printer
 pass-through, all of it — off P5 at **0.3 A worst case**, from the same rail that
 feeds the CRT. An RP2040 plus flash is a small fraction of that (a Pico is ~50 mA
-at 3.3 V, well under 0.1 A at the rail after a buck). **No new measurement is
-needed:** the shunt has to pass less than the original did, and the EXMON shunt is
-only a connector plus a sync combiner, so it does not change the arithmetic.
+at 3.3 V, well under 0.1 A at the rail after a buck). The shunt has to pass less
+than the original did, and the EXMON shunt is only a connector plus a sync
+combiner, so it does not change that arithmetic.
+
+**And the rail has room to spare, so the budget is closed** (#354). P5's +12 V is
+not separately limited — it arrives from `P7` pins 1/7 as plain wires (`1A2011-00`
+sheet 1 of 9; the machine's only fuse is the AC mains one), so the Astec AC8151's
+**2.02 A** is the only limit. What sits on that rail is a 5" monochrome CRT
+(~1.0–1.2 A steady, ~2 A inrush), two floppy drive motors that never run together,
+and small mainboard supplies. The Drive C's 0.3 A — and any modern load, which
+draws milliamps — is lost in that. (The modem port is the opposite case:
+**limited**, by `R21` 22 Ω, #56.)
 
 The shunt is a **mod**, even though it is passive and reversible, and must be
 documented as one — the same way the USB keyboard adapter's J6 bridge is.
@@ -184,7 +195,8 @@ The host clocks a byte every **~52 T-states (~13 µs at 4 MHz)** and, on a read,
 samples DIO **~6 T-states (~1.5 µs)** after the CA2 edge. The safe design is to
 keep the next read byte **already on DIO** and advance on each CA2 edge, rather
 than to drive the bus on demand. An RP2040 does this comfortably in PIO or even
-in a tight GPIO loop; the numbers are two orders of magnitude inside budget.
+in a tight GPIO loop: a 13 µs byte interval is 77 kHz, far inside either path's
+limit.
 
 CA2 is sampled, not generated, so the box needs one edge-triggered input per
 byte. A PIO state machine with a wait-on-pin is the natural implementation, with
@@ -320,9 +332,11 @@ wrong one here.
   makes "persistent Drive C" (#20) fall out for free: flash holds the records, and
   §4.1 says the loader will not re-format them.
 
-**The write path is verified too.** The DPB above was first read off the read
-side; the whole round trip now passes through `cpmtools` as well, on an image
-built from the same diskdef — write, list, read back, byte-compare:
+**What the DPB is, and how it was read.** The DPB is the 15-byte CP/M 2.2
+parameter block `DCL.COM` installs into the CBIOS; it sets the drive's size, and
+`drive-c-protocol.md` §8.1 reads it as bytes out of `DCL.COM` at file `0x142F`
+(installed `0x052F`). The whole round trip then passes through `cpmtools` as well,
+on an image built from the same diskdef — write, list, read back, byte-compare:
 
 ```sh
 dd if=/dev/zero of=d.img bs=128 count=3072   # 393216 bytes; mkfs does not size it
@@ -388,9 +402,9 @@ contender for the port, and the firmware does not need to arbitrate with it.
 1. **Protocol (done).** The frame, measured on the real software
    (`drive-c-protocol.md` §9).
 2. **Box model (done, short runs).** [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua) makes the
-   1983 loader complete and PIP write to `C:`. Extend it into a proper harness
-   once the DPB is known — that is the fastest place to iterate on firmware logic
-   before any hardware exists.
+   1983 loader complete and PIP write to `C:`. Extend it into a proper harness —
+   §7 item 3 — which is the fastest place to iterate on firmware logic before any
+   hardware exists.
 3. **DPB (done).** `drive-c-protocol.md` §8.1 — 192 blocks of 2 KiB, 128
    directory entries, 4096 bytes of directory. Give the box model that geometry
    and a full `PIP` copy can be checked end to end.
@@ -412,14 +426,14 @@ and confirmed the hardware is a single design for both machines.
    is documented (§2.2); and the mechanical, electrical and performance envelope
    is in §1.1. Nothing on the board is waiting on a measurement.
 2. **Bus loading — the one real electrical unknown.** How much additional load
-   (capacitance, pull-up) the O1's bus tolerates before its timings move. The
-   honest framing is that this is **probably a non-issue and should be confirmed
-   cheaply, not designed around**: the O1's pull-ups are 3.3 K, the transport
-   clocks a byte every ~13 µs, and one more TTL-class load — or the AHCT input the
-   RP2040 side will present, which is lighter still — is a leakage-and-a-few-pF
-   question at those edge rates. What it actually decides is whether the board
-   needs a **bus buffer at all**, so it is a confirmation step, not a blocker. A
-   scope check with a spare TTL gate as the load settles it in an afternoon.
+   (capacitance, pull-up) the O1's bus tolerates before its timings move. It is
+   **not a design driver** and should be confirmed cheaply rather than designed
+   around: the O1's pull-ups are 3.3 K, the transport clocks a byte every ~13 µs,
+   and one more TTL-class load — or the AHCT input the RP2040 side will present,
+   which is lighter still — is a leakage-and-a-few-pF question at those edge
+   rates. What it decides is whether the board needs a **bus buffer at all**, so
+   it is a confirmation step, not a blocker. A scope check with a spare TTL gate
+   as the load settles it in an afternoon.
 3. **Firmware against the model.** Turn [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua) into a
    proper harness (§6 item 2) and drive the §8.1 DPB geometry through it.
 4. **The `f(n)` ambiguity** (`drive-c-protocol.md` §10 item 2). Not a blocker —

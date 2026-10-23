@@ -1,8 +1,27 @@
 # The Double-Density upgrade is a multi-format controller (#95)
 
+**Status: Solved.** The mechanism is proven from the 1.44 CBIOS source
+(`occbio95.asm`) and exercised end to end in MAME on an Osborne **single-density**
+disk in a double-density system — the recognition step itself; the four foreign
+formats are **taken as written**, not synthesised, because the archive holds no
+media for them and the O1 never has to recognise them (#95).
+
 The DD upgrade is usually described as "twice the capacity". Its own manual
-describes something else: a controller that recognises **six disk formats**,
-five of them other manufacturers'.
+describes something else: **a controller that recognises six disk formats**, five
+of them other manufacturers', with the *computer* doing the recognising. The six,
+at the manual's own figures, are **Osborne 1 single density (92 k)**, **Osborne 1
+double density (182 k)**, **Xerox 820 single density (80 k)**, **Cromemco single
+density (80 k)**, **IBM Personal Computer, CP/M-86 format (156 k)** and **DEC
+VT-180 (171 k)**. Six names, five disk parameter blocks — Cromemco shares the Xerox
+geometry — and the mechanism is two cooperating parts: the monitor ROM *senses* the
+disk by trying both densities and reading an address mark, and the DD CBIOS
+*matches* the sensed geometry against a DPB + sector-skew table (§"Why the ROM is
+part of the answer"). That table's five rows reproduce the manual's capacities
+field for field, which is what makes this the answer rather than a guess.
+
+The list below is the manual's, and it is the list to follow: where a secondary
+source differs — oldcomputers.net gives the Xerox 820 entry as **82K** — the
+manufacturer's own page-4 statement of what the option does wins.
 
 > Thus, you'll find that you didn't just purchase double density, you purchased
 > a **multi-density disk option**. Under the current release of double density,
@@ -19,16 +38,9 @@ five of them other manufacturers'.
 >
 > — *Osborne 1 Double Density User Manual*, p. 4
 
-That is the primary source for #95, and it **confirms the claim**: the DD
-upgrade is a format capability, not just density. Note the wording is
-"automatically recognized by the computer" — the recognition is in the machine,
-which is what makes it testable in MAME without the hardware.
-
-## Correction to the quoted list
-
-oldcomputers.net gives the Xerox 820 entry as **82K**. The manual says **80k**,
-and the manual is the one to follow — the page-4 list is the manufacturer's own
-statement of what the option does.
+That is the primary source for #95. Note the wording — "automatically recognized by
+the computer": the recognition is in the machine, which is what makes the claim
+testable in MAME without the hardware.
 
 The manual also records what the option deliberately does **not** handle, which
 matters as much as what it does:
@@ -41,7 +53,7 @@ and names the formats that were *anticipated* rather than shipped: TRS-80
 Model I and III CP/M, and Zenith/Heath double density, "most likely in our user
 magazine, The Portable Companion".
 
-## Why the ROM is part of the answer — and the answer
+## Why the ROM is part of the answer
 
 The upgrade is described as coming with the **1.4 ROM**, and the recognition is
 a property of the computer rather than of the drive electronics. The 1.44 BIOS
@@ -184,7 +196,7 @@ Its BIOS 1.5 differs from the factory BIOS 1.4 in ways it enumerates itself:
 > — *Nuevo Double Density Upgrade Manual*, "differences between the two BIOS
 > versions" (OCR: `research/nuevo/Nuevo_Electronics_DD_Upgrade_Manual.ocr.txt`)
 
-Five things follow, and the first two correct an assumption worth recording:
+Five things follow:
 
 - **"BIOS 1.4" and "BIOS 1.5" here are the *CBIOS on the system tracks*, not the
   monitor ROM.** Nuevo's installers load `BIOS15.OBJ` at `1F00` and
@@ -376,12 +388,21 @@ for f in research/shipped-software/*.IMD research/drive_c/DRIVE_C.IMD; do
 done
 ```
 
+## Sources
 
-
-
+- `research/source-code/BIOS-144-source/` — `occbio95.asm` (the DPB + skew table),
+  `occbio45.asm` (`GDEN`), `rom144.asm` (the density probe, `SENDEN`), `occram25.asm`.
+- `research/nuevo/Nuevo_Electronics_DD_Upgrade_Manual.pdf` (+ `.ocr.txt`) and
+  `research/nuevo/OS1NUEVO.IMD` — Nuevo's BIOS 1.4 → 1.5 list, its CBIOS 1.5 and
+  its installers.
+- `research/shipped-software/*.IMD` — the disk images the HFE sweep and the MAME
+  acceptance test run on; `O1CPM.IMD` is the factory DD boot disk used as the
+  CBIOS 1.4 diff partner.
 - `research/osborne1/o1doubledensityusersguide.pdf` — *Osborne 1 Double Density
   User Manual* (15 pages, image-only; OCR'd per the convention in
   `research/README.md` as `o1doubledensityusersguide.ocr.txt`).
   <https://www.kev.pulo.com.au/osborne1/documents/o1doubledensityusersguide.pdf>
 - `docs/o1-memory-io-map.md` §3 (WD179x detail) — the formats already recorded
   there from the schematic side.
+- `docs/o1-upgrade-boards.md` §"How software finds the board" — the 80-column half
+  of the same vendors' product lines.

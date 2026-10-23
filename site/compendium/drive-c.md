@@ -5,18 +5,26 @@ subtitle: "Peripherals and storage"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Status: solved.** The host side is read out of `DCL.COM`'s disassembly and
+**Status: Solved.** The host side of the contract is decoded and validated end to
+end; what is left is the box's internals, and a replacement does not need them.
+
+Drive C is a battery-backed RAM disk on the Osborne 1's IEEE-488 edge connector,
+driven as a **parallel port** rather than as GPIB. The host side — the PIA line
+map, the frame, the two header bytes and the record address, the byte clock, and
+the DPB that sets the drive's size — is read out of `DCL.COM`'s disassembly and
 **confirmed against a trace of the real Drive C software running on the emulated
-machine** (§9) — and a model of the box, built from this spec, makes the 1983
-loader complete (`QUICKPAC Drive C: loading has been completed`) and CP/M start
-copying to drive `C:` with PIP. What is *not* known is the box's internals
-(§10); a replacement does not need them, because the contract below is what the
-host exercises.
+machine** (§9): a model of the box built from this spec makes the 1983 loader
+complete (`QUICKPAC Drive C: loading has been completed`) and CP/M start copying
+to drive `C:` with PIP. What is *not* known is the box's internals — how it
+resolves `f(n)` for `n = 0, 1, 2` (§10 item 2), and how a print buffer
+interleaves with the pass-through printer (§10 item 3). Neither blocks a
+replacement: the contract in §7 is what the host exercises.
 
 Sources: [`research/drive_c/DRIVE_C.IMD`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/DRIVE_C.IMD) (the software), [`research/drive_c/extracted/`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/extracted/)
 (`dcl.com`, `dfd.spr`), [`research/source-code/BIOS-144-source/rom144.asm`](https://github.com/Myrcurial/o1next/blob/main/research/source-code/BIOS-144-source/rom144.asm) (the
 ROM's own account of the port), and [`research/drive_c/Drive_C_Users_Manual.ocr.txt`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Users_Manual.ocr.txt).
-Serves #6 (the protocol) and #84 (the reproduction); [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) is
+Serves #6 (the protocol), #84 (the reproduction), #22 (the IEEE-488 port the box
+hangs off) and #145 (the DPB read out of `DCL.COM`); [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) is
 the hardware + firmware spec built on it.
 
 ## 1. What the device is
@@ -189,14 +197,10 @@ in the low nibble of `h2` through `f`. `DE` is the CP/M record address in
 and `DE&1` is the sector within it. The box's unit is a **256-byte track**, and
 bit 7 of `h2` is the sector.
 
-> **Correction, 2026-10-11.** An earlier revision of this doc gave `f(n)` as
-> `Ch, Dh, Eh, 3h, 7h, Bh, Fh` and called the encoding *bijective*. That table was
-> inferred, not measured, and it is wrong for `n = 1, 2`: the installed code
-> yields `0Ch` for **every** `n < 3`. The trace agrees — across 163 frames of a
-> boot-then-`PIP` run, `h2` took only `0Ch` and `8Ch`, never `Dh` or `Eh`. The
-> consequence is not cosmetic: with `f` constant over `n = 0…2`, `(h1, h2)` no
-> longer distinguishes those three banks. §10 records that as the open question
-> it is.
+The trace agrees with the code: across 163 frames of a boot-then-`PIP` run, `h2`
+took only `0Ch` and `8Ch`, never `Dh` or `Eh`. The consequence is not cosmetic —
+with `f` constant over `n = 0…2`, `(h1, h2)` no longer distinguishes those three
+banks, and §10 item 2 records that as the open question it is.
 
 Measured examples from the trace: the install-time format writes `h1 = 00h…0Fh`
 with `h2 = 8Ch` (→ `DE = 1,3,5,…,31`) and `h1 = 00h…0Fh` with `h2 = 0Ch`
@@ -286,9 +290,9 @@ prints for the 384K unit.
 
 *Drive C User Manual*, §7-3 "Drive C SOFTWARE SPECIFICATIONS", printed p. 134 =
 PDF p. 142. The OCR in the archive mangles the column alignment, so this is read
-off a 300 dpi render. The three rows in the middle are **centred across the two
-RAM-disk columns**, i.e. shared by the 192K *and* the 384K unit, and the TurboPac
-column has its own values:
+off a 300 dpi render. The three rows from *Reserved tracks* down are printed
+**once, centred across the two RAM-disk columns** — the 192K and 384K units share
+them — while the TurboPac column carries its own values:
 
 | CP/M parameter | 192K unit | 384K unit | TurboPac |
 |---|---|---|---|
@@ -297,9 +301,9 @@ column has its own values:
 | Directory entries | 64 | 128 | 512 per logical drive |
 | Directory space | 2048 bytes | 4096 bytes | 16384 bytes per drive |
 | Logical sectors | 1536 | 3072 | varies with block size & capacity |
-| Reserved tracks | **0** (both) | | 612, landing area |
-| Logical sectors/track | **2** (both) | | 32 |
-| Bytes per sector | **128** (both) | | 256 |
+| Reserved tracks | **0** | **0** | 612, landing area |
+| Logical sectors/track | **2** | **2** | 32 |
+| Bytes per sector | **128** | **128** | 256 |
 | TPA RAM used | 1152 B | 1152 B | 3172 B |
 
 Two independent confirmations fall out: **`SPT = 2`** matches the DPB exactly, and
@@ -440,10 +444,10 @@ taps. Treat the box model as a validation aid for short runs, not a harness.
 
 ## 10. What is still open
 
-**#6 closed on this document (2026-10-11)** — its deliverable was the contract in
-§7 and the validation in §9, and both are done. What follows is the residue, kept
-because a reader deserves to know what is *not* known. None of it blocks a
-replacement; the first item below has moved to #84, which is where it belongs.
+**#6 closed on this document** — its deliverable was the contract in §7 and the
+validation in §9, and both are done. What follows is the residue, kept because a
+reader deserves to know what is *not* known. None of it blocks a replacement; the
+first item below has moved to #84, which is where it belongs.
 
 1. **The DPB — closed** (§8.1). It is `DCL.COM` file `0x142F`, installed
    `0x052F`, and it decodes field for field against the manual. What remains is
@@ -470,21 +474,19 @@ replacement; the first item below has moved to #84, which is where it belongs.
    unit's own RAM disk, user-selectable from **16K to 128K in 16K steps**, and
    the 384K TurboPac configuration is stated outright as **256K cache + 128K
    fixed print buffer**. So the DPB in §8.1 is the *no-buffer* case and a unit
-   with a fixed buffer presents a smaller `DSM` — the hypothesis this item was
-   carrying is confirmed. What is still not established is the spooling
+   with a fixed buffer presents a smaller `DSM` — confirmed by the manuals' own
+   budget table. What is still not established is the spooling
    *protocol* — how the box interleaves buffer traffic with the pass-through
    printer connector — which only matters if a reproduction offers a buffer.
-4. **`DFD.SPR` — closed, and the item was asking the wrong question.** This
-   document already quoted the vendor calling `DFD.SPR` "a substitute console
-   command processor (CCP)" (appendix table, §Appendix), but §10 framed it as
-   the resident transport layer. It is not: it is a **replacement CCP**, loaded
-   by CP/M on every `^C` and every program exit in place of the Osborne 1's
-   `CCP.COM`, living in **user area 15** on the unit and required on logical
-   drive `A:` during installation. `DCL.COM` is the loader and carries the
-   transport. The code-aware disassembly this item asked for would have
-   characterised a command processor rather than a device — and a replacement
-   **inherits** `DFD.SPR` rather than reimplementing it, so the item is removed
-   from the work list. See [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §4.
+4. **`DFD.SPR` — closed: it is a replacement CCP, not the transport.** The vendor
+   calls it "a substitute console command processor (CCP)" (appendix table), and
+   that is what it is: a **replacement CCP**, loaded by CP/M on every `^C` and
+   every program exit in place of the Osborne 1's `CCP.COM`, living in **user
+   area 15** on the unit and required on logical drive `A:` during installation.
+   The transport is `DCL.COM`'s (see *The transport lives in DCL.COM, not
+   DFD.SPR*, below). A replacement **inherits** `DFD.SPR` rather than
+   reimplementing it, so no disassembly of it is needed.
+   See [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §4.
 
 ## Sources
 
@@ -502,8 +504,9 @@ replacement; the first item below has moved to #84, which is where it belongs.
   chapter 4, including §4.1.2's **P3 pinout**; transcribed in
   [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6. Image-only scan: OCR it, do not `pdftotext` it.
 - [`research/drive_c/Drive_C_Users_Manual.ocr.txt`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Users_Manual.ocr.txt) — the vendor's manual (OCR).
-  §7-2 and §7-3 are transcribed in [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §2.2 and §8.2; the
-  OCR loses the spec table's column alignment, so read those pages from the PDF.
+  §7-2 is transcribed in [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §2.2, and §7-3 in §8.2 above;
+  the OCR loses the spec table's column alignment, so read those pages from the
+  PDF.
 - [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) — the port's device-level behaviour and the ROM's
   eight drivers.
 - [`tools/research/drive-c-trace.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-trace.lua), [`tools/research/drive-c-box.lua`](https://github.com/Myrcurial/o1next/blob/main/tools/research/drive-c-box.lua) — the
@@ -515,8 +518,8 @@ replacement; the first item below has moved to #84, which is where it belongs.
 | File | Size | Role |
 |---|---|---|
 | DCL.COM | 6656 | "DRIVEC version 2.08" — driver installer/loader. Loads DFD.SPR, DCA/DCU. "Cannot install driver$Driver is already installed$". Per the vendor's review it **replaces the earlier `DRIVEC.COM`**, and when the print buffer is switched on it copies `DCU.COM` into the unit |
-| DFD.SPR | 2560 | Resident driver (page-relocatable SPR). Contains CCP-style command table (DIR ERA HELP REN SAVE TYPE USER) + BIOS hook code. The vendor describes it as "**a substitute console command processor (CCP)**" that is "**automatically loaded**" |
-| DCA.COM | 9984 | "DCA version 1.85" — the **Archive-Retrieve** program per the vendor's own review (it "replaces both `DCARCH.COM` and `DCRET.COM`"). The earlier "assign/configuration" label came from the disassembly and is questioned below |
+| DFD.SPR | 2560 | **Substitute console command processor (CCP)**, page-relocatable SPR — the command layer, not the transport. Contains the command table (DIR ERA HELP REN SAVE TYPE USER) + BIOS hook code. The vendor describes it as "**a substitute console command processor (CCP)**" that is "**automatically loaded**" |
+| DCA.COM | 9984 | "DCA version 1.85" — the **Archive-Retrieve** program per the vendor's own review (it "replaces both `DCARCH.COM` and `DCRET.COM`"); the `z80dasm` listing's own label for it, "assign/configuration", is the disassembly's, not the vendor's |
 | DCU.COM | 6272 | "DCU version 1.40" — RAM-disk utility (erase all, directory, files/line config; generates DCUN.COM via SAVE 28) |
 | DCQ.COM + DCQ.DAT | 896+128 | "DCQ version 1.22" QUICKPAC — fast boot-time loader; DCLOADED.SYS marker |
 | DCQINS.COM | 7296 | QUICKPAC installer (writes boot track via DCL); text by David E. Price |
@@ -530,17 +533,19 @@ print buffer"). Osborne-1 only: "cannot be used with the Executive".
 
 ### The transport lives in DCL.COM, not DFD.SPR
 
-This doc previously implied DFD.SPR held the protocol. It does not:
-`grep -E '290[0-3]h' dfd.asm` returns **nothing** — DFD.SPR never touches the PIA.
-DCL.COM holds all 22 PIA references. DFD.SPR's only port access is a single
-`OUT (0F1h),A` at `0x0803`, still unexplained (`F1h` is not a PIA address; likely
-the double-density board or a status port).
+`DFD.SPR` is **not** where the protocol lives — it is the command layer that
+drives it. `grep -E '290[0-3]h' dfd.asm` returns **nothing**: DFD.SPR never
+touches the PIA. DCL.COM holds all 22 PIA references. DFD.SPR's only port access
+is a single `OUT (0F1h),A` at `0x0803`, still unexplained (`F1h` is not a PIA
+address; likely the double-density board or a status port).
 
 So the split is **DCL.COM = transport + installer**, **DFD.SPR = the command layer
 that drives it** (its own command table is DIR/ERA/HELP/REN/SAVE/TYPE/USER). How
-DFD.SPR reaches the transport is still the one thing missing from the command
-layer (see §10), because it makes no direct PIA references — so it must be a
-patched vector or a relocation DCL performs at install time.
+DFD.SPR reaches the transport is not established — it makes no direct PIA
+references, so it must be a patched vector or a relocation DCL performs at install
+time. That is a curiosity about the CCP rather than an item a replacement needs
+(§10 item 4, [`docs/drive-c-executive.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-executive.md) §4).
+
 ### DFD.SPR's layout, and why the committed listing misleads (#6)
 
 [`research/drive_c/disasm/dfd.asm`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/disasm/dfd.asm) is a `z80dasm` linear sweep from `0x100` over the
@@ -564,8 +569,9 @@ header/jump area and the command table:
 Because the sweep starts at `0x100` and walks straight through those zero blocks,
 its `call sub_01aah` / `sub_01b1h` / `sub_01f5h` / `sub_020fh` … targets all land
 **inside the zeros** and are spurious — they are not entry points. So the
-command layer cannot be read off this listing; it needs a disassembly that starts
-at the code region and treats the zero blocks as data (§10).
+command layer cannot be read off this listing; reading it would need a disassembly
+that starts at the code region and treats the zero blocks as data, and nothing in
+#84 requires that (§10 item 4).
 
 What *is* established from the bytes:
 

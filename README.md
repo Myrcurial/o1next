@@ -3,6 +3,10 @@
 > Rebuilding, upgrading, and eventually recreating the Osborne 1 — research,
 > hardware, and the story of how this project began.
 
+A general-purpose Z80 bus interposer for the Osborne 1, built around the RP2354B,
+plus the research and reverse-engineering work it enables — and, downstream, a
+modern-parts Osborne 1 reproduction (the "O1NEXT").
+
 ## The boards
 
 **The shortform is the board's name** — its folder, its site URL and its board id
@@ -23,12 +27,6 @@ screen, a battery pack and a keyboard — **hardware, but not a board**: chassis
 print STLs, an assembly BOM and its own QMK / Cherry-MX keyboard, all in
 `hardware/o1next-complete/`. An LFF 1:1 mainboard is *possible* if a chassis ever
 needs restoring, and is not planned.
-
-
-A general-purpose Z80 bus interposer for the Osborne 1, built around the
-RP2354B, plus the research and
-reverse-engineering work it enables — and, downstream, a modern-parts
-Osborne 1 reproduction (the "O1NEXT").
 
 ## What it does
 

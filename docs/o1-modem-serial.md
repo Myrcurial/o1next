@@ -1,8 +1,33 @@
 # Osborne 1 MODEM (P1) and RS-232 (P2) serial interfaces
 
+**Status: Solved.** Both connectors and their signals are read from the
+Technical Manual's own §4.2/§4.3 tables and confirmed against schematic sheet 7,
+which carries the DE-9P pin numbers through to the on-board P1 header unchanged.
+Two things are still open, both named in place below: the **physical
+orientation** of the 2×5 P1 header on the board, and which part the **RXD
+receiver** is.
+
+**P1 is the MODEM port — a DE-9P at TTL levels, not RS-232**, which is what makes
+it the clean attachment point for a modern serial device: `TXD` and `MCB` are
+5 V TTL, `RXD` is a bipolar input (negative for mark), `MSB` is an
+open-collector modem-status bit, `CTS` is the only hardware flow-control line,
+`RI` is the ring indicator, and **pin 7 is a real +12 V supply** — the Astec
+rail is rated `2.02 A`, and pin 7 reaches it **through `R21` (22 Ω)**, a resistor
+the keyboard branch shares. **P2 is the
+RS-232 port — a DB-25S wired as RS-232C-compatible DTE**, with `CB`, `CC` and
+`CF` held at +5 V because the machine does not use them. Both connectors are the
+same **6850 ACIA**, at status `2A00H` / data `2A01H`.
+
+The rest of the document is the pinout evidence (§4.2, §4.3 and the
+schematic-confirmed P1 header), the design notes the WiFi modem (#56) has to
+satisfy, the baud-rate options the archive documents (#21), and the 6850's
+framing byte in the BIOS.
+
 Source: Osborne 1 Technical Manual, ch. 4 "Osborne 1 Interface Design" —
 §4.2 SERIAL RS232 INTERFACE, §4.3 MODEM — archived in-repo at
-`research/osborne1/modem/o1techman-interface-extract.pdf` (manual pages 17–19).
+`research/osborne1/modem/o1techman-interface-extract.pdf` (printed pages 13–22),
+with schematic sheet 7 of `research/osborne1/OCC1_1A2011-00_Schem_RevE.pdf` for
+the on-board header.
 
 This is the authoritative connector/pinout reference for the WiFi-modem work
 (#21, extended by #56) and for the severable modem module (#56 §E / COMM PAC
@@ -68,7 +93,7 @@ Read/write it via the CP/M `IOBYTE` function, same as the serial port.
 | 4 | MSB | Modem status bit — open collector, 50 µA sink = inactive |
 | 5 | CTS | Clear to send |
 | 6 | RXD | Receive data — **bipolar input, −0.5 V…−10 V = 1** |
-| 7 | +12 V | **+12.6 V DC**, direct from the supply (`2.02 A` rail); the Comm-Pac manual labels it `VDD` |
+| 7 | +12 V | **+12.6 V DC** from the `2.02 A` rail, **through `R21` (22 Ω)**; the Comm-Pac manual labels it `VDD` |
 | 8 | MCB | Modem control bit — TTL, **low suppresses output** |
 | 9 | RI | Ring indicator — TTL, high-to-low sets flag |
 
@@ -85,19 +110,27 @@ Read/write it via the CP/M `IOBYTE` function, same as the serial port.
   **negative** for a clean mark. A MAX3232 on 3.3 V (its own charge pump, ±5.5 V)
   is the cheap answer, and the negative swing still wants confirming on real
   hardware — see the open item below.
-  The receiver's part number is read differently in two places —
-  `docs/o1-mainboard-schematic.md` sheet 10 lists **UE3 as a 1489** and three
-  **LM3900** comparators at UD4, while an earlier pass here identified UE3 as an
-  **LM1458**. It does not change the requirement (negative for mark), but it
-  changes the input impedance, so re-read that region at native resolution before
-  fixing the drive current.
-- **+12 V on pin 7 is *not* behind the 22 Ω.** Reading sheet 7 at 600 dpi:
-  `R21 = 22 Ω` sits between the `+12V` net and **`J6 → P4-19`**, the *keyboard*
-  branch. P1 pin 7 is drawn on the `+12V` net with **no series part**. The Astec
-  supply is rated `+12 V @ 2.02 A` (11.40–12.60 V), so the port is a real power
-  source: the original Comm-Pac drew **~500 mA at 12 V** from it, and the modern
-  module a small fraction of that. The keyboard adapter (#47) has its **own** 22 Ω
-  and does not share a budget with this port.
+  The receiver's part number is **open**: `docs/o1-mainboard-schematic.md` sheet
+  10 lists **UE3 as a 1489** with three **LM3900** comparators at UD4, while a
+  pin-level read of the same region returned **UE3 as an LM1458**. It does not
+  change the requirement (negative for mark), but it changes the input impedance,
+  so re-read that region at native resolution before fixing the drive current.
+- **P1 pin 7 is the `+12V` net through `R21` (22 Ω), and that resistor is the limit
+  on this port.** The Technical Manual's §4.3.2 table says it in words —
+  "Connected to power supply through 22 ohms" — and sheet 7 shows the
+  arrangement: `R21` hangs off the `+12V` rail and its lower end is a junction
+  that feeds **both** this port's pin 7 and **`J6 → P4-19`**, the keyboard branch.
+  The two loads therefore **share** one 22 Ω resistor.
+
+  **A 22 Ω feed is a hard current limit, so this is a low-current supply.** At
+  500 mA it would drop 11 V, which no 12 V rail survives; at 100 mA the drop is
+  2.2 V and about 10 V reaches the load. A period Bell-103 modem with its own DAA
+  draws tens of mA, which is what makes a 22 Ω feed possible at all — and the
+  Comm-Pac's own manual quotes **no** supply current anywhere (its specification
+  page gives the modulation, the carrier frequencies and the line levels, and
+  nothing about current). So the port's budget is the one #56 already assumes:
+  small, and shared with the keyboard adapter. The eleven-lamp panel is sized at
+  2–3 mA per lamp for exactly this reason.
 - **MSB (pin 4) is open-collector** and **MCB (pin 8) low suppresses output** —
   together these are the modem's "hook"/enable handshake. RI (pin 9) falling
   edge sets the ring flag; the ESP32 can drive it to signal an incoming
@@ -115,7 +148,7 @@ on-board P1 header:
 |---|---|---|---|
 | 1 | GND | 2 | TXDATA |
 | 4 | MSB | 5 | CTS |
-| 7 | +12V (via **R21 22Ω**) | 6 | RXDATA |
+| 7 | +12V via R21 22Ω — see *Design notes for #56* | 6 | RXDATA |
 | 8 | MCB | 9 | RI |
 | 3 | (NC) | | |
 

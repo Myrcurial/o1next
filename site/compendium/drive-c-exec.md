@@ -5,12 +5,21 @@ subtitle: "Peripherals and storage"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Status:** Read, compared and archived. The Executive manual turns out to be a
-**direct port** of the Osborne 1 manual we already held, and the diff is small
-enough to state exactly. It resolves several items `drive-c-protocol.md` §10 had
-listed as open — most importantly by showing that §10's `DFD.SPR` item was the
-wrong question (§4) — and it confirms that the *hardware* is a single design for
-both machines (§1).
+**Status: Solved.** The Executive manual is a direct port of the Osborne 1 one and
+the hardware is one design for both machines; the Executive's own loader software
+(`ECL`/`ECN`/`ECU`) is not in the archive.
+
+The **Executive Drive C** is the same box as the Osborne 1's Drive C — same
+hardware, same IEEE-488 contract — sold against a different host. The Executive
+runs CP/M+, so its software set is `ECL`/`ECN`/`ECU` in place of `DCL`/`DCN`/`DCU`
+and there is **no `DFD.SPR`** to substitute for a CCP (§2, §4). The manual settles
+four things: the mechanical, electrical and performance appendices are word for
+word the same, apart from the connector the unit draws power from and a 0.1 s
+better load time (§1); the CP/M parameter table carries the same numbers, which
+reconciles the two books' different "useful capacity" figures (§3); `DFD.SPR` is
+a replacement CCP rather than the transport, which is why the Executive needs none
+(§4); and the product's own printer-cable appendix corroborates the P3 pinout we
+transcribed from the Technical Manual, line for line (§6).
 
 **Source:** [`research/drive_c/Drive_C_Executive_Users_Manual.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Executive_Users_Manual.pdf), OCR layer at
 `Drive_C_Executive_Users_Manual.ocr.txt`. Drive C:, 1690 65th Street, Emeryville
@@ -19,17 +28,17 @@ venture*. 111 pages, image-only scan, OCR'd at 300 dpi per the
 [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) convention. The Osborne 1 manual already in the archive is
 `Drive_C_Users_Manual.pdf` — **second edition, June 1984**, same publisher.
 
-**Provenance** (recorded 2026-10-11, closing the open item in
-[`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md)): supplied by **Jim Rayburn** from a private Facebook
-group, posted 2024-01-06 — two posts,
+**Provenance:** supplied by **Jim Rayburn** from a private Facebook group, posted
+2024-01-06 — two posts,
 [.../2063148960719887](https://www.facebook.com/groups/690000664701397/posts/2063148960719887/)
 and
-[.../2023247321376718](https://www.facebook.com/groups/690000664701397/posts/2023247321376718/).
+[.../2023247321376718](https://www.facebook.com/groups/690000664701397/posts/2023247321376718/);
+recorded in [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md).
 
-One bibliographic note worth recording: the cover is stamped **PRELIMINARY**,
-while every running header in the body reads "(final draft)". The PDF is a
-draft/review copy, not a production print. Its *content* is nevertheless
-complete — the appendices are all present and internally consistent (§3).
+**Bibliographic note:** the cover is stamped **PRELIMINARY**, while every running
+header in the body reads "(final draft)" — so the PDF is a draft/review copy, not
+a production print. Its *content* is complete: the appendices are all present and
+internally consistent (§3).
 
 ## 1. The headline: the hardware is one design
 
@@ -105,13 +114,21 @@ PARAMETERS") carry the same table, with the same numbers:
 
 | Parameter | 192K unit | 384K unit | TurboPac |
 |---|---|---|---|
+| Useful storage capacity | 190 KB | 380 KB | 10, 20 or 33 MB |
 | Block size | 1K | **2K** | 8K (modifiable) |
 | Directory entries | 64 | **128** | 512 per logical drive |
 | Directory space | 2048 B | **4096 B** | 16384 B per drive |
 | Logical sectors | 1536 | 3072 | varies |
-| Reserved tracks | 0 | 6 | 12 |
-| Logical sectors / track | 2 | 32 | — |
-| Bytes per sector | 128 | 256 | — |
+| Reserved tracks | **0** | **0** | 612, landing area |
+| Logical sectors / track | **2** | **2** | 32 |
+| Bytes per sector | **128** | **128** | 256 |
+
+The three rows from *Reserved tracks* down are printed **once, centred across the
+two RAM-disk columns** — the 192K and 384K units share them — while the TurboPac
+column carries its own values. The OCR loses that alignment; read column-wise it
+would put 32 sectors per track and 256-byte sectors on the 384K unit, which the
+DPB `DCL.COM` installs refutes (`SPT = 2`, 128-byte records,
+[`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §8.1).
 
 **The 384K column is our reverse-engineered DPB, field for field.** Block size
 2K is `BSH = 4`; 128 directory entries is `DRM = 127`; 4096 bytes of directory
@@ -135,16 +152,14 @@ Osborne 1 needs and the Executive does not* — which is a neat independent
 confirmation of §4.
 
 
-## 4. `DFD.SPR` — what it is, and why §10's item 4 was the wrong question
+## 4. `DFD.SPR` is a replacement CCP, not the transport
 
-`drive-c-protocol.md` §10 item 4 asked for a code-aware disassembly of
-`DFD.SPR`, framing it as "the resident command layer" that calls the transport.
-**That framing was the error, and the document half-knew it already**: its own
-appendix table quotes the vendor describing `DFD.SPR` as "**a substitute console
-command processor (CCP)**" that is "**automatically loaded**", and the
-[`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) row for the *FOGHORN* review says the same. But §10 item 4
-was written as though the transport lived there, so the two statements sat
-unreconciled.
+`DFD.SPR` is a **substitute console command processor** — a CP/M program that CP/M
+reloads on every warm boot in place of the Osborne 1's `CCP.COM`. It is not the
+transport and it is not device firmware: the transport is `DCL.COM`'s
+([`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §3). The Osborne 1 manual's software appendix says so
+in the vendor's own words, and the [`research/README.md`](https://github.com/Myrcurial/o1next/blob/main/research/README.md) row for the *FOGHORN*
+review says the same.
 
 The Osborne 1 manual settles it, in the vendor's own words and in more detail
 than the review had:
@@ -158,9 +173,9 @@ than the review had:
 
 So the picture is:
 
-- **`DCL.COM` is the loader and carries the transport** — this we had right. It
-  announces itself as `DRIVEC version 2.08`, carries `DCN version 2.07` inside
-  it, and creates `DCN.COM` on the unit when it runs.
+- **`DCL.COM` is the loader and carries the transport.** It announces itself as
+  `DRIVEC version 2.08`, carries `DCN version 2.07` inside it, and creates
+  `DCN.COM` on the unit when it runs.
 - **`DFD.SPR` is the command processor** that CP/M reloads on every warm boot in
   place of `CCP.COM`. It is a *CP/M program*, not device firmware — which is
   exactly why its committed listing "sweeps through zero blocks": it is a CCP
@@ -177,12 +192,11 @@ no counterpart there. That is the whole reason the Executive variant is 4K
 lighter on the unit and uses 384 fewer bytes of TPA without a print buffer
 (768 vs 1152), and 1390 fewer with one (786 vs 2176).
 
-**What this changes for #84.** It *removes* an item from the work list rather
-than adding one. A replacement does not need to reimplement `DFD.SPR`: it
-inherits it. The CCP that ships with the product already talks to whatever
-driver is installed, so a box that satisfies `drive-c-protocol.md` §7 gets the
-command layer for free. The disassembly we were going to do would have
-characterised a CCP, not a device.
+**What this changes for #84.** A replacement does not need to reimplement
+`DFD.SPR`: it inherits it. The CCP that ships with the product already talks to
+whatever driver is installed, so a box that satisfies `drive-c-protocol.md` §7
+gets the command layer for free, and no disassembly of `DFD.SPR` is needed —
+[`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §10 item 4 records that.
 
 ## 5. The disk and RAM budget, from the manuals
 
@@ -262,7 +276,7 @@ Four things this buys us:
   `NRFD` harmless as well as `NDAC` — a constraint for
   [`docs/drive-c-design.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-design.md) §2.3.
 
-**One discrepancy, recorded rather than smoothed over:** our P3 table has pin 10
+**One discrepancy between the two tables.** Our P3 table has pin 10
 as `REN` (`CB2`), while the Drive C's cable table lists pin 10 as **ground**
 (tied to Centronics pin 30). Either the Drive C's cable grounds a line it does
 not need, or the two connectors are not bit-identical on that pin. It does not
@@ -297,9 +311,8 @@ Worth listing, because absence is evidence about how the product was maintained:
 same box with a different loader, and the contract in [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md)
 is the contract for both. The reproduction target does not change.
 
-**It removes work rather than adding it.** The `DFD.SPR` disassembly that
-`drive-c-protocol.md` §10 item 4 was carrying is no longer needed: `DFD.SPR` is
-a CCP, it ships with the product, and a replacement inherits it (§4).
+**It removes work rather than adding it.** `DFD.SPR` is a CCP, it ships with the
+product, and a replacement inherits it — so no disassembly of it is needed (§4).
 
 **It closes the fixed-print-buffer question.** A fixed buffer is carved out of
 the unit's RAM disk, and the manuals give the budget table (§5). The 384K
@@ -339,8 +352,8 @@ rather than unknowns in [`docs/drive-c-design.md`](https://github.com/Myrcurial/
   Owner-supplied local file, 2026-10-11; source URL not yet recorded.
 - [`research/drive_c/Drive_C_Users_Manual.pdf`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/Drive_C_Users_Manual.pdf) and `…ocr.txt` — the Osborne 1
   manual, second edition June 1984. The source of §4, §5 and most of §3.
-- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §5 (the frame), §8 (the DPB and the ceiling), §10
-  (open questions this closes or leaves).
+- [`docs/drive-c-protocol.md`](https://github.com/Myrcurial/o1next/blob/main/docs/drive-c-protocol.md) §3 (the frame), §8 (the DPB and the ceiling), §10
+  (what is still open).
 - [`docs/o1-ieee488-port.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-ieee488-port.md) §6/§6.2 — the P3 pinout §6 corroborates.
 - [`research/drive_c/extracted/dcl.com`](https://github.com/Myrcurial/o1next/blob/main/research/drive_c/extracted/dcl.com) — `DRIVEC version 2.08`, `DCN version
   2.07`, and the `DFD     SPR` / `DCN     COM` / `DCU     COM` name literals

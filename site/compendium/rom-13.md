@@ -5,10 +5,16 @@ subtitle: "The machine · partially solved"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Issue:** #205. **Status:** the source is **extracted, indexed and readable**;
-the ROM is **reconstructible but not yet certified**, and the blocker is a
-*missing assembler*, not the source. Everything needed to finish it is in this
-repo or named below.
+**Status: Partially solved.** The disk is read
+and the source is **extracted, indexed and readable**. What is *verified*: the
+`DBE`/`DCE` rule, and a rev-B control build that reproduces a shipped Osborne ROM
+to 3759 of its 4096 bytes. What is **not**: the 1.3 image itself, which is
+reconstructible but **not certified**, and must not be handed upstream as the real
+ROM. Two things stand in the way and both are *tooling*, not knowledge: the 1.3
+source uses the `DBE`/`DCE` pseudo-ops, which only ACT **3.5E** has, and every
+build loses 337 bytes of its hex output to an emulation defect (§7). Everything
+needed to finish it is in this repo or named below, and the recommendation is to
+record the result and stop (§10). **Issues:** #205, #72, #70, #203.
 
 > **Vocabulary:** `rev B` here is the **Osborne 1's monitor ROM** (9/12/81) — a
 > 1979-era ROM part, **not a board revision**. Board revisions belong to the
@@ -23,8 +29,8 @@ trying to turn it into the missing `osb13.bin`.
 ## The answer, up front
 
 1. **The disk reads, and the source is complete.** `OSROM13.IMD` is an
-   **8-inch** disk, not an Osborne 1 5.25" one, and it had never been read
-   because nothing in the tree could describe it. It yields 19 files —
+   **8-inch** disk, not an Osborne 1 5.25" one, which is why no earlier reader in
+   the tree could describe it. It yields 19 files —
    `OCCROM0..9.ASM` (the monitor ROM, split into modules) and `OCCBIO0..8.ASM`
    (the CBIOS) — all of them clean text that starts with a `TITLE` and ends
    with `; END OCCROMn?.???`. They are committed at
@@ -40,9 +46,10 @@ trying to turn it into the missing `osb13.bin`.
    and comparing the two gives one rule holding over every line. See below.
 4. **A 1.3 image can be produced** — [`tools/research/rom13-reassemble.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/research/rom13-reassemble.sh) does
    it, by rewriting `DBE`/`DCE` into `DB` so ACT 3.0 emits the same bytes — but
-   **it is not certified**, and it must not be handed upstream as the real
-   1.3 until the control build passes. That is stated plainly below rather
-   than glossed.
+   **it is not certified**: three errors in the 1.3 build are still
+   unidentified, and 337 bytes of every build's hex output are lost before they
+   reach the disk. It must not be handed upstream as the real 1.3 until the
+   control build passes. §6.
 5. **The hex output arrives damaged at about six fixed *file offsets* per
    build** — identically on a double-density disk and on a single-density one,
    and on drive A or drive B — so it is not the disk layer. §7.
@@ -148,13 +155,13 @@ fatal and abandons the assembly. The 1.44-era systext (`SVER = 14`) has
 line was on its way out; the revision contemporary with 12/16/81 is not in the
 archive.
 
-`rom13-reassemble.sh` therefore disables that one line of the systext.
-**`CCP` is not referenced by any ROM source line** (it appears only in the
-master's own definition and in comments), so the change cannot move a byte of
-object code — and the rev-B control build, whose master does *not* define
-`CCP`, needs no such change and passes the same way.
-
-   tooling hazard and it is recorded in §7.
+`rom13-reassemble.sh` therefore disables that one line in its *copy* of the
+systext, leaving the source alone. **`CCP` is not referenced by any ROM source
+line** (it appears only in the master's own definition and in comments), so the
+change cannot move a byte of object code — and the rev-B control build, whose
+master does *not* define `CCP`, needs no such change and passes the same way.
+The edit lives in the script rather than in a source file, and the tooling
+hazards that surround the build are in §7.
 
 ## 4. Obstacle two: `DBE`/`DCE` are ACT 3.5E only
 
@@ -205,7 +212,7 @@ escape `rom144.asm` documents is not exercised here.
 statements whose operands are the same expressions multiplied by two, leaving
 ACT to evaluate `cr`, `lf` and the rest itself, and keeping the original
 statement as a trailing comment so the result is auditable. Two things the
-first cut got wrong, both silent, both now handled: the CP/M source is **CRLF**
+translation has to get right, and both fail silently: the CP/M source is **CRLF**
 (emit bare LF and the source text lands in the hex file as object code), and
 `!` is ACT's **statement separator** while ACT's local labels are `:name:`
 with a leading colon.
@@ -228,13 +235,13 @@ The check that matters is the rev-B control build: build rev B from
 `OCCROM.IMD` with the same translated source and the same ACT 3.0, and compare
 against the `OCCROM0B.COM` that shipped on that very disk.
 
-**The assembler half of that now passes, and it took a bug in `actdbe.py` to
-get there.** The first translation emitted the literal text `None` as a label
-on every unlabelled `DBE`/`DCE` statement — an unmatched optional group in the
-label regex, formatted straight into the output. ACT then defined a symbol
-called `None` over and over: 25 errors in the 1.3 build, and in the rev-B build
-a `LWA` of `0FAAh` against the shipped listing's `0FC6h`, with labels late in
-the ROM resolving 28 bytes low. Fixing it (`label or ''`) gives, for rev B:
+**The assembler half of that passes.** One `actdbe.py` defect had to be fixed
+first: an unmatched optional group in the label regex emitted the literal text
+`None` as a label on every unlabelled `DBE`/`DCE` statement, so ACT defined a
+symbol called `None` over and over — 25 errors in the 1.3 build, and in the
+rev-B build an `LWA` of `0FAAh` against the shipped listing's `0FC6h`, with
+labels late in the ROM resolving 28 bytes low. With the regex fixed
+(`label or ''`), rev B gives:
 
 ```
         'LENGTH OF THIS ROM IS = 0FC6'
@@ -291,16 +298,16 @@ gives its own sign-on and prompt:
  INSERT DISK IN DRIVE LAM AND PRESS RETURN.
 ```
 
-That is a boot, and it is worth noting that the banner matches the rev-B
-source's own `;VER = REV B` / `;DATE = 227`. (The stray `L`s are the ROM's
+That is a boot, and the banner matches the rev-B source's own `;VER = REV B` /
+`;DATE = 227`. (The stray `L`s are the ROM's
 `DB ESC,'L'` / `DB ESC,'M'` video escapes printing literally; rev B escapes with
 `ESC`+letter where 1.3 and 1.44 use single control bytes, and MAME's `osborne1`
 video model does not decode the older form. Unexplained beyond that, and it is
 recorded rather than guessed at.)
 
 Booting **our built 1.3 image** the same way gives a full screen of block
-glyphs and no banner. **So the 1.3 image fails its own pass/fail**, which is
-what the issue asks for and is now on the record — and the failure is
+glyphs and no banner. **So the 1.3 image fails its own pass/fail** — the check
+#205 asks for, and it fails it — and the failure is
 consistent with the two defects above rather than with anything about the
 source.
 
@@ -373,11 +380,11 @@ wrong when they are handed to the emulated controller. It is the same class as
 seen there — but this is six records, and their content is not FF, so that
 recovery does not apply.
 
-### 7.1 What #247 measured, and what it changes (2026-10-15)
+### 7.1 What the ROM 2.0 build measured about the same damage
 
-The ROM 2.0 build hit this again, in the `C0 DE` shape `acthex.py` names, and the
-measurements narrow it further — because they rule out the disk, the drive and the
-host's speed, and leave the *build's own byte stream*:
+The ROM 2.0 build (#247) hit this again, in the `C0 DE` shape `acthex.py` names,
+and those measurements narrow it further: they rule out the disk, the drive and
+the host's speed, and leave the *build's own byte stream*:
 
 - the damaged bytes are in the **raw image the emulator wrote back**, not in the
   read path: `imdinfo.py` fills an *unavailable* sector with `E5`, and these runs
@@ -386,8 +393,8 @@ host's speed, and leave the *build's own byte stream*:
   damaged with `ACT80 B:ROM2 H=B:` and with `ACT80 B:ROM2 H=A:` — a different
   disk, a different allocation, the same `C0 DE` at the same record;
 - **throttling changes nothing.** Five `-nothrottle` runs and one run at the
-  machine's real speed (`O1_MAME_EXTRA=`) produced byte-identical damage — which is
-  the doc's old finding, re-measured;
+  machine's real speed (`O1_MAME_EXTRA=`) produced byte-identical damage — the
+  same result §7's five measurements give for the 1.3 build;
 - what *did* change it was the source. The preceding build of the same code — with
   two bytes of inline prose in `rom2.diff` that emit nothing — had **no** damaged
   records at all, and moving that prose out of the diff's code lines (so the
