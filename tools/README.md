@@ -373,7 +373,7 @@ harness is reproducible without hunting for dumps:
   Despite the name they are **not blank**: each is a double-density CP/M 2.2
   system disk (CBIOS 1.4, MBASIC, SYSGEN, PIP, SETUP, XDIR, XREF …), and the
   three differ by exactly two bytes in the boot area. All three boot on all
-  three machines — see the correction above.
+  three machines — the prefix is a label, not a driver (see the rule above).
 
 The ROMs duplicate `research/roms/` deliberately: `research/` is the
 provenance-tracked archive, this directory is a working rompath. If the two
