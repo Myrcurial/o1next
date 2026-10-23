@@ -166,6 +166,40 @@ if ! python3 "$REPO/tools/research/md10table.py" "$DEST/assets/hd.chd" 2>/dev/nu
 fi
 
 
+# --- the software on it ------------------------------------------------------
+# A drive with nothing on it is not a machine you can test with (#262), so the
+# staged drive gets its contents here -- the FOG selection, written into the
+# partitions by tools/research/populate-hd.py.  `O1_HD_CONTENTS=0` stages the
+# bare drive instead; a missing staging tree is a warning, not a failure.
+if [ "${O1_HD_CONTENTS:-1}" = 1 ]; then
+    TREE="${O1_HD_TREE:-$STAGE_ROOT/hd}"
+    CHDMAN="${O1_CHDMAN:-}"
+    if [ -z "$CHDMAN" ]; then
+        for cand in "$HOME/scratch/mame-mame0289/chdman"                     "$HOME/scratch/mame-verify/mame-mame0289/chdman"; do
+            if [ -x "$cand" ]; then CHDMAN="$cand"; break; fi
+        done
+    fi
+    if [ ! -d "$TREE" ]; then
+        echo
+        echo "stage-o1next.sh: no staging tree at $TREE, so the drive is bare."
+        echo "  Build it with:  tools/research/populate-hd.py --stage"
+    elif [ -z "$CHDMAN" ] || [ ! -x "$CHDMAN" ]; then
+        echo
+        echo "stage-o1next.sh: no chdman, so the drive cannot be unpacked and"
+        echo "  repacked -- it is bare.  Set O1_CHDMAN."
+    else
+        echo
+        echo "writing the software into the drive (populate-hd.py)"
+        "$CHDMAN" extracthd -i "$DEST/assets/hd.chd" -o "$WORK/hd-staged.raw" -f >/dev/null
+        python3 "$REPO/tools/research/populate-hd.py" --write "$WORK/hd-staged.raw"             --stage-dir "$TREE" | tail -3
+        "$CHDMAN" createhd -i "$WORK/hd-staged.raw" -o "$DEST/assets/hd.chd.new"             -c none -chs 1200,8,18 -ss 512 -f >/dev/null
+        mv "$DEST/assets/hd.chd.new" "$DEST/assets/hd.chd"
+        rm -f "$WORK/hd-staged.raw"
+        echo "  the drive is populated; INDEX.TXT in every logical drive"
+    fi
+fi
+
+
 # --- the pico ---------------------------------------------------------------
 # The firmware the bridge holds.  picoem-smoke is the one built here today; the
 # ACB-4000 personality is what belongs in it once #179/#293 land, and swapping it
