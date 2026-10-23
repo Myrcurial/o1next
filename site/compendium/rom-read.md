@@ -5,14 +5,14 @@ subtitle: "The machine · reference"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
-**Issues:** #205, #70. **Status: Partially solved.** The *identification* is
+**Status: Partially solved.** The *identification* is
 settled and needs no tool: the upper line of the sign-on is framed by the
 underline escape and survives a faulty dim bit, so a machine's ROM revision is
 readable off the screen (§1), and `^D` at the boot prompt separates the early
 ROMs from the 1.40-and-later ones (§1a). The *copy* is written down to the byte
 (§2, §4) but has not been run end to end, and the machine this was written for
 is out of play (§7a), so there is at present no hardware route to any `NO_DUMP`
-slot.
+slot. **Issues:** #205, #70.
 
 MAME carries BIOS A, 1.2, 1.2.1 and 1.3 as `NO_DUMP`, and the one thing that
 would settle 1.3 is a **dump from a machine that has one**. This is the procedure

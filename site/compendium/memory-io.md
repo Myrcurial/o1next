@@ -378,9 +378,11 @@ Consequences for an interposer:
 - The bank state **cannot be latched and assumed** — it has to be sampled per
   bus cycle, and a bank-2 I/O access is only meaningful while the CPU is
   actually running with bank 2 selected.
-- At the idle `A>` prompt the machine is parked in a ROM polling loop with
-  **bank 2 live**, which is why a peek at `0x0000` during CP/M returns ROM
-  bytes, not CP/M's page zero.
+- At the idle `A>` prompt the machine is parked in the ROM polling loop with
+  **bank 2 live**, so the live bank depends on what is running. That does not make
+  the ROM readable *from CP/M*: a program in the TPA runs in bank 1 with the ROM
+  banked out, which is why `OUT (0)` is needed to select it and why `DUMP`/`DDT`
+  return nothing useful ([`docs/o1-rom-read-from-machine.md`](https://github.com/Myrcurial/o1next/blob/main/docs/o1-rom-read-from-machine.md) §2).
 
 ## 5. Interrupts
 

@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Prior art: Z80 bus interposers"
-subtitle: "The project"
+subtitle: "The project · partially solved"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
@@ -391,9 +391,8 @@ What that leaves, and it is not nothing:
   contact details for exactly this, including commercial licensing. If any part
   of it turns out to be worth more than the idea, the route is a message — and
   this repository should record the answer either way.
-- **Put the licence in the entry, and check it before writing "copyable".** Two of
-  this survey's reuse claims did not survive that check, and one of them was wrong:
-  a part number is a fact and travels; a design file is expression and does not.
+- **Put the licence in the entry, and check it before writing "copyable".** A part
+  number is a fact and travels; a design file is expression and does not.
 
 ### Open question for the maintainer
 

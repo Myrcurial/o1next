@@ -371,8 +371,8 @@ that the manual only implies:
 
 The disk is whole. Its ~291 sectors of uniform `0xE5` are the **format fill** a
 CP/M formatter writes across a disk — **free blocks, not holes** — and the
-arithmetic agrees: twenty files totalling ~22 KB plus a 64-entry directory and
-three system tracks is ~110 sectors of the 400, exactly the sectors that are not
+arithmetic agrees to within a track: twenty files totalling ~22 KB, plus the
+directory and the system tracks, is ~110 sectors of the 400, which is what is not
 `0xE5`. Re-extracted with the correct geometry, **all twenty files are whole**:
 no file holds an interior run of `0xE5` longer than a handful of bytes (those are
 ordinary data bytes), and every size matches the directory. `READ.ME` is complete

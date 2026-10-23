@@ -225,7 +225,7 @@ prefix. The prefix is a useful human label — keep using it — but do not rely
 it to decide the driver. [`tools/check_o1_map.sh`](https://github.com/Myrcurial/o1next/blob/main/tools/check_o1_map.sh) still derives the driver from it
 (`52-` → `osborne1`, `104-` → `osborne1sp`, `80-` → `osborne1nv`), warns when it
 selects anything but the stock machine, and takes `O1_MACHINE` as an override;
-[`tools/README.md`](https://github.com/Myrcurial/o1next/blob/main/tools/README.md) states the same rule. That inference is §7 item 2.
+[`tools/README.md`](https://github.com/Myrcurial/o1next/blob/main/tools/README.md) states the same rule. That inference is §7 item 1.
 
 ### What the `-blank.imd` disks actually are
 

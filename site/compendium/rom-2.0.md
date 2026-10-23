@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "ROM 2.0: CP/M resident in the ROM"
-subtitle: "The machine · design"
+subtitle: "The machine · partially solved"
 draft: "Draft &mdash; assembled from the working notes by `tools/build_book.py`. The source document is the authority; this page is a copy for reading, and it is regenerated from that source."
 ---
 
