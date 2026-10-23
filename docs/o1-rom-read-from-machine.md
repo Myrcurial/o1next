@@ -257,13 +257,16 @@ already held (`docs/o1-rom-variants.md`), so there is at present **no hardware
 route to any `NO_DUMP` slot** — §1a and §4 are procedures waiting on a machine,
 not instructions for one.
 
-One repository fact belongs with it: **the tree holds no power-supply
-material.** The Osborne 1 Technical Manual in-repo
-(`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`) has only
-**§1.2 "Power On"** — two pages of power-up procedure, no supply theory and no
-schematic. The only mention of the PSU anywhere in the tree is a design note in
-`docs/design/o1next-lunchbox-concept.svg` recording that the original supply "and
-its RIFA caps" are retired in that concept.
+One repository fact belongs with it. The tree holds the supply's **repair manual** —
+`research/osborne1/o1astecpsac8151.pdf`, the *Repair Manual for Astec Power Supply
+AC8151*, with the test set-up, the 115/230 V input-select wire and the +5/+12/−12
+rail table (#52; a row in `research/README.md`) — but **no supply schematic and no
+board-level view**, and the Technical Manual in-repo
+(`research/osborne1/2F00153-01_Osborne1TechnicalManual_1982.pdf`) carries only
+**§1.2 "Power On"**, two pages of procedure. What is missing is exactly what a
+photograph of the board would supply. The one design note is
+`docs/design/o1next-lunchbox-concept.svg`, which records that the original supply
+"and its RIFA caps" are retired in that concept.
 
 ## 8. What the result would settle
 
