@@ -257,7 +257,13 @@ That gives you the machine this project is for:
 - **ROM 2.0** in the window (\`assets/rom2.rom\`) -- press **RETURN** at the sign-on
   and it boots the hard disk with **no floppy in either drive**;
 - **the MD-10 drive** (\`assets/hd.chd\`): 11 partitions of 15706 blocks, the
-  maximized layout, so \`A0>\` through \`K0>\`;
+  maximized layout, so \`A0>\` through \`K0>\` -- and **software on it**: the FOG
+  selection from #262, sorted into topical buckets (A utilities, B comms --
+  \`MDM740.COM\` is there -- C word, D data, E languages, F disk, G print, H games,
+  J the rest), with an \`INDEX.TXT\` in every drive.  \`DIR B:\` to find the modem
+  program, or \`TYPE INDEX.TXT\` for the whole list.  Regenerate the contents with
+  \`tools/research/populate-hd.py\` (\`--stage\` then \`--write\`); the staging tree
+  is \`~/Documents/O1NEXT/hd\` and it is editable;
 - **104 columns** on the same tube the stock machine uses -- the SCREEN-PAC's
   doubled dot clock, not a wider window (\`docs/osborne1nx-machine.md\` 8);
 - **the serial port on a pty**, printed at launch, with the relay ready for a
