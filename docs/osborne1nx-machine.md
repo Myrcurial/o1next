@@ -316,7 +316,7 @@ repo's own `tools/research/mame-boot-probe.sh`.
 |---|---|
 | boots the **1.44 ROM** and a bootable disk | **yes** — `BANNER: true`, `A>`, `RESULT: BOOTED` |
 | banking **unchanged** from `osborne1` | **yes** — the boot probe's output on `OS1UTLS.IMD` is byte-identical to `osborne1`'s, `diff` clean |
-| the **video** is the SCREEN-PAC's | **yes** — `832x240` = 104 columns at reset against `osborne1`'s `416x240` = 52, with the screen's *text* identical; `2400h` reads bit 2 LOW (fitted) where the stock machine reads `FFh` (§8) |
+| the **video** is the SCREEN-PAC's | **yes** — `416x240` on both machines, with the sign-on's ink at half the extent (104 columns at half pitch); `2400h` reads bit 2 LOW (fitted) where the stock machine reads `FFh` (§8) |
 | the mainboard's 2-bit decode survives | **yes** — `00h`–`03h` bank-switch; `05h` and `3Dh` alias `01h` |
 | the card owns `30h`–`33h` | **yes** — writes there do not bank-switch |
 | the presence probe | **yes** — `IN (32h)` → `04h`; after `OUT (32h),00h` → `00h` |
@@ -740,22 +740,32 @@ video personality; the driver just did not say so.
 |---|---|
 | `2400h`, bank 2 | reads **bit 2 LOW** — fitted. The stock machine reads `FFh` there, and that bit is how period software detects the board with no ROM change (`docs/mame-emulation.md` §2, `docs/o1-memory-io-map.md` §3) |
 | the window | **104 columns at reset** — `machine_reset()` sets the board's own register, so the machine boots in the widest width the board has |
-| the geometry | `832x240`, as `osborne1sp`; the stock machine is `416x240` |
+| the tube | **`416x240`, the stock machine's own geometry.** The board doubles the dot clock, so the character is half as wide and twice as many fit in the width 52 occupied — it does not widen the display |
+| the pitch | 8 px per character at 52 columns, **4 px at 104**, measured off the rendered picture: the same sign-on text ends at `x = 359` on `osborne1` and at `x = 179` on `osborne1nx` |
+
+**This is where `osborne1nx` parts company with MAME's `osborne1sp`.** MAME models the
+same board as an **832x240** screen — a window twice as wide, because MAME sizes a
+window from the screen's pixels — and the repo's own screenshots show it
+(`docs/mame-screens/osborne1sp-104col.png`). A 5" CRT does not change width when the
+board doubles the dot clock: it puts the horizontal dots closer together, which on
+the same tube means *twice as many characters in the same width*. So this machine's
+screen stays the stock `416x240` and `draw_rows`' half-pitch path puts two of the
+character's eight dots in each emulated pixel. MAME's own model is the upstream
+question (#274), and moving this machine to whatever upstream settles on is one
+`set_raw` line and one `screen_update`.
 
 **Why 104 and not 80.** The board has three widths — 52 / 80 / 104 — and MAME can
 express two of them: `osborne1sp` offers 52 and 104, not 80 (#274). 104 is
 therefore the stand-in until that is fixed, and moving to 80 is one line in
 `machine_reset()` when it is. The guest is not caged by it: `2400h` is the board's
-own register, the power-on value is only a default, and a 52-column-prepared
-floppy still switches the window to 52 by writing it — measured, 16-pixel
-characters filling the 832-pixel screen.
+own register, the power-on value is only a default, and a 52-column-prepared floppy
+still switches the window to 52 by writing it.
 
-**And the text does not move.** The window's left edge coincides with the stock
-machine's for the guest's normal boot state, so the same disk draws the same
-screen in the same place with 52 more columns of the video buffer visible to the
-right. Measured off the rendered frames rather than argued: `osborne1` at
-`416x240` and `osborne1nx` at `832x240` have the **same ink runs**, character for
-character, from `x = 0`.
+**And the text does not move.** The window's left edge is VRAM column 32 in both of
+the board's widths, so the same disk draws the same characters in the same order —
+at half the pitch in 104 columns, which is what the tube does. `softrom-check.sh`
+asserts both halves, and neither by eye: the two geometries are `416x240`, and the
+same no-floppy sign-on's ink ends at `x = 359` against `x = 179`.
 
 **The one thing the wider window changes in the map.** The board's own decode
 answers across `2400h`–`27FFh`, so an address in that range that also selects

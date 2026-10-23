@@ -71,11 +71,42 @@ end
 
 print(string.format("MACHINE: %s  image: %s",
                     tostring(os.getenv("O1_MACHINE")), tostring(os.getenv("O1_IMAGE"))))
-print(string.format("SCREEN: %dx%d  (%d columns, %d rows)",
-                    scr.width, scr.height, scr.width / 8, scr.height / 10))
+-- The screen's *pixels* are the machine's window -- MAME sizes a window from
+-- them -- so they are printed as geometry and nothing else.  A *column* count is
+-- a property of the video mode, not of the pixels: the O1's tube is 52 stock
+-- cells wide in every SCREEN-PAC mode, and the board's 104-column mode draws two
+-- of its dots per pixel rather than widening the display
+-- (docs/osborne1nx-machine.md 8).  So the pitch is measured off the rendered
+-- picture instead: INK is the ink's horizontal extent, and the same text at half
+-- the pitch covers half the width.
+print(string.format("SCREEN: %dx%d  (%d rows)", scr.width, scr.height, scr.height / 10))
+
+local function ink_extent()
+    local x0, x1 = nil, nil
+    for y = 0, scr.height - 1 do
+        for x = 0, scr.width - 1 do
+            -- `pixel` answers a palette *colour*, so black is 0xff000000 and not
+            -- zero: ink is anything with a non-zero RGB.
+            if (scr:pixel(x, y) & 0x00ffffff) ~= 0 then
+                if not x0 or x < x0 then x0 = x end
+                if not x1 or x > x1 then x1 = x end
+            end
+        end
+    end
+    return x0, x1
+end
 
 print("BANNER: " .. tostring(wait_for("OSBORNE", 25)))
+emu.wait(3)                                    -- let the sign-on finish drawing
 dump("banner")
+
+-- The ink is measured *here*, on the sign-on the monitor has just drawn, and
+-- before RETURN is posted: it is the same text on any machine, so its extent is
+-- the pitch.  (Measured at power-on instead, it would be whatever the video RAM
+-- happened to hold, and measured mid-draw it catches half a box.)
+local ix0, ix1 = ink_extent()
+print(string.format("INK: %s..%s", ix0 and tostring(ix0) or "-", ix1 and tostring(ix1) or "-"))
+
 kb:post("\r")                                  -- BIOS waits for RETURN
 local booted = wait_for("A>", 90)
 emu.wait(3)                                    -- let the listing settle

@@ -47,18 +47,20 @@ time, up to two floppy images on the command line and a hard disk through
 | `rom2drives.lua` | **the N-drive acceptance** — `A0>`..`N0>`, a file written and read back on every drive, each drive's own ALV, and the LBA the *card* was asked for (#247) |
 | `boot-o1next.sh` | **the windowed one** — boot it and use it, with up to two floppy images and an optional hard disk (#247) |
 | `stage.sh` | **stage a self-contained test machine** outside the repo — binary + ROMs + launcher in one directory (#247) |
+| `stage-o1next.sh` | **stage the O1NEXT itself** outside the repo — the same launcher, with the pico, ROM 2.0's window, the 11-partition drive and the serial port beside it, so `cd ~/Documents/O1NEXT/o1next && ./boot-o1next.sh` is the whole machine (#358) |
 | `o1next-picoem.lua` | **the picoem bridge's MAME half** (#286) — the card window's taps, and the 24-byte frame that carries each cycle to a real RP2354B firmware running inside picoem and back. A pair of FIFOs, not a socket: MAME's Lua has no socket library, and `docs/picoem-bridge.md` §2 has the measurement |
 | `picoem-check.sh` | **the bridge's acceptance** (#286) — a firmware binary built from this tree running inside picoem, `osborne1nx`'s bus cycles reaching its GPIO, and the answers coming back into the machine. Seven checks, and the firmware's own PC and cycle count are two of them |
 | `o1next-picoem-guest.lua` | **the guest harness** (#192, Gate A) — pokes an 11-byte Z80 routine (`DI / LD A,A5h / OUT (30h),A / IN A,(30h) / LD (4020h),A / HALT`) into the guest's RAM and lets *the guest* run the I/O, then reads the result back through the guest's own program space. Unlike the Lua tap above, nothing here can fake the answer |
 | `picoem-guest-check.sh` | **Gate A's acceptance** (#192) — the loop closed: the Z80's own `OUT`/`IN` reaches a real RP2354B firmware through `osborne1nxp`'s `picoem_link_device`, and the byte comes back into guest memory. Twelve checks over three ports, and the three-port part is load-bearing (see below) |
 
-The patch touches seven files:
+The patch touches eight files:
 
 - `src/mame/osborne/osborne1.cpp` — the `osborne1nx` machine, its I/O map, its ROM window, the door's address, and its SCREEN-PAC video
 - `src/mame/mame.lst` — registers the machine (MAME builds its driver list from this)
 - `scripts/src/machine.lua` — registers the new devices' sources
 - `src/devices/machine/acb4000_host_adapter.{h,cpp}` — the card, new
 - `src/devices/machine/softrom.{h,cpp}` — the ROM window and the ROM service's door, new
+- `src/devices/bus/rs232/pty.cpp` — **prints the pty's slave path**, which upstream publishes only to the UI's "Pseudo Terminals" screen; without it nothing can *attach* to the emulated machine's serial port (`boot-o1next.sh` does)
 
 ## Applying it
 
@@ -144,7 +146,7 @@ Measured on MAME 0.289, macOS, `OSD=mac`:
 |---|---|
 | boots the 1.44 ROM and a bootable disk | **yes** — `BANNER: true`, `A>`, identical screen text to `osborne1` |
 | banking **unchanged** from `osborne1` | **yes** — the boot probe's output is byte-identical (`diff` clean, modulo the machine name) |
-| the **video** — the SCREEN-PAC's 104-column window | **yes** — `softrom-check.sh` reads both machines' geometry (`osborne1` is 52 columns, `osborne1nx` is 104) and the screen text row for row |
+| the **video** — the SCREEN-PAC's 104 columns on the stock tube | **yes** — `softrom-check.sh`: both machines are `416x240`, and the same sign-on's ink ends at `x = 359` on `osborne1` and `x = 179` on `osborne1nx` |
 | the mainboard's 2-bit decode survives | **yes** — `00h`–`03h` still bank-switch, and `05h`/`3Dh` still alias `01h` |
 | the card owns `30h`–`33h` | **yes** — writes there do not bank-switch |
 | the MD-10 presence probe | **yes** — `IN (32h)` reads `04h`; after `OUT (32h),00h` it reads `00h` |
@@ -179,29 +181,29 @@ all of them visible from outside:
 |---|---|
 | `2400h`, bank 2 | reads **bit 2 LOW** — fitted. The stock machine reads `FFh` there, and that bit is how period software detects the board with no ROM change (`docs/mame-emulation.md` §2) |
 | the window | **104 columns at reset** — `machine_reset()` sets the board's own register, so the machine boots in the widest width the board has |
-| the geometry | `832x240`, as `osborne1sp`; the stock machine is `416x240` |
+| the tube | **`416x240` — the stock machine's geometry.** The board doubles the dot clock, so the character is half as wide and twice as many fit in the width 52 occupied; it does not widen the display |
+| the pitch | 8 px per character at 52 columns, **4 px at 104** — the same sign-on text ends at `x = 359` on `osborne1` and at `x = 179` here |
 
 **Why 104 and not 80.** The board has three widths — 52 / 80 / 104 — and MAME can
 express two of them: `osborne1sp` offers 52 and 104, not 80 (#274). 104 is
 therefore the stand-in until that is fixed, and moving to 80 is one line in
 `machine_reset()` when it is. The guest is not caged by it: `2400h` is the
 board's own register, the power-on value is only a default, and a
-52-column-prepared floppy still switches the window to 52 by writing it —
-measured, 16-pixel characters filling the 832-pixel screen.
+52-column-prepared floppy still switches the window to 52 by writing it.
 
-**And the text does not move.** The window's left edge coincides with the stock
-machine's for the guest's normal boot state, so the same disk draws the same
-screen in the same place with 52 more columns of the video buffer visible to the
-right — measured off the rendered frames: `osborne1` at 416x240 and `osborne1nx`
-at 832x240 have the *same* ink runs, character for character, from `x = 0`.
-`softrom-check.sh` asserts both halves: the two geometries, and the screen dump
-row for row against `osborne1`.
+**And it does not widen the window.** MAME's `osborne1sp` models the same board as
+an **832x240** screen, because MAME sizes a window from the screen's pixels — and a
+5" CRT does not change width when the board doubles the dot clock. This machine
+keeps the stock geometry, and `draw_rows`' half-pitch path puts two of the
+character's eight dots in each emulated pixel. `softrom-check.sh` asserts both
+halves, neither of them by eye: the two geometries are `416x240`, and the same
+no-floppy sign-on's ink extent halves.
 
 **One thing this fixed on the way.** That boot comparison ran `osborne1nx` for
 the "stock machine" run as well, so "boots identically to `osborne1`" was
 comparing the machine against itself and could not fail. It runs `osborne1` now
 — and the geometry check is what says so, because a run of the wrong driver
-would report 52 columns for both.
+would report the same geometry as the other one.
 
 ### The softROM window
 

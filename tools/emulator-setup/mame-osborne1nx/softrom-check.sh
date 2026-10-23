@@ -128,10 +128,10 @@ window "the 7695-byte image -- two pages"            "$WORK/window-rom2.log" "$W
 # could not fail.  Fixed 2026-10-23, and the geometry check below is what says
 # which machine each run was.)
 #
-# The `SCREEN:` line is the one thing that must differ: osborne1nx's video
-# personality is the SCREEN-PAC (#24), so its window is 104 columns wide where
-# the stock machine's is 52.  Everything else -- the screen's *contents*, row by
-# row -- is compared, which is the claim: the same disk draws the same screen.
+# The `SCREEN:` and `INK:` lines are dropped from the comparison -- the geometry
+# because both machines are 416x240 and the pitch because it is *measured* below --
+# and everything else, the screen's *contents* row by row, is compared, which is
+# the claim: the same disk draws the same screen.
 boot() {     # boot MACHINE LABEL LOG [IMAGE]
     mach="$1"; label="$2"; log="$3"; image="${4:-}"
     if [ -n "$image" ]; then
@@ -152,19 +152,51 @@ boot osborne1   "osborne1 (the stock machine)" "$WORK/boot-stock.log"
 boot "$MACHINE" "osborne1nx, no image"         "$WORK/boot-none.log"
 boot "$MACHINE" "osborne1nx -softrom rom2.rom" "$WORK/boot-rom2.log" "$WORK/rom2.rom"
 
-echo
-# The two windows, which is also the proof that the reference run really is the
-# stock machine: 52 columns there, and the SCREEN-PAC's 104 here.  104 is the
-# stand-in until MAME can express the board's third width (#274).
-stock_cols=$(sed -n 's/^SCREEN: [0-9]*x[0-9]*  (\([0-9]*\) columns.*/\1/p' "$WORK/boot-stock.log" | head -1)
-nx_cols=$(sed -n 's/^SCREEN: [0-9]*x[0-9]*  (\([0-9]*\) columns.*/\1/p' "$WORK/boot-none.log" | head -1)
-if [ "$stock_cols" = "52" ] && [ "$nx_cols" = "104" ]; then cols_ok=0; else cols_ok=1; fi
-verdict "the window: osborne1 is ${stock_cols:-?} columns, osborne1nx is ${nx_cols:-?} (the SCREEN-PAC's 104)" "$cols_ok"
+# --- 3. the sign-on with nothing in the drive --------------------------------
+# A prepared floppy sets the SCREEN-PAC's window itself (a 52- or 104-column disk
+# says which), so the pitch cannot be measured with one mounted.  These two runs
+# have no disk at all, which leaves the machine in its own power-on video state --
+# and the monitor draws the same sign-on on both, so the ink's extent is a
+# direct measure of the character pitch.
+boot_plain() {   # boot_plain MACHINE LABEL LOG
+    mach="$1"; label="$2"; log="$3"
+    O1_MACHINE="$mach" O1_IMAGE="<none, no floppy>" \
+    SDL_VIDEODRIVER=dummy "$MAME" "$mach" \
+        -video none -sound none -nothrottle -rompath "$ROMPATH" \
+        -autoboot_script "$BOOT_LUA" -seconds_to_run 120 > "$log" 2>&1 || true
+    echo "== boot: $label -- $(grep -E '^BANNER|^PROMPT|^RESULT' "$log" | tr '\n' ' ')"
+}
 
-# `grep -v` drops the machine name, the image path and the window *geometry* --
+boot_plain osborne1   "osborne1, nothing in the drive"   "$WORK/plain-stock.log"
+boot_plain "$MACHINE" "osborne1nx, nothing in the drive" "$WORK/plain-nx.log"
+
+echo
+# The window itself, which is the whole point of the two runs being comparable:
+# **the SCREEN-PAC does not widen the tube.**  The board doubles the dot clock, so
+# 104 columns fit in the width 52 occupied -- the same 416x240 window, at half the
+# character pitch -- and that is measured off the *rendered* picture rather than
+# argued: the same text covers about half the width.
+stock_geom=$(sed -n 's/^SCREEN: \([0-9]*x[0-9]*\).*/\1/p' "$WORK/boot-stock.log" | head -1)
+nx_geom=$(sed -n 's/^SCREEN: \([0-9]*x[0-9]*\).*/\1/p' "$WORK/boot-none.log" | head -1)
+stock_ink=$(sed -n 's/^INK: [^.]*\.\.\([0-9]*\)$/\1/p' "$WORK/plain-stock.log" | head -1)
+nx_ink=$(sed -n 's/^INK: [^.]*\.\.\([0-9]*\)$/\1/p' "$WORK/plain-nx.log" | head -1)
+if [ "$stock_geom" = "416x240" ] && [ "$nx_geom" = "416x240" ]; then geom_ok=0; else geom_ok=1; fi
+verdict "the window: both machines are ${stock_geom:-?}/${nx_geom:-?} -- the SCREEN-PAC does not widen the tube" "$geom_ok"
+
+# The text is the same on both no-floppy runs, so the ink's right-hand edge is the
+# pitch measure: 104 columns of the same characters end at about half the x that
+# 52 do.  A character cell of tolerance (8 px) covers the glyphs' own edges.
+if [ -n "$stock_ink" ] && [ -n "$nx_ink" ] && [ "$nx_ink" -le $((stock_ink / 2 + 8)) ]; then
+    pitch_ok=0
+else
+    pitch_ok=1
+fi
+verdict "the pitch: the same text ends at x=${stock_ink:-?} on osborne1 and x=${nx_ink:-?} on osborne1nx -- 104 columns, half pitch" "$pitch_ok"
+
+# `grep -v` drops the machine name, the image path and the two measured lines --
 # the runs are otherwise expected to be identical, screen dump included.  (Plain
 # `sh`: the comparisons go through files, not process substitution.)
-scrub() { grep -vE '^(MACHINE|SCREEN):' "$1" > "$2"; }
+scrub() { grep -vE '^(MACHINE|SCREEN|INK):' "$1" > "$2"; }
 scrub "$WORK/boot-stock.log" "$WORK/boot-stock.txt"
 for pair in "boot-none.log:no image" "boot-rom2.log:the 7695-byte image"; do
     log="${pair%%:*}"; label="${pair#*:}"
