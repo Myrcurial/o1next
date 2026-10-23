@@ -42,9 +42,8 @@ can see what will be visible; **at 52 columns 76 of the 128 columns are off the
 screen**, which is easy to spend an hour drawing into.
 
 The overlay's origin is adjustable and its default is **column 0, row 0** —
-because that is where the machine actually puts the window. That is worth stating
-carefully, because the obvious reading of MAME's driver says otherwise and is
-wrong.
+because that is where the machine actually puts the window. The obvious reading of
+MAME's driver says otherwise, and is wrong.
 
 `src/mame/osborne/osborne1.cpp` (which `osborne1nx` clones) draws the visible
 window as `draw_rows<52, 1>(scroll_x() + 0x0b, …)`, and **`0x0b` is not a window
@@ -69,8 +68,7 @@ The manual gives the **geometry** — §5.1 and §5.2, p. 23: 32 rows of 128
 characters in `0F000`–`0FFFF`, "only 24 rows of 52 characters … actually
 displayed", a 6821 PIA controlling the display, a 2716 as character generator, a
 4116 for the dim bit — but it never says *which* 52 columns. **The origin is not
-in the manual.** It is in the ROM, and that is the piece this file got wrong the
-first time.
+in the manual.** It is in the ROM.
 
 Eleven character clocks, then — and the ROM cancels them exactly. `rom144.asm`
 names the constant and writes it at boot:
@@ -120,12 +118,12 @@ at 2× — and the panel scrolls when that is wider than the column. The canvas'
 backing store is drawn at device-pixel resolution so it stays crisp on a retina
 display, and exports use the zoom's dot scale rather than the display's.
 
-This was wrong for a while and it is worth knowing why, because the symptom was
-odd: the canvas had `width: 100%` in CSS, so it was stretched to its column at
-*every* zoom and the only thing a zoom step changed was the number of pixels behind
-the stretch. Nothing moved on screen. The fix was to stop stretching it, and to put
-the overlay layer in a box the size of the canvas (`.screenbox`) so the viewport and
-cursor marks still line up — including when the panel is scrolled.
+The canvas must therefore **not** be stretched by CSS: a `width: 100%` canvas is
+pulled out to its column at *every* zoom, and the only thing a zoom step changes is
+the number of pixels behind the stretch — nothing moves on screen. So the canvas
+carries its own size, and the overlay layer sits in a box the size of the canvas
+(`.screenbox`) so the viewport and cursor marks still line up, including when the
+panel is scrolled.
 
 **1× is the default**, because at 80 columns that is the whole screen in a normal
 window. The preview is the exception: it is scaled to fit its box, since it is for
@@ -134,9 +132,10 @@ watching the animation rather than for inspecting pixels.
 **The area beside a canvas narrower than its panel is the panel.** At 1× in a wide
 window there can be a lot of it, and it is the machine's blue-grey (`--panel`,
 `#687898`, the same colour the border already was) with the canvas inset 6 px — so
-the screen reads as mounted in the front panel. It was `#000`, which is a hole: black
-beside the black the canvas itself draws. The page's own background is not the answer
-either, being *darker* than the box it would sit in, which is a hole of another shade.
+the screen reads as mounted in the front panel. `#000` is a hole — black beside the
+black the canvas itself draws — and the page's own background is not the answer
+either, being *darker* than the box it would sit in, which is a hole of another
+shade.
 
 ## The pen: the whole ROM, always
 
@@ -150,9 +149,7 @@ The `sui 65` arithmetic that `research/boot-screen/` is built on is a property o
 the **art-text authoring format**, not of the frame: the ROM's *loader* subtracts
 65 from every byte of a text file, so that ASCII letters index the block glyphs.
 This tool writes frames directly and there is no assembler anywhere in the path, so
-it does not inherit that restriction. It took a correction to get there — the
-first version of this tool did inherit it, and made capitals unreachable and made
-the graphics pen refuse most keys. The pen is now:
+it does not inherit that restriction. The pen is:
 
 | Setting | What a key means |
 |---|---|
@@ -265,8 +262,7 @@ The two bits are independent because they answer two different questions, and a
 reader can test either one alone: **bit 0, does it repeat at all** and **bit 1, does
 it reverse at the ends instead of jumping**. So flags 2 is not a mistake to be
 normalised away — it is "bounce once and stop", and it is a mode like any other.
-`buildAnimation` still takes a boolean, which is what this container had before
-ping-pong existed: `true` is `loop`.
+`buildAnimation` also accepts a boolean, where `true` is `loop`.
 
 **A bounce does not play the ends twice.** Three frames bounce as `1 2 3 2 1 …`: the
 last frame is *turned on* once and reversed from, so a repeating bounce is `2n − 2`
@@ -288,8 +284,8 @@ has to blit the way back as well, which is the forward transitions again in reve
 and so exactly twice the forward cost, and a loop has one transition a once-through
 does not — last → first. Both ping-pongs cost the same, because the one-shot's last
 blit is the return to frame 1 and the repeating one's is the wrap into the next
-cycle: the same transition, taken once either way. Reading "3 cells over 2
-transitions" while the machine plays a six-step bounce was reading the wrong number.
+cycle: the same transition, taken once either way. A readout of "3 cells over 2
+transitions" while the machine plays a six-step bounce is the wrong number.
 
 ## Re-ordering the frames
 
@@ -313,7 +309,7 @@ one or more frames — and then **placed**, which is the choice:
 
 | Into | What it does |
 |---|---|
-| **the whole animation** | what you import replaces everything, its fps and its playback mode included. This is what import has always done. |
+| **the whole animation** | what you import replaces everything, its fps and its playback mode included. |
 | **this frame** | the file's frames are written in *starting at the frame you are on*. What is there is replaced, the animation grows if the file is longer, and nothing before that frame is touched. The file's own fps and playback mode are ignored, because you are importing into an animation rather than replacing it. |
 
 **Into this frame** is how a half-built animation gets added to, and it is the
@@ -380,10 +376,10 @@ actually be asked to move.
 - a bent byte, a bent magic and a truncated container are each caught;
 - the **playback mode** is checked as a bitfield and as a behaviour: all four flags
   bytes parse, each is its own mode, the two bits are reported separately, a boolean
-  still means what it meant before ping-pong existed, an unknown mode word is refused
-  rather than written as something else, and `playbackOrder` gives what each mode
-  plays — `123`, `12321` and `1232` for three frames, the two-frame bounce, and the
-  one-frame case. `modeRepeats` is checked as bit 0, which is the question the timer
+  is still accepted and means `loop`, an unknown mode word is refused rather than
+  written as something else, and `playbackOrder` gives what each mode plays — `123`,
+  `12321` and `1232` for three frames, the two-frame bounce, and the one-frame
+  case. `modeRepeats` is checked as bit 0, which is the question the timer
   and the GIF's loop flag have to ask, because a one-shot bounce stops too. The
   **diff** is checked per mode: a loop adds the wrap as a transition, a bounce is the
   forward pass twice over, both ping-pongs cost the same, and an older caller that
@@ -399,8 +395,8 @@ actually be asked to move.
   is ticked, since a click that painted *and* advanced is what made click-then-type
   land a cell to the right;
 - the **zoom** is checked to change the displayed size and not only the backing
-  store — which is the bug it had: a canvas stretched to its column renders every
-  zoom step as the same picture;
+  store — a canvas stretched to its column renders every zoom step as the same
+  picture;
 - the **clipboard** is checked for the thing it must not lose: a copy of a cell
   holding glyph `0x41` *and* dim keeps both, paste puts both down and clips at the
   screen edge and the trailer, and `invertAttrs` flips the ninth bit twice to the
@@ -415,9 +411,9 @@ actually be asked to move.
   (stored blocks and zlib), and `sips` agrees it is that size;
 - the GIF decodes back to the frames that went in under **two independent
   readers**: this repo's own LZW reader, written to the spec, *and* macOS's
-  ImageIO, asked through `sips -s format bmp`. That second one is what found the
-  encoder's first bug — a dictionary seeded with single-pixel codes, which made
-  the encoder swallow the second pixel of every run.
+  ImageIO, asked through `sips -s format bmp` — which is what catches a dictionary
+  seeded with single-pixel codes, making the encoder swallow the second pixel of
+  every run.
 
 `ui-test.js` loads `bootsplash.html` into a real DOM (jsdom, with the canvas
 stubbed to record rather than rasterise) and then drives it the way a person
