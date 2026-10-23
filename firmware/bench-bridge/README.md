@@ -9,8 +9,6 @@ Tracks: **#342**, part of #334. Adjacent: #319 (the rate ladder), #322 (the pane
 
 ## Why it exists
 
-Two walls were hit in one session (#334), and they are the same wall:
-
 - the modem's command interface is on the **O1 side** (UART1), and a board on a bench
   has no machine on the other end of it, so `AT` cannot be typed at anything;
 - `ZStream` is a `ZMode` but **not** `Stream`-parameterised, so the USB console cannot
@@ -349,9 +347,8 @@ Stage 1 (`-rs232 pty` through `tools/serial-relay-o1next.py` to the TCP relay do
 #342's second half, and the door it needs is now proven working.
 
 **And the relay has a second far end, for a host-level reason.** macOS's Local Network
-privacy gates *outbound* LAN connections per binary: a Python process gets
-`Errno 65 No route to host` reaching the rig on the local network while `ping`, `nc` and
-`curl` reach it fine. So `tools/serial-relay-o1next.py` gained **`--serial <port>`** — the
+privacy gates outbound LAN connections per binary — *Four things the bench taught*, below,
+has the detail — so `tools/serial-relay-o1next.py` gained **`--serial <port>`** — the
 rig's own USB door, with no network in the path at all, which cannot be refused that way.
 Put the rig in `relay` first; its USB console is the console until you do.
 
@@ -377,8 +374,8 @@ far -> pty     1  O        <- the modem's answer, arriving in the ACIA
 far -> pty     1  K
 ```
 
-**It was blocked for a while on a baud mismatch that presents as a wiring fault**, so the
-two numbers are written down here. A byte written to the pty reached the rig as
+**A baud mismatch here presents as a wiring fault**, so the two numbers are
+written down here. A byte written to the pty reached the rig as
 `78 f8 00 78 78 00` — which is what a **9600 pty sampling a 1200 ACIA** looks like, and
 which reads as "the cable is wrong" when the cable is fine.
 
@@ -603,53 +600,19 @@ counterparty stays silent.
 
 ## Measured on the bench — 2026-10-20, ESP32-C3
 
-> **Read this as a chronology.** When the notes below were taken the modem end was mute
-> (a wire on the wrong pin), so the counters read `out 0` and that is called the diagnostic
-> rather than the failure. It was: **the modem was fixed and Stage 0 then passed — the
-> results are in the Stage 0 section above.**
-
 The rig's board is an **ESP32-C3**, wired `GPIO6 (RX) ← modem GPIO15`,
-`GPIO7 (TX) → modem GPIO16`, `GND — GND`. Everything below is a measurement, not a plan.
+`GPIO7 (TX) → modem GPIO16`, `GND — GND`. The console answers and
+`identify-o1next.py` finds it with **no `--baud`** — the C3's host door is native
+USB, so there is no wire for the host to get the rate wrong on — and all three TCP
+doors answer from the Mac: `2324` the trace, `2325` the console, `2323` the relay.
 
-**The console answers, and the probe finds it with no `--baud`.** `identify-o1next.py`
-reports the rig on its own line, because the C3's host door is native USB and there is no
-wire for the host to get the rate wrong on:
+**The first run on the bench read `out 0`**: the modem end was mute on a
+mis-pinned wire, so the outbound path was proven and the inbound had nothing to
+carry yet. That difference — bytes in, none out — is the whole reason the counters
+are on the `status` line. The modem was fixed and Stage 0 then passed; the results
+are in the Stage 0 section above.
 
-```
-PORT                   MAC                WHAT ANSWERED  DETAIL
-/dev/cu.usbmodem2144101 88:56:a6:62:3b:94  console        Oct 20 2026 10:47:36; RXD 6, TXD 7
-```
-
-**The relay, the escape, the counters and the trace all behave.** `AT\r` sent through the
-relay, then the escape, then `trace dump`:
-
-```
-o1next> relay
--- relaying.  `+++` after a second of silence comes back to this console
-   1200 bps on UART1 (RXD 6, TXD 7).  Nothing else is printed here until you leave.
-                        <- `AT\r` sent here; no echo, which is the transparency working
-+++                     <- one second of silence, then the escape
--- escaped to the console (3 bytes in, 0 out, 0 dropped)
-o1next> trace dump
-#o1next-trace 1 bench-bridge ms
-84433 > 41 54 0d
--- 1 records
-```
-
-**`out 0` is the diagnostic, and it is the correct one**: the modem end is mute (see #342),
-so the outbound path is proven and the inbound path has nothing to carry yet. That
-difference — bytes in, none out — is the whole reason the counters are on the `status`
-line.
-
-**All three TCP doors work**, from the Mac at `192.168.2.1`, rig at `192.168.2.3`:
-
-```
-nc -w 5 192.168.2.3 2324        ->  #o1next-trace 1 bench-bridge ms
-nc -w 5 192.168.2.3 2325        ->  bench-bridge console, over TCP / o1next> status / ...
-nc -w 5 192.168.2.3 2323        ->  accepts AT\r, sends it down the wire
-```
-
-### Four things the bench taught, which the code and this file now say
+### Four things the bench taught
 
 1. **A full-image flash at 0x0 erases NVS.** The merged image spans 0x0…0x10000 and
    `merge_bin` fills the gaps with 0xFF, so the NVS partition at **0x9000** — where the
