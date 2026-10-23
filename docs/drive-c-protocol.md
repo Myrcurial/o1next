@@ -18,7 +18,8 @@ replacement: the contract in §7 is what the host exercises.
 Sources: `research/drive_c/DRIVE_C.IMD` (the software), `research/drive_c/extracted/`
 (`dcl.com`, `dfd.spr`), `research/source-code/BIOS-144-source/rom144.asm` (the
 ROM's own account of the port), and `research/drive_c/Drive_C_Users_Manual.ocr.txt`.
-Serves #6 (the protocol) and #84 (the reproduction); `docs/drive-c-design.md` is
+Serves #6 (the protocol), #84 (the reproduction), #22 (the IEEE-488 port the box
+hangs off) and #145 (the DPB read out of `DCL.COM`); `docs/drive-c-design.md` is
 the hardware + firmware spec built on it.
 
 ## 1. What the device is
