@@ -455,8 +455,9 @@ if [ "$RS232" = 1 ]; then
         fi
     elif [ -n "$PTY" ]; then
         echo "  relay:     none -- set O1_RIG=<host[:port]> or O1_RIG_SERIAL=<device>"
-        echo "             to reach a modem on the bench rig, e.g."
-        echo "               O1_RIG=192.168.2.3:2325 ./boot-o1next.sh"
+        echo "             to reach a modem on the bench rig.  The rig's RELAY door is"
+        echo "             2323; 2325 is its console and 2324 its trace:"
+        echo "               O1_RIG=192.168.2.3:2323 ./boot-o1next.sh"
     fi
 fi
 echo
