@@ -109,14 +109,24 @@ series part sits upstream of the label, and a net label does not tell you where
 it is**. A 600 dpi read of the sheet alone does not settle it; the manual is the
 tie-breaker, and it says *through 22 ohms*.
 
-**That makes the port a low-current supply, and it is the design constraint.**
-22 Ω in series is a hard limit: 500 mA through it would drop 11 V, and 100 mA
-drops 2.2 V, so the board's average draw has to be tens of mA. The keyboard
-adapter (#47) shares the same resistor, so the budget is shared and marginal —
-the eleven-lamp panel at **2–3 mA per lamp** (#322) is sized for exactly that.
-The Comm-Pac manual quotes **no** supply current anywhere, so there is no period
-figure to size against; the limit is the resistor, and the peak comes from the
-capacitor.
+**That makes the port current limited, and the limit is the resistor's own rating.**
+The sheet's default is **1/4 W** and nothing calls `R21` out, so the continuous
+budget is **~107 mA** — 2.35 V dropped, 10.25 V left at the module. (150 mA would
+be 0.495 W, a 1/2 W part sitting *at* its rating.) The keyboard adapter (#47)
+shares the resistor, so the budget is shared.
+
+**Two ways to be powered, and the choice is open (#356):**
+
+- **(a) Off P1's rail**, under that ~107 mA, with a **large bulk capacitor**
+  carrying the burst power. Radio TX is very uneven — long idle, short spikes — so
+  the cap supplies the peak and `R21` the average.
+- **(b) Off the monitor jack (P5)**, essentially the way `drive-c-repro` will: that
+  rail is **not limited** (#354), so the peaks stop being a design problem at the
+  cost of a second cable and a shunt.
+
+Either way the board needs a **front-panel 5 V connector**, because with both boxes
+installed they **cross-feed 5 V** rather than stacking a connector at P7 — and a
+small adapter routes the +12 V from P7 in (`../README.md`).
 
 - **Bulk capacitance is doing real work, not tidiness.** A WiFi TX burst is a few
   hundred mA; `R21` cannot supply that, so the capacitor supplies the peak and
