@@ -469,7 +469,7 @@ tools/research/mkdrive.py --out /tmp/md10/st412.chd --chs 306,4,17
 
 It fills every sector's data field with **`6C`**, which is what the ACB-4000's
 FORMAT writes by default — "completely written with 6C hex unless otherwise
-specified in the format command" (`research/adaptec/acb4000/…Users_Manual_Oct85`,
+specified in the format command" (`research/adaptec/acb4000/400003-00A_ACB-4000A_Users_Manual_Oct85.ocr.txt`,
 §4.4.5 and the FORMAT command reference) — and passes the geometry to `chdman`,
 whose `GDDD` metadata is the same record the controller keeps in the disk's ID
 fields. `PREP.COM` asks for a *unique* fill byte and sends `D9` in its FORMAT
@@ -750,12 +750,14 @@ up:
    partition records it carries — is read out of `PREP.COM` and reproduced on the
    emulated drive (`docs/osborne1nx-machine.md` §6).
 
-The host-adapter register protocol is read out in `docs/acb4000-host-adapter.md`; §6's
-open question #2 (the status bit map) is answered there — the driver polls `01h`,
-`02h`, `20h`, `40h`.
+The host-adapter register protocol is read out in `docs/acb4000-host-adapter.md`, and
+the status-bit map this document's §10 item 2 asked for is answered there — the driver
+polls `01h`, `02h`, `20h`, `40h`.
 
 `research/harddisk/OCC1_HARDDISK.IMD` is a *different* controller — Australian
-Computer & Telecommunications, port `00` — i.e. the RT-60A situation again: recorded
+Computer & Telecommunications, reached through its own BIOS's controller-address
+prompt rather than the MD-10's fixed `30h`–`33h` window (§3, and
+`docs/occ1-harddisk-analysis.md` §3) — i.e. the RT-60A situation again: recorded
 as incompatible in `docs/occ1-harddisk-analysis.md` §3, moved past, and not part of
 this question.
 
@@ -890,6 +892,6 @@ if a driver turns out to depend on undocumented controller behaviour.
 - `docs/o1-memory-io-map.md` §3 — the `2900`/`2A00`/`2C00` device map used in §3.
 - `docs/drive-c-protocol.md` §8.3–§8.5, `docs/drive-c-design.md` §4.2 — the
   CP/M ceiling, the drive-letter precedent and the blob precedent (§7, §8).
-- `docs/copower88-protocol.md` — the CoPower-88 host protocol (§8).
+- `docs/copower88-protocol.md` — the CoPower-88 host protocol this document's §8 re-orders.
 - `docs/virtual-peripherals-block-diagram.md` §5 — the personality table this
   re-orders.
