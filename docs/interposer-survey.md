@@ -1,21 +1,36 @@
-# Research: Open-Source Z80 Bus Interposers / Sniffers / ICEs
+# Open-source Z80 bus interposers, sniffers and ICEs — the prior-art survey
 
-Input to the interposer (`O1NEXT Upgrade`, Rev A). Prior art for a
-Raspberry Pi Pico 2 W interposer between a 4 MHz, 5 V Z80 and its
-socket, with passive capture + active drive + USB/WiFi streaming.
-All claims cited; sources verified 2026-10-08.
+**Status: Partially solved.** The survey is complete and every entry carries its
+licence, and §1.6 retires the timing claim that carried the most risk; what is left
+is a conflict the survey records rather than resolves (§3's level-shifting advice
+against picoZ80's shipping board), one premise §7 still has to check against the
+wait generator's own decode, and one decision for the maintainer (§8's
+licence-posture question).
 
-**Revised 2026-10-18: the survey was incomplete, and this document said it was
-not.** Two entries were missing. §1.6 is **picoZ80 / pico6502** — an RP2350B
-*drop-in Z80/6502 CPU replacement* with a cycle-accurate PIO bus interface, 30
-releases and four machine families, and the closest prior art to the interposer's
-central timing claim. §1.7 is **z80_pico** — small, unfinished, and the only
-project here that answers the question the interposer actually has: what to do
-when you must *follow* somebody else's clock. Three consequences run through the
-document: §3's advice on level shifting now has two counter-examples and three
-competing answers, §2.1's "directly copyable" claim needed a licence check it
-never had, and §7 gains both a clocking idea and a wait-state strategy. **§8 is
-new and is the one to read before reusing anything here.**
+Input to the interposer (`O1NEXT Upgrade`, Rev A). Prior art for an `RP2354B`
+interposer between a 4 MHz, 5 V Z80 and its socket, with passive capture + active
+drive + USB/WiFi streaming. All claims cited; sources verified 2026-10-08.
+
+Two entries carry more weight than the rest, and each answers a different half of
+the interposer's problem.
+
+- **§1.6, picoZ80 / pico6502, is the closest prior art to the interposer's central
+  timing claim.** It is a *drop-in Z80/6502 CPU replacement* — not an interposer —
+  with a **cycle-accurate PIO bus interface clocked by the target**, 30 releases
+  and four machine families behind it. It makes the interposer's timing claim an
+  existence proof rather than a hope, and it is the most mature board in this
+  survey.
+- **§1.7, z80_pico, is the only project here that answers the question the
+  interposer actually has:** what to do when you must *follow* somebody else's
+  clock. Its answer is that the /WAIT assertion has to be **combinational, not
+  programmed**, and it is the only entry that measures what stretching every cycle
+  costs (three wait states halve the machine).
+
+Three consequences run through the document: §3's level-shifting advice now has
+two counter-examples and three competing answers, §2.1's "directly copyable" claim
+does not survive §8's licence check, and §7 gains both a clocking idea and a
+wait-state strategy. **§8 is the one to read before reusing anything here** — two
+of the survey's reuse claims are GPL-3.0 / CC-BY-NC-SA and are not copyable.
 
 ---
 
@@ -255,7 +270,7 @@ new and is the one to read before reusing anything here.**
   a) PIO-side filtering (M1-only, address windows, triggers) —
      trigger logic must live in PIO;
   b) RAM burst capture with pre/post trigger;
-  c) WiFi streaming as a peer path on the Pico 2 W.
+  c) WiFi streaming as a peer path.
 - Double-buffered DMA from day one.
 
 ## 5. Floppy & GPIB references
@@ -280,7 +295,7 @@ new and is the one to read before reusing anything here.**
 
 ## 7. Synthesis: recommendations for Rev A
 
-1. Architecture: RP2350 BETWEEN Z80 and socket (AtomBusMon-style
+1. Architecture: RP2354B BETWEEN Z80 and socket (AtomBusMon-style
    40-pin DIP piggyback), real Z80 in a top socket so passive mode is
    electrically transparent. Two PIO banks: capture (clock-edge-sync
    push of addr/data/status) and drive (data bus + WAIT/NMI/INT/BUSRQ).
@@ -320,8 +335,7 @@ new and is the one to read before reusing anything here.**
     leaves ~1.5 T-states (≈375 ns at 4 MHz) to the falling edge of T2 against the
     README's "~50 ns", a 7× margin. **That premise needs checking against the wait
     generator's own decode on sheet 2/9, not assumed** — it is the number the
-    margin rests on, and this document has form for writing an inference down as a
-    fact.
+    margin rests on.
 
     And **50 ns is one term in an unmeasured sum** — it is the PIO's response, and
     the path also contains the 688's
@@ -348,11 +362,10 @@ new and is the one to read before reusing anything here.**
 
 ## 8. Licences, and what "prior art" actually lets us reuse
 
-This document says things like *"its Z80 adapter BOM and shifter choice are
-directly copyable"* (§2.1). That is a claim about **engineering**, and it silently
-assumed something about **licensing** that had never been checked. It has now been
-checked for every entry that could plausibly be reused, and all three need
-qualifying:
+§2.1 says of AtomBusMon that *"its Z80 adapter BOM and shifter choice are directly
+copyable"*. That is a claim about **engineering**; **licensing** is a separate
+question, and it has been checked for every entry that could plausibly be reused.
+All three need qualifying:
 
 | Project | Licence | What it permits |
 |---|---|---|
@@ -373,9 +386,9 @@ What that leaves, and it is not nothing:
   contact details for exactly this, including commercial licensing. If any part
   of it turns out to be worth more than the idea, the route is a message — and
   this repository should record the answer either way.
-- **Put the licence in the entry, and check it before writing "copyable".** This
-  section exists because two of the document's reuse claims were made without
-  that check, and one of them was wrong.
+- **Put the licence in the entry, and check it before writing "copyable".** Two of
+  this survey's reuse claims did not survive that check, and one of them was wrong:
+  a part number is a fact and travels; a design file is expression and does not.
 
 ### Open question for the maintainer
 
