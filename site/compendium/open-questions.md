@@ -30,6 +30,13 @@ Phase 0 reads **22 of its 23 sub-issues closed**, counted from the issue tree
 A gap is only **Solved** if the evidence is written down. "We know this" is not a
 status.
 
+A **gap** and the **document** that carries it answer different questions, so
+their words can differ without disagreeing: a gap is *Solved* when the question
+is answered even where the doc is *Partially solved* because a second, smaller
+sub-question is still open (gap 8's RT-60A is the worked example — the register
+map is answered, the doc is not). Where the two differ, the **What's left**
+column names the missing thing, and that is what reconciles them.
+
 ## Summary
 
 | | Count |
