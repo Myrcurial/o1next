@@ -2825,7 +2825,7 @@
   (text "AUDIO -- I2S class-D amp and the speaker" (at 600 348 0) (effects (font (size 2.5 2.5) (thickness 0.4) bold) (justify left)) (uuid "420bef21-4385-4816-8449-aa48e598cce0"))
   (text "wifi-comm-pac Rev A - O1NEXT WiFi COMM PAC (issues #324, #325, part of #56)" (at 30 545 0) (effects (font (size 1.6 1.6)) (justify left)) (uuid "e0bea30e-5b2e-4aff-8f28-7597257fb511"))
   (text "J1 is a 2x5 IDC: pin n = DE-9 pin n for 1..9; pin 10 is spare." (at 30 551 0) (effects (font (size 1.6 1.6)) (justify left)) (uuid "176481a5-2933-4397-88f8-33a2a6696de8"))
-  (text "Pin 7 is +12.6 V DC direct from the machine (2.02 A rail), NOT via R21." (at 30 557 0) (effects (font (size 1.6 1.6)) (justify left)) (uuid "a982979b-6a25-4007-a767-73332149420a"))
+  (text "Pin 7 is +12.6 V DC from the 2.02 A rail THROUGH R21 (22 ohm), shared with J6/P4-19." (at 30 557 0) (effects (font (size 1.6 1.6)) (justify left)) (uuid "a982979b-6a25-4007-a767-73332149420a"))
   (text "U1/U2 translate the 5 V TTL side; U3 is the open-drain MSB sink." (at 30 563 0) (effects (font (size 1.6 1.6)) (justify left)) (uuid "76043eba-5ced-4efb-8807-538b7d59f8bb"))
   (text "U4 MAX3232 runs on 3V3 so its drivers swing +/-5.5 V into the bipolar RXD." (at 30 569 0) (effects (font (size 1.6 1.6)) (justify left)) (uuid "4a77f63c-5b5b-4ed8-ac3f-14b00da910f5"))
   (text "U6 = panel expander 0x58 (P0 push-pull CC, P1 open-drain). U7 = handshake 0x59." (at 30 575 0) (effects (font (size 1.6 1.6)) (justify left)) (uuid "bb46d098-c289-4066-8917-4bf2701a5cb8"))
