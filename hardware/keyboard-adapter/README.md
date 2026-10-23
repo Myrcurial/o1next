@@ -65,7 +65,10 @@ Tracks: #47 (split out of #45). Target: PCBway build.
   and either can feed this adapter (`../README.md`, #356). Two sub-cases, chosen by
   the same **cuttable trace** every board carries: take **5 V** over the link and
   skip this board's buck entirely, or take **12 V** over the link and keep it. No J6
-  bridge either way. The load lands on whichever box supplies it — inside the
+  bridge either way. **This adapter's end is the 2-pin *unkeyed* shroud** — the 12 V
+  source end is the keyed one — so the pair can only stack one way, with the **12 V
+  pin nearest the key**, and the input is **reverse-voltage protected** for the
+  hand-built cable. The load lands on whichever box supplies it — inside the
   `wifi-comm-pac`'s ~107 mA P1 budget, or on the `drive-c-repro`'s unlimited
   monitor-jack rail.
 

@@ -127,8 +127,10 @@ shares the resistor, so the budget is shared.
 Either way the board needs a **front-panel interlink connector — a 2×2 keyed IDC
 carrying 5 V, 12 V and ground** (`../README.md`, #356) — and a **cuttable trace on
 its 12 V input**, so the same PCB is fed either from the machine's video port or
-from the link. If option (a) is refused, the modem connector's **12 V pin is left
-disconnected** and the 12 V arrives over the link instead.
+from the link. Its **interlink input is reverse-voltage protected**, and the **keyed
+2-pin shroud is the 12 V source end**. If option (a) is refused, the modem
+connector's **12 V pin is left disconnected** and the 12 V arrives over the link
+instead.
 
 - **Bulk capacitance is doing real work, not tidiness.** A WiFi TX burst is a few
   hundred mA; `R21` cannot supply that, so the capacitor supplies the peak and

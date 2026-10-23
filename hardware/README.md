@@ -121,6 +121,14 @@ header pin assemblies wired back-to-back.
   **12 V pin in the modem connector is simply left disconnected** and the 12 V comes
   over the link instead. A link carries what its pair needs, so a 12 V link does not
   also carry 5 V.
+
+  **The cable splits, and its two ends are keyed differently so they cannot cross.**
+  The **12 V source** end — from the video-port adapter — is a **2-pin keyed**
+  shroud; the **keyboard adapter's 5 V** end is a **2-pin unkeyed** one. The +/− pair
+  therefore stacks only one way, with the **12 V pin nearest the key**. And because a
+  hand-built lead is a thing that will happen, **every interlink input carries
+  reverse-voltage protection** — a reversed or Dupont-jumpered cable must not
+  destroy the board.
 - **P4 keyboard connector:** pin 19 = +12 V via jumper J6 + R21 — usable to power
   small adapter boards (`keyboard-adapter/`).
 
