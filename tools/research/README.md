@@ -214,6 +214,14 @@ scratch programs, "figuring it out" notebooks/scripts.
       *card* — `-log` and the `[:acb4000] CDB ..` trace show drive `A:` read as
       LBA `0x1400` instead of `0x0014`. `rom2drives.lua` checks the two CDB bytes
       **separately**, because a byte-symmetric LBA hides the swap in the value.
+
+- **`populate-hd.py`** — puts **software on the hard disk** (#262): `--stage`
+  matches the maintainer's selected-file list against an extracted FOG library
+  (`fog_extract.py` then `fog_lbr.py`), sorts it into topical buckets and writes a
+  **staging tree** -- one directory per logical drive, each with a `MANIFEST.txt`
+  naming the FOG disk every file came from; `--write` puts that tree into the
+  drive's partitions with `cpmcp` and adds an `INDEX.TXT` to each.  The tree is
+  the *input* to `--write`, so moving a file between drives is moving a file.
 - **`md10prep.sh`** — the **repeatable new-geometry capability** (#247): builds a
   blank labelled drive, drives the archive's own `PREP.COM` through its menus with
   `o1keys.lua`, reads the drive back, extracts the header and O/S artifacts, and

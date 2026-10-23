@@ -1,0 +1,948 @@
+VIXENMM .COM: EA6B Mastermind game for O1 or Vixen
+VIXENMM .DOC: 0BEE Mastermind documentation
+
+DIFF    .COM: E3AF Compares text files
+DIFF    .DOC: D78C
+FINREP  .DOC: 1D55 Find & Replace documentation
+FINREP21.COM: 40AF Find & replace with extensive features
+
+U3#102  .COM: C4A1 Unerase program restores erased files
+U3#102  .DOC: 8EDC
+ULTIMATE.CHR: CAA0 Alternate character set for Exec.
+ULTIMATE.DOC: EE8A
+
+CALC    .CMD: 7D1F Calculator program module
+
+DEEPSPCE.BAS: 8D96 Adventure-like game
+DOGSTAR .BAS: 5AF0 Adventure-type game
+FIGHTER .BAS: 343F Target game
+GUSHER  .COM: 6DE6 Strategy game
+GUSHER  .DOC: E933 Doc for Gusher	
+LOSTGOLD.BAS: A5A1 Adventure-type game
+MONOP   .BAS: 4D1B Single-player Monopoly game
+MONOP   .DOC: B435 Doc for monop.com
+MONOPD  .DAT: 0B4A Monopoly data file
+SPACEADV.BAS: CC26 (like Startrek)
+SURVIVAL.BAS: F547 Adventure-type game
+ZCHESS  .COM: CD91 Z80 chess game
+
+HRDSFT  .COM	E2 7B	Makes hard CR soft, or soft CR hard 
+HRDSFT  .DOC	B0 59	Doc for HRDSFT.COM
+
+PURETEXT.COM	C8 0E	Strips print ctrl chars, dot cmds, and high bit
+PURETEXT.DOC	0E AC	 Makes WS files 'vanilla'
+
+SOFTRETN.BAS	A5 64	MBASIC program to soften hard CR
+TABS7   .COM	FD 7A	Inserts tabs into ASCII files
+TABS7   .DOC	64 E4	Works with .ASM or standard files
+
+SD      .DOC:	3A 5F Documentation for SD110.COM
+SD      .HIS:	21 AA History of modifications for SD110
+SD      .HLP:	9F 31 Information on instalation of SD110 on RPCM
+SD110   .COM:	DD B6 Generic COM file SD110 -a super directory program
+SD110/2 .COM:	14 E2 Two column directory for 52 column screen 
+SD110/4 .COM:	8D D7 Four column directory for 80 column screen 
+SFILE   .DOC:	0C 31 Documentation for SFILE23.COM      
+SFILE   .HIS:	77 33 History of modifications to SFILE23
+SFILE23 .COM:	49 F6 Searches for specified file on all drives/users
+
+DEARC   .COM:	A8 84 De-archives MSDOS .ARC files on CP/M computers
+DEARC   .DOC:	C3 37 Documentation on evolution of DEARC
+LU300   .DOC:	3F 9E Doc for LU/LRUN
+LU310   .COM:	77 39 Combines multiple files into 1 large file
+LU310   .HLP:	F0 F7 On-line help screen for LU310
+
+DZ      .COM:	F6 A1 DAZZLESTAR disassembler (Zilog Z80 mnemonics)
+DZ-DXERS.DOC:	29 96 How to contact DAZZLESTAR author
+DZINSTAL.COM:	F2 47 DAZZLESTAR terminal installation program
+DZMENU  .OVR:	3F 0B DAZZLESTAR menu overlay file
+DZMSGS  .OVR:	B7 B3 DAZZLESTAR help file and on-line documentation
+PHASE1  .AZM:	A4 AA Example for Z80MR assembler
+Z80MR   .COM:	1F 31 Z80 Macro Assembler
+Z80MR   .DOC:	F7 0C Documentation for Z80MR
+Z80MR   .TXT:	93 D3 Information files for Z80MR
+
+DIF     .MKT:	48 D8 Macro key file for E.COM
+E       .COM:	6D 8E Full screen text editor
+ECONFIG .COM:	C1 34 Terminal configuration and defaults for E.COM
+EXPRESS .OVL:	7D 6A Overlay file for E.COM
+EXPRESS1.DOC:	B9 B6 Documentation for E.COM
+EXPRESS2.DOC:	2B F0    "
+EXPRESS3.DOC:	F5 2E    " 
+EXPRESS4.DOC:	20 4F    "
+EXPRESS5.DOC:	5F 76    "
+EXPRESS6.DOC:	C2 7B    "
+MX      .   :	DA 43 Macro file for E.COM
+README  .   :	00 17 Short description of EXPRESS editor E.COM
+TERM    .DAT:	73 61 Terminal installation data for E.COM
+
+BISHOW31.ASM:	06 E7 TYPE command replacement that goes backwards 
+BISHOW31.COM:	DD 88  or forwards in a file
+VDE     .DOC:	19 02 Doc for generic VDE editor
+VDE-2C  .COM:	52 36 Osborne 1 or Vixen configured VDE
+VDE-2C  .DOC:	A8 BA Doc for Osborne versions
+VDE-OS26.COM:	C2 32 Custom VDE for Osborne 1 or Vixen
+
+
+CERTIFY .COM:	71 77 Disk Certification and Utility program (CP/M 2.2)
+CERTIFY .DOC:	97 B7 Allows you to map out bad sectors and examine disk
+DU-V87  .DOC:	A5 0D Documentation and examples
+DU-V88  .AQM:	A5 5B Assembler source for DU-V88
+DU-V88  .COM:	C7 69 Disk Utility - saves files on bad disks and more!
+EDFILE  .COM:	14 A3 Display and edit data in files
+EDFILE  .DOC:	C2 18 Doc and examples for EDFILE
+FIX     .COM:	DE 4A Disk utility and editor with on-line help
+FIX     .DOC:	0C C9 Short intro to FIX.COM
+SPZ     .DOC:	7E 2C Doc and info file 
+SPZ     .COM:	8D 5E Disk Utility - menu driven disk sector editor
+
+JOURNEY .COM:	7E BF Maze type graphics game for 52 col O1
+JOURNEY .DOC:	83 C4 Complete instructions for JOURNEY (a D&D type game)
+JOURNEY .INS:	47 B9 Part of the JOURNEY program
+JOURNEY .SSS:	05 B5 JOURNEY high score
+OSBDDD  .COM:	47 EE Dysan Digital Diagnostic program (drive speed test)
+PATCHER .COM:	CA A7 Modifies your CP/M for screen dump, blink cursor, etc
+PATCHER .DOC:	00 12 Easy installation instructions for PATCHER
+SET     .COM:	82 65 Change arrow keys, screen width, printer params,
+SET     .DOC:	80 22  and print fonts on Okidata and Epson printers
+
+README  .20 :	E0 1F	Notes on Ver. 2.0 changes and features
+Z80DIS  .000:	E4 25	Z80DIS overlay file
+Z80DIS  .001:	09 F8	  "      "      "
+Z80DIS  .COM:	E4 2C	Z80 disassembler with 'intellegence'
+Z80DIS  .EQ :	02 51	Squeezed example file from Ver 1.0
+Z80DIS20.DQC:	38 0C	Squeezed .DOC file for Z80 features
+ZDINSTAL.COM:	C0 A0	Terminal installation program
+ZDINSTAL.DTA:	CF 30	Data file for terminal installation
+ZDINSTAL.MSG:	FF 88	Messages file for terminal installation
+
+DDTF    .AQM:	D3 66	Squeezed source for DDTF
+DDTF    .COM:	D7 60	A string-find function addition for DDT
+DDTF    .DOC:	E7 FE	Allows finding any string from within DDT
+H80     .MNE:	EF DB	HD64180 mnemonics for REVAS
+I80     .MNE:	D1 B9	Intel 8080 mnemonics for REVAS
+I85     .MNE:	9C 94	Intel 8085 mnemonics for REVAS
+MAC     .MNE:	6A E8	MAC/RMAC mnemonics for REVAS 
+MSA15   .COM:	A3 9D	An 8080 dissassembler
+MSA15   .DOC:	AD F1	Terse instructions for MSA
+REVAS   .COM:	C2 0E	A dissassembler with your choice of mnemonics
+REVAS   .INF:	C0 AF	Invoking & setting up REVAS
+TDL     .MNE:	68 43	TDL/CDL mnemonics for REVAS
+Z80     .MNE:	63 EF	Zilog mnemonics for REVAS
+Z8E     .COM:	07 DF	Full screen Z80 debugging monitor
+Z8E     .DQC:	B6 F9	True sysmbolic debugging
+Z8E     .SYM:	A5 1A	Symbol table for patching Z8E
+ZDT     .COM:	21 51	A Z80 mnemonic version of DDT
+ZDT     .DOC:	81 07	Documents additional commands of ZDT
+
+
+GPIB    .COM:	A0 A1	Make the Osborne 1 a IEEE 488 controller
+GPIB    .DOC:	CE C5	 Menu driven to select Talker or Listener
+
+
+TREE    .COM:	0B 50	Family Tree program for Osborne 1 or Vixen only
+TREE    .DOC:	30 51	Brief instructions for using TREE
+
+
+EDIT    .COM:	25 21	Small file editor/directory space program
+EDIT    .DOC:	81 FF	Documentation for EDIT
+EDIT11  .CRD:	8A 12	Quick help card for EDIT
+VDE     .DOC:	8D 70	Video Display Editor documentation
+VDE13   .COM:	4B 0D	Generic CP/M version of VDE
+VDO     .DOC:	6F A4	Manual for original Osborne VDO
+VDO25   .COM:	F8 80	Latest version of VDO for generic CP/M
+VDO25   .MAN:	FB E9	Documentation for VDO25
+VDO25   .NOT:	F1 D1	Latest info on VDO25
+VDOC    .COM:	6F 6E	Customized version for Osborne 1 and Vixen
+VDOC    .DOC:	35 F6	Doc for VDOC (source in Z80MR available)
+VINST11 .COM:	BC AF	Terminal installation for VDO25
+VTERM   .DAT:	DD AA	Data file for VINST11
+
+
+DA2     .COM:	F7 8D	Directory Attribute prgm reads/sets CP/M flags
+DA2     .DOC:	94 CD	 Does directory with file sizes, etc.
+
+CFORMAT .COM:	FD DD    IBM PC  CPM86 SS format for DD Osborne 1
+DFORMAT .COM:	CE E8    DEC VT180 format for DD Osborne 1
+DSKPRAM .ASM:	DE 09    Will determine the values of the disk parameter block
+DSKPRAM .COM:	33 48     and skew translation table of a disk
+FORMAT  .DOC:	22 04    Intro to the xFORMAT programs for the Osborne 1 
+KFORMAT .COM:	C7 FF    Kaypro II format for DD Osborne 1
+OFORMAT .COM:	93 1C    Osborne SD or DD format for Osborne 1
+OSTOKPRO.COM:	0C B8    Allows DD Osborne 1 to read and write Kaypro II format
+PCPIP2  .COM:	EF 20    Allows DD Osborne 1 to read & write SS MSDOS disks
+PROBE   .COM:	78 42    Gives information on CPM addresses and disk info
+SKEW    .COM:	F9 85    Shows directory skew pattern of a disk
+
+
+AL-LOGO .ASM:	26 D7	Assembly language graphics routine
+AL-LOGO .COM:	07 9B	Prints logo on screen
+ALGRAPHS.ASM:	05 DC	Assembler source for ALGRAPHS
+ALGRAPHS.COM:	29 F3	Displays O1 graphics set on screen
+AUTOCHG .SUB:	BB DF	Replace AUTOST graphics with GFX memory
+AUTOREP .BAS:	D2 56	Memory load for AUTOST gfx
+AUTOST  .COM:	E1 1A	Used with GFX program
+BATS    .GFX:	D9 E6	
+GFX     .BAS:	E2 B5	GFX - a total graphics editor for screen/printer
+GFX     .COM:	F9 ED	Compiled GFX.BAS
+GFX     .DOC:	FD D3	Help and instructions
+GFX1    .GFX:	6D DB	- With this program you can create pictures on your
+GFX2    .GFX:	BF A3	  screen, save them to disk, print them, and make
+GFX3    .GFX:	7E 39	  your own 'slide shows'
+GFXDATA .CEC:	73 4D	GFX main data file
+GFXTITLE.CEC:	D5 55	GFX big letter data file
+OLD/NEW .BAS:	57 E1	Converts GFX files to Mbasic format 
+RIENDEER.GFX:	38 3D
+SANTA   .GFX:	D7 0B
+SHIP    .GFX:	D8 EB
+SLIEGH  .GFX:	6A 81
+SUPER   .GFX:	9F D9
+TRAIN   .GFX:	18 56	All .GFX files are saved graphic demo pictures
+TURKEY  .GFX:	F3 E6
+WELCOME .GFX:	27 1C
+WITCH   .GFX:	33 1F
+
+
+APRINT  .OVR:	47 B1	
+BBY8X10 .CHR:	C3 E2
+BLD8X10 .CHR:	65 1D
+E1      .OVR:	6D 39
+E10     .OVR:	1F 2D
+E11     .OVR:	2E CF
+E12     .OVR:	4F B0
+E13     .OVR:	03 B1
+E14     .OVR:	36 3F	All files are part of Electric Easel for Osborne 1
+E15     .OVR:	AB BA
+E16     .OVR:	E5 A1	Documentation is on FOG/CPM.046
+E17     .OVR:	F6 39
+E18     .OVR:	D7 4B
+E2      .OVR:	81 F4
+E20     .OVR:	C2 E0
+E21     .OVR:	9C 0D
+E22     .OVR:	CE BA
+E23     .OVR:	DC E6
+E24     .OVR:	E4 AD
+E25     .OVR:	04 48
+E26     .OVR:	46 8C
+E27     .OVR:	CC 32
+E28     .OVR:	E8 7E
+E29     .OVR:	10 6D
+E3      .OVR:	A5 0E
+E4      .OVR:	F2 28
+E5      .OVR:	71 CB
+E6      .OVR:	52 92
+E7      .OVR:	05 8F
+E8      .OVR:	9A 28
+E9      .OVR:	45 F2
+EASEL   .COM:	57 4C
+EASEL   .HLP:	1A C7
+FLIPKEYS.AQM:	18 3A	Assembler source for FLIPKEYS
+FLIPKEYS.COM:	5F 0E	Allows you to switch from WS to CPM arrow keys and back
+FLIPKEYS.WS :	4A D6	Documentation for FLIPKEYS
+LOGO    .   :	32 DD
+OS6X10  .CHR:	B6 2C
+OS6X12  .CHR:	45 F7
+OS6X16  .CHR:	0C 55
+OS8X10  .CHR:	99 1E
+OS8X16  .CHR:	37 1F
+PVID    .OVR:	0C 33
+TERMDEF .DEF:	B9 78
+TEST    .MAC:	60 9F
+
+EASEL   .DOC:	9F E7	Electric Easel documentation for FOG/CPM.042,043,044
+
+
+APPEND  .COM:	97 C7    Copy file1 to the end of file2
+APPEND  .DOC:	C4 71
+SPLIT   .COM:	3B F5    Splits a file into smaller chunks
+SPLIT   .DOC:	B4 5B
+
+@       .COM:   77 47    An Online Expression Evaluator in decimal & hex
+@       .DOC:   1A BB     (better known as a calculator)
+CALL-CPM.COM:	FA DD    Menu-driven program to learn how CP/M calls work
+CALL-CPM.DOC:	95 3C
+COMPARE .COM:	AA 48    Compares two files and reports if different
+COMPARE .DOC:	60 26
+COMPASC .COM:	30 7D    ASCII file compare program
+COMPBIN .COM:	3D 2C    BINARY file compare program
+CRCK4   .COM:	B8 F5    Perform Cyclic Redundancy ChecK to verify files
+CRCK4   .DOC:	DF 6C
+DUPUSR21.COM:	44 75    Create duplicate directory entry in other user area
+HP      .COM:	37 DA    Programmer's calculator for CP/M
+INUSE11 .COM:	B1 61    Prints message on screen and locks keyboard
+INUSE11 .DOC:	BA 86     Requires password to further use computer
+
+
+AL      .   :	7D 00    Data file used by ALIEN.BAS
+ALIEN   .BAS:	4C DD    Graphics game with you defending from the aliens
+ALIENS  .COM:	CE 5C    Another version of the arcade game
+ALIENS  .DOC:	E6 FA    Instructions for patching for various screens
+BOUNCE  .COM:	54 FA    
+CRAPS   .BAS:	99 24    Graphics version of that famous game
+CRAPS   .COM:	4F 81    Compiled version for faster running
+MONSTER .BAS:	E3 5C    Graphics game 
+MONSTER .DOC:	C0 F8     From Portable Companion
+OSCHESS .COM:	CD 91    The old favorite game
+OSCHESS .DOC:	3A 92    The computer can look ahead as much as 6 moves
+OSCHESS .DSC:	E7 97    A user's comment on the game
+OSSARGON.COM:	FB 13    Another version of CHESS
+OSSARGON.DOC:	DC B3    Helpful hints on getting started
+OZDOT   .COM:	56 66    A 'connect the dots' game
+OZDOT   .DOC:	94 3D
+PACMAN  .COM:	86 A2    A version of the famous arcade game
+PACMAN  .DAT:	ED 13
+PACMAN  .DOC:	CC 41
+PPONG   .COM:	17 7D    A Polish Pong game
+PPONG   .DOC:	45 EC
+SCREEN  .CNT:	B4 4B    Used with PACMAN
+SMURF   .BAS:	76 10    A version of MONSTER for young children
+TYPERACE.BAS:	8E 38    Typing tutor and horserace game (for 80 col scrn)
+WORDPUZL.COM:	74 CF    Guess the words!
+
+BREAKOUT.BAS:	26 39    Graphics version of advanced Pong game
+BRIDGE  .COM:	7E DD    A bridge game played against yourself
+BRIDGE  .DES:	0A 40     -no cards required!
+BRIDGE  .DOC:	CB E4    
+BRIDGE  .PAS:	A0 B4    Turbo Pascal source code for BRIDGE
+BUBBLE  .BAS:	4C 67    Shows how a bubble sort works
+BUBBLE  .DOC:	96 2B
+CROSSPUZ.BAS:	D5 09    Prepares a word search puzzle from supplied word
+DESIGN  .BAS:	A4 0E    Prints 'nifty designs on the screen'
+DESIGN  .DOC:	5D D1
+DUCK    .BAS:	86 EA    A graphics shooting gallery type game
+DUCK    .DOC:	CF 37
+E-SKETCH.BAS:	9F F2    'Etch a Sketch' type progtram for screen graphics
+ESCAPE  .BAS:	2B 7C    Tank battle game with screen graphics
+ETCH    .BAS:	FC 6E    Another version of E-SKETCH
+GRAPH   .PRN:   BA AF    Used with KONG.BAS
+GUNNER-2.BAS:	6A 35    Fire a howitzer at a target!
+GUNNER-2.DOC:	C2 A6
+HANOI   .BAS:	E4 3D    Tower of Hanoi puzzle (disks and pegs)
+KONG    .BAS:	03 5D    Game displays block graphics
+KONG    .DOC:	5A 33
+LIFE    .BAS:	9E EC    CB-80 source code for LIFEASC.COM
+LIFE    .DOC:	B2 6E
+LIFE1   .PAT:	E5 E7    Pattern for LIFEASC
+LIFE2   .PAT:	B0 70    Pattern for LIFEASC
+LIFE3   .PAT:	49 9A    Pattern for LIFEASC
+LIFE4   .PAT:	1A 6F    Pattern for LIFEASC
+LIFEASC .COM:	BB 06    Builds patterns like living cells would
+LIFEASC .DOC:	B8 CF
+MENU    .BAS:	10 E8    Select various Basic programs on this disk
+MENU    .DOC:	F9 FD    
+PICT    .BAS:	8F 4F    Picture file used with PRINTPIC.BAS
+PINGPONG.BAS:	B3 AA    Two player ping pong game
+PINGPONG.DOC:	F7 0E
+PRITPICT.BAS:	29 F8    Print PICT.BAS file
+RND-WALK.BAS:	65 01    Displays a random path of letters
+RND-WALK.DOC:	F3 66
+SEARCH  .BAS:	81 8F    Counts words in a list and displays a chart 
+SEARCH  .DOC:	CA 7E
+SKEÔ    .BASº	5Æ 2¹    Screeî drawinç prograí thaô createó á PICT.BAÓ file
+SKET    .DOC:	AD 70
+SLOTS   .BAS:	AD 9A    Graphics oriented 1 arm bandit
+SLOTS   .DOC:	6D 4F
+SNOW    .BAS:	B1 42    Fill your screen with random letters
+SNOW    .DOC:	BD D2
+
+
+ADVENTUR.COM:	52 AC    Original cave adventure game with multiple
+ADVENTUR.DOC:	CE 00    levels, magic words, etc.
+ADVENTUR.WRK:	C8 D1
+CHESS   .COM:	85 48    The famous board game
+CHESS   .DOC:	6C 75
+CHESS   .FOR:	E7 DD    Source code for CHESS in FORTRAN
+OTHELLO .COM:	8E 72    Othello baord game
+SNOOPY  .TXT:	D0 0C    Type this file out for a colorable character!
+TTT     .ASM:	AE A6    
+TTT     .COM:	F0 FE    Three dimensional tic - tac - toe
+
+
+23-MATCH.BAS:	07 89    23 matches game
+ACEYDUCY.BAS:	3B 9F    Acey-Duecy card game
+AMAZING .BAS:	7B C7    Maze generator
+AMAZINGP.BAS:	07 DB    Printer version of AMAZING
+ANIMAL  .BAS:	B7 4F    Think of an animal and the computer will guess it
+BACCRRT .BAS:	89 2D    Baccarat casino game
+BAGELS  .BAS:	BC 42    Number guessing game
+BASKETBL.BAS:	C5 93    Basketball game
+BATNUM  .BAS:	9E CB    Battle of numbers against the computer
+BATTLE  .BAS:	62 4E    Battleship game
+BATTLSHP.BAS:	BD FF    Battleship game
+BATTLSHP.DOC:	35 B5    
+BLACKJCK.BAS:	05 36    Blackjack casino game
+BOMBARD .BAS:	93 7C    Fire missiles and destroy the enemy
+BOMBSAWY.BAS:	50 B9    Bombs away! 
+BOUNCE  .BAS:	AB AD    Modify the flight of a ball
+BOWLING .BAS:	C4 39    Bowl a few frames with your computer!
+BOXING  .BAS:	56 BA    Olympic style boxing match
+BUG     .BAS:	41 1A    Like the game Cooti.  Build yourself a bug.
+BULLFGHT.BAS:	2A 9F    Now you can swing the cape and kill the bull!
+BULLSEYE.BAS:	FD F4    Dart game
+BUZZWORD.BAS:	D6 B7    Print phrases in 'educator-speak'
+CAPITALS.BAS:	E0 5B    Know your State Capitals
+CHANGE  .BAS:	3F 60    Gives correct change for transactions up to $100
+CHECKERS.BAS:	04 9B    The other famous board game.  Just you & computer.
+CHEMIST .BAS:	C6 43    Dilute the acid without blowing up
+CHOMP   .BAS:	75 89    Pacman, move over!
+DARTS   .BAS:	DD 51    Guess the dart's position
+DARTS   .DOC:	DB 7C    
+MATH    .BAS:	BD 9D    Arithmetic drill game
+MENU    .BAS:	1C 3F    Run many of the programs on this disk from MENU
+MENU    .DOC:	7D B4
+NUMBERSQ.BAS:	76 8A    Move tiles within a matrix
+NUMBERSQ.DOC:	7D 7A
+PACMAN95.COM:	69 E4    Another Pacman type game
+PACMAN95.DOC:	5C 1B    Patching information for various terminals
+PIGLATIN.BAS:	B0 BC    Translates phrases to pig Latin
+SMART   .BAS:	8E 59    Computer predicts your T/F input
+SMART   .DOC:	32 8D
+TRANSLAT.BAS:	46 60    Translates words into Cheyenne
+TRANSLAT.DOC:	F0 CB
+VOCAB   .BAS:	3C 8F    Create flashcards for testing purposes
+ŠVOCAÂ   .DOCº	3² 7Ä     Thió versioî seô uð foò Englisè tï Cro÷ translation
+
+
+ANDY-500.BAS:	1B ED    Steer your racing car down a roadway
+ANDY-500.DOC:	1F 08
+FASTLIFE.ASM:	8E 73    Cellular generation growth
+FASTLIFE.COM:	3D C8
+FASTLIFE.DOC:	CD F8
+FSTLIFE .DOC:   49 02
+MENU    .BAS:	F5 4E    Run some of the games on this disk from a MENU
+MENU    .DOC:	36 1A
+QUBIC   .BAS:	A1 BE    Cubic tic - tac - toe
+QUEEN   .BAS:	F6 5B    Chess Queen moves
+ROCKET  .BAS:	86 27    Lunar landing
+ROULETTE.BAS:	26 5C    The favorite casino game
+RUSROU  .BAS:	D4 98    Russian Roulette
+SALVO   .BAS:	0D 5A    Battleship game
+SINEWAVE.BAS:	39 FA    
+SLALOM  .BAS:	7C 84    Olympic skier game
+SLOTS   .BAS:	64 45    One armed bandit
+SPLAT   .BAS:	29 FC    Parachute jump
+STARS   .BAS:	60 5B    Number guessing game
+STARTREK.BAS:	5C 79    You can pilot the Enterprise & fight Klingons
+STARTREK.DOC:	78 36
+STARTRK2.BAS:	36 64    Another version in a galaxy far away!
+STOCK   .BAS:	80 71    Stock market simulation
+SYNONYM .BAS:	13 7C    Vocabulary game
+TARGET  .BAS:	6F E3    Test your Phasor accuracy
+TICTAC1 .BAS:	04 BB    
+TICTAC2 .BAS:	95 7A
+TOWERS  .BAS:	67 84    Tower of Hanoi puzzle
+TRAIN   .BAS:	7F 97    Time/distance game
+TRAP    .BAS:	58 D8    Number guessing game
+TREKINS .BAS:	DC 9F    Star Trek game instructions
+WAR     .BAS:	82 D1    Card game of War
+WEEKDAY .BAS:	29 84    Gives facts about days you input
+WORD    .BAS:	C0 37    Word guessing game
+
+
+AWARI   .BAS:	39 80    Ancient African board game
+BIO-FF  .BAS:	40 9A    Biorhythm chart
+CHECKERS.BAS:	DD 18    Play checkers with your computer
+CRAPS   .BAS:	C6 20    The infamous casino game
+CRAZY-8 .BAS:	90 73    Crazy eights card game
+CUBE    .BAS:	9B 53    Avoid the hidden land mines
+DCHARGE .BAS:	B9 BC    Depth charge game
+DIAMOND .BAS:	DD ED    Prints a diamond pattern
+DICE    .BAS:	70 50    Simulates a dice roll
+DIGITS  .BAS:	86 24    Guess the number
+EVENWIN1.BAS:	CC EF    The game of Even Wins
+EVENWIN2.BAS:	60 3B    Two person Even Win game
+FLIPFLOP.BAS:	A4 6D    Flip the characters
+FOOTBAL1.BAS:	0F BD    Dartmouth championship football
+FOOTBAL2.BAS:	74 55    NFU football
+FURTRADR.BAS:	B3 9C    Fur Trader
+GAMMON  .BAS:	76 50    Backgammon
+GOLF    .BAS:	95 46    Practice your swing on this one!
+GOMOKO  .BAS:	79 A2    Gomoku board game
+GUESS   .BAS:	6C 00    Guess the number
+GUNNER  .BAS:	F5 F2    Gun crew commander
+HAMURABI.BAS:	CE AC    Try your hand at government
+HANGMAN .BAS:	CB AE    A word game
+HELLO   .BAS:	15 12    Answer the question game
+HEXAPAWN.BAS:	57 2F    Move your pawns on a board
+HI-Q    .BAS:	FF D8    Puzzle game
+HOCKEY  .BAS:	96 64    All the action without the ice
+HORSRACE.BAS:	20 53    Suffern Downs classic
+MENÕ    .BASº	B³ E¸    Ruî somå oæ thå gameó oî thió disë froí a MENU
+MENU    .DOC:	E3 42
+MONOPOLY.BAS:	88 80
+
+
+AD      .COM:	DC 9E    Expanded Adventure 
+ADVENFIL.DOC:	EA 88    AD support file
+ADVENTUR.DOC:	D7 D8
+ADVENTUR.MSG:	31 D3    AD support file
+ATAB    .DAT:	23 81    AD support file
+COMMON  .DAT:	03 23    AD support file
+CRAWL   .COM:	00 36    Role playing game
+CRAWL   .DOC:	E2 ED    Terminal patch information
+CRAWL   .HNT:	B8 89    If you want some help...
+ELIZA   .BAS:	53 6E    A conversation with a psychologist
+KTAB    .DAT:	2A D0    AD support file
+LTEXT   .DAT:	2B 52    AD support file
+RTEXT   .DAT:	7A 12    AD support file
+STEXT   .DAT:	DE 21    AD support file
+TRAVEL  .DAT:	7B F3    AD support file
+
+
+CASTLE  .BAS:	FC DE    Wizard's castle role playing game 
+CASTLE  .COM:	ED 5D    Compiled version to run without MBasic
+CASTLE  .DOC:	91 ED
+CASTLEX .DOC:	9F E3    Castle update info
+CIA     .BAS:	A9 67    Detective game
+CIVILW  .BAS:	C5 A5    Civil War simulation game
+DSPACE  .BAS:	8E 11    Repel invaders in Deep Space
+FIGHTER .BAS:	34 3F    Gunner's target practice
+GRANPRIX.BAS:	73 79    Pilot your car in the Gran Prix
+LIFE    .BAS:	0C 52    Cellular generation growth
+MASTERMD.BAS:	31 BA    Guessing game
+QUEST   .BAS:	69 2D    Search for pirate treasure
+STARLAN4.BAS:	07 DA    Interstellar commerce game
+STARLANE.BAS:	92 3E    Another version of the Interstellar commerce game
+YAHTZEE .BAS:	3C A5    The renowned card game
+
+KERMIT  .COM:	EA CB    Kermit-80 communications
+KERMIT  .DOC:	F0 BE
+OTERM4  .COM:	24 C3    Communications program with XMODEM and Compuserve A
+OTERM4  .DOC:	6D 51     protocols both available. 7/8 bit, even/odd parity
+OTSETUP .COM:	A8 C2    Installs extended function key definitions in OTERM
+OTSETUP .DOC:	2B 87
+SERIAL  .ASM:	A5 5E    A 6850 ACIA control utility that allows you to set
+SERIAL  .COM:	99 8B     all options for the Osborne 1 serial port chip
+
+
+BCSQUASH.BAS:	88 FD    Compacts MBASIC programs by 15-20% by removing
+BCSQUASH.COM:   22 01     comments and blanks
+BCSQUASH.DOC:	D7 BD     
+VMAP2   .BAS:	40 A9
+VMAP2   .COM:	A1 C1    Cross reference table of variables and goto's
+VMAP2   .DOC:	C1 4E
+
+05-20-84.SPL:	1F F9    SPELLTST sample file
+EDITOR  .BAS:	62 9D    Line oriented editor similar to ED 
+EDITOR  .COM:	CE FB    Compiled version of EDITOR
+HELP    .BAS:	8E 4C    Electronic Card File system
+HELP-1  .BAS:	E7 43     Allows easy access to random files
+HELP-2  .   :	D6 EE    Electronic Card File system
+HELP-3  .   :	8E FF    Electronic Card File system
+HELP-4  .   :	34 62    Electronic Card File system
+MAIL    .BAS:	BF AB    Electronic Card File system
+MEASURE .BAS:	CC E7    Metric-US measure conversions
+MENU    .BAS:	05 19    Electronic Card File system
+MERGE   .BAS:	11 AA    Electronic Card File system
+NEWNAMES.BAS:	A9 09    From John Gaudio's MBASIC programming tutorial in
+NEWNAMES.DOC:	87 F6     FOGHORN, Feb & Mar 1984. Name & address file
+NFLFYL  .   :	00 00
+NFLSTATS.BAS:	DB 86    Initializes each team's Power Rating as published
+NFLUPDAT.BAS:	C7 36     in "Pro Football Annual"
+OPERATE .BAS:	15 0D    Electronic Card File system
+REPORT  .BAS:	10 22    Electronic Card File system
+REPT-FRM.BAS:	67 31    Electronic Card File system
+SORT    .BAS:	46 5C    Electronic Card File system
+SPELLTST.BAS:	E1 84    Enables you to set up a spelling test or other
+
+
+TESTBAS .BAS:	85 19    A MBASIC file that contains a picture
+TESTBAS .COM:	FE 79    A Z80 mnemonics file for calling from MBASIC
+TESTBAS .MAC:	EC 1D
+TESTBAS .REL:	0B 19
+TESTMAC .COM:	45 A3    A Z80 mnemonics file for use within CP/M
+TESTMAC .MAC:	1D 18
+TESTMAC .REL:	14 92
+WI3BAS  .OVR:	F0 D7    Overlay to create BASIC files
+WI3GRAPH.BAS:	42 93    Main O1 graphics drawing program
+WI3GRAPH.DOC:	F0 15
+WI3HLP  .OVR:	85 3D    Short description of functions
+WI3Z80  .OVR:	B5 6C    Overlay to create files with Z80 mnemonics
+CALLPROG.BAS:	BC D0    Tests picture saved by WI3GRAPH
+DISK    .DOC:	1C 29    File info for WI3GRAPH 
+
+ADD     .BAS:	93 CC    Addition drill for KIDMATH
+DIV     .BAS:	EE 71    Division drill for KIDMATH
+DRAW    .BAS:	C0 C3    Compose pictures on the screen, then dump to printer
+DRAW    .DOC:	DE A9
+GRAPHIC .BAS:	F2 78    KIDMATH file
+KDRAW   .BAS:	16 38    Screen graphic utility for 24x52 screen
+KM      .BAS:	FD 0D    KIDMATH - Menu driven arithmetic drill program
+KM      .DOC:	6C 0A    WS formatted user manual
+KPLOT   .BAS:	F2 94    Prints bar graph or scatter plot on screen
+MABPLOT .   :   D5 77    Sample file for KPLOT
+MUL     .BAS:	66 94    Multiplication drill for KIDMATH
+PAINT2  .BAS:	9D F2    Creates screen display with ASCII and graphic chars
+PAINT2  .DOC:	DC 0C     and builds a file of data statements for MBASIC
+SCDESIGN.BAS:	A4 03    Uses graphic and ASCII chrs to build DATA statements
+SUB     .BAS:	D3 F3    Subtraction drill for KIDMATH
+SW104   .BAS:	D7 CE    Screenwriter program with graphics for Screen Pac 104
+SW80    .BAS:	1A 98     or 80 that writes pictures to a sequential file
+
+
+CHAR    .DEF:	96 73    Used by PRN
+CHRTX   .COM:	A1 E6    Used by PRN
+FRNSTL51.COM:	81 A0    Install program for FRONT51 (CP/M 2.2 or CPM+)
+FRNT51PT.ASM:	78 1F    Patch info for terminal customization
+FRONT51 .COM:	58 5C    Allows you to have a menu of files on your disk appear
+FRONT51 .DOC:	F3 7B     on your screen and run with a keystroke
+FRONT51 .INF:	09 EE    General description of FRONT51
+FRONTSUB.DOC:	BF 99    Explains how FRONT loads files and hard disk info.
+PRN     .COM:	0C 5A    Allows you to embed Epson printer control codes in
+PRN     .DOC:	4C 10     your document to access graphics or special features
+
+
+BASLIST .BAS:	1B 77    BASIC program lister lists file to screen in 'pretty'
+BASLIST .COM:	FC 29     format
+BASLIST2.BAS:	4A 79    BASIC program lister with optional parameters that
+BASLIST2.COM:	E7 F8     can specify number of characters per line, output 
+BASLIST2.DOC:	9D 2B     to screen, printer or disk, etc.
+CALC-DM .BAS:	68 09    Part of DESK-DM.BAS
+DDISK-DM.BAS:	3E 2B    Part of DESK-DM.BAS
+DESK-DM .BAS:	63 88    Desk Manager program. Calculator, memo writer,
+DESK-DM .DOC:	19 23     rolodex, and more!
+DUCK    .BAS:	86 EA    Shoot'em game for Osborne 1, but can be modified. 
+GRADES  .BAS:	D7 1F    Class grades maintenenace program & class listing
+IDENT-DM.   :	89 39    Part of DESK-DM.BAS
+INDEX   .   :	49 AE    Part of TELEPHON
+INIT-DM .BAS:	70 9C    Part of DESK-DM.BAS
+MAKEMENU.DOC:	E7 8E    Menu shell program for memory mapped computers
+MAKEMN8B.BAS:	7D CF     This version is somewhat generic.
+MAKEMNZ2.BAS:	B2 AD     This version is configured for the Zorba
+REPEAÔ  .BASº	6Ä 9³    Displayó á sequencå oæ numbeò yoõ havå tï repeaô tï win
+ROLO    .   :	63 03    Part of TELEPHON
+TELEPHON.BAS:	13 63    Maintain a telephone list
+TYPEFAST.BAS:	94 40    A touch typing drill
+TYPING  .BAS:	19 D0    Another typing drill
+
+
+FATCAT  .COM:	70 F9    Menu driven catalog program that reads disk contents
+FATCAT2 .CHN:	47 9C     without sorting, leaving that task for later
+FATCAT3 .000:	D0 83     selection.  This makes it fast and easy to catalog
+FATCAT3 .001:	63 30     all your disks at a sitting.  Works with hard disk
+FATCAT3 .002:	75 7A     user areas and/or floppies.
+FATCAT3 .003:	71 6A
+FATCAT3 .004:	3D 1B     Full documentation is on FOG/CPM.085
+FATCAT3 .005:	A4 EF
+FATCAT3 .006:	97 50     For Z80 CP/M 2.2, CPM+, ZCPR3 systems.
+FATCAT3 .CHN:	55 11
+FATCATIN.COM:	31 C1
+FATCATIN.DTA:	5B 52
+FATCATIN.MSG:	FF 88
+OUTCAT  .000:	92 04
+OUTCAT  .COM:	B3 3B
+README  .1ST:	FE F9
+STANDARD.CFG:	42 C6
+TXTL    .COM:	02 29    Sets up text information in a file for easy menu
+TXTL    .DOC:	42 31     driven access
+TXTL    .MAC:	90 45    Z80 source code for TEXTL 
+VOLNUM  .COM:	A7 E9    Maintains a sequenced list of disk numbers for use
+VOLNUM  .DOC:	71 1E     with FATCAT
+Z3INSTP .COM:	F8 85
+
+
+ABC     .BAS:	1C 0E    MBASIC catalog program. Requires DISK.DIR file
+ABC     .DOC:	09 63     on each disk first (use XDIR.COM)
+ADD     .CMD:	7D 5D    Part of DMASTER catalog program
+APPENDIX.A  :	EE 16    FATCAT23 documentation
+APPENDIX.B  :	21 8A    FATCAT23 documentation
+FATCAT  .MMG:	EB 18    MailMerge file to print FATCAT23 documentation
+FATCAT  .TOC:	D6 E0    FATCAT23 documentation
+FATCAT  .WS :	2C FF    FATCAT23 documentation
+README  .1ST:	FE F9    Read before setting up FATCAT
+VERS23  .UPD:	F7 48    New information on FATCAT23
+
+
+ENSOFT3 .COM:	3A A9    Converts 'hard' ASCII files to WordStar 'soft'
+ENSOFT3 .DOC:	B4 5C     format.  Update from FOG/CPM.080 written in
+FILTER  .COM:	91 89    'Softens' or 'hardens' files and strips
+FILTER  .DOC:	73 3A     print codes\
+FILTER11.COM:	E9 F7     WS files
+FILTER11.DOC:	B2 B3
+FILTER61.COM:	CB 07    Latest version of FILTER 
+SOFTCR  .BAS:	AA 04    MBasic program to 'harden' or 'soften' a file
+SOFTCR  .DOC:	06 82
+STRIP   .COM:	C0 38    Strips comments from assembly language source files
+STRIP   .DOC:	35 3E
+WSDOCON .COM:	98 83    'Softens' standard ASCII files
+WSDOCON .DOC:	4B 27
+
+
+BATLSHIP.BAS:	E8 B6    A version of the old board game    
+EVENT   .DAT:	72 74    Used by WHEEL
+JETSIM  .BAS:	9F CB    Takeoff module
+JETSIM  .DOC:	2D C6    Flight simulator 
+JETSIMB .BAS:	D8 6A    Flight and landing module
+LIFE    .AQM:	8B 03    The game of LIFE allows you to track the 
+LIFE    .COM:	19 18     growth of cells
+LIFE    .INS:	55 D0    Instructions for LIFE
+OSZ-JEDI.BAS:	AB D6    Star Wars game for 80 col. screen
+PEOPLE  .DAT:	EF 6E    Used by WHEEL
+PERSON  .DAT:	3B D8    Used by WHEEL
+PHRASE  .DAT:	6E B9    Used by WHEEL
+PLACE   .DAT:	88 75    Used by WHEEL
+QUOTE   .DAT:	F6 E9    Used by WHEEL
+RANDOM  .DAT:	78 EC    Used by WHEEL
+THING   .DAT:	8C 38    Used by WHEEL
+TITLE   .DAT:	BB 56    Used by WHEEL
+WHEEL   .DOC:	2C EE    'Wheel of Fortune' game (like the TV show)
+WHEEL   .INS:	58 39      (uses screen memory pokes)
+WHEEL-O1.BAS:	88 E4    'Wheel of Fortune' game for Osborne 1
+
+BD      .HLP:	71 0B    Bad Disk program reads disks and locks out 
+BD03    .COM:	B4 A2     bad sectors
+DIAG204 .COM:	AD 5D    Osborne 1 SD/DD factory diagnostics
+DISKDOC .COM:	7F E9    Verifies data, fixes bad sectors, debugs file
+DISKDOC .DOC:	C1 3F     systems, disk drivers and controller routines
+DISKX   .COM:	4D 74    Disk Exercisor v1.0 for 179x disk controller chip.
+DISKX   .DTA:	21 1D     For CP/M 2.2 only.  Currently set up for
+DISKX   .INS:	2F A0     ADM3 type terminals (Osborne & Kaypro).
+DISKX10 .DOC:	67 97    
+DISKXINS.COM:	94 E3    Install program for different terminals
+FAST    .COM:	E0 13    Patch to speed up MPI drives on an Osborne 1 to 
+FAST    .DOC:	DF 2D     reduce noise and shorten access time
+OSPD    .C  :	B6 91    Drive timing program for Osborne 1 written in
+OSPD    .COM:	EF 04     C80
+PK      .COM:	B0 70    Ver. 1.3 Peek and Poke utility allows you to
+PK      .DOC:	FC 08     examine or change any location in RAM. CPM2.2 or +
+READTRAK.COM:	5B 36    Allows Osborne 1 to read tracks of any disk in its
+READTRAK.DOC:	A2 CE     drive to determine density, sector size, etc. 
+REGROUP .COM:	7C BB    Recover files from a disk with damaged directory.
+REGROUP .DOC:	BE C0     Configured for Osborne 1 DD only, but source code
+REGROUP .PAS:	BD 04     in Turbo Pascal is provided.
+TD      .COM:	F5 50    Time Drives on an Osborne 1 - allows you to check
+TD      .DOC:	91 2C     drive speed.
+
+
+KEYSET34.COM:	22 9F    Defines function keys, arrow keys, and boot command
+KEYSET34.DOC:	85 22
+QWIKSET .AQM:	99 EE
+QWIKSEÔ .COMº	6¶ 5±    Alsï doeó screeî size¬ bauä rate¬ porô selection¬ 
+QWIKSET .DOC:	DE 04     and horizontal scrolling toggle
+QWIKSET2.AQM:	17 EF
+QWIKSET2.COM:	31 71    Adds serial port parity and data bits
+SAVKEY  .COM:	AA 24    Saves key settings to a file
+SET     .COM:	82 65    Does all the above as well as setting printer init.
+SET     .DOC:	80 22     and doing memory pokes
+SET-O1  .AQM:	A1 76    Sets the 10 Special Function Keys
+SET-O1  .COM:	77 BD
+SET/SAV .DOC:	02 A0    SETKEY/SAVKEY instructions
+SETKEY  .COM:	14 67    Sets key settings from a file
+SETUP   .DOC:	38 30    Details memory locations for SETUP area
+SUBSET  .C  :	2C D2    C80 source file
+SUBSET1 .COM:	77 C8    Defines function keys and arrow keys on SD
+SUBSET2 .COM:	F7 AD    Defines function keys and arrow keys on DD
+SUPERSET.C  :	90 88    C80 source file
+SUPERSET.DOC:	07 89    Sets function keys in a file and recalls them
+SUPRSET1.COM:	25 E7    Defines function keys, arrow keys, and boot command
+SUPRSET2.COM:	24 07    Defines function keys, arrow keys, and boot command
+
+CTERM   .COM:	8C 75    Simple O1 terminal program
+CTERM   .DOC:	90 99
+DATE    .COM:	36 8C    Stores a date in low memory that can be accessed
+DATE    .DOC:	7D FE     even after a reset.
+DATE    .MAC:	29 F2    Used with DATE
+DATE2   .COM:	18 8C    Used with DATE
+DATE2   .MAC:	47 0A    Used with DATE
+GD      .COM:	28 A1    Used with DATE
+GD      .PAS:	9C 76    Used with DATE
+NEWROM  .COM:	F6 67    Will extract the O1 monitor ROM to a disk file
+NEWROM  .DOC:	02 CE
+OREMOTE .AQM:	69 08    Attach a remote console through the serial port
+OZZYBAUD.COM:	53 6C    Sets Osborne 1 serial port baud rate
+OZZYTIME.COM:	7B A6    Displays time & date on your screen
+ROMDUMP .COM:	63 05    Copies the O1 monitor ROM into memory
+SCPRT2  .COM:	5F 60    Screen dump utility for the O1
+
+
+CRUNCH  .COM:	AC AC    Uses the LZW compression technique to compress
+CRUNCH  .MZC:	2E D4     files for archival and storage purposes.
+CRUNCH12.DOC:	81 3E     Filenames compressed this way have a Z as the
+CRUNCH12.MSG:	44 30     middle letter of the file extension.
+HOWWORKS.IT :	26 FE    Discussion of the technique.
+INCLUDE1.IZC:	C6 2D    Crunched file for CRUNCH
+INCLUDE2.IZC:	FB 89    Crunched file for CRUNCH
+LZDEF12 .DOC:	02 94    Describes crunched file format
+UNARC   .COM:	C2 09    Restores files compacted with the MSDOS ARC utility
+UNARC   .DOC:	FD A7     (ARC ver. 5.xx)
+UNARC   .FOR:	13 FA    Short description of UNARC
+UNARC   .IQF:	86 FC    Squeezed technical information file
+UNARC   .MSG:	31 C0    Introductory file material for UNARC
+UNARC   .ZQ0:	D5 16    Squeezed source code for UNARC
+UNARCA  .COM:	DF 9B    8080 compatible version of UNARC
+UNCR    .COM:	3F 71    UNCRUNCH compressed files 
+UNCR    .MZC:	79 6D    Crunched source code for UNCR
+
+
+WC      .COM:	68 55    Counts lines, words, and characters
+CAL     .COM:	15 8F    Print lines with date match
+CH      .COM:	B6 33    Change pattern in text file
+COMM    .COM:	FA B1    Print lines common to two files
+CRT     .COM:	CB 5B    Display text file a screen at a time
+FIELD   .COM:	1B E5    Selects fields from a file
+FIND    .COM:	C1 BC    Find patterns in text files
+HCAT    .COM:	33 08    Horizontally concatenate text files
+INCL    .COM:	AE A9    Expand included files
+KWIC    .COM:	07 8A    Key word in-context index
+LPR     .COM:	9D 43    Send stdin to printer
+PREP    .COM:	56 94    Convert a text file to one word per line
+SORT    .COM:	18 2F    Incore sort of ASCII lines
+SPLIT   .COM:	52 2D    Read stdin and write it out to files
+TABS    .COM:	8D EF    Convert tabs to blanks or blanks to tabs
+UTDIR   .COM:	B1 37    Sorted file directory
+UTKWIC  .DAT:	41 12    Used with KWIC
+UTKWIC  .OUT:	6A 48    Used with KWIC
+CAT     .COM:	E6 C7    Concatenate files
+CCHECK  .COM:	8E CA    Checks c source code for matching brackets and
+CCHECK  .MAN:	4F BC     punctuation
+CMP     .COM:	C4 1C    Compare two files
+FIELDCC .COM:	EB 63    Select column delimited fields from a file
+FINDMF  .COM:	68 E2    Simple patter match with multiple file input
+TAIL    .COM:	1A E9    Print last n lines of file
+TEE     .COM:	4B BC    Copy stdin to stdout and named file
+TR      .COM:	55 2A    Transliterate characters
+UNIQ    .COM:	1C 23    Filters out adjacent duplicate lines
+UNROT   .COM:	82 0F    Unrotate lines rotated by KWIC
+VSPLIT  .COM:	2D 9C    Vertically split a text file
+XC1E    .COM:	16 61    Cross reference c source code
+XC1E    .DOC:	8C F9
+UTOOL   .DOC:	44 FD    Examples of UTOOL usage
+UTOOL   .MAN:	26 C3    Structured description of program syntax
+UTOOL2  .MAN:	78 BB    Update to original UTOOLS
+
+
+I2FUNC  .COM:	FD 97    IMP internal function key programmer
+I2FUNC  .DOC:	7B 0E    Instructions for using I2FUNC
+I2LIB   .COM:	8D 8A    IMP dialing library editor
+I2LIB   .DOC:	EF FB    Instructions for using I2LIB
+IMP     .DOC:	A0 E6    IMP theory and instructions
+IMP     .INF:	4F 24    Introduction to IMP features
+IMP-DISK.NOT:	AE E8    How to change IMP transfer buffer size
+IMP-OVL .CUS:	E2 BA    Information for customizing your IMP
+IMP-OVL .LST:	1B 45    List of available overlays for IMP
+IMP244  .BEL:	E7 5A    Disable incoming BELL characters
+IMP244  .COM:	EA E4    Distribution version of uninstalled IMP
+IMP244  .DTR:	F6 AA    Patch IMP to disable DTR
+IMP244  .UPD:	A8 8C    Changes to this latest IMP version
+MLOAD2´ .COMº   D¸ AÁ    Replacemenô foò CP/Í LOAD.COÍ thaô allows offsets, etc.  Can be used to install IMP, MDM7, and MEX overlays.
+I2OS-4  .AQM:	AA AA    Osborne 1 using RS232 port only. (6850 ACIA)
+
+
+M7FNK   .COM:	50 7C    MDM740 internal function key editor
+M7FNK   .DOC:	B2 EE    Instructions for using M7FNK
+M7LIB   .COM:	12 AE    MDM740 dialing library number editor
+M7LIB   .DOC:	27 D9    Instructions for using M7LIB
+MDM740  .COM:	D6 7E    Uninstalled MDM740 distribution version
+MDM740  .DOC:	27 5F    Documentation and instructions
+MDM740  .INF:	F2 BC    Description of features
+MDMLNK  .COM:	BD A5    Self prompting program for installing overlays
+MDMLNK  .DOC:	7E 47     on MDM7, MEX, or IMP
+M7OD-5  .AQM:	DF 2F    Osborne 1 w/Comm-Pac or CTS Datacomm modem
+M7OS-2  .AQM:	BA 54    Osborne 1 using RS232 port only
+
+
+MXO-OC10.AQM:	36 78    Osborne 1 w/Comm-Pac or CTS Datacomm modem
+MXO-OS17.AQM:	69 42    Osborne 1 w/estensive SET options
+MXO-OS22.AQM:	CB 17    Osborne 1
+CCAUTO  .IQF:	2F FD    Make MEX automatically transfer files
+CURAMEX .INF:	B9 F7    Unattended dialing and log-on
+CURAMEX .OSB:	05 3F    Auto-log command file
+GET     .DOC:	FD 11    GET.MEX will allow MEX to transfer a file from a    
+GET     .MEX:	5A CF     remote computer to your computer using MEX
+MEX-OS  .TXT:	18 17    Info on using MEX with Osborne Comm-Pac modem
+MEX-OVLY.BUG:	0E BA    How to make overlays 'cloneable'
+MEX-SET2.DQC:	E0 98    Notes on using INI.MEX
+MEX11UPD.DQC:	76 D0    Summary of updates in MEX version 1.1x
+MEXNEWS .0Q1:	A5 B4    MEX news and updates
+MEXNEWS .0Q2:	0D 0C    MEX news and updates
+MEXNEWS .0Q3:	AE 96    MEX news and updates
+MEXNEWS .0Q4:	E2 B5    MEX news and updates
+MEXPAT11.ASM:	A4 00    Patch file for modifying MEX defaults
+MEXUSAGE.TXT:	A5 AC    How to use MEX
+USERMEX .DOC:	EA 79    Sample batch command files for MEX
+BUFFERS .DOC:	70 BE    Explains the MEX buffering scheme
+MEX     .HLP:	D6 50    On-line MEX help file
+MEX-EASY.DOC:	38 A8    Short 'cheat sheet' to getting MEX on line
+MEX-EASY.FIX:	CB B2    More 'cheating'
+MEX114  .COM:	52 9E    MEX version 1.14 distribution file
+MEX11DOC.TOC:	B9 69    Table of contents for MEX documentation
+MEX11DOC.WQ :	83 54    Squeezed MEX documentation
+READ114 .ME :	8E 71    Info on version 1.14 updates
+
+BANDIT  .BAS:	48 07    One arm bandit
+CASINO  .BAS:	D1 5D    Baccarat, Blackjack or Roulette
+CONVERSN.BAS:	CB 4C    Ascii to decimal conversion
+DAYS    .BAS:	16 7A    Computes days between dates
+DRACULA .BAS:	A2 82    An 'adventure' type game
+ESCAPE  .BAS:	25 86    Escape from tanks & a minefield
+GUARD   .BAS:	07 33    Guardian of the Insects game
+GUESSNUM.BAS:	45 BD    Random number guessing game
+ICBM    .BAS:	CB BF    Target practice
+ICBMHS  .DAT:	64 F5    ICBM high score file
+ROULETTE.BAS:	26 E4    More casino games
+
+LADCONF .COM:	F6 0E    Lets you configure LADDER for your terminal
+LADDER  .COM:	26 00    Similar to Donkey Kong.. Uses ascii characters
+LADDER  .DAT:	A3 80     for screen graphics
+LADDER  .DOC:	A1 AE
+
+JOURNEY .COM:	7E BF    A full screen graphic 'adventure' game with D&D
+JOURNEY .DOC:	83 C4     type characters
+JOURNEY .INS:	47 B9    Used by Journey 
+JOURNEY .SSS:	05 B5    Used by Journey 
+OSNAKE  .DOC:	6B 6D    Graphics program - eat points - not snake
+OSNAKE  .COM:	A6 FC
+TDUCK   .COM:	C1 0B    Duck shooting graphics game (from Portable Comp.) 
+
+
+CLOCK   .BAS:	D4 F5    Digital clock display
+OCLOCK  .COM:	58 F8    Sets up a simple counter in RAM
+OCLOCK  .DOC:	88 B8
+OSARROW .COM:	98 F7    Allows toggling from WS to CPM arrow keys
+OSARROW .DOC:	FE DF
+OSCHG   .COM:	05 9E    Changes screen width on Screen-Pac
+OSCREEN .BAS:	AC 46    Shows screen characteristics
+OSPATCH1.COM:	26 DB    Patches COPY.COM for more reliable operation
+SCREEN  .COM:	FA 62    Sets screen width on Screen-Pac
+SCREEN  .DOC:	72 FE
+
+
+TO      .COM:	CF AB    Changes screen width on Screen-Pac
+TO80    .DOC:	64 63    Changes width to 80 col on Screen-Pac
+WID     .COM:	0B FB    Changes screen width on Screen-Pac 
+WID     .DOC:	62 E0
+WIDTH   .COM:	52 3A    Changes screen width on Screen-Pac
+WIDTH   .DOC:	9D 4F
+
+
+DE-LBR  .COM:	07 05    Extracts all files from a .LBR file
+DE-LBR  .DOC:	D7 F2
+XCCP    .COM:	0D 78    An 'extended CCP' that adds command line editing
+XCCP    .DOC:	3C 6D     multiple command line, etc for CPM 2.2
+XCCP    .HLP:	7D 2E
+XREN    .COM:	BD 02
+XRENAME .DOC:	9C D4
+
+BREAKOUT.COM:	27 D8    Osborne 1 version of the arcade game
+MAZE3   .BAS:	6F AD    Random maze generator
+SNAKE   .COM:	C8 50    A snake game using graphicsf
+
+
+
+https://www.mrynet.com/morrow/ftp/ZCPR3/ae3501.htm
+
+http://telnet//rcpm.mitsaltair.com:8800
+
+https://nabu.ca/cpm-software
+
+
+
+
+
+
+
+
+
+
+
+
