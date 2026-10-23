@@ -222,6 +222,45 @@ scratch programs, "figuring it out" notebooks/scripts.
   naming the FOG disk every file came from; `--write` puts that tree into the
   drive's partitions with `cpmcp` and adds an `INDEX.TXT` to each.  The tree is
   the *input* to `--write`, so moving a file between drives is moving a file.
+  Three things it learned the hard way, all of them silent data loss before they
+  were fixed (2026-10-23):
+
+  - **FOG's pages list the *stored* names.**  A Squeezed or Crunched member has
+    the second character of its extension replaced by `Q` or `Z`, so the page
+    says `.AQM` where the disk carries `.ASM` (`.DQC`→`.DOC`, `.MZC`→`.MAC`,
+    `.0Q1`→`.001`).  Matching the page literally dropped **27** of the selection
+    -- including `M7OD-5.AQM`, the overlay that makes MDM740 a Comm-Pac program,
+    and `MLOAD24.COM`, the installer for MDM7/MEX/IMP overlays.  Both spellings
+    are indexed now, and the file is staged under the name the disk actually has.
+  - **Some rows were pasted out of a page with bit 7 still set** (`MLOAD2´ .COMº`
+    is `MLOAD24.COM:`), and one had a space before the colon.  Those rows failed
+    the pattern and were dropped without a word; `parse_selection()` retries a
+    high-bit-stripped copy and tolerates the space.
+  - **`cpmcp` will not overwrite.**  A second `--write` against a populated drive
+    reported "file already exists" for every file it already had and changed
+    nothing, so the tree could not actually become the drive again.  Each
+    partition is wiped with `cpmrm` first now.
+
+  It also stages the **CP/M toolkit** into A: (`--no-toolkit` skips it), out of
+  `research/shipped-software/OS1SYSD.IMD` -- `ASM.COM`, `DDT.COM`, `LOAD.COM`,
+  `PIP.COM`, `STAT.COM`, `ED.COM`, `SUBMIT.COM`, `XSUB.COM`.  The FOG library has
+  no assembler and no debugger, so without this the drive carries overlay *source*
+  it cannot assemble.
+- **`mdm740-assemble.lua`** — assembles the **Comm-Pac overlay** on the machine
+  (#342): boots the staged drive, types `B:` and `ASM M7OD-5`, and leaves
+  `M7OD-5.HEX` on B:.  It exists because this project has **no 8080 assembler on
+  the host** and the FOG library has none at all — `ASM.COM` is on the shipped
+  system disk, so the machine assembles its own overlay.  The waits are
+  `rom2drives.lua`'s ("Insert disk", then `A0>`), not `o1keys.lua`'s: that
+  harness's VRAM scan is for the *stock* machine's screen, and a session driven by
+  blind sleeps never reached a prompt at all.
+- **`mdm740-overlay.py`** — finishes what the assembler started, on the host:
+  reads `M7OD-5.HEX` out of drive B:, places each Intel HEX record at its own
+  address less the `0x100` origin a CP/M `.COM` loads at -- which is exactly what
+  `DDT`'s `I`/`R`/`SAVE 73` recipe does -- and writes the installed
+  `MDM740.COM` into the staging tree.  The check it prints is the point: the
+  uninstalled distribution's banner is the PMMI placeholder, and the installed
+  one says **"Version for Osborne COMM-PAC modem"**.
 - **`md10prep.sh`** — the **repeatable new-geometry capability** (#247): builds a
   blank labelled drive, drives the archive's own `PREP.COM` through its menus with
   `o1keys.lua`, reads the drive back, extracts the header and O/S artifacts, and

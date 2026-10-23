@@ -82,6 +82,22 @@ BUCKET_DRIVE = {'util': 'A', 'comms': 'B', 'word': 'C', 'data': 'D', 'lang': 'E'
                 'disk': 'F', 'print': 'G', 'games': 'H', 'edu': 'I'}
 CATCH_ALL = 'J'
 
+# --------------------------------------------------------------- the toolkit
+# The drive is a CP/M machine, and a CP/M machine with no assembler and no
+# debugger cannot install the overlays that are on it.  The FOG library has
+# neither -- it is applications -- so the toolkit comes from the *shipped system
+# disk* this repo holds: research/shipped-software/OS1SYSD.IMD, the factory DD
+# disk, whose file list is `asm ddt load pip stat ed submit xsub`.  It is the
+# difference between a drive that carries M7OD-5.ASM and a drive that can
+# assemble it into a working MDM740.
+#
+# cpmtools' own `osborne1` diskdef is the DD format (1024-byte sectors, 5 per
+# track, 3 boot tracks), which is what these images are.
+TOOLKIT = ('ASM.COM', 'DDT.COM', 'LOAD.COM', 'PIP.COM', 'STAT.COM',
+           'ED.COM', 'SUBMIT.COM', 'XSUB.COM')
+SYSTEM_DISK = os.path.join('research', 'shipped-software', 'OS1SYSD.IMD')
+SYSTEM_DEF = 'osborne1'
+
 
 def bucket_for(desc, ext):
     d = (desc or '').lower()
@@ -92,12 +108,30 @@ def bucket_for(desc, ext):
     return CATCH_ALL
 
 
+def strip_high_bit(s):
+    """The same line with bit 7 cleared from every character.
+
+    Some rows of the selection were pasted out of a disk's own catalogue page
+    through a path that left the high bit set on some bytes: `MLOAD2´ .COMº   D¸
+    AÁ` is `MLOAD24.COM:` with the CRC bytes after it.  They do not match the
+    pattern, so the entry was dropped in silence -- and one of those rows is
+    MLOAD24.COM, the replacement for CP/M's LOAD that installs the MDM7, IMP and
+    MEX overlays.  That is precisely the tool this drive needs to turn the
+    uninstalled MDM740 into a working one, and it was never staged.
+    """
+    return ''.join(chr(ord(c) & 0x7F) if ord(c) > 0x7F else c for c in s)
+
+
 def parse_selection(path):
     """The maintainer's list: `NAME.EXT: <two hex bytes> description`."""
     out = []
     for line in open(path, errors='replace'):
-        m = re.match(r'^([A-Z0-9#$&@!_\-]{1,8})\s*\.([A-Z0-9]{1,3}):\s*(.*)$',
-                     line.rstrip('\n'))
+        raw = line.rstrip('\n')
+        for cand in (raw, strip_high_bit(raw)):
+            m = re.match(r'^([A-Z0-9#$&@!_\-]{1,8})\s*\.([A-Z0-9]{1,3})\s*:\s*(.*)$',
+                         cand)
+            if m:
+                break
         if not m:
             continue
         name, ext, rest = m.group(1).upper(), m.group(2).upper(), m.group(3)
@@ -107,40 +141,117 @@ def parse_selection(path):
 
 
 def index_fog(fogdir):
-    """name.ext (upper) -> (path, disk).  The first disk that has it wins."""
-    have = {}
+    """name.ext (upper) -> (path, disk).  The first disk that has it wins.
+
+    A second index is built for FOG's *compression markers*.  The catalogue pages
+    list the stored names: a Squeezed or Crunched member has the second character
+    of its extension replaced by `Q` or `Z`, so the page says `.AQM` where the
+    extracted disk carries `.ASM`, `.IQC` for `.INC`, `.MZC` for `.MAC`, `.0Q1`
+    for `.001`.  **477 of the page/disk mismatches are this** -- and 27 of the
+    maintainer's own selection is, including `M7OD-5.AQM`, the overlay that makes
+    MDM740 usable with this machine's Comm-Pac.  Matching the page's name
+    literally dropped all 27 silently, and the drive shipped without them.
+    """
+    have, marked = {}, {}
     for disk in sorted(os.listdir(fogdir)):
         d = os.path.join(fogdir, disk)
         if not os.path.isdir(d):
             continue
         for f in sorted(os.listdir(d)):
-            have.setdefault(f.upper(), (os.path.join(d, f), disk))
-    return have
+            key = f.upper()
+            have.setdefault(key, (os.path.join(d, f), disk))
+            stem, dot, ext = key.rpartition('.')
+            if dot and len(ext) == 3:
+                # `M7OD-5.ASM` is also reachable as `M7OD-5.AQM`: same first and
+                # third characters, whatever FOG's marker put in the middle.
+                marked.setdefault('%s.%s?%s' % (stem, ext[0], ext[2]),
+                                  (os.path.join(d, f), disk))
+    return have, marked
+
+
+def marked_key(key):
+    """The compression-marker spelling of `NAME.EXT`, or None if there is none.
+
+    Only an extension whose second character is already `Q` or `Z` can be a
+    marker (`AQM`, `DQC`, `MZC`, `0Q1`, ...), which is what keeps an ordinary
+    `.DOC` from being confused with a crunched `.D?C`.
+    """
+    stem, dot, ext = key.rpartition('.')
+    if not dot or len(ext) != 3 or ext[1] not in 'QZ':
+        return None
+    return '%s.%s?%s' % (stem, ext[0], ext[2])
 
 
 
 # ------------------------------------------------------------------- staging
 
+def stage_toolkit(out, manifests):
+    """The CP/M toolkit, from the shipped system disk, into A:.
+
+    Not part of the FOG selection, because it is not FOG's -- it is the factory
+    system disk this repo holds -- so it is read out of that image with cpmtools,
+    the same way `--write` does its work.  `--no-toolkit` skips it.
+    """
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    imd = os.path.join(repo, SYSTEM_DISK)
+    if not os.path.exists(imd):
+        print('toolkit:     skipped -- %s is not in this checkout' % SYSTEM_DISK)
+        return 0
+    with tempfile.TemporaryDirectory() as work:
+        raw = os.path.join(work, 'system.raw')
+        subprocess.run([sys.executable,
+                        os.path.join(repo, 'tools', 'research', 'imdinfo.py'),
+                        '--raw', raw, imd], check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        got = 0
+        for name in TOOLKIT:
+            dest = os.path.join(out, 'A', name)
+            r = subprocess.run(['cpmcp', '-f', SYSTEM_DEF, raw,
+                                '0:' + name.lower(), dest],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if r.returncode == 0 and os.path.exists(dest) and os.path.getsize(dest):
+                manifests['A'].append((name, 'OS1SYSD',
+                                       'CP/M 2.2 toolkit: assemble, and install overlays'))
+                got += 1
+    print('toolkit:     %d of %d file(s) from %s'
+          % (got, len(TOOLKIT), SYSTEM_DISK))
+    return got
+
 def stage(args):
     want = parse_selection(os.path.expanduser(args.selection))
-    fog = index_fog(os.path.expanduser(args.fog))
+    have, marked = index_fog(os.path.expanduser(args.fog))
     out = os.path.expanduser(args.out)
 
     for d in DRIVES:
         os.makedirs(os.path.join(out, d), exist_ok=True)
     manifests = {d: [] for d in DRIVES}
 
-    matched, missing = 0, []
+    matched, aliased, missing = 0, 0, []
     for name, ext, desc in want:
         key = '%s.%s' % (name, ext)
-        if key not in fog:
+        src_disk, alias = have.get(key), None
+        if src_disk is None:
+            # The catalogue page lists the *stored* name; the extracted disk
+            # carries the restored one.  `.AQM` in the selection is `.ASM` on
+            # disk, and matching the page literally is what lost the overlay.
+            mk = marked_key(key)
+            if mk is not None:
+                src_disk, alias = marked.get(mk), mk
+        if src_disk is None:
             missing.append(key)
             continue
-        src, disk = fog[key]
+        src, disk = src_disk
+        # Stage it under the name the disk actually has -- `.ASM`, not `.AQM` --
+        # because that is the name that works on the machine.
+        real = os.path.basename(src)
         letter = bucket_for(desc, ext)
-        shutil.copyfile(src, os.path.join(out, letter, key))
-        manifests[letter].append((key, disk, desc))
+        shutil.copyfile(src, os.path.join(out, letter, real))
+        manifests[letter].append((real, disk, desc))
         matched += 1
+        aliased += alias is not None
+
+    if not args.no_toolkit:
+        stage_toolkit(out, manifests)
 
     for d in DRIVES:
         rows = sorted(manifests[d])
@@ -151,7 +262,7 @@ def stage(args):
                 f.write('%s\t%s\t%s\n' % (key, disk, desc))
 
     print('selection:   %d entries' % len(want))
-    print('matched:     %d' % matched)
+    print('matched:     %d  (%d of them by FOG compression marker)' % (matched, aliased))
     print('missing:     %d  (%s)' % (len(missing), ', '.join(missing[:8]) or 'none'))
     print()
     for d in DRIVES:
@@ -260,6 +371,9 @@ def write(args):
     cpmcp = shutil.which('cpmcp')
     if not cpmcp:
         sys.exit('cpmcp not found: install cpmtools (REQUIREMENTS.md)')
+    cpmrm = shutil.which('cpmrm')
+    if not cpmrm:
+        sys.exit('cpmrm not found: it comes with cpmtools (REQUIREMENTS.md)')
     work = tempfile.mkdtemp(prefix='populate-hd-')
     diskdefs(work)
 
@@ -277,6 +391,18 @@ def write(args):
             open(part, 'wb').write(drive.read(size))
             print()
             print('%s: %s, %d file(s)' % (letter, rec['name'] or '?', len(files)))
+            # Wipe the partition before writing it.  `cpmcp` will not overwrite an
+            # existing file -- it says "can not create X: file already exists" and
+            # returns non-zero -- so without this a *second* --write against the
+            # same drive keeps the old contents and reports a failure for every
+            # file it already had.  That is not a cosmetic problem: it means the
+            # tree could not actually become the drive again, which is the whole
+            # contract of this tool ("the tree is the input, not a by-product").
+            # Measured 2026-10-23, when a re-populate left the *uninstalled*
+            # MDM740.COM on B: while the tree held the installed one.
+            if not args.dry_run:
+                subprocess.run([cpmrm, '-T', 'raw', '-f', 'md10', part, '0:*.*'],
+                               cwd=work, capture_output=True, text=True)
             for f in files:
                 if args.dry_run:
                     continue
@@ -329,6 +455,8 @@ def main():
                     help='the staging tree to write from')
     ap.add_argument('--dry-run', action='store_true',
                     help='with --write: say what would happen, write nothing')
+    ap.add_argument('--no-toolkit', action='store_true',
+                    help='with --stage: do not put the CP/M toolkit on drive A')
     args = ap.parse_args()
     if args.stage:
         return stage(args)
