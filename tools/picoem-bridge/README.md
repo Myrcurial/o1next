@@ -13,23 +13,6 @@ MAME's `osborne1nx` sends it. It is the host side of the wire described in
   +--------------------+               +------------------------------+
 ```
 
-## Why this is not in Python
-
-`tools/` is Python stdlib only (AGENTS.md), and this is the exception, written
-down here and in `tools/README.md`: the thing being driven is a Rust library, and
-the only way to own an `rp2350-emu` instance is to link it. Nothing else in this
-crate is unusual — two dependencies, both of them deliberate:
-
-- `libc`, for `mkfifo(3)`.
-- `rp2350-emu`, **pinned to a fork commit**. picoem is a personal research project
-  whose issue tracker is **disabled** (the API reports `has_issues: false`) and
-  which **refuses pull requests** (`CreatePullRequest` returns a permissions
-  error; the REST endpoint returns 404), so upstream contribution is closed
-  rather than merely slow. We pin and re-pin deliberately rather than tracking
-  `main`, and the two decode fixes that stock SDK firmware needs live in a fork —
-  `tools/emulator-setup/picoem/` carries them as a patch, with the measurements.
-  The commit, the reason and the re-pin procedure are in `REQUIREMENTS.md`.
-
 ## Build and run
 
 ```sh
@@ -48,6 +31,23 @@ cargo build --release
 `cargo test` runs the frame-format tests and a real FIFO round trip; that is the
 check CI runs (`.github/workflows/picoem-bridge.yml`), and it needs no MAME, no
 SDK and no firmware.
+
+## Why this is not in Python
+
+`tools/` is Python stdlib only (AGENTS.md), and this is the exception, written
+down here and in `tools/README.md`: the thing being driven is a Rust library, and
+the only way to own an `rp2350-emu` instance is to link it. Nothing else in this
+crate is unusual — two dependencies, both of them deliberate:
+
+- `libc`, for `mkfifo(3)`.
+- `rp2350-emu`, **pinned to a fork commit**. picoem is a personal research project
+  whose issue tracker is **disabled** (the API reports `has_issues: false`) and
+  which **refuses pull requests** (`CreatePullRequest` returns a permissions
+  error; the REST endpoint returns 404), so upstream contribution is closed
+  rather than merely slow. We pin and re-pin deliberately rather than tracking
+  `main`, and the two decode fixes that stock SDK firmware needs live in a fork —
+  `tools/emulator-setup/picoem/` carries them as a patch, with the measurements.
+  The commit, the reason and the re-pin procedure are in `REQUIREMENTS.md`.
 
 ## The flags that matter when something goes wrong
 
@@ -97,8 +97,8 @@ MAME:
 | `Board` | the pins: one `observe(chip_out)` per emulated step, one `stimulus()` out |
 
 **It is not in picoem, and that is deliberate.** picoem *is* the chip; the 595 and the
-165 are the *board*. This fork is permanent (its tracker is disabled and its PRs are
-refused), so every line added there would be ours forever — and this road adds none.
+165 are the *board*. This fork is permanent, so every line added there would be ours
+forever — and this road adds none.
 
 **The widths are parameters** (`FABRIC_BITS`, `MATCH_BITS`) because
 `hardware/interposer-upgrade/revb/` has a README and **no schematic**; the *parts'* behaviour
