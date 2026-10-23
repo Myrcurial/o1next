@@ -40,6 +40,7 @@ Seven storage routes were advertised for the Osborne 1 (`docs/research-gaps.md`
 |---|---|---|
 | IEEE-488 bus | **P3**, 26-pin card edge (pins 25/26 unused) — full pinout in `docs/o1-ieee488-port.md` §6 | Technical Manual §4.1.2, corroborated line for line by the ROM's comment block; PIA UC7 (6821) at `2900–2903` |
 | Power | **P5**, 10-pin video connector, via an EXMON-style passive shunt | EXMON shunt: Sullins MP-0100-10-DS-4 edge connector + Hyko K688-DI sync combiner, **powered from +12V**; the original Drive C drew **11–14.5 V at 0.3 A max** from the same connector (Drive C manual §7-2). The port's +12 V is **not** current limited — it is the PSU rail, so the limit is the AC8151's 2.02 A shared with the CRT (#354) |
+| **5 V out** | a **front-panel port**, feeding the `keyboard-adapter` or the `wifi-comm-pac` | With both boxes installed their two 5 V ports are **wired together** and cross-feed (#356), so this port must be **diode-OR'd against the board's own buck output** — otherwise the two converters drive one node and back-feed each other |
 | Compute | A stock **Pico (RP2040)** — enough for IEEE-488 bit-banging | — |
 | Storage | One external flash chip | Even the largest Drive C variant was not large |
 | Bonus | The same shunt gives **composite video out** | EXMON does exactly this, passively |
