@@ -108,16 +108,19 @@ header pin assemblies wired back-to-back.
 
   | Box | Wired to |
   |---|---|
-  | `wifi-comm-pac` | `P1` & `P7`, **or** `P1` & `drive-c-repro`'s 5 V out |
-  | `drive-c-repro` | `P3` & `P7` (the OEM configuration) |
-  | `keyboard-adapter` | `P4` & 5 V out from `wifi-comm-pac` **or** `drive-c-repro` |
+  | `wifi-comm-pac` | `P1` & the video port, **or** `P1` & the 12 V on the interlink |
+  | `drive-c-repro` | `P3` & the video port (the OEM configuration) |
+  | `keyboard-adapter` | `P4` & 5 V from `wifi-comm-pac` **or** `drive-c-repro` |
 
-  With both boxes installed they **cross-feed 5 V** — their two 5 V connectors are
-  wired together — rather than stacking a connector at P7, so **each board's 5 V
-  port must be diode-OR'd against its own buck output** or the two converters drive
-  one node and back-feed each other. Two pieces of hardware follow: a **front-panel
-  connector on the `wifi-comm-pac`**, and a **small adapter routing the +12 V from
-  P7 to it**.
+  **The three external boxes interlink over one connector — a 2×2 keyed IDC carrying
+  5 V, 12 V and ground — wired however makes sense for the pair.** Each board
+  carries a **cuttable trace on its 12 V input**, so **one PCB serves both cases**:
+  fed from the machine's video port, or fed over the link. The cut trace is what
+  makes it safe rather than clever — the board taking 12 V over the link has no other
+  source, so only one converter ever drives a rail. If option (a) is refused, the
+  **12 V pin in the modem connector is simply left disconnected** and the 12 V comes
+  over the link instead. A link carries what its pair needs, so a 12 V link does not
+  also carry 5 V.
 - **P4 keyboard connector:** pin 19 = +12 V via jumper J6 + R21 — usable to power
   small adapter boards (`keyboard-adapter/`).
 

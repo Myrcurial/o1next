@@ -124,9 +124,11 @@ shares the resistor, so the budget is shared.
   rail is **not limited** (#354), so the peaks stop being a design problem at the
   cost of a second cable and a shunt.
 
-Either way the board needs a **front-panel 5 V connector**, because with both boxes
-installed they **cross-feed 5 V** rather than stacking a connector at P7 — and a
-small adapter routes the +12 V from P7 in (`../README.md`).
+Either way the board needs a **front-panel interlink connector — a 2×2 keyed IDC
+carrying 5 V, 12 V and ground** (`../README.md`, #356) — and a **cuttable trace on
+its 12 V input**, so the same PCB is fed either from the machine's video port or
+from the link. If option (a) is refused, the modem connector's **12 V pin is left
+disconnected** and the 12 V arrives over the link instead.
 
 - **Bulk capacitance is doing real work, not tidiness.** A WiFi TX burst is a few
   hundred mA; `R21` cannot supply that, so the capacitor supplies the peak and
