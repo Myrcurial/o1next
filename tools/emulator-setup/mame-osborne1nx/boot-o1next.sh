@@ -243,22 +243,22 @@ fi
 # own tail -- prints the fallback that is the trigger.
 
 # --- the pico, when one is staged beside this machine ------------------------
-# The interposer's own silicon is the RP2354B, and `picoem` runs its firmware in
-# the loop: a bridge process holds the chip, the card's window is answered by the
-# firmware instead of by the C++ card, and that is the `osborne1nxp` machine
-# (#286, #192 Gate A).  It is on by default when the pieces are staged beside this
-# script -- a staged O1NEXT *is* the machine with the pico in it -- and
-# `O1_PICOEM=0` turns it off, in which case the machine is the card-only
-# `osborne1nx`.  With the pico in the loop the *card* is the firmware, so the hard
-# disk is served by the pico rather than by MAME's ACB-4000.
-PICOEM="${O1_PICOEM:-}"
-if [ -z "$PICOEM" ]; then
-    if [ -x "$HERE/pico/picoem-bridge" ] && [ -f "$HERE/pico/firmware.bin" ] \
-       && [ -f "$HERE/pico/bootrom.bin" ] && [ -f "$HERE/pico/o1next-picoem.lua" ]; then
-        PICOEM=1
-    else
-        PICOEM=0
-    fi
+# The interposer's own silicon is the RP2354B, and `picoem` can run its firmware
+# in the loop: a bridge process holds the chip, the card's window is answered by
+# the firmware instead of by the C++ card, and that is the `osborne1nxp` machine
+# (#286, #192 Gate A).
+#
+# **It is OFF by default, and that is a measurement rather than a preference.**
+# With the firmware in the card's place the MD-10's presence probe never sees an
+# ACB-4000 -- the guest reads 32h in a loop and gets 10h back from the smoke
+# firmware, forever -- so the hard disk stops working.  The personality that
+# answers the card is #179/#293, and it is not in the firmware yet.  `O1_PICOEM=1`
+# puts the pico in the loop for its own sake (the bridge reports the firmware
+# running, its PC and its cycle count) with the drive as the price.
+PICOEM="${O1_PICOEM:-0}"
+if [ "$PICOEM" != 0 ] && [ "$PICOEM" != 1 ]; then
+    echo "boot-o1next.sh: O1_PICOEM is 0 or 1, not '$PICOEM'" >&2
+    exit 1
 fi
 PICO_FIFO_IN=""
 PICO_FIFO_OUT=""
@@ -343,6 +343,8 @@ if [ -n "${O1_SECONDS:-}" ]; then set -- "$@" -seconds_to_run "$O1_SECONDS"; fi
 
 if [ "$PICOEM" = 1 ]; then
     echo "$MACHINE -- the emulated O1NEXT, with the pico in the loop, windowed"
+elif [ -f "$HERE/assets/hd.chd" ] || [ -f "$HERE/assets/rom2.rom" ]; then
+    echo "$MACHINE -- the emulated O1NEXT, windowed"
 elif [ "$STAGED" = 1 ]; then
     echo "$MACHINE -- a staged test machine, windowed"
 else
@@ -360,8 +362,12 @@ else
 fi
 if [ "$PICOEM" = 1 ]; then
     echo "  pico:      $BRIDGE, holding $FIRMWARE (log: $RUNDIR/pico/bridge.log)"
+    echo "             the card's window is the firmware's -- and the smoke firmware"
+    echo "             is not the ACB-4000 personality, so the hard disk will not"
+    echo "             come up until #179/#293 land.  Measured, not assumed."
 else
-    echo "  pico:      none -- the card is MAME's own ACB-4000"
+    echo "  pico:      none -- the card is MAME's own ACB-4000, so the drive works."
+    echo "             O1_PICOEM=1 runs the interposer's firmware in the loop instead."
 fi
 echo "  cfg/snap:  $RUNDIR"
 echo "  quit with  Esc, or the window's close button"
