@@ -1,6 +1,6 @@
 # ROM 1.3 — the source is on the disk, the ROM is not yet certified
 
-**Issues:** #205, #72, #70, #203. **Status: Partially solved.** The disk is read
+**Status: Partially solved.** The disk is read
 and the source is **extracted, indexed and readable**. What is *verified*: the
 `DBE`/`DCE` rule, and a rev-B control build that reproduces a shipped Osborne ROM
 to 3759 of its 4096 bytes. What is **not**: the 1.3 image itself, which is
@@ -9,7 +9,7 @@ ROM. Two things stand in the way and both are *tooling*, not knowledge: the 1.3
 source uses the `DBE`/`DCE` pseudo-ops, which only ACT **3.5E** has, and every
 build loses 337 bytes of its hex output to an emulation defect (§7). Everything
 needed to finish it is in this repo or named below, and the recommendation is to
-record the result and stop (§10).
+record the result and stop (§10). **Issues:** #205, #72, #70, #203.
 
 > **Vocabulary:** `rev B` here is the **Osborne 1's monitor ROM** (9/12/81) — a
 > 1979-era ROM part, **not a board revision**. Board revisions belong to the
