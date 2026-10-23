@@ -91,7 +91,7 @@ emulated machine).
 
 **The ROM's register pair with the firmware is `2800h`/`2801h`, not `2300h`.** The
 monitor writes a request to `2800h` and polls `2801h` for the reply
-(`docs/rom-pico-protocol.md` §2 and §8). `2300–23FF` was the first choice, and it
+(`docs/rom-pico-protocol.md` §2; the residue is §7). `2300–23FF` was the first choice, and it
 is not free: the onboard selects check two address bits each, so `0x2300` is the
 floppy's command/status register and `0x2301` is the floppy's **track register**
 *and* the keyboard's row 0 — which is why the door moved
