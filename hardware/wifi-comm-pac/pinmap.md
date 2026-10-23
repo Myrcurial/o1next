@@ -122,7 +122,7 @@ written down:
 
 | Left free | Why |
 |---|---|
-| **GPIO1–10** | **ADC1** — the only ADC that works while the radio is on (ADC2 is unusable with WiFi). A **rail monitor** was the plausible use; it is no longer needed, because P1 pin 7 turns out not to be behind a 22 Ω (`README.md` §Power). |
+| **GPIO1–10** | **ADC1** — the only ADC that works while the radio is on (ADC2 is unusable with WiFi). A **rail monitor** was the plausible use. It is not allocated: pin 7 *is* behind `R21` (22 Ω), so the voltage the module sees moves with the load — an argument *for* a monitor rather than against one — but nothing needs it yet, and an unspent group is cheaper to keep than to regain (`README.md` §Power). |
 | **GPIO11–14** | touch channels, and nothing here wants touch. Plain enough to spend later. |
 | **GPIO17, 18** | **the two DACs** — see the trade above. |
 | **GPIO39–42** | **JTAG**. The debug path is cheaper to keep than to regain. |
