@@ -1,13 +1,13 @@
 # Osborne 1 ROM 1.44 / CBIOS source — index, and what it confirms
 
-**Issues:** #72, #40, #203. **Status: Solved.** The source is indexed and every
+**Status: Solved.** The source is indexed and every
 port and vector table it holds **agrees with** `docs/o1-memory-io-map.md` §3,
 which had been derived from the schematic and from the running machine; and
 `rom144.asm` **reassembles with the vendor's own assembler to the shipped ROM,
 byte for byte** (*The 1.44 reassembly*, below). What is not done: the 1.41 CBIOS
 source has never been diffed against the CBIOS on a shipped system disk, and the
 video register semantics are still read from the schematic rather than from the
-source (*Open questions / next steps*).
+source (*Open questions / next steps*). **Issues:** #72, #40, #203.
 
 Osborne's own source for the machine's firmware — the thing the rest of the
 project had been inferring — and the primary source for the interfaces the rest
