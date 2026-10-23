@@ -116,7 +116,7 @@ def open_serial(path, baud):
     return fd
 
 
-def relay(pty_fd, far_fd, verbose):
+def relay(pty_fd, far_fd, verbose, char_seconds=0.0):
     """Pump both ways until one end closes.  Returns (pty->far, far->pty) byte counts.
 
     Both ends are plain fds -- a pty and a socket are both just fds -- so there is one
@@ -159,7 +159,14 @@ def relay(pty_fd, far_fd, verbose):
                     if verbose:
                         note("pty -> far  %4d  %s", len(data), _preview(data))
                 else:
-                    os.write(pty_fd, data)
+                    # One character at a time, at the wire rate: the ACIA has a
+                    # one-byte register and MAME hands it the whole buffer at once
+                    # (see --pty-baud).  The other direction needs no pacing -- the
+                    # pty device paces the ACIA's own transmitter.
+                    for byte in data:
+                        os.write(pty_fd, bytes([byte]))
+                        if char_seconds:
+                            time.sleep(char_seconds)
                     to_pty += len(data)
                     if verbose:
                         note("far -> pty  %4d  %s", len(data), _preview(data))
@@ -196,6 +203,15 @@ def main():
                         help="the rig's relay door (default: 2323)")
     parser.add_argument("--baud", type=int, default=115200,
                         help="the rig's host-door baud, for --serial (default: 115200)")
+    parser.add_argument("--pty-baud", type=int, default=1200, dest="pty_baud",
+                        help="the emulated ACIA's rate (default: 1200).  The far end's "
+                             "bytes are written to the pty one character at a time at "
+                             "this rate, because MAME's pty device hands a buffered burst "
+                             "to the ACIA all at once and a 6850 has a **one-byte** "
+                             "receive register: measured 2026-10-23, two bytes landed "
+                             "0.2 ms apart and the rest were overrun, so only the first "
+                             "byte of every reply survived.  It must match the ACIA's "
+                             "control word -- 1200 at the O1's default, 300 at MDM740's")
     parser.add_argument("--verbose", action="store_true",
                         help="one line per chunk, both directions")
     args = parser.parse_args()
@@ -223,7 +239,8 @@ def main():
         note("tcp:  %s:%d (the rig's relay door -- a pure pipe)", args.host, args.port)
 
     started = time.time()
-    to_far, to_pty = relay(pty_fd, far_fd, args.verbose)
+    char_seconds = 10.0 / args.pty_baud if args.pty_baud > 0 else 0.0
+    to_far, to_pty = relay(pty_fd, far_fd, args.verbose, char_seconds)
 
     if not args.serial:
         sock.close()
