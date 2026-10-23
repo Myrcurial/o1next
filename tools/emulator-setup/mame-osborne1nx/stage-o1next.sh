@@ -273,7 +273,7 @@ real pty. A pty is host-local, so the far end is reached through
 serial adapter:
 
 \`\`\`sh
-O1_RIG=192.168.2.3:2325 ./boot-o1next.sh                 # the rig's TCP door
+O1_RIG=192.168.2.3:2323 ./boot-o1next.sh                 # the rig's RELAY door
 O1_RIG_SERIAL=/dev/cu.usbmodem2144201 ./boot-o1next.sh   # the rig's USB door
 \`\`\`
 
