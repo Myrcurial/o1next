@@ -60,6 +60,13 @@ Tracks: #47 (split out of #45). Target: PCBway build.
   powers itself off that pin (`../wifi-comm-pac/README.md`). One PCB should
   serve all three variants via the power-source jumper — variant C is variant A's
   rail, sourced from a different connector.
+- **Power (variant D — from another O1NEXT box's 5 V out):** the `wifi-comm-pac` and
+  the `drive-c-repro` each expose a **front-panel 5 V port**, and either can feed
+  this adapter (`../README.md`, #356) — no 12 V→5 V conversion here and no J6 bridge.
+  The load lands on whichever box supplies it: inside the `wifi-comm-pac`'s ~107 mA
+  P1 budget, or on the `drive-c-repro`'s unlimited monitor-jack rail. The adapter's
+  own 5 V port must be **diode-OR'd** so either source (or its own buck) can feed it
+  without back-feeding.
 
 ## Host interface — P4 keyboard connector (O1A)
 
