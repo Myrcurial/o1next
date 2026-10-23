@@ -97,37 +97,25 @@ the RXD negative swing, both on a real machine (#324).
 
 ## Power
 
-**DE-9 pin 7 is +12.6 V DC, and it is behind the 22 Ω.** The Technical Manual
-§4.3.2 says so in words — "7 +12v — Connected to power supply through 22 ohms" —
-and sheet 7 of 9 shows the arrangement: `R21 = 22 Ω` hangs off the `+12V` rail and
-its lower end is a junction feeding **both** P1 pin 7 and **`J6 pin 1 → J6 pin 2
-→ P4-19`**, the keyboard branch.
+**DE-9 pin 7 is +12.6 V DC, and it is not behind the 22 Ω.** Reading sheet 7 of
+9 at 600 dpi settles it: `R21 = 22 Ω` sits between the `+12V` net and
+**`J6 pin 1 → J6 pin 2 → P4-19`** — the *keyboard* branch. P1 pin 7 is drawn on
+the `+12V` net with **no series part on the sheet**. The Astec supply is rated
+`+12 V @ 2.02 A` (11.40–12.60 V), and the Comm-Pac manual labels the pin
+**+12.6 V**.
 
-The sheet labels that node `+12V`, which is what makes this easy to get wrong:
-old schematics name a current-limited net after the rail it comes from, so **the
-series part sits upstream of the label, and a net label does not tell you where
-it is**. A 600 dpi read of the sheet alone does not settle it; the manual is the
-tie-breaker, and it says *through 22 ohms*.
+So the old "shared R21 budget" story is retired: the keyboard adapter's 22 Ω and
+this port's supply are **separate**, and the port can supply what a period modem
+drew. The maintainer's figure for the original COMM-PAC is **~500 mA at 12 V**;
+the modern board is a small fraction of that.
 
-**That makes the port a low-current supply, and it is the design constraint.**
-22 Ω in series is a hard limit: 500 mA through it would drop 11 V, and 100 mA
-drops 2.2 V, so the board's average draw has to be tens of mA. The keyboard
-adapter (#47) shares the same resistor, so the budget is shared and marginal —
-the eleven-lamp panel at **2–3 mA per lamp** (#322) is sized for exactly that.
-The Comm-Pac manual quotes **no** supply current anywhere, so there is no period
-figure to size against; the limit is the resistor, and the peak comes from the
-capacitor.
-
-- **Bulk capacitance is doing real work, not tidiness.** A WiFi TX burst is a few
-  hundred mA; `R21` cannot supply that, so the capacitor supplies the peak and
-  `R21` supplies the average. Size the cap from the burst energy, and check the
-  average draw against the shared budget — with 22 Ω in the path there *is* an
-  inrush and peak problem to design around.
-- **Switch ahead of the buck**, latching slide type, so "off" is genuinely dark.
-  USB still runs the board with no machine attached (bench-prep, #207).
 - **Buck 12.6 V → 5 V**, then **5 V → 3.3 V**; USB-C VBUS is **5 V → 3.3 V only**.
   Two sources, **diode-OR** (Schottky pair, or a P-FET ideal diode if the drop
   matters) so neither back-feeds the other.
+- **Switch ahead of the buck**, latching slide type, so "off" is genuinely dark.
+  USB still runs the board with no machine attached (bench-prep, #207).
+- **Bulk capacitance at the buck input** for WiFi TX bursts — a few hundred µF.
+  With no 22 Ω in the path there is no inrush problem to design around.
 - The machine's `−12 V` rail is rated **0.1 A**; the negative rail for RXD comes
   from the MAX3232's own charge pump, never from the machine.
 
