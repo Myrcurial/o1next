@@ -1,15 +1,33 @@
 # RT-60A Real-Time Clock — analysis from Operator's Manual (software release 2.5)
 
-**Status:** Partially solved, and **the contract below is the deliverable** (#7).
-The hardware handshake stays a *known unknown* (reopen only if an RT-60A unit or
-a good `CLOCK.COM` dump ever turns up); the **memory ABI is settled and is what
-`firmware/rt60a-rtc/` implements** (#18). See §"The contract" and §"The third
-shape: the O1's own clock" — read those two before writing any clock code.
+**Status: Partially solved.** The register map, the memory ABI and the sentinel
+rules are settled and are what `firmware/rt60a-rtc/` implements (#7, #18); the
+RT-60A's own IEEE-488 wake-up handshake is *retired* as a known unknown rather
+than pending, to be reopened only if a unit or a good `CLOCK.COM` dump turns up.
 
-Source: research/rtc/RT-60A_Manual.pdf (JG Communications, Tucson AZ).
-The TD0 on bitsavers is a damaged dump (27 bad sectors, extraction
-failed); this doc reconstructs the interface from the manual per
-user direction: "virtually rebuild from descriptions".
+The RT-60A is a **battery-backed real-time clock that plugs into the Osborne 1's
+IEEE-488 port** and passes that port through, and the one fact that decides
+everything below is that **it does not put the time anywhere in memory —
+`CLOCK.COM` does.** So the thing to build is a *publisher*, not a chip, and the
+deliverable is a **contract** (§"The contract", #7): a pointer word at **`0x0040`**
+holding the address of a block whose fields run from `−15` to `+19` (flags, time
+and date formats, binary `DAY`…`SECONDS`, `MEMBUFF`, and two ASCII strings); a
+cadence of one `MEMBUFF` decrement per 60 Hz tick on the interrupt vector at
+**`0xEFF8`** with the block refilled about once a second; and three reader states
+distinguished by the pointer (`0xFF`/`0xBB` = no clock software) and by `MEMBUFF`
+(stuck at 1 = stale, not absent). The same publisher also keeps the machine's own
+cells `EF66–EF69` in step, which is the whole of the "third shape" question
+(§"The third shape", #81).
+
+Three things are **not** established, and none of them blocks the ABI: the exact
+IEEE-488 wake-up handshake, which only `CLOCK.COM` speaks; the MSM5832 register
+semantics, taken from the datasheet rather than from a running chip; and anything
+that would need the vendor's disk, because the TD0 on bitsavers is a damaged dump
+(27 bad sectors, extraction failed).
+
+Source: `research/rtc/RT-60A_Manual.pdf` (JG Communications, Tucson AZ) — this doc
+reconstructs the interface from the manual, on the user direction "virtually
+rebuild from descriptions".
 
 ## Hardware
 
@@ -236,10 +254,10 @@ nothing in the stock machine *sets* it, and nothing displays it. It is a
 running counter with no reader and no setter — which is precisely why both
 third parties built on top of it rather than beside it.
 
-One caveat, stated honestly: the ROM 1.3 source's `UPTIM` comment says the time
-is "kept in video memory", which is inconsistent with the address map (video is
-`F000`+, the clock is `EF66`+). The addresses are confirmed by two independent
-files, so the comment is stale, not the map. **ROM 1.44's source does not tick
+The ROM 1.3 source's `UPTIM` comment says the time is "kept in video memory",
+which is inconsistent with the address map (video is `F000`+, the clock is
+`EF66`+); the addresses are confirmed by two independent files, so the comment is
+stale, not the map. **ROM 1.44's source does not tick
 the clock**: its `GKEY` was rewritten ("fixed bell bug", `rom144.asm` line 16)
 and now handles the bell and `DACTVE` but no longer decrements `SEC6`, and the
 file contains no `SEC6`/`UPTIM` reference at all. So under a 1.44 machine the
