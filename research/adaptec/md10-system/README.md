@@ -3,8 +3,10 @@
 The **bootable half** of the MD-10: the disk label, the partition table and the
 operating system that `HARD.COM` boots from a hard disk. The archive held the
 *driver* (`research/adaptec/*.img`) and the *installer* (`PREP.COM`) but no
-*system* — nothing in it initialised the low-RAM DPH/DPB tables, and no disk
-carried a system image (`docs/harddisk-decision.md` §7.3). These files are that
+*system* — no disk carried a system image. (The DPH/DPB tables were a separate
+question, and they are **not** missing: `0x055E` is an offset from the BIOS base
+`0xD800`, so they are static data inside `HARD.COM` at `0xDD5E`/`0xDD6E` — see
+`docs/md10-system.md` §9 and `docs/harddisk-decision.md` §7.3.) These files are that
 system, captured off drives the vendor's own tool configured — in **two
 layouts**, because the installer sizes its partitions from the drive it is given.
 

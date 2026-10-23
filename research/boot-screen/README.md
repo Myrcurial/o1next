@@ -106,7 +106,7 @@ Bytecode (glyph 1 B, `7F,n,c` 3 B, skip 2 B, row-repeat 2 B, newline 1 B):
 | the message | — | 37 B, as text glyphs |
 | the hatch rules | 29 B | 29 B |
 
-Both are over the **511-byte** ROM window spare (`docs/o1-rom-2.0.md` §2.3), and
+Both are over the **497-byte** ROM window spare (8192 − 4096 − 3599; `docs/o1-rom-2.0.md` §2.3), and
 `tools/research/rom2strokes.py` shows that *storing* it will not get there either:
 
 | | the logo |

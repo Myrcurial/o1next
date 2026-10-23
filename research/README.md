@@ -370,15 +370,18 @@ software half of the OZROM package, which we did not previously have. ImageDisk
 1.19, label `ozrom`; 40 cyl × 10 × 256 B FM (O1 single density), 22 of 40 tracks
 in use. Its CP/M directory is complete and readable: 20 files, all Micro
 Management 1984, with `READ.ME`, `CRCKLIST.CRC` and the docs for `TIMER`,
-`CLKPATCH`, `DVORAK` and `TD`. **Condition: partial.** 290 of the 400 sectors
-read back as uniform `0xE5` and the gaps fall *inside* file bodies, so most
-files are truncated or holed; the directory and a minority of complete files
-(`SET.COM`, `MEMORIZE.COM`, `FK.COM`) are the recoverable part. It is a data
-disk, not a system disk — the boot tracks carry a stub whose message is
-"There is no CP/M system on this disk." Provenance: supplied by the project
-owner as a local file (2026-10-11); the original source URL is not yet recorded,
-so treat the chain of custody as open. Analysis: `docs/ozrom-1e.md` §10. Used by
-#81.
+`CLKPATCH`, `DVORAK` and `TD`. **Condition: whole — all twenty files complete.**
+290 of the 400 sectors read back as uniform `0xE5`, and that is CP/M **format
+fill** (free blocks), not damage: every file extracts at the size its directory
+entry gives, no file holds an interior run of `0xE5` longer than a byte, and
+`READ.ME` reads as continuous prose across all five of its sector boundaries. The
+"most files are truncated or holed" reading this row used to carry was our own
+sector-skew bug (#170), and it is what a search for a complete copy was filed on
+(#168, since closed). It is a data disk, not a system disk — the boot tracks
+carry a stub whose message is "There is no CP/M system on this disk." Provenance:
+supplied by the project owner as a local file (2026-10-11); the original source
+URL is not yet recorded, so treat the chain of custody as open. Analysis:
+`docs/ozrom-1e.md` §10.2 and §10.5. Used by #81.
 
 ## shipped-software/ — the shipped application library (2026-10)
 
@@ -415,6 +418,7 @@ validation matrix (#29). Dunfield also publishes a 2005 single-density set
 |---|---|---|
 | `BIOS-144-source/` (18 files) | **The original Osborne ROM source**: `rom144.asm` (DOUBLE DENSITY ROM REV 1.44, Roger W. Chapman, 2/4/1983), `occbio05..95.asm` (OCC CBIOS Rev 1.41), `occram15/25.asm`, `occtxt6.ast` (ACT80 assembler equates), `bios141.gen`, `release.txt`, `tran.txt`. Basis for #72. | [github.com/BrettHallen/Osborne_1](https://github.com/BrettHallen/Osborne_1) `ROM/Source_Code_v144/` (all 18 file sizes match) |
 | `ROM-13-source/` (21 files) | **The ROM 1.3 source, extracted from the disk below** (#205): `occrom03.asm` (the master, which `LINK`s the rest), `occrom13..93.asm`, `occbio03..83.asm` (CBIOS rev 3), plus `occram2.asm` and `occtxt6.ast`, which are **not** on the ROM disk and come from `OSUTLSRC.IMD`. The 8-inch disk is 77 tracks, track 0 FM 26×128, tracks 1–76 MFM 8×1024, CP/M 2.2 with **skew 3**; read with `tools/research/o1imd8.py`. See `docs/rom-13-reconstruction.md`. | `OSROM13.IMD` + `OSUTLSRC.IMD` below |
+| `BIOS-200-source/` (3 files) | **ROM 2.0's monitor source** (#247): `rom2.diff`, the change to `BIOS-144-source/rom144.asm` as a unified diff — `HCBOOT`, the two re-lettered boot keys, the boot screen and `IMSG`'s own slot — with `rom2-screen.asm` and the folder's own README. There is deliberately **no** `rom2.asm`: a second copy of a 4,655-line vendor file would drift from the first silently, and the point of this monitor is that it *is* the shipped 1.44 with new code in the free tail. `tools/research/rom2asm.sh` applies the diff, assembles with the vendor's ACT80 and checks that nothing below the new code moved. See `docs/o1-rom-2.0.md` §4. | in-project (#247) |
 | `OCCCBIOS.IMD`, `OCCROM.IMD`, `OCCUTIL.IMD`, `OSBIOSSR.IMD`, `OSBROM.IMD`, `OSROM13.IMD`, `OSUTLSRC.IMD` | OCC engineering **source disks** (1981–82): CBIOS, ROM rev B, utility programs, ROM 1.3. The ImageDisk comments carry the OCC part numbers (`4d2007-00 occbi00a.asm`, `rev b 9/12/81`). All seven are **8-inch** disks in the same 77-track FM/MFM format, and `OCCROM.IMD` additionally carries a *shipped* rev-B ROM image (`OCCROM0B.COM`, 4096 B) and its listing — the control material for #205. | bitsavers |
 
 **Licensing:** `release.txt` is Osborne's 1985 letter permitting the First
