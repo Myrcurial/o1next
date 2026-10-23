@@ -62,7 +62,7 @@ under the Homebrew prefix.
   2K blocks), `drivec` (the Drive C RAM disk blob). Each preset carries
   the format's `skew`; see "Sector skew" below.
 
-## Sector skew — why a raw image needs it, and why it bit us
+## Sector skew — why a raw image needs it
 
 A raw image stores each track's sectors in **physical** order, but CP/M numbers
 them in **logical** order; on an interleaved disk the two differ, and the format
@@ -84,7 +84,7 @@ That is what made `research/roms/OZROM-1E/OZROM_1E_Utilities.IMD` look
 `docs/ozrom-1e.md` §10.2/§10.4 and **#170**.
 
 `skew` defaults to 1 (identity) for the non-interleaved presets (`kp2x`,
-`drivec`), so their output is byte-for-byte what it always was. `osb1sssd` is
+`drivec`), so their output is byte-for-byte unchanged. `osb1sssd` is
 checked against cpmtools on the three in-archive SD images
 (`OZROM_1E_Utilities.IMD`, `DRIVE_C.IMD`, `OCC1_HARDDISK.IMD`): every file
 matches `cpmcp -T raw -f osb1sssd` exactly.
@@ -217,8 +217,8 @@ What it writes:
   `firmware/rom-service/boot-animation.bin`. The flags byte carries the
   playback mode — **bit 0 repeat, bit 1 bounce** — so all four combinations are
   offered: once (`1 2 3`), loop, ping-pong once (`1 2 3 2 1`, then stop) and
-  ping-pong repeat (`1 2 3 2 1 2 3 2 …`). The header is this tool's proposal — the
-  firmware side of #247 is not written — and the frames are not.
+  ping-pong repeat (`1 2 3 2 1 2 3 2 …`). The header is the firmware's contract
+  (#247's W5); the frames' own format is the machine's, not this tool's invention.
 - **`.txt`** — the frame as art text, in the repo's own convention
   (`research/boot-screen/README.md`), latin-1, one character per cell, so it
   round-trips through `tools/research/rom2strokes.py`.
@@ -267,8 +267,8 @@ cell holding glyph `0x41`–`0x61`, and `rom2strokes.py`'s art loader has no
 
 `firmware/rom-service/boot-animation.bin` is the boot screen as a *sequence*: a
 32-byte `O1SPLASH` header and then the frames back to back, each already sealed
-(#247's W5). This reads it, and it does the two jobs that used to belong to a
-committed `frame.bin`:
+(#247's W5). This reads it, and derives a frame from it — the resting frame the ROM
+is served, or any frame by number — rather than keeping a second committed copy:
 
 ```
 tools/research/bootanim.py --check               # validate the container and every frame
@@ -287,8 +287,8 @@ animation's *content*, because nothing on that side has any business doing so.
 **`--resting` is what `-frame` mounts.** The frame the ROM is served is the one the
 animation *rests* on — the last frame of a `once` animation, frame 89 of 90 — so
 `romservice-check.sh`, `bootscreen-check.sh` and `stage.sh` derive it rather than
-mounting a second copy. `firmware/rom-service/frame.bin` was **retired on
-2026-10-16**, and a copy could only ever drift from the animation it came from.
+mounting a second committed copy, which could only ever drift from the animation it
+came from.
 
 Standard library only.
 
@@ -373,7 +373,7 @@ harness is reproducible without hunting for dumps:
   Despite the name they are **not blank**: each is a double-density CP/M 2.2
   system disk (CBIOS 1.4, MBASIC, SYSGEN, PIP, SETUP, XDIR, XREF …), and the
   three differ by exactly two bytes in the boot area. All three boot on all
-  three machines — see the correction above.
+  three machines (`osborne1`, `osborne1sp`, `osborne1nv`).
 
 The ROMs duplicate `research/roms/` deliberately: `research/` is the
 provenance-tracked archive, this directory is a working rompath. If the two
@@ -484,8 +484,10 @@ survey and its generated mirror (research on *other people's* projects, whose
 MCUs really are RP2040 and Pico W), the superseded Rev 0 probe (it records the
 module it was designed around, and that module's 26 GPIO are the reason the
 production board uses the bare part), `research/` (an archive of other people's
-material), and the guard's own two files. Binaries are skipped by content, so an
-archived PDF or a `.bin` cannot trip it.
+material), and the guard's own files — `tools/check_part_numbers.py`,
+`.github/workflows/part-numbers.yml` and this README — whose purpose is to name the
+forbidden spellings, because a rule has to be able to state itself. Binaries are
+skipped by content, so an archived PDF or a `.bin` cannot trip it.
 
 It runs on every push and pull request rather than behind a path filter
 (`.github/workflows/part-numbers.yml`): a part number can be introduced anywhere.
@@ -543,18 +545,18 @@ where they help. Two artifacts: `NAME.art.txt`, the art as ASCII `db` lines (the
 *source*, assembler-ready, the same form as AUTOCPM) and `NAME.png`, the art
 rendered with the ROM's glyphs.
 
-The site's masthead *used to* be generated this way — the traced
-`site/assets/o1next-wordmark.svg` (from the Osborne Computer Corporation
-logotype) went in, and `site/assets/o1next-logo.art.txt` came out. It is not
-any more. Since #83 the masthead is the **boot screen's own art**, drawn rather
-than downsampled, because rasterising a traced outline at this size stair-steps:
+The site's masthead is not this tool's output: since #83 it is the **boot screen's
+own art**, drawn rather than downsampled, because rasterising a traced outline at
+this size stair-steps:
 
 ```
 tools/research/rom2strokes.py --logo site/assets/o1next-logo.png
 ```
 
 That takes `research/boot-screen/o1next-art.txt` and keeps the art's graphics
-only, so the wordmark carries no boot-screen text. The old `.art.txt` is kept as
-the record of the earlier approach.
+only, so the wordmark carries no boot-screen text. The earlier wordmark — the
+traced `site/assets/o1next-wordmark.svg` and the art-text
+`site/assets/o1next-logo.art.txt` drawn from it — is kept as the record of that
+approach; `site/README.md` has the detail.
 
 Needs `sips` for non-SVG input and `qlmanage` for SVG — both macOS built-ins.
