@@ -1,13 +1,11 @@
 # Drive C reproduction — hardware and firmware spec (#84)
 
-**Status: Open** — as a design: the shape is settled and unblocked, and nothing is
-built.
-
-The protocol it must speak is solved and validated (`docs/drive-c-protocol.md`),
-the **DPB** that sets the drive's size is found (`docs/drive-c-protocol.md` §8.1),
-and the **pin-level map of P3** is transcribed from the Technical Manual
-(`docs/o1-ieee488-port.md` §6). Nothing in the electrical or logical design is
-waiting on a measurement any more; what is left is a layout and firmware (§7).
+**Status: Solved as a design.** The shape is settled and unblocked — the protocol
+it must speak is validated (`docs/drive-c-protocol.md`), the **DPB** that sets the
+drive's size is found (§8.1 there), and the **pin-level map of P3** is transcribed
+from the Technical Manual (`docs/o1-ieee488-port.md` §6). Nothing in the
+electrical or logical design is waiting on a measurement any more. Nothing is
+built either: what is left is a layout and firmware (§7).
 
 Tracks: #84 (the device), #6 (the protocol). Sibling of
 `hardware/keyboard-adapter/` and `hardware/wifi-comm-pac/` — a period
