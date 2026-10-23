@@ -27,8 +27,9 @@ measurement; `tools/research/md10reloc.py` is the fix.
 
 This note also closes the question the hard-disk research left open twice over —
 **the MD-10's memory map**, and with it the meaning of the five-byte block at
-`0x0559`–`0x055D` that `docs/acb4000-host-adapter.md` §4 and
-`docs/harddisk-decision.md` §7.3 recorded as *written by nothing in the archive*.
+`0x0559`–`0x055D`, which both `docs/acb4000-host-adapter.md` §4 and
+`docs/harddisk-decision.md` §7.3 once read as *written by nothing in the archive*;
+§6 below shows it is `0xDD59`, inside the BIOS image.
 
 Serves #179 (the personality's acceptance), #178 (the DPB residue) and #191 (the
 harness that made it measurable). Reads alongside `docs/acb4000-firmware.md`,
@@ -38,14 +39,15 @@ harness that made it measurable). Reads alongside `docs/acb4000-firmware.md`,
 ## 1. Why there was no system image, and where it came from
 
 The archive holds the **driver** (`research/adaptec/*.img`) and, on the 2.01
-utilities disk, the **installer** — but no *system*. The conclusion recorded in
-`docs/harddisk-decision.md` §7.3 was that the values are not in the files:
-nothing initialises the low-RAM tables at `0x055E`/`0x056E`, and the utilities
-disk is a data disk whose system tracks are all `0xE5`.
+utilities disk, the **installer** — but no *system*. The utilities disk is a data
+disk whose system tracks are all `0xE5`, and no file in the archive writes the
+low-RAM tables the driver reads. Both of those readings are right; what was wrong
+was reading the tables' absence as their *non-existence*. §6 and §9 settle it —
+they are static data inside `HARD.COM` at `0xDD5E`/`0xDD6E`/`0xDDB6` — so what the
+archive lacks is a *system image*, not the tables.
 
-That is still true, and it is why reading was never going to work. What was
-missing was the observation that `PREP.COM` does not merely *format* a drive — it
-**installs an operating system on one**:
+What was missing was the observation that `PREP.COM` does not merely *format* a
+drive — it **installs an operating system on one**:
 
 ```
      Main function menu:
@@ -276,10 +278,9 @@ own `LD SP,0EFC1H`. That is the bank-2 trap ROM 2.0's `HCBOOT` has to work aroun
 
 ## 6. `0x0559`–`0x055D` is not an unwritten block (#178)
 
-`docs/acb4000-host-adapter.md` §4 and `docs/harddisk-decision.md` §7.3 both
-record the same negative result: the MD-10 BIOS's `BOOT` reads a five-byte block
-at `0x0559`–`0x055D` and **nothing in the archive writes it**, which is one of
-the reasons a system image was thought to be unobtainable.
+The MD-10 BIOS's `BOOT` reads a five-byte block at `0x0559`–`0x055D`, and an
+audit of the `.SPR` files found nothing that writes it — which is one of the
+reasons a system image was thought to be unobtainable.
 
 It is not unwritten. It is **inside the BIOS image**, at base + `0x559`:
 
@@ -528,9 +529,8 @@ drive; `DRM = 1023` is 1024 directory entries; `AL0 = FFh` is the eight
 directory blocks; `CKS = 0` is a fixed disk, which is right. **`SPT` reads
 `F09Ch` — 61596 — and that is not a sector count: it is the partition measured in
 128-byte records.** `61596 × 128 = 7 884 288 = 15399 × 512`, exactly one
-15399-block partition. `docs/harddisk-decision.md` §7.3 read the same field as
-"patched at run time from `MODE SENSE`"; it is static data in the file, and the
-arithmetic is what settles it. So the DPB does not merely *describe* a
+15399-block partition. The field is **static data in the file** — read the same
+way in `docs/harddisk-decision.md` §7.3 — and the arithmetic is what settles it. So the DPB does not merely *describe* a
 partition size — it **is** the partition size, and it is the same 15399 blocks
 `PREP.COM` writes when it is given a PYXIS27 (§3).
 
