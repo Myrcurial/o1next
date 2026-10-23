@@ -76,10 +76,23 @@
 #   O1_ROMPATH  ROM path, when it is not beside this script; must be absolute.
 #   O1_HARD     a CHD to mount as the ACB-4000's hard disk.
 #   O1_BIOS     an optional MAME BIOS slot.
+#   O1_PICOEM   1 to run the interposer's own firmware beside the machine -- the
+#               `osborne1nxp` machine, a picoem bridge holding the chip, and the
+#               card's window answered by it.  Default: on when `pico/` is staged
+#               beside this script.  0 for the card-only `osborne1nx`.
+#   O1_RS232    1 (default) to give the machine a serial port on a pty -- the
+#               guest's own modem software drives it.  0 for none.
+#   O1_RIG      host[:port] of the bench rig's relay door, to put the relay on
+#               that pty (#342).  With neither this nor O1_RIG_SERIAL the port is
+#               still there and its path is printed.
+#   O1_RIG_SERIAL  the rig's USB serial device, instead of its network door.
+#   O1_BAUD     the pty's rate: 1200 (default) or 300.  It must match the ACIA's,
+#               and MDM740's default is 300.
 #   O1_SOFTROM  a ROM image to serve the ROM window from -- the interposer's
 #               softROM (#247).  With none the window is the machine's own 1.44,
 #               so the machine is a stock `osborne1`.  Unlike a floppy, this is
-#               read-only: MAME never writes back into it.
+#               read-only: MAME never writes back into it.  `none` means the
+#               machine's own even when `assets/rom2.rom` is staged.
 #   O1_RUNDIR   where MAME keeps cfg/ snap/ and copied floppies.  Default: `run/`
 #               beside this script when it is staged, `~/.o1next-mame` otherwise.
 #               MAME writes those into the *current* directory, so this script
@@ -198,7 +211,15 @@ stage() {   # stage IMAGE -- mount a copy of anything inside a git working tree
 if [ -n "$FLOP1" ]; then FLOP1="$(stage "$FLOP1")"; fi
 if [ -n "$FLOP2" ]; then FLOP2="$(stage "$FLOP2")"; fi
 
+# A staged O1NEXT carries the two images the machine runs on -- ROM 2.0's window
+# and the MD-10 drive -- so they are the defaults when nothing is set: the staged
+# machine *is* the O1NEXT, and launching it should give the O1NEXT.  `none` means
+# the machine's own, which is the stock 1.44 ROM and no disk.
+if [ -z "${O1_HARD:-}" ] && [ -f "$HERE/assets/hd.chd" ]; then
+    O1_HARD="$HERE/assets/hd.chd"
+fi
 HARD="${O1_HARD:-}"
+if [ "$HARD" = "none" ]; then HARD=""; fi
 if [ -n "$HARD" ]; then
     [ -f "$HARD" ] || { echo "boot-o1next.sh: no such hard disk: $HARD" >&2; exit 1; }
     HARD="$(abspath "$HARD")"
@@ -206,7 +227,11 @@ fi
 
 # The softROM image is read-only to MAME (the device is not writeable), so it is
 # mounted as given -- there is nothing to copy it away from.
+if [ -z "${O1_SOFTROM:-}" ] && [ -f "$HERE/assets/rom2.rom" ]; then
+    O1_SOFTROM="$HERE/assets/rom2.rom"
+fi
 SOFTROM="${O1_SOFTROM:-}"
+if [ "$SOFTROM" = "none" ]; then SOFTROM=""; fi
 if [ -n "$SOFTROM" ]; then
     [ -f "$SOFTROM" ] || { echo "boot-o1next.sh: no such ROM image: $SOFTROM" >&2; exit 1; }
     SOFTROM="$(abspath "$SOFTROM")"
@@ -217,20 +242,111 @@ fi
 # animation out of its own flash, and the monitor's screen code -- 26 bytes in its
 # own tail -- prints the fallback that is the trigger.
 
+# --- the pico, when one is staged beside this machine ------------------------
+# The interposer's own silicon is the RP2354B, and `picoem` runs its firmware in
+# the loop: a bridge process holds the chip, the card's window is answered by the
+# firmware instead of by the C++ card, and that is the `osborne1nxp` machine
+# (#286, #192 Gate A).  It is on by default when the pieces are staged beside this
+# script -- a staged O1NEXT *is* the machine with the pico in it -- and
+# `O1_PICOEM=0` turns it off, in which case the machine is the card-only
+# `osborne1nx`.  With the pico in the loop the *card* is the firmware, so the hard
+# disk is served by the pico rather than by MAME's ACB-4000.
+PICOEM="${O1_PICOEM:-}"
+if [ -z "$PICOEM" ]; then
+    if [ -x "$HERE/pico/picoem-bridge" ] && [ -f "$HERE/pico/firmware.bin" ] \
+       && [ -f "$HERE/pico/bootrom.bin" ] && [ -f "$HERE/pico/o1next-picoem.lua" ]; then
+        PICOEM=1
+    else
+        PICOEM=0
+    fi
+fi
+PICO_FIFO_IN=""
+PICO_FIFO_OUT=""
+PICO_BRIDGE_PID=""
+RELAY_PID=""
+if [ "$PICOEM" = 1 ]; then
+    BRIDGE="${O1_PICOEM_BRIDGE:-$HERE/pico/picoem-bridge}"
+    FIRMWARE="${O1_PICOEM_BIN:-$HERE/pico/firmware.bin}"
+    BOOTROM="${O1_PICOEM_BOOTROM:-$HERE/pico/bootrom.bin}"
+    PICO_LUA="${O1_PICOEM_LUA:-$HERE/pico/o1next-picoem.lua}"
+    for f in "$BRIDGE" "$FIRMWARE" "$BOOTROM" "$PICO_LUA"; do
+        [ -e "$f" ] || { echo "boot-o1next.sh: O1_PICOEM is on but $f is missing." >&2
+                         echo "  Stage it, or set O1_PICOEM=0 for the card-only machine." >&2
+                         exit 1; }
+    done
+    MACHINE=osborne1nxp
+    PICO_FIFO_IN="$RUNDIR/pico/in"
+    PICO_FIFO_OUT="$RUNDIR/pico/out"
+    mkdir -p "$RUNDIR/pico"
+    rm -f "$PICO_FIFO_IN" "$PICO_FIFO_OUT"
+    "$BRIDGE" --flash "$FIRMWARE" --bootrom "$BOOTROM" \
+        --in "$PICO_FIFO_IN" --out "$PICO_FIFO_OUT" \
+        ${O1_PICOEM_CYCLES:+--cycles "$O1_PICOEM_CYCLES"} \
+        > "$RUNDIR/pico/bridge.log" 2>&1 &
+    PICO_BRIDGE_PID=$!
+    n=0
+    while [ ! -p "$PICO_FIFO_IN" ] && [ "$n" -lt 300 ]; do sleep 0.1; n=$((n + 1)); done
+    if [ ! -p "$PICO_FIFO_IN" ]; then
+        echo "boot-o1next.sh: the pico bridge never made $PICO_FIFO_IN -- see" >&2
+        echo "  $RUNDIR/pico/bridge.log" >&2
+        exit 1
+    fi
+fi
+
+# --- the serial port, and whatever is on the far end of it -------------------
+# The Osborne's ACIA is wired to MAME's rs232 slot, so `-rs232 pty` gives the
+# emulated machine a *real* serial port on the host, and the guest's own modem
+# software drives it.  A pty is host-local, so something has to sit between it and
+# the far end -- the bench rig's relay door, or a USB serial adapter -- and that
+# is tools/serial-relay-o1next.py.  `O1_RIG` (host[:port]) or `O1_RIG_SERIAL`
+# (a device) names that far end; with neither, the port is still there, its path
+# is printed, and the relay is the only thing missing.
+RS232="${O1_RS232:-1}"
+RIG="${O1_RIG:-}"
+RIG_SERIAL="${O1_RIG_SERIAL:-}"
+RELAY="${O1_RELAY:-}"
+if [ -z "$RELAY" ]; then
+    for cand in "$HERE/serial-relay-o1next.py" "$REPO/tools/serial-relay-o1next.py"; do
+        [ -f "$cand" ] && { RELAY="$cand"; break; }
+    done
+fi
+# The pty and the ACIA have to agree on a rate, and neither end is 9600: the pty
+# defaults to it and the machine's is 300 or 1200.  The cfg is how that is set
+# (the ports are not command-line options), so the one for the guest's rate is
+# copied into place before MAME starts.  1200 is the default; 300 is what the
+# archive's MDM740 comes up at.
+BAUD="${O1_BAUD:-1200}"
+if [ "$RS232" = 1 ]; then
+    for cand in "$HERE/cfg/rs232-pty-$BAUD.cfg" "$HERE/rs232-pty-$BAUD.cfg" \
+                "$REPO/tools/emulator-setup/mame-osborne1nx/rs232-pty-$BAUD.cfg"; do
+        if [ -f "$cand" ]; then
+            mkdir -p "$RUNDIR/cfg"
+            # the tag inside the file is the machine's own name
+            sed "s/<system name=\"[^\"]*\">/<system name=\"$MACHINE\">/" "$cand" \
+                > "$RUNDIR/cfg/$MACHINE.cfg"
+            break
+        fi
+    done
+fi
+
 # MAME's default is full screen, and `-window` is the only thing that keeps the
 # mac OSD off the whole display; it is harmless for the SDL OSD.
-set -- osborne1nx -window -skip_gameinfo -rompath "$ROMPATH"
+set -- "$MACHINE" -window -skip_gameinfo -rompath "$ROMPATH"
 if [ -n "${O1_BIOS:-}" ]; then set -- "$@" -bios "$O1_BIOS"; fi
 if [ -n "$FLOP1" ]; then set -- "$@" -flop1 "$FLOP1"; fi
 if [ -n "$FLOP2" ]; then set -- "$@" -flop2 "$FLOP2"; fi
 if [ -n "$HARD" ]; then set -- "$@" -harddisk "$HARD"; fi
 if [ -n "$SOFTROM" ]; then set -- "$@" -softrom "$SOFTROM"; fi
+if [ "$PICOEM" = 1 ]; then set -- "$@" -autoboot_script "$PICO_LUA"; fi
+if [ "$RS232" = 1 ]; then set -- "$@" -rs232 pty; fi
 if [ -n "${O1_SECONDS:-}" ]; then set -- "$@" -seconds_to_run "$O1_SECONDS"; fi
 
-if [ "$STAGED" = 1 ]; then
-    echo "osborne1nx -- a staged test machine, windowed"
+if [ "$PICOEM" = 1 ]; then
+    echo "$MACHINE -- the emulated O1NEXT, with the pico in the loop, windowed"
+elif [ "$STAGED" = 1 ]; then
+    echo "$MACHINE -- a staged test machine, windowed"
 else
-    echo "osborne1nx -- the emulated interposer, 1.44 ROM, windowed"
+    echo "$MACHINE -- the emulated interposer, 1.44 ROM, windowed"
 fi
 echo "  binary:    $MAME"
 echo "  rompath:   $ROMPATH"
@@ -241,6 +357,11 @@ if [ -n "$SOFTROM" ]; then
     echo "  softROM:   $SOFTROM"
 else
     echo "  softROM:   none -- the machine's own ROM"
+fi
+if [ "$PICOEM" = 1 ]; then
+    echo "  pico:      $BRIDGE, holding $FIRMWARE (log: $RUNDIR/pico/bridge.log)"
+else
+    echo "  pico:      none -- the card is MAME's own ACB-4000"
 fi
 echo "  cfg/snap:  $RUNDIR"
 echo "  quit with  Esc, or the window's close button"
@@ -256,5 +377,87 @@ fi
 echo
 
 cd "$RUNDIR"
-exec "$MAME" "$@"
+
+# ---------------------------------------------------------------------------
+# The machine, and the two processes that live beside it
+# ---------------------------------------------------------------------------
+# Without either of them MAME is the only process and `exec` is right.  With the
+# pico and/or the serial relay, MAME has to be a child: the bridge is killed on
+# every exit path, and the relay cannot be attached until MAME has published the
+# pty it made (which is what the one-line print in the patched pty.cpp is for --
+# upstream publishes the path only to the UI's "Pseudo Terminals" screen).
+
+if [ "$PICOEM" = 0 ] && [ "$RS232" = 0 ]; then
+    exec "$MAME" "$@"
+fi
+
+cleanup() {
+    if [ -n "$PICO_BRIDGE_PID" ]; then
+        kill "$PICO_BRIDGE_PID" 2>/dev/null || true
+        wait "$PICO_BRIDGE_PID" 2>/dev/null || true
+    fi
+    if [ -n "$RELAY_PID" ]; then
+        kill "$RELAY_PID" 2>/dev/null || true
+        wait "$RELAY_PID" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT INT TERM
+
+MAME_LOG="$RUNDIR/mame.log"
+if [ "$PICOEM" = 1 ]; then
+    O1_PICOEM_IN="$PICO_FIFO_IN" O1_PICOEM_OUT="$PICO_FIFO_OUT" \
+    O1NEXT_LOG="$RUNDIR/pico/mame.log" \
+        "$MAME" "$@" > "$MAME_LOG" 2>&1 &
+else
+    "$MAME" "$@" > "$MAME_LOG" 2>&1 &
+fi
+MAME_PID=$!
+
+if [ "$RS232" = 1 ]; then
+    # Wait for the pty, then put the relay on it if a far end was named.
+    PTY=""
+    n=0
+    while [ "$n" -lt 150 ]; do
+        PTY="$(sed -n "s/^Pseudo Terminal '\(.*\)'$/\1/p" "$MAME_LOG" 2>/dev/null | head -1)"
+        [ -n "$PTY" ] && break
+        kill -0 "$MAME_PID" 2>/dev/null || break
+        sleep 0.2
+        n=$((n + 1))
+    done
+    if [ -n "$PTY" ]; then
+        echo "  serial:    $PTY (${BAUD} baud, the guest's own rate)"
+    else
+        echo "  serial:    no pty in $MAME_LOG -- is -rs232 pty still on the command line?" >&2
+    fi
+    if [ -n "$PTY" ] && { [ -n "$RIG" ] || [ -n "$RIG_SERIAL" ]; }; then
+        if [ -z "$RELAY" ]; then
+            echo "  relay:     tools/serial-relay-o1next.py not found -- attach one yourself" >&2
+        else
+            if [ -n "$RIG_SERIAL" ]; then
+                python3 "$RELAY" --pty "$PTY" --serial "$RIG_SERIAL" \
+                    ${O1_RIG_BAUD:+--baud "$O1_RIG_BAUD"} &
+            else
+                # host[:port], because that is how a person writes an address
+                RIG_HOST="${RIG%%:*}"
+                RIG_PORT="${RIG#*:}"
+                if [ "$RIG_PORT" = "$RIG" ]; then RIG_PORT="${O1_RIG_PORT:-}"; fi
+                python3 "$RELAY" --pty "$PTY" --host "$RIG_HOST" \
+                    ${RIG_PORT:+--port "$RIG_PORT"} &
+            fi
+            RELAY_PID=$!
+            echo "  relay:     $RELAY -> ${RIG_SERIAL:-$RIG} (pid $RELAY_PID)"
+        fi
+    elif [ -n "$PTY" ]; then
+        echo "  relay:     none -- set O1_RIG=<host[:port]> or O1_RIG_SERIAL=<device>"
+        echo "             to reach a modem on the bench rig, e.g."
+        echo "               O1_RIG=192.168.2.3:2325 ./boot-o1next.sh"
+    fi
+fi
+echo
+
+wait "$MAME_PID"
+STATUS=$?
+cleanup
+trap - EXIT INT TERM
+exit "$STATUS"
 

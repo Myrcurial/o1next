@@ -989,25 +989,31 @@
  #include "machine/wd_fdc.h"
  
  #include "sound/spkrdev.h"
-@@ -162,6 +166,8 @@
- 	virtual void machine_reset() override ATTR_COLD;
- 	virtual void video_start() override ATTR_COLD;
+@@ -179,7 +183,7 @@
+ 	bool rom_mode() const { return 0 != m_rom_mode; }
+ 	u8 scroll_x() const { return m_scroll_x; }
  
-+	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
-+
- 	void osborne1_base(machine_config &config);
+-	template <int Width, unsigned Scale> void draw_rows(uint16_t col, bitmap_ind16 &bitmap, const rectangle &cliprect);
++	template <int Width, unsigned Scale, bool HalfPitch = false> void draw_rows(uint16_t col, bitmap_ind16 &bitmap, const rectangle &cliprect);
  
- 	void osborne1_mem(address_map &map) ATTR_COLD;
-@@ -201,8 +207,6 @@
+ 	memory_view                             m_rom_view;
+ 	required_shared_ptr<u8>                 m_main_ram;
+@@ -275,10 +279,12 @@
+ 	u8 bank2_peripherals_r(offs_t offset);
+ 	void bank2_peripherals_w(offs_t offset, u8 data);
  
- 	void serial_acia_irq_func(int state);
+-private:
++protected:
+ 	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
  
--	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
--
- 	TIMER_CALLBACK_MEMBER(video_callback);
- 	TIMER_CALLBACK_MEMBER(acia_rxc_txc_callback);
- 
-@@ -307,6 +311,34 @@
+-	// SCREEN-PAC registers
++	// SCREEN-PAC registers.  Protected rather than private because the machine
++	// that *is* a SCREEN-PAC has to be able to choose its power-on window:
++	// osborne1nx boots in the 104-column one.
+ 	u8              m_resolution = 0;
+ 	u8              m_hc_left = 0;
+ };
+@@ -307,6 +313,43 @@
  };
  
  
@@ -1015,17 +1021,26 @@
 +// decodes the full 8-bit I/O address, so the MD-10's ACB-4000 host adapter can
 +// answer on 30h-33h -- the ports its driver demands and the stock machine
 +// cannot reach (docs/osborne1nx-machine.md, docs/acb4000-host-adapter.md 2).
-+class osborne1nx_state : public osborne1_state
++// It derives from osborne1sp, not osborne1, because the interposer's video
++// personality *is* the SCREEN-PAC (#24): the card reads 2400h's presence bit as
++// fitted, takes the SCREEN-PAC's register at 2400h, and draws the 104-column
++// window -- and boots in it.  See machine_reset().
++class osborne1nx_state : public osborne1sp_state
 +{
 +public:
 +	osborne1nx_state(const machine_config &mconfig, device_type type, const char *tag) :
-+		osborne1_state(mconfig, type, tag),
++		osborne1sp_state(mconfig, type, tag),
 +		m_acb4000(*this, "acb4000"),
 +		m_softrom(*this, "softrom")
 +	{
 +	}
 +
 +	void osborne1nx(machine_config &config);
++
++protected:
++	virtual void machine_reset() override ATTR_COLD;
++
++	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 +
 +private:
 +	void osborne1nx_mem(address_map &map) ATTR_COLD;
@@ -1042,10 +1057,83 @@
  u8 osborne1_state::bank2_peripherals_r(offs_t offset)
  {
  	// Since each peripheral only checks two bits, many addresses will
-@@ -804,6 +836,81 @@
+@@ -628,7 +671,7 @@
+ 	m_hc_left = 1;
+ }
+ 
+-template <int Width, unsigned Scale>
++template <int Width, unsigned Scale, bool HalfPitch>
+ inline void osborne1_state::draw_rows(uint16_t col, bitmap_ind16 &bitmap, const rectangle &cliprect)
+ {
+ 	for (int y = cliprect.min_y; cliprect.max_y >= y; ++y)
+@@ -651,9 +694,23 @@
+ 			bool const underline = BIT(chr, 7) && (ra == 9);
+ 			u8 const gfx = underline ? 0xff : m_p_chargen[(ra << 7) | (chr & 0x7f)];
+ 
+-			// Display a scanline of a character
+-			for (unsigned b = 0; 8 > b; ++b)
+-				p = std::fill_n(p, Scale, BIT(gfx, 7 - b) ? clr : 0);
++			// Display a scanline of a character.  In the SCREEN-PAC's
++			// high-resolution mode the dot clock is doubled, so the character
++			// is half as wide *on the same tube* and two of its dots land in
++			// one emulated pixel -- the pixel is ink if either dot is.  That is
++			// the whole of "the dots are closer together": the tube's width,
++			// and so the screen's geometry, does not change with the mode.
++			if (HalfPitch)
++			{
++				for (unsigned b = 0; 4 > b; ++b)
++					p = std::fill_n(p, Scale,
++							(BIT(gfx, 7 - 2 * b) || BIT(gfx, 6 - 2 * b)) ? clr : 0);
++			}
++			else
++			{
++				for (unsigned b = 0; 8 > b; ++b)
++					p = std::fill_n(p, Scale, BIT(gfx, 7 - b) ? clr : 0);
++			}
+ 		}
+ 	}
+ }
+@@ -804,6 +861,126 @@
  }
  
  
++void osborne1nx_state::machine_reset()
++{
++	osborne1sp_state::machine_reset();
++
++	// The interposer's video personality is the SCREEN-PAC, so the machine
++	// presents it from reset -- and in the 104-column window, which is the
++	// widest of the three widths the board has (52 / 80 / 104).  80 is the one
++	// MAME cannot express yet -- osborne1sp offers 52 and 104, not 80 (#274) --
++	// so 104 is the stand-in until that is fixed, and when it is, this is the
++	// line that moves.  The guest can still switch the window itself at 2400h:
++	// the register is the SCREEN-PAC's own, and this is only its power-on value.
++	m_resolution = 1;
++}
++
++
++// The SCREEN-PAC's two windows, on a tube whose width does not change with the
++// mode.  52 columns is the stock rendering, dot for dot -- the same picture the
++// stock machine draws, which is why an image-less machine still boots
++// identically.  104 columns is the board's doubled dot clock: the character is
++// half as wide, so twice as many fit in the same width, and draw_rows' HalfPitch
++// puts two of its dots in each emulated pixel.
++//
++// This is where osborne1nx parts company with MAME's osborne1sp, which models the
++// same board as an 832x240 screen -- a *window* twice as wide, because MAME sizes
++// a window from the screen's pixels.  A 5" CRT does not change width when the
++// board doubles the dot clock, and neither does this machine's screen.
++uint32_t osborne1nx_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect)
++{
++	if (m_resolution)
++		draw_rows<104, 1, true>((scroll_x() & 0x60) + (m_hc_left ? 0x09 : 0x01) + 0x17, bitmap, cliprect);
++	else
++		draw_rows<52, 1>(scroll_x() + 0x0b, bitmap, cliprect);
++
++	return 0;
++}
++
++
 +void osborne1nx_state::osborne1nx_mem(address_map &map)
 +{
 +	osborne1_mem(map);
@@ -1099,7 +1187,12 @@
 +	// the stock machine ANDs its own colliding devices.  At DOOR_BASE that is
 +	// nothing, which is the point of choosing it -- and the same code is what
 +	// would show the corruption if the door were moved back onto a device.
-+	u8 data = osborne1_state::bank2_peripherals_r(offset);
++	//
++	// The SCREEN-PAC's presence bit comes from the same chain: the card answers
++	// 2400h with bit 2 LOW, which is how software detects the board with no ROM
++	// change (docs/mame-emulation.md 2), and the interposer's video personality
++	// is that board.
++	u8 data = osborne1sp_state::bank2_peripherals_r(offset);
 +
 +	offs_t const a = offset + 0x2000;
 +	if ((a == DOOR_BASE) || (a == DOOR_BASE + 1))
@@ -1117,14 +1210,17 @@
 +		return;
 +	}
 +
-+	osborne1_state::bank2_peripherals_w(offset, data);
++	// Everything else is the machine's, including the SCREEN-PAC's own register
++	// at 2400h -- which is what lets the guest choose the window, and what makes
++	// this machine's 104-column power-on value a *default* rather than a cage.
++	osborne1sp_state::bank2_peripherals_w(offset, data);
 +}
 +
 +
  void osborne1_state::osborne1_op(address_map &map)
  {
  	map(0x0000, 0xffff).r(FUNC(osborne1_state::opcode_r));
-@@ -830,6 +937,21 @@
+@@ -830,6 +1007,21 @@
  }
  
  
@@ -1146,10 +1242,13 @@
  static INPUT_PORTS_START( osborne1 )
  	PORT_START("ROW0")
  	PORT_BIT(0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_BACKSLASH)                             PORT_CHAR('[') PORT_CHAR(']')
-@@ -1065,6 +1187,39 @@
- }
- 
- 
+@@ -1062,6 +1254,42 @@
+ 	crtc.set_char_width(8);
+ 	crtc.set_update_row_callback(FUNC(osborne1nv_state::crtc_update_row));
+ 	crtc.set_on_update_addr_change_callback(FUNC(osborne1nv_state::crtc_update_addr_changed));
++}
++
++
 +void osborne1nx_state::osborne1nx(machine_config &config)
 +{
 +	osborne1_base(config);
@@ -1158,6 +1257,9 @@
 +	m_maincpu->set_addrmap(AS_IO, &osborne1nx_state::osborne1nx_io);
 +
 +	m_screen->set_screen_update(FUNC(osborne1nx_state::screen_update));
++	// The tube, which the SCREEN-PAC's mode does not change: 52 columns' worth of
++	// width in both of its windows.  The stock machine's geometry, deliberately --
++	// the board doubles the dot clock, not the width of the display.
 +	m_screen->set_raw(MAIN_CLOCK / 2, 512, 0, 52 * 8, 260, 0, 24 * 10);
 +	m_screen->screen_vblank().set(m_pia1, FUNC(pia6821_device::ca1_w));
 +	m_screen->set_palette("palette");
@@ -1180,13 +1282,10 @@
 +	// serves there: the frame and the screen-code slots retired with the ROM-side
 +	// frame path (#278), so there is nothing else to mount and nothing else for
 +	// the door's `PRESENT` to select.
-+}
-+
-+
- ROM_START( osborne1 )
- 	ROM_DEFAULT_BIOS("ver144")
- 	ROM_SYSTEM_BIOS( 0, "vera",   "BIOS version A" )
-@@ -1096,6 +1251,16 @@
+ }
+ 
+ 
+@@ -1096,6 +1324,16 @@
  
  #define rom_osborne1sp rom_osborne1
  
@@ -1203,8 +1302,27 @@
  ROM_START( osborne1nv )
  	ROM_REGION(0x1000, "maincpu", 0)
  	ROM_LOAD( "monrom-rev1.51-12.ud11", 0x0000, 0x1000, CRC(298da402) SHA1(7fedd070936ccfe98f96d6e0ac71689666da79cb) )
-@@ -1114,3 +1279,4 @@
+@@ -1114,3 +1352,4 @@
  COMP( 1981, osborne1,   0,        0,      osborne1,   osborne1,   osborne1_state,   empty_init, "Osborne",       "Osborne-1",                 MACHINE_SUPPORTS_SAVE )
  COMP( 1983, osborne1sp, osborne1, 0,      osborne1sp, osborne1,   osborne1sp_state, empty_init, "Osborne",       "Osborne-1 with SCREEN-PAC", MACHINE_SUPPORTS_SAVE )
  COMP( 1984, osborne1nv, osborne1, 0,      osborne1nv, osborne1nv, osborne1nv_state, empty_init, "Osborne/Nuevo", "Osborne-1 (Nuevo Video)",   MACHINE_SUPPORTS_SAVE )
 +COMP( 1981, osborne1nx, osborne1, 0,      osborne1nx, osborne1,   osborne1nx_state, empty_init, "Osborne",       "Osborne-1 (emulated interposer)", MACHINE_SUPPORTS_SAVE )
+--- a/src/devices/bus/rs232/pty.cpp
++++ b/src/devices/bus/rs232/pty.cpp
+@@ -77,6 +77,16 @@
+ 	m_timer_poll = timer_alloc(FUNC(pseudo_terminal_device::update_queue), this);
+ 
+ 	open();
++
++	// Print the slave's path.  A pty is host-local by construction, so that path
++	// is the only way into this device from outside -- and MAME publishes it
++	// nowhere a script can read: the UI's "Pseudo Terminals" screen reads this
++	// same value for a human.  Anything that has to *attach* to the emulated
++	// machine's serial port (a relay to a modem, say) therefore has to be told
++	// it, and this is that.  It costs one line of output when nobody is
++	// listening, and it makes the port scriptable.
++	if (is_open())
++		osd_printf_info("Pseudo Terminal '%s'\n", slave_name().c_str());
+ }
+ 
+ void pseudo_terminal_device::device_stop()

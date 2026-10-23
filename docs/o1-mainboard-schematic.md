@@ -420,9 +420,16 @@ PASS  C6    I/O ports 0x04/0x05 alias 0x00/0x01 (only A0/A1 decoded)
 PASS  C10   the selected bank is re-derived on instruction fetch, not latched
 PASS  C7    I/O port 0x02 maps the 1-bit bank-3 plane over 0xF000
 PASS  C8    ROM at 0x0000-0x0FFF mirrors 0x1000-0x1FFF
+      SCREEN-PAC: not fitted (2400h bit 2 HIGH)
 PASS  C9    nominally-dead bank-2 addresses alias real devices (sloppy decode)
-== 11 passed, 0 failed ==
+PASS  D1    the Z80 executes in the ROM while CP/M is running
+== 12 passed, 0 failed ==
 ```
+
+C9 asks the machine whether the SCREEN-PAC is fitted before it decides what an
+alias should read, because a machine with the board answers `2400h`-`27FFh` as
+well and pulls bit 2 low there (`docs/mame-emulation.md` §2). On this machine the
+line reads *not fitted*, so the two reads are compared exactly.
 
 The page maps it prints are §2 of the map doc in machine form: in bank 2,
 ROM across `0000-1FFF`, devices across `2000-3FFF`, RAM from `4000` up; in
