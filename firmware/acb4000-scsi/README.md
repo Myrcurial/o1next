@@ -97,9 +97,11 @@ move when this personality's own firmware has a measurement rather than an argum
 
 - **The end-to-end acceptance.** `HARD.COM` reads LBA 5 for eleven blocks and
   jumps into what it read, so the drive has to *already carry an MD-10 system* —
-  and the archive holds none: nothing initialises the low-RAM DPH/DPB tables at
-  `0x055E`/`0x056E` (`docs/harddisk-decision.md` §7.3). That is #178's residue,
-  not this personality's, and it is what `docs/acb4000-personality.md` records.
+  and the archive holds no system image. (The DPH/DPB tables are **not** the
+  blocker: they are static data inside `HARD.COM` at `0xDD5E`/`0xDD6E`, and
+  `PREP.COM` option 3 writes a system that boots — `docs/harddisk-decision.md`
+  §7.3, `docs/md10-system.md` §9.) What is left for this personality is
+  `docs/acb4000-personality.md`'s list.
 - **The FAT32 store.** `acb4000_store.c` ships the in-memory implementation. The
   blob format is #180 and the mailbox front end is #181.
 - **The RP2354B/PIO glue.** The register block is modelled, not driven; the PIO
