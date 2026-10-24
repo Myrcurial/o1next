@@ -155,10 +155,17 @@ def main():
     if not os.path.exists(com):
         sys.exit('%s: no MDM740.COM -- run populate-hd.py --stage first' % com)
 
+    # The assembled overlay is the one artifact here that cannot be produced
+    # without a machine session, so it is kept *in the tree*: the drive is
+    # rewritten from the tree, and a re-stage would otherwise lose it.
+    tree_hex = os.path.join(tree, 'B', OVERLAY)
     if args.hex:
         hexfile = os.path.expanduser(args.hex)
+    elif os.path.exists(tree_hex):
+        hexfile = tree_hex
     else:
-        drive = args.drive or os.path.expanduser('~/Documents/O1NEXT/o1next/assets/hd.chd')
+        drive = args.drive or os.path.expanduser(
+            '~/Documents/O1NEXT/o1next/assets/hd.chd')
         chdman = args.chdman or shutil.which('chdman')
         if not chdman:
             for cand in ('~/scratch/mame-mame0289/chdman',
@@ -169,8 +176,11 @@ def main():
                     break
         if not chdman:
             sys.exit('no chdman: pass --chdman, or --hex with the file already out')
-        hexfile = read_overlay_from_drive(load_populate(), os.path.expanduser(drive),
-                                          chdman)
+        hexfile = read_overlay_from_drive(load_populate(),
+                                          os.path.expanduser(drive), chdman)
+    if os.path.abspath(hexfile) != os.path.abspath(tree_hex):
+        shutil.copyfile(hexfile, tree_hex)
+        print('kept %s in the tree' % tree_hex)
 
     placed, high = patch(hexfile, com)
     installed = BANNER in open(com, 'rb').read()

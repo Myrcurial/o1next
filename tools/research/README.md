@@ -246,6 +246,28 @@ scratch programs, "figuring it out" notebooks/scripts.
   `PIP.COM`, `STAT.COM`, `ED.COM`, `SUBMIT.COM`, `XSUB.COM`.  The FOG library has
   no assembler and no debugger, so without this the drive carries overlay *source*
   it cannot assemble.
+
+  And it stages the **disks Osborne shipped** (`--no-shipped` skips them) out of
+  the repo's own `research/shipped-software/*.IMD`: WordStar, SuperCalc, MBASIC,
+  dBASE II, the diagnostics, the CP/M system disks.  FOG is the *archive*; these
+  are the factory disks, and a drive without them is missing exactly what someone
+  sitting at the machine expects.  Each disk lands on one drive by a table
+  (`SHIPPED` in the file) rather than by keyword, and the mixed densities are
+  handled by probing the two cpmtools defs -- **choosing by whether the whole
+  listing is valid 8.3 names**, because reading a single-density disk with the
+  double-density def *succeeds* and returns a hundred lines of high-bit rubbish.
+  A file already staged wins, so a shipped disk cannot replace the CP/M toolkit
+  or the installed `MDM740.COM` (OS1MDM7's is the 2304-byte overlay, not the
+  program).
+
+  **`INDEX.TXT` is written CRLF**, because it is read *on the machine*: a bare LF
+  runs the lines together in `TYPE` and in any editor that counts lines by CR.
+
+  **Where to re-arrange a drive's contents:** `~/Documents/O1NEXT/hd/<A..K>/`,
+  one directory per logical drive, each with a `MANIFEST.txt`; move the file,
+  edit the description, re-run `--write`.  `--stage` re-applies the *sources*
+  (FOG selection, shipped disks, toolkit), so it will undo a move -- the full
+  walk-through is in the tool's own docstring.
 - **`mdm740-assemble.lua`** — assembles the **Comm-Pac overlay** on the machine
   (#342): boots the staged drive, types `B:` and `ASM M7OD-5`, and leaves
   `M7OD-5.HEX` on B:.  It exists because this project has **no 8080 assembler on
