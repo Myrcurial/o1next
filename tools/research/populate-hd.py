@@ -16,10 +16,41 @@ WHY A STAGING TREE AND NOT A SCRIPT THAT DOES IT ALL
     fill, and re-arrange, where each logical drive is a directory and each
     directory carries a manifest of what is in it and where it came from.  So
     `--stage` is the mechanical half (match the selection list against an
-    extracted FOG library, sort into topical buckets) and `--write` is the
-    filesystem half.  **The tree is the input to `--write`**, so moving a file
-    between drives, or editing a description, is done by moving the file or
-    editing the manifest -- no code change, and no re-derivation of anything.
+    extracted FOG library, add the shipped Osborne disks and the CP/M toolkit,
+    sort into topical buckets) and `--write` is the filesystem half.  **The tree
+    is the input to `--write`**, so moving a file between drives, or editing a
+    description, is done by moving the file or editing the manifest -- no code
+    change, and no re-derivation of anything.
+
+WHERE TO RE-ARRANGE THE DISK, WHICH IS THE QUESTION THIS TOOL GETS ASKED
+
+    `~/Documents/O1NEXT/hd/` (`--out`), one directory per logical drive:
+
+        ~/Documents/O1NEXT/hd/A/    the drive you land on, so: the CP/M toolkit
+        ~/Documents/O1NEXT/hd/B/    comms -- MDM740, MCall, MEX, Kermit
+        ~/Documents/O1NEXT/hd/C/    word processing -- WordStar
+        ~/Documents/O1NEXT/hd/D/    data -- SuperCalc, dBASE II
+        ...                         E languages, F disk tools, G printing,
+                                    H games, I education, J everything else
+        ~/Documents/O1NEXT/hd/K/
+
+    To change what is on a drive: **move the file** between those directories,
+    edit the `MANIFEST.txt` beside it if the description needs to change, and run
+    `--write` again.  Do **not** re-run `--stage` afterwards unless you want the
+    sources re-applied -- `--stage` is what fills the tree from the FOG library,
+    the shipped disks and the toolkit, and it will put a file you moved back where
+    its source says it belongs.
+
+    Re-arranging the *sources* is a different edit:
+
+        tools/research/hd-selected.txt   which FOG files are wanted, and how they
+                                         are described (one line per file)
+        SHIPPED, in this file            which shipped Osborne disk lands on which
+                                         drive
+        BUCKETS, in this file            the keyword rules that sort FOG files
+
+    And the drive's `INDEX.TXT` is generated from the manifests by `--write`, so
+    it always describes what is actually there -- in CRLF, because CP/M reads it.
 
 THE BUCKETS ARE A FIRST PASS, AND THE MANIFEST IS THE RECORD
 
@@ -97,6 +128,45 @@ TOOLKIT = ('ASM.COM', 'DDT.COM', 'LOAD.COM', 'PIP.COM', 'STAT.COM',
            'ED.COM', 'SUBMIT.COM', 'XSUB.COM')
 SYSTEM_DISK = os.path.join('research', 'shipped-software', 'OS1SYSD.IMD')
 SYSTEM_DEF = 'osborne1'
+
+# ------------------------------------------------------------- shipped disks
+# The FOG library is the *archive*: 219 disks of long-tail software.  These are
+# the disks Osborne actually shipped, and they are what someone sitting at the
+# machine expects to find -- WordStar, SuperCalc, MBASIC, dBASE II, the
+# diagnostics -- so the drive gets them too (#262).  They are in the repo as IMD
+# images, which makes this step reproducible without the FOG tree at all.
+#
+# Each disk is a coherent unit, so the drive it lands on is a table rather than a
+# keyword guess.  It is a *first* placement, not a rule: the tree is the input, so
+# moving WordStar to another drive afterwards is moving files.
+#
+# `mdm740.com` is the one file deliberately left behind: OS1MDM7 carries the
+# 2304-byte *overlay* for the plain Osborne serial port, while B: already has the
+# installed Comm-Pac build (see mdm740-overlay.py).  Anything already staged wins,
+# and every skip is reported -- a shipped disk must never quietly replace the
+# program this machine needs.
+SHIPPED = (
+    ('O1CPM',   'A', 'CP/M 2.2 system disk (shipped)'),
+    ('OS1SYSD', 'A', 'CP/M 2.2 system disk, double density (shipped)'),
+    ('OS1SYSS', 'A', 'CP/M 2.2 system disk, single density (shipped)'),
+    ('OS1UTLS', 'A', 'Osborne utilities disk (shipped)'),
+    ('OS1XUTLS', 'A', 'Osborne utilities, extra (shipped)'),
+    ('OS1WRDST', 'C', 'WordStar (shipped)'),
+    ('O1WSMM',  'C', 'WordStar + MailMerge (shipped)'),
+    ('O1SCALC', 'D', 'SuperCalc (shipped)'),
+    ('OS1DBASE', 'D', 'dBASE II (shipped)'),
+    ('OS1BASIC', 'E', 'MBASIC / CBASIC (shipped)'),
+    ('O1CBMB',  'E', 'CBASIC / MBASIC (shipped)'),
+    ('OS1MCAL', 'B', 'MCall telephone directory and dialer (shipped)'),
+    ('OS1MDM7', 'B', 'Modem 740 overlay disk (shipped)'),
+    ('OS1DIAS', 'F', 'Osborne diagnostics (shipped)'),
+)
+
+# A CP/M filename: eight printable characters, a dot, three more.  The set is
+# deliberately narrower than CP/M allows -- the symbols a directory entry can
+# legally hold are mostly punctuation -- because anything outside it is a name
+# this tool cannot reproduce faithfully and should say so about.
+CPM_NAME = re.compile(r"^[A-Z0-9!#$%&'()+\-@^_{}~`]{1,8}\.[A-Z0-9]{1,3}$")
 
 
 def bucket_for(desc, ext):
@@ -185,6 +255,92 @@ def marked_key(key):
 
 # ------------------------------------------------------------------- staging
 
+def floppy_listing(raw, cwd):
+    """The files on a CP/M floppy image: the DD def first, then the SD one.
+
+    The shipped set is mixed -- the system and application disks are double
+    density (1024-byte sectors, five a track) and the single-density ones are
+    256 x 10 -- and cpmtools' own `diskdefs` carries a def for each.
+
+    The def is chosen by whether the *whole listing* makes sense, not by whether
+    there is one: reading a single-density disk with the double-density def
+    succeeds and returns a hundred lines of high-bit rubbish, so a probe that
+    only asks "did it list anything" picks the wrong geometry and then stages
+    nothing (every name is rejected).  A real directory is eight-and-three
+    printable names, all of them.
+    """
+    for defname in ('osborne1', 'osb1sssd'):
+        r = subprocess.run(['cpmls', '-f', defname, raw], cwd=cwd,
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            continue
+        names = [l.strip() for l in r.stdout.splitlines()
+                 if l.strip() and not l.strip().endswith(':')]
+        if names and all(CPM_NAME.match(n.upper()) for n in names):
+            return defname, names
+    return None, []
+
+
+def stage_shipped(out, manifests):
+    """The disks Osborne shipped, out of the repo's own IMD images.
+
+    The FOG library is the archive; these are the factory disks, and a drive
+    without them is missing WordStar, SuperCalc, MBASIC and dBASE II -- which is
+    what "the contents of the disk do not include the original disk's contents"
+    meant.  Files already staged win: the CP/M toolkit and the installed
+    MDM740.COM must not be replaced by a shipped disk's older copy, and OS1MDM7's
+    `mdm740.com` is the 2304-byte overlay, not the program.
+    """
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # cpmtools reads `./diskdefs` before its own file, and the def this tool
+    # generates describes a hard-disk partition, so these floppy reads have to
+    # happen somewhere without one.
+    cwd = tempfile.mkdtemp(prefix='populate-hd-floppy-')
+    staged, skipped, absent, odd = 0, [], [], []
+    for disk, letter, what in SHIPPED:
+        imd = os.path.join(repo, 'research', 'shipped-software', disk + '.IMD')
+        if not os.path.exists(imd):
+            absent.append(disk)
+            continue
+        raw = os.path.join(cwd, disk + '.raw')
+        subprocess.run([sys.executable,
+                        os.path.join(repo, 'tools', 'research', 'imdinfo.py'),
+                        '--raw', raw, imd], check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        defname, names = floppy_listing(raw, cwd)
+        if not names:
+            absent.append(disk)
+            continue
+        for name in names:
+            # A CP/M name is 8.3 and printable; anything else is a directory
+            # entry this cannot safely reproduce (a high-bit or filler name --
+            # OS1UTLS carries one that lists as `\\.RAN`), so it is reported
+            # rather than guessed at.
+            if not CPM_NAME.match(name.upper()):
+                odd.append('%s (%s)' % (name, disk))
+                continue
+            dest = os.path.join(out, letter, name.upper())
+            if os.path.exists(dest):
+                skipped.append('%s (%s)' % (name.upper(), disk))
+                continue
+            r = subprocess.run(['cpmcp', '-f', defname, raw, '0:' + name, dest],
+                               cwd=cwd, stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL)
+            if r.returncode == 0 and os.path.exists(dest) and os.path.getsize(dest):
+                manifests[letter].append((name.upper(), disk, what))
+                staged += 1
+            else:
+                skipped.append('%s (%s, cpmcp refused)' % (name.upper(), disk))
+    print('shipped:     %d file(s) from %d shipped disk(s); %d already staged'
+          % (staged, len(SHIPPED) - len(absent), len(skipped)))
+    if absent:
+        print('             no image in research/shipped-software for: %s'
+              % ', '.join(absent))
+    if odd:
+        print('             not a CP/M name, left alone: %s' % ', '.join(odd))
+    return staged
+
+
 def stage_toolkit(out, manifests):
     """The CP/M toolkit, from the shipped system disk, into A:.
 
@@ -252,6 +408,8 @@ def stage(args):
 
     if not args.no_toolkit:
         stage_toolkit(out, manifests)
+    if not args.no_shipped:
+        stage_shipped(out, manifests)
 
     for d in DRIVES:
         rows = sorted(manifests[d])
@@ -355,7 +513,10 @@ def index_text(drive_dir):
     for extra in sorted(have - listed):            # files the manifest does not know
         rows.append((extra, ''))
     rows.sort()
-    return ''.join('%s\t%s\n' % (k, d) for k, d in rows)
+    # CRLF, because this file is read *on the machine*: CP/M text files end their
+    # lines CR LF, and a bare LF runs the lines together in `TYPE`, in an editor
+    # and in anything that counts lines by CR.  Measured on the drive, 2026-10-23.
+    return ''.join('%s\t%s\r\n' % (k, d) for k, d in rows)
 
 
 def write(args):
@@ -457,6 +618,8 @@ def main():
                     help='with --write: say what would happen, write nothing')
     ap.add_argument('--no-toolkit', action='store_true',
                     help='with --stage: do not put the CP/M toolkit on drive A')
+    ap.add_argument('--no-shipped', action='store_true',
+                    help='with --stage: do not put the shipped Osborne disks on')
     args = ap.parse_args()
     if args.stage:
         return stage(args)
